@@ -1,0 +1,208 @@
+'use client';
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Plus, Search, X, Pencil, Trash2, Inbox, SlidersHorizontal, Download, Layers } from 'lucide-react';
+import { Shell } from './Shell';
+import { Pill } from '@/lib/ui';
+import { Comments } from './Comments';
+
+export type Col = { key: string; label: string; badge?: boolean; strong?: boolean; mono?: boolean; render?: (v: any, row: any) => any };
+export type Field = { key: string; label: string; type?: 'text'|'textarea'|'number'|'date'|'select'; options?: string[]; required?: boolean; half?: boolean };
+export type AltView = { key: string; label: string; icon?: any; render: (rows: any[], openDetail: (r: any) => void) => any };
+type Props = { title: string; subtitle?: string; endpoint: string; projectScoped?: boolean; columns: Col[]; fields: Field[]; statusKey?: string; altViews?: AltView[]; entity?: string };
+
+const GROUPABLE = ['status','priority','type','assignee','epic','level','category','role'];
+
+export function ResourceView({ title, subtitle, endpoint, projectScoped, columns, fields, statusKey = 'status', altViews = [], entity }: Props) {
+  const router = useRouter();
+  const [rows, setRows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [pid, setPid] = useState<number | null>(null);
+  const [q, setQ] = useState('');
+  const [filter, setFilter] = useState('');
+  const [sortK, setSortK] = useState('id');
+  const [sortDir, setSortDir] = useState<1 | -1>(-1);
+  const [groupBy, setGroupBy] = useState('');
+  const [detail, setDetail] = useState<any>(null);
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<any>(null);
+  const [form, setForm] = useState<any>({});
+  const [err, setErr] = useState('');
+  const [mode, setMode] = useState('table');
+
+  async function load(p: number | null) {
+    setLoading(true);
+    const url = projectScoped && p ? `${endpoint}?projectId=${p}` : endpoint;
+    const r = await fetch(url);
+    if (r.status === 401) { router.push('/login'); return; }
+    const d = await r.json(); setRows(Array.isArray(d) ? d : []); setLoading(false);
+  }
+  useEffect(() => { const p = projectScoped ? (Number(localStorage.getItem('pms.project')) || null) : null; setPid(p); load(p); /* eslint-disable-next-line */ }, []);
+
+  const statuses = useMemo(() => Array.from(new Set(rows.map((r) => r[statusKey]).filter(Boolean))), [rows, statusKey]);
+  const groupCols = useMemo(() => columns.filter((c) => GROUPABLE.includes(c.key)).map((c) => c.key), [columns]);
+  const view = useMemo(() => {
+    let v = rows;
+    if (q) { const s = q.toLowerCase(); v = v.filter((r) => Object.values(r).some((x) => String(x ?? '').toLowerCase().includes(s))); }
+    if (filter) v = v.filter((r) => r[statusKey] === filter);
+    v = [...v].sort((a, b) => { const x = a[sortK], y = b[sortK]; if (x === y) return 0; return (x > y ? 1 : -1) * sortDir; });
+    return v;
+  }, [rows, q, filter, sortK, sortDir, statusKey]);
+
+  const grouped = useMemo(() => {
+    if (!groupBy) return null;
+    const m = new Map<string, any[]>();
+    for (const r of view) { const k = String(r[groupBy] ?? '—'); if (!m.has(k)) m.set(k, []); m.get(k)!.push(r); }
+    return Array.from(m.entries());
+  }, [view, groupBy]);
+
+  function sort(k: string) { if (sortK === k) setSortDir((d) => (d === 1 ? -1 : 1)); else { setSortK(k); setSortDir(1); } }
+  function openNew() { const f: any = {}; fields.forEach((x) => (f[x.key] = '')); setForm(f); setEditing(null); setErr(''); setOpen(true); }
+  function openEdit(row: any) { const f: any = {}; fields.forEach((x) => (f[x.key] = row[x.key] ?? '')); setForm(f); setEditing(row); setErr(''); setOpen(true); }
+  async function save(e: React.FormEvent) {
+    e.preventDefault(); setErr('');
+    const body: any = { ...form };
+    if (projectScoped) { if (!pid) { setErr('먼저 상단에서 프로젝트를 선택하세요'); return; } body.projectId = pid; }
+    const url = editing ? `${endpoint}/${editing.id}` : endpoint;
+    const res = await fetch(url, { method: editing ? 'PATCH' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (res.ok) { setOpen(false); setDetail(null); load(pid); } else { const d = await res.json().catch(() => ({})); setErr(d.message || '저장 실패'); }
+  }
+  async function remove(row: any) {
+    if (!confirm(`삭제하시겠습니까?\n${row.code || ''} ${row.title || row.name || ''}`)) return;
+    const res = await fetch(`${endpoint}/${row.id}`, { method: 'DELETE' });
+    if (res.ok) { setDetail(null); load(pid); }
+  }
+  function exportCsv() {
+    const cols = columns.map((c) => c.key);
+    const head = columns.map((c) => '"' + c.label + '"').join(',');
+    const body = view.map((r) => cols.map((k) => '"' + String(r[k] ?? '').replace(/"/g, '""') + '"').join(',')).join('\n');
+    const csv = '﻿' + head + '\n' + body;
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    a.download = `${title}_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+  }
+
+  const Row = ({ row }: { row: any }) => (
+    <tr onClick={() => setDetail(row)}>
+      {columns.map((c) => (
+        <td key={c.key}>
+          {c.render ? c.render(row[c.key], row)
+            : c.badge ? <Pill v={row[c.key]} />
+            : c.mono || c.key === 'code' ? <span className="mono">{row[c.key] || '—'}</span>
+            : <span style={c.strong ? { fontWeight: 650, color: 'var(--text-1)' } : undefined}>{row[c.key] ?? '—'}</span>}
+        </td>
+      ))}
+      <td onClick={(e) => e.stopPropagation()} style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+        <button className="btn btn-ghost btn-sm" onClick={() => openEdit(row)}><Pencil style={{ width: 14 }} /></button>
+        <button className="btn btn-danger btn-sm" onClick={() => remove(row)}><Trash2 style={{ width: 14 }} /></button>
+      </td>
+    </tr>
+  );
+
+  return (
+    <Shell title={title}>
+      <div className="row">
+        <div><h2 className="h1">{title}</h2>{subtitle && <p className="h-sub">{subtitle}</p>}</div>
+        <div className="sp" />
+        <button className="btn btn-pri" onClick={openNew} disabled={Boolean(projectScoped) && !pid}><Plus />새로 만들기</button>
+      </div>
+
+      <div className="toolbar">
+        <div className="search" style={{ minWidth: 200 }}>
+          <Search style={{ width: 16, height: 16 }} />
+          <input placeholder="검색…" value={q} onChange={(e) => setQ(e.target.value)} />
+          {q && <button onClick={() => setQ('')} style={{ color: 'var(--text-3)' }}><X style={{ width: 15 }} /></button>}
+        </div>
+        {statuses.length > 0 && (
+          <select className="sel" value={filter} onChange={(e) => setFilter(e.target.value)}>
+            <option value="">전체 상태</option>
+            {statuses.map((s) => <option key={String(s)} value={String(s)}>{String(s)}</option>)}
+          </select>
+        )}
+        {groupCols.length > 0 && (
+          <select className="sel" value={groupBy} onChange={(e) => setGroupBy(e.target.value)} title="그룹화">
+            <option value="">그룹화 없음</option>
+            {groupCols.map((k) => <option key={k} value={k}>그룹: {columns.find((c) => c.key === k)?.label}</option>)}
+          </select>
+        )}
+        {altViews.length > 0 && (
+          <div className="seg">
+            <button className={mode === 'table' ? 'on' : ''} onClick={() => setMode('table')}>표</button>
+            {altViews.map((v) => <button key={v.key} className={mode === v.key ? 'on' : ''} onClick={() => setMode(v.key)}>{v.label}</button>)}
+          </div>
+        )}
+        <div className="sp" />
+        <button className="btn btn-sm" onClick={exportCsv} title="CSV 내보내기"><Download style={{ width: 14 }} />CSV</button>
+        <span className="muted"><SlidersHorizontal style={{ width: 13, verticalAlign: -2 }} /> {view.length}건</span>
+      </div>
+
+      {projectScoped && !pid && !loading && (
+        <div className="card card-pad" style={{ marginBottom: 6, background: 'var(--brand-50)', borderColor: 'var(--brand-100)' }}>
+          <div className="row" style={{ gap: 12, flexWrap: 'wrap' }}>
+            <div><div style={{ fontWeight: 750, color: 'var(--brand-700)' }}>프로젝트가 없습니다</div>
+              <p className="muted" style={{ margin: '3px 0 0' }}>이 화면은 프로젝트 단위로 동작합니다. 먼저 프로젝트를 만들거나, 설정에서 데모 데이터를 채우세요.</p></div>
+            <div className="sp" />
+            <a href="/projects" className="btn">프로젝트 만들기</a>
+            <a href="/settings" className="btn btn-pri">데모 데이터 채우기</a>
+          </div>
+        </div>
+      )}
+      {mode !== 'table' && !loading && <div style={{ marginBottom: 6 }}>{altViews.find((v) => v.key === mode)?.render(view, setDetail)}</div>}
+
+      {(mode === 'table' || loading) && <div className="card tbl-wrap">
+        <table className="tbl">
+          <thead><tr>
+            {columns.map((c) => <th key={c.key} onClick={() => sort(c.key)}>{c.label}{sortK === c.key && <span className="arr">{sortDir === 1 ? '▲' : '▼'}</span>}</th>)}
+            <th className="no-sort" style={{ width: 90 }}></th>
+          </tr></thead>
+          <tbody>
+            {loading && Array.from({ length: 5 }).map((_, i) => (<tr key={i}>{columns.map((c) => <td key={c.key}><div className="skel" style={{ height: 14, width: '70%' }} /></td>)}<td></td></tr>))}
+            {!loading && !grouped && view.map((row) => <Row key={row.id} row={row} />)}
+            {!loading && grouped && grouped.map(([g, list]) => (
+              <>
+                <tr key={'g' + g}><td colSpan={columns.length + 1} style={{ background: 'var(--surface-3)', fontWeight: 750, fontSize: 12.5 }}><Layers style={{ width: 13, verticalAlign: -2, marginRight: 6, color: 'var(--brand)' }} />{g} <span className="muted">· {list.length}</span></td></tr>
+                {list.map((row) => <Row key={row.id} row={row} />)}
+              </>
+            ))}
+            {!loading && view.length === 0 && (<tr><td colSpan={columns.length + 1}><div className="empty"><Inbox /><div>데이터가 없습니다. “새로 만들기”로 추가하세요.</div></div></td></tr>)}
+          </tbody>
+        </table>
+      </div>}
+
+      {detail && (<>
+        <div className="scrim" onClick={() => setDetail(null)} />
+        <aside className="over">
+          <div className="over-h"><span className="mono" style={{ fontSize: 13 }}>{detail.code || `#${detail.id}`}</span><div className="sp" /><button className="iconbtn" onClick={() => setDetail(null)}><X /></button></div>
+          <div className="over-b">
+            <h3 style={{ margin: '0 0 16px', fontSize: 19, fontWeight: 800, letterSpacing: '-.02em' }}>{detail.title || detail.name || detail.code}</h3>
+            <dl className="dl">
+              {fields.map((f) => (<div key={f.key} style={{ display: 'contents' }}><dt>{f.label}</dt><dd>{['status','priority','level','type'].includes(f.key) ? <Pill v={detail[f.key]} /> : (detail[f.key] || <span className="muted">—</span>)}</dd></div>))}
+              <dt>생성</dt><dd className="muted">{detail.createdAt ? new Date(detail.createdAt).toLocaleString('ko-KR') : '—'}</dd>
+            </dl>
+            {entity && <Comments entity={entity} entityId={detail.id} />}
+          </div>
+          <div className="over-f"><button className="btn btn-danger" onClick={() => remove(detail)}><Trash2 />삭제</button><div className="sp" /><button className="btn btn-pri" onClick={() => openEdit(detail)}><Pencil />수정</button></div>
+        </aside>
+      </>)}
+
+      {open && (
+        <div className="mscrim" onClick={() => setOpen(false)}>
+          <form className="modal" onClick={(e) => e.stopPropagation()} onSubmit={save}>
+            <div className="modal-h"><h3 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>{editing ? '수정' : '새로 만들기'}</h3><div className="sp" /><button type="button" className="iconbtn" onClick={() => setOpen(false)}><X /></button></div>
+            {err && <div className="err">{err}</div>}
+            <div className="modal-b"><div className="grid2">
+              {fields.map((f) => (
+                <div className="field" key={f.key} style={{ gridColumn: f.half ? 'auto' : '1 / -1' }}>
+                  <label>{f.label}{f.required && ' *'}</label>
+                  {f.type === 'textarea' ? <textarea className="in" value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} />
+                    : f.type === 'select' ? <select className="in" value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}><option value="">선택</option>{(f.options || []).map((o) => <option key={o} value={o}>{o}</option>)}</select>
+                    : <input className="in" type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'} value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} />}
+                </div>
+              ))}
+            </div></div>
+            <div className="modal-f"><div className="sp" /><button type="button" className="btn btn-ghost" onClick={() => setOpen(false)}>취소</button><button type="submit" className="btn btn-pri">저장</button></div>
+          </form>
+        </div>
+      )}
+    </Shell>
+  );
+}
