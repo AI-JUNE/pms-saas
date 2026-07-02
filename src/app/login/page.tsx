@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Logo } from '@/components/Logo';
 export default function LoginPage() {
@@ -8,6 +8,15 @@ export default function LoginPage() {
   const [form, setForm] = useState({ email: '', password: '', name: '', orgName: '' });
   const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
   const set = (k: string) => (e: any) => setForm({ ...form, [k]: e.target.value });
+  useEffect(() => {
+    (async () => {
+      const me = await fetch('/api/auth/me').then((r) => r.json()).catch(() => null);
+      if (me?.authenticated) { router.replace('/dashboard'); return; }
+      const a = await fetch('/api/auth/auto', { method: 'POST' }).then((r) => r.json()).catch(() => null);
+      if (a?.ok) router.replace('/dashboard');
+    })();
+    // eslint-disable-next-line
+  }, []);
   async function submit(e: React.FormEvent) {
     e.preventDefault(); setErr(''); setBusy(true);
     const res = await fetch(mode === 'login' ? '/api/auth/login' : '/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });

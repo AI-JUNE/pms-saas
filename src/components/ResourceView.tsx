@@ -9,6 +9,15 @@ import { Comments } from './Comments';
 
 export type Col = { key: string; label: string; badge?: boolean; strong?: boolean; mono?: boolean; render?: (v: any, row: any) => any };
 type Opt = string | { value: string; label: string };
+const STATUS_COLOR: Record<string, string> = {
+  done: '#2f8f5b', approved: '#2f8f5b', resolved: '#2f8f5b', completed: '#2f8f5b', pass: '#2f8f5b', low: '#2f8f5b',
+  closed: '#94a3b8', draft: '#94a3b8', planned: '#94a3b8', todo: '#94a3b8', na: '#94a3b8',
+  open: '#0e9bb8', in_progress: '#0e9bb8', review: '#0e9bb8', dev: '#0e9bb8',
+  doing: '#be5535', requested: '#be5535',
+  identified: '#d98a16', mitigating: '#d98a16', medium: '#d98a16', pl: '#d98a16', ordered: '#d98a16',
+  high: '#c0414f', critical: '#c0414f', rejected: '#c0414f', fail: '#c0414f', blocked: '#c0414f',
+  pm: '#7c4dff',
+};
 export type Field = { key: string; label: string; type?: 'text'|'textarea'|'number'|'date'|'select'|'combo'; options?: Opt[]; required?: boolean; half?: boolean; numeric?: boolean; hint?: string; placeholder?: string; optionsFrom?: 'members' };
 export type AltView = { key: string; label: string; icon?: any; render: (rows: any[], openDetail: (r: any) => void, save: (id: number, patch: any) => Promise<void>, create: (body: any) => Promise<boolean>) => any };
 type Props = { title: string; subtitle?: string; endpoint: string; projectScoped?: boolean; columns: Col[]; fields: Field[]; statusKey?: string; altViews?: AltView[]; entity?: string; rowHref?: (row: any) => string };
@@ -27,6 +36,8 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
   const [groupBy, setGroupBy] = useState('');
   const [detail, setDetail] = useState<any>(null);
   const [memberOpts, setMemberOpts] = useState<string[]>([]);
+  const [sel, setSel] = useState<Set<number>>(new Set());
+  const toggleSel = (id: number) => setSel((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [form, setForm] = useState<any>({});
@@ -120,6 +131,15 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
     const res = await fetch(`${endpoint}/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch) });
     if (res.ok) load(pid);
   }
+  async function bulkStatus(status: string) {
+    await Promise.all(Array.from(sel).map((id) => fetch(`${endpoint}/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) })));
+    setSel(new Set()); load(pid);
+  }
+  async function bulkDelete() {
+    if (!confirm(`${sel.size}건을 삭제하시겠습니까?`)) return;
+    await Promise.all(Array.from(sel).map((id) => fetch(`${endpoint}/${id}`, { method: 'DELETE' })));
+    setSel(new Set()); load(pid);
+  }
   async function quickCreate(body: any) {
     const b: any = { ...body }; if (projectScoped) { if (!pid) return false; b.projectId = pid; }
     const res = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
@@ -145,7 +165,8 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
   }
 
   const Row = ({ row }: { row: any }) => (
-    <tr onClick={() => rowHref ? router.push(rowHref(row)) : setDetail(row)}>
+    <tr onClick={() => rowHref ? router.push(rowHref(row)) : setDetail(row)} style={{ boxShadow: `inset 3px 0 0 ${STATUS_COLOR[String(row[statusKey])] || 'transparent'}` }}>
+      <td onClick={(e) => e.stopPropagation()} style={{ width: 34, textAlign: 'center' }}><input type="checkbox" checked={sel.has(row.id)} onChange={() => toggleSel(row.id)} /></td>
       {columns.map((c) => (
         <td key={c.key}>
           {c.render ? c.render(row[c.key], row)
@@ -218,22 +239,34 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
       )}
       {mode !== 'table' && !loading && <div style={{ marginBottom: 6 }}>{altViews.find((v) => v.key === mode)?.render(view, setDetail, quickPatch, quickCreate)}</div>}
 
+      {sel.size > 0 && (() => {
+        const sf = fields.find((f) => f.key === statusKey && f.type === 'select');
+        const opts = (sf?.options || []).map((o: any) => (typeof o === 'string' ? { value: o, label: o } : o));
+        return (<div className="card" style={{ padding: '8px 12px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', background: 'var(--brand-50)', border: '1px solid var(--brand-100)' }}>
+          <b style={{ fontSize: 13 }}>{sel.size}건 선택</b>
+          {opts.length > 0 && <span className="muted" style={{ fontSize: 12 }}>상태 →</span>}
+          {opts.map((o: any) => <button key={o.value} className="btn btn-sm" onClick={() => bulkStatus(o.value)}>{o.label}</button>)}
+          <button className="btn btn-sm btn-danger" onClick={bulkDelete}>삭제</button>
+          <div className="sp" /><button className="btn btn-sm btn-ghost" onClick={() => setSel(new Set())}>선택 해제</button>
+        </div>);
+      })()}
       {(mode === 'table' || loading) && <div className="card tbl-wrap">
         <table className="tbl">
           <thead><tr>
+            <th style={{ width: 34, textAlign: 'center' }}><input type="checkbox" aria-label="전체 선택" checked={view.length > 0 && view.every((r) => sel.has(r.id))} onChange={(e) => setSel(e.target.checked ? new Set(view.map((r) => r.id)) : new Set())} /></th>
             {columns.map((c) => <th key={c.key} onClick={() => sort(c.key)}>{c.label}{sortK === c.key && <span className="arr">{sortDir === 1 ? '▲' : '▼'}</span>}</th>)}
             <th className="no-sort" style={{ width: 90 }}></th>
           </tr></thead>
           <tbody>
-            {loading && Array.from({ length: 5 }).map((_, i) => (<tr key={i}>{columns.map((c) => <td key={c.key}><div className="skel" style={{ height: 14, width: '70%' }} /></td>)}<td></td></tr>))}
+            {loading && Array.from({ length: 5 }).map((_, i) => (<tr key={i}><td></td>{columns.map((c) => <td key={c.key}><div className="skel" style={{ height: 14, width: '70%' }} /></td>)}<td></td></tr>))}
             {!loading && !grouped && view.map((row) => <Row key={row.id} row={row} />)}
             {!loading && grouped && grouped.map(([g, list]) => (
               <>
-                <tr key={'g' + g}><td colSpan={columns.length + 1} style={{ background: 'var(--surface-3)', fontWeight: 750, fontSize: 12.5 }}><Layers style={{ width: 13, verticalAlign: -2, marginRight: 6, color: 'var(--brand)' }} />{g} <span className="muted">· {list.length}</span></td></tr>
+                <tr key={'g' + g}><td colSpan={columns.length + 2} style={{ background: 'var(--surface-3)', fontWeight: 750, fontSize: 12.5 }}><Layers style={{ width: 13, verticalAlign: -2, marginRight: 6, color: 'var(--brand)' }} />{g} <span className="muted">· {list.length}</span></td></tr>
                 {list.map((row) => <Row key={row.id} row={row} />)}
               </>
             ))}
-            {!loading && view.length === 0 && (<tr><td colSpan={columns.length + 1}><div className="empty"><Inbox /><div>데이터가 없습니다. “새로 만들기”로 추가하세요.</div></div></td></tr>)}
+            {!loading && view.length === 0 && (<tr><td colSpan={columns.length + 2}><div className="empty"><Inbox /><div>데이터가 없습니다. “새로 만들기”로 추가하세요.</div></div></td></tr>)}
           </tbody>
         </table>
       </div>}
@@ -249,6 +282,24 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
               {fields.map((f) => (<div key={f.key} style={{ display: 'contents' }}><dt>{f.label}</dt><dd>{['status','priority','level','type'].includes(f.key) ? <Pill v={detail[f.key]} /> : (detail[f.key] || <span className="muted">—</span>)}</dd></div>))}
               <dt>생성</dt><dd className="muted">{detail.createdAt ? new Date(detail.createdAt).toLocaleString('ko-KR') : '—'}</dd>
             </dl>
+            {entity === 'documents' && (() => {
+              const steps: [string, string][] = [['draft', '작성중'], ['review', '결재요청'], ['approved', '승인']];
+              const idx = detail.status === 'rejected' ? -1 : steps.findIndex((st) => st[0] === detail.status);
+              return (<div style={{ marginTop: 16 }}>
+                <div className="sect" style={{ marginBottom: 10 }}>결재 진행</div>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  {steps.map((st, i) => { const done = idx >= 0 && idx >= i; return (
+                    <div key={st[0]} style={{ display: 'flex', alignItems: 'center', flex: i < steps.length - 1 ? 1 : '0 0 auto' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                        <span style={{ width: 26, height: 26, borderRadius: 20, background: done ? '#2f8f5b' : 'var(--surface-3)', color: done ? '#fff' : 'var(--text-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800 }}>{i + 1}</span>
+                        <span style={{ fontSize: 11, color: done ? 'var(--text-1)' : 'var(--text-3)', fontWeight: done ? 700 : 500 }}>{st[1]}</span>
+                      </div>
+                      {i < steps.length - 1 && <div style={{ flex: 1, height: 2, background: idx > i ? '#2f8f5b' : 'var(--border)', margin: '0 6px 16px' }} />}
+                    </div>); })}
+                </div>
+                {detail.status === 'rejected' && <div style={{ color: '#c0414f', marginTop: 8, fontWeight: 700, fontSize: 12.5 }}>반려됨</div>}
+                {detail.approvedAt && <div className="muted" style={{ marginTop: 6, fontSize: 12 }}>승인일 {new Date(detail.approvedAt).toLocaleDateString('ko-KR')}</div>}
+              </div>); })()}
             {(() => { const sf = fields.find((f) => f.key === 'status' && f.type === 'select'); return sf && sf.options ? (
               <div style={{ marginTop: 18 }}>
                 <div className="sect" style={{ marginBottom: 8 }}>상태 변경</div>

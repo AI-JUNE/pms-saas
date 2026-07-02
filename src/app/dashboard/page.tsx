@@ -122,6 +122,8 @@ export default function Dashboard() {
           <Bars mounted={mounted} data={[{ label: '할 일', value: cnt(tasks,'status','todo'), color: '#94a3b8' },{ label: '진행중', value: cnt(tasks,'status','doing'), color: '#be5535' },{ label: '완료', value: cnt(tasks,'status','done'), color: '#2f8f5b' }]} /></div>
         <div className="card card-pad dash-card" style={{ animationDelay: '240ms' }}><div className="sect" style={{ marginBottom: 16 }}>리스크 등급</div>
           <Bars mounted={mounted} data={[{ label: 'High', value: cnt(risks,'level','high'), color: '#c0414f' },{ label: 'Medium', value: cnt(risks,'level','medium'), color: '#d98a16' },{ label: 'Low', value: cnt(risks,'level','low'), color: '#2f8f5b' }]} /></div>
+        <div className="card card-pad dash-card" style={{ animationDelay: '300ms' }}><div className="sect" style={{ marginBottom: 16 }}>이슈 유형(트래커)</div>
+          <Bars mounted={mounted} data={[{ label: '결함', value: cnt(issues,'type','bug'), color: '#c0414f' },{ label: '기능개선', value: cnt(issues,'type','improvement'), color: '#0e9bb8' },{ label: '태스크', value: cnt(issues,'type','task'), color: '#7c4dff' },{ label: '지원', value: cnt(issues,'type','support'), color: '#d98a16' },{ label: '변경요청', value: cnt(issues,'type','change'), color: '#8b5cf6' }]} /></div>
       </div>
       <div style={{ height: 16 }} />
       <div className="g2">
