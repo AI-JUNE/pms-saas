@@ -9,6 +9,7 @@ export default function Page() {
   const [reqs, setReqs] = useState<any[]>([]);
   const [tasks, setTasks] = useState<any[]>([]);
   const [issues, setIssues] = useState<any[]>([]);
+  const [testsArr, setTestsArr] = useState<any[]>([]);
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
     const p = Number(localStorage.getItem('pms.project')) || null; setPid(p);
@@ -17,19 +18,23 @@ export default function Page() {
       fetch(`/api/requirements?projectId=${p}`).then((r) => r.ok ? r.json() : []),
       fetch(`/api/tasks?projectId=${p}`).then((r) => r.ok ? r.json() : []),
       fetch(`/api/issues?projectId=${p}`).then((r) => r.ok ? r.json() : []),
-    ]).then(([rq, tk, is]) => { setReqs(Array.isArray(rq) ? rq : []); setTasks(Array.isArray(tk) ? tk : []); setIssues(Array.isArray(is) ? is : []); setLoaded(true); });
+      fetch(`/api/tests?projectId=${p}`).then((r) => r.ok ? r.json() : []),
+    ]).then(([rq, tk, is, ts]) => { setReqs(Array.isArray(rq) ? rq : []); setTasks(Array.isArray(tk) ? tk : []); setIssues(Array.isArray(is) ? is : []); setTestsArr(Array.isArray(ts) ? ts : []); setLoaded(true); });
   }, []);
 
   const rows = reqs.map((rq) => {
     const lt = tasks.filter((t) => t.reqCode && t.reqCode === rq.code);
     const li = issues.filter((i) => i.reqCode && i.reqCode === rq.code);
+    const ltest = testsArr.filter((t) => t.reqCode && t.reqCode === rq.code);
     const openIss = li.filter((i) => i.status !== 'resolved' && i.status !== 'closed');
+    const testFail = ltest.some((t) => t.result === 'fail');
+    const anyLink = lt.length || li.length || ltest.length;
     let cov: string, col: string, Icon: any;
-    if (lt.length === 0 && li.length === 0) { cov = '미연계'; col = '#94a3b8'; Icon = CircleDashed; }
-    else if (openIss.length > 0) { cov = '이슈 있음'; col = '#c0414f'; Icon = AlertTriangle; }
-    else if (lt.length > 0 && lt.every((t) => t.status === 'done')) { cov = '충족'; col = '#2f8f5b'; Icon = CheckCircle2; }
+    if (!anyLink) { cov = '미연계'; col = '#94a3b8'; Icon = CircleDashed; }
+    else if (openIss.length > 0 || testFail) { cov = testFail ? '테스트 실패' : '이슈 있음'; col = '#c0414f'; Icon = AlertTriangle; }
+    else if ((lt.length === 0 || lt.every((t) => t.status === 'done')) && (ltest.length === 0 || ltest.every((t) => t.result === 'pass'))) { cov = '충족'; col = '#2f8f5b'; Icon = CheckCircle2; }
     else { cov = '진행중'; col = '#be5535'; Icon = CircleDashed; }
-    return { rq, lt, li, cov, col, Icon };
+    return { rq, lt, li, ltest, cov, col, Icon };
   });
   const covered = rows.filter((r) => r.cov === '충족').length;
   const covPct = reqs.length ? Math.round((covered / reqs.length) * 100) : 0;
@@ -46,16 +51,17 @@ export default function Page() {
       </div>
       <div className="card" style={{ overflow: 'hidden' }}>
         <table className="tbl">
-          <thead><tr><th>요구사항</th><th>우선순위</th><th>연계 업무</th><th>연계 이슈</th><th>커버리지</th></tr></thead>
+          <thead><tr><th>요구사항</th><th>우선순위</th><th>연계 업무</th><th>연계 이슈</th><th>연계 테스트</th><th>커버리지</th></tr></thead>
           <tbody>
-            {!loaded && <tr><td colSpan={5}><div className="muted" style={{ padding: 16 }}>불러오는 중…</div></td></tr>}
-            {loaded && rows.length === 0 && <tr><td colSpan={5}><div className="empty" style={{ padding: 24 }}>요구사항이 없습니다.</div></td></tr>}
-            {rows.map(({ rq, lt, li, cov, col, Icon }) => (
+            {!loaded && <tr><td colSpan={6}><div className="muted" style={{ padding: 16 }}>불러오는 중…</div></td></tr>}
+            {loaded && rows.length === 0 && <tr><td colSpan={6}><div className="empty" style={{ padding: 24 }}>요구사항이 없습니다.</div></td></tr>}
+            {rows.map(({ rq, lt, li, ltest, cov, col, Icon }) => (
               <tr key={rq.id}>
                 <td><div style={{ display: 'flex', flexDirection: 'column' }}><span style={{ fontWeight: 650 }}>{rq.title}</span><span className="mono" style={{ fontSize: 11, color: 'var(--text-3)' }}>{rq.code}</span></div></td>
                 <td><Pill v={rq.priority} /></td>
                 <td>{lt.length === 0 ? <span className="muted">—</span> : <span style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>{lt.map((t) => <span key={t.id} title={t.name} className="mono" style={{ fontSize: 10.5, background: t.status === 'done' ? '#e6f4ec' : 'var(--surface-3)', color: t.status === 'done' ? '#2f8f5b' : 'var(--text-2)', padding: '1px 6px', borderRadius: 5 }}>{t.code}</span>)}</span>}</td>
                 <td>{li.length === 0 ? <span className="muted">—</span> : <span style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>{li.map((i) => <span key={i.id} title={i.title} className="mono" style={{ fontSize: 10.5, background: '#fdf3e7', color: '#b5730f', padding: '1px 6px', borderRadius: 5 }}>{i.code}</span>)}</span>}</td>
+                <td>{ltest.length === 0 ? <span className="muted">—</span> : <span style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>{ltest.map((t: any) => { const c = t.result === 'pass' ? { bg: '#e6f4ec', fg: '#2f8f5b' } : t.result === 'fail' ? { bg: '#fdedef', fg: '#c0414f' } : { bg: 'var(--surface-3)', fg: 'var(--text-2)' }; return <span key={t.id} title={`${t.title} · ${t.result}`} className="mono" style={{ fontSize: 10.5, background: c.bg, color: c.fg, padding: '1px 6px', borderRadius: 5 }}>{t.code}</span>; })}</span>}</td>
                 <td><span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontWeight: 700, fontSize: 12, color: col }}><Icon style={{ width: 14 }} />{cov}</span></td>
               </tr>
             ))}
