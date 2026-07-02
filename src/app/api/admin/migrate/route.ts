@@ -8,6 +8,8 @@ export const dynamic = 'force-dynamic';
 // Idempotent schema self-heal: adds any columns that the current code expects
 // but that may be missing from an older DB table. Safe to run repeatedly.
 const DDL: string[] = [
+  `CREATE TABLE IF NOT EXISTS tests (id serial PRIMARY KEY, org_id integer NOT NULL, project_id integer NOT NULL REFERENCES projects(id) ON DELETE CASCADE, code text, req_code text, title text NOT NULL, type text DEFAULT '단위' NOT NULL, priority text DEFAULT 'medium' NOT NULL, steps text, expected text, assignee text, status text DEFAULT 'draft' NOT NULL, result text DEFAULT 'na' NOT NULL, executed_at timestamptz, created_at timestamptz DEFAULT now() NOT NULL)`,
+  `CREATE INDEX IF NOT EXISTS tests_project_idx ON tests (org_id, project_id)`,
   // issues (agile fields added after initial release)
   `ALTER TABLE IF EXISTS issues ADD COLUMN IF NOT EXISTS type text DEFAULT 'bug' NOT NULL`,
   `ALTER TABLE IF EXISTS issues ADD COLUMN IF NOT EXISTS priority text DEFAULT 'medium' NOT NULL`,

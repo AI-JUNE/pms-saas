@@ -12,7 +12,6 @@ export function Logo() {
       </div>
       <div>
         <div className="brand-name">PMS</div>
-        <div className="brand-sub">by GOWON</div>
       </div>
     </Link>
   );

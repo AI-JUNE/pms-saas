@@ -80,6 +80,16 @@ export const issues = pgTable('issues', {
   storyPoints: integer('story_points').default(0).notNull(), sprintId: integer('sprint_id'), epic: text('epic'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({ projIdx: index('issues_project_idx').on(t.orgId, t.projectId) }));
+export const tests = pgTable('tests', {
+  id: serial('id').primaryKey(), orgId: integer('org_id').notNull(),
+  projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  code: text('code'), reqCode: text('req_code'), title: text('title').notNull(),
+  type: text('type').default('단위').notNull(), priority: text('priority').default('medium').notNull(),
+  steps: text('steps'), expected: text('expected'), assignee: text('assignee'),
+  status: text('status').default('draft').notNull(), result: text('result').default('na').notNull(),
+  executedAt: timestamp('executed_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({ i: index('tests_project_idx').on(t.orgId, t.projectId) }));
 export const risks = pgTable('risks', {
   id: serial('id').primaryKey(), orgId: integer('org_id').notNull(),
   projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
