@@ -5,7 +5,7 @@ export const BADGE: Record<string, string> = {
   open:'p-blue', draft:'p-gray', planned:'p-gray', todo:'p-gray', identified:'p-amber', review:'p-blue',
   in_progress:'p-blue', doing:'p-blue', mitigating:'p-amber', rejected:'p-red', archived:'p-gray',
   high:'p-red', medium:'p-amber', low:'p-green', critical:'p-red', urgent:'p-red',
-  bug:'p-red', task:'p-blue', improvement:'p-cyan',
+  bug:'p-red', task:'p-blue', improvement:'p-cyan', support:'p-amber', change:'p-purple',
   dev:'p-blue', pl:'p-amber', pm:'p-cyan', pass:'p-green', fail:'p-red', blocked:'p-red', na:'p-gray',
 };
 export const LABEL: Record<string, string> = {
@@ -13,7 +13,7 @@ export const LABEL: Record<string, string> = {
   open:'열림', draft:'작성중', planned:'계획', todo:'할 일', identified:'식별', review:'결재요청',
   in_progress:'진행중', doing:'진행중', mitigating:'대응중', rejected:'반려', archived:'보관',
   high:'높음', medium:'보통', low:'낮음', critical:'긴급', urgent:'긴급',
-  bug:'버그', task:'작업', improvement:'개선',
+  bug:'결함', task:'태스크', improvement:'기능개선', support:'지원', change:'변경요청',
   dev:'개발자검증', pl:'PL검증', pm:'PM승인', pass:'통과', fail:'실패', blocked:'블록', na:'미실행',
 };
 export const badge = (v: any) => BADGE[String(v)] || 'p-gray';

@@ -151,6 +151,12 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
           {c.render ? c.render(row[c.key], row)
             : c.badge ? <Pill v={row[c.key]} />
             : c.mono || c.key === 'code' ? <span className="mono">{row[c.key] || '—'}</span>
+            : /due|end/i.test(c.key) && row[c.key] ? (() => {
+                const done = ['done', 'closed', 'resolved', 'completed', 'approved'].includes(String(row.status));
+                const t = new Date(row[c.key]).getTime(); const now = Date.now(); const dd = Math.ceil((t - now) / 86400000);
+                const col = done || isNaN(t) ? undefined : t < now ? '#c0414f' : dd <= 7 ? '#d98a16' : undefined;
+                return <span style={{ color: col, fontWeight: col ? 700 : undefined }}>{row[c.key]}{col === '#c0414f' ? ' ⚠' : ''}</span>;
+              })()
             : <span style={c.strong ? { fontWeight: 650, color: 'var(--text-1)' } : undefined}>{row[c.key] ?? '—'}</span>}
         </td>
       ))}
