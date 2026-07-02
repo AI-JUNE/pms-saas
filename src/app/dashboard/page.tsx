@@ -71,11 +71,10 @@ export default function Dashboard() {
   useEffect(() => {
     fetch('/api/auth/me').then((r) => r.json()).then(async (m) => {
       if (!m.authenticated) { router.push('/login'); return; } setMe(m);
-      const [projects, requirements, issues, risks, tasks, documents] = await Promise.all(['projects','requirements','issues','risks','tasks','documents'].map((e) => fetch('/api/' + e).then((r) => r.ok ? r.json() : [])));
-      setD({ projects: projects||[], requirements: requirements||[], issues: issues||[], risks: risks||[], tasks: tasks||[] });
-      setDocs(Array.isArray(documents) ? documents : []);
-      fetch('/api/notifications/generate', { method: 'POST' }).catch(() => {});
-      fetch('/api/my-work').then((r) => r.ok ? r.json() : null).then((w) => { if (w) setMywork(w); }).catch(() => {});
+      const a = await fetch('/api/dashboard').then((r) => r.ok ? r.json() : null);
+      if (a) { setD({ projects: a.projects||[], requirements: a.requirements||[], issues: a.issues||[], risks: a.risks||[], tasks: a.tasks||[] }); setDocs(Array.isArray(a.documents) ? a.documents : []); setMywork(a.myWork || { tasks: [], issues: [] }); }
+      const lg = Number(localStorage.getItem('pms.gen') || 0);
+      if (Date.now() - lg > 3600000) { localStorage.setItem('pms.gen', String(Date.now())); fetch('/api/notifications/generate', { method: 'POST' }).catch(() => {}); }
       requestAnimationFrame(() => setMounted(true));
     });
   }, [router]);
