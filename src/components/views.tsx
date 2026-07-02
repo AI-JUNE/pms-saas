@@ -178,15 +178,37 @@ export function Gantt({ rows, openDetail, save, create }: { rows: any[]; openDet
   // geometry for dependency arrows
   const geo: Record<string, { left: number; right: number; mid: number }> = {};
   rows.forEach((r, idx) => { const x = eff(r); geo[r.code] = { left: xOf(x.s), right: xOf(x.e), mid: idx * rowH + rowH / 2 }; });
-  const arrows: { x1: number; y1: number; x2: number; y2: number }[] = [];
-  rows.forEach((r) => { if (r.predecessor && geo[r.predecessor] && geo[r.code]) { const p = geo[r.predecessor], t = geo[r.code]; arrows.push({ x1: p.right, y1: p.mid, x2: t.left, y2: t.mid }); } });
   const bodyH = rows.length * rowH;
-  // 임계경로(근사): 가장 늦게 끝나는 작업에서 선행을 따라 올라간 체인
+  // CPM
   const byCode: Record<string, any> = {}; rows.forEach((r) => { byCode[r.code] = r; });
-  const endMs = (r: any) => r.endDate ? new Date(r.endDate).getTime() : (r.startDate ? new Date(r.startDate).getTime() : 0);
-  let lastT: any = null; rows.forEach((r) => { if (endMs(r) && (!lastT || endMs(r) > endMs(lastT))) lastT = r; });
+  const durOf = (r: any) => { const x = eff(r); return Math.max(1, Math.round((x.e - x.s) / DAY)); };
+  const predsOf = (r: any) => (r.predecessor && byCode[r.predecessor] && byCode[r.predecessor] !== r) ? [byCode[r.predecessor]] : [];
+  const succOf: Record<string, any[]> = {};
+  rows.forEach((r) => predsOf(r).forEach((p) => { (succOf[p.code] ||= []).push(r); }));
+  const ES: Record<string, number> = {}, EF: Record<string, number> = {};
+  const calcEF = (r: any, seen: Set<string>): number => {
+    if (EF[r.code] != null) return EF[r.code];
+    if (seen.has(r.code)) return 0; seen.add(r.code);
+    const ps = predsOf(r); const es = ps.length ? Math.max(...ps.map((p) => calcEF(p, seen))) : 0;
+    seen.delete(r.code); ES[r.code] = es; EF[r.code] = es + durOf(r); return EF[r.code];
+  };
+  rows.forEach((r) => calcEF(r, new Set()));
+  const projEnd = rows.length ? Math.max(...rows.map((r) => EF[r.code] ?? 0)) : 0;
+  const LS: Record<string, number> = {}, LF: Record<string, number> = {};
+  const calcLS = (r: any, seen: Set<string>): number => {
+    if (LS[r.code] != null) return LS[r.code];
+    if (seen.has(r.code)) return projEnd - durOf(r); seen.add(r.code);
+    const ss = succOf[r.code] || []; const lf = ss.length ? Math.min(...ss.map((s) => calcLS(s, seen))) : projEnd;
+    seen.delete(r.code); LF[r.code] = lf; LS[r.code] = lf - durOf(r); return LS[r.code];
+  };
+  rows.forEach((r) => calcLS(r, new Set()));
+  const slackOf = (code: string) => (LS[code] ?? 0) - (ES[code] ?? 0);
   const critical = new Set<string>();
-  { let c: any = lastT, g = 0; while (c && g++ < 200) { critical.add(c.code); c = c.predecessor && byCode[c.predecessor] ? byCode[c.predecessor] : null; } }
+  rows.forEach((r) => { if (predsOf(r).length || (succOf[r.code] || []).length) { if (Math.abs(slackOf(r.code)) < 0.5) critical.add(r.code); } });
+  if (critical.size <= 1) critical.clear();
+  const critOverdue = rows.filter((r) => critical.has(r.code) && r.status !== 'done' && eff(r).planned && eff(r).e < todayMid).length;
+  const arrows: { x1: number; y1: number; x2: number; y2: number; crit: boolean }[] = [];
+  rows.forEach((r) => { if (r.predecessor && geo[r.predecessor] && geo[r.code]) { const p = geo[r.predecessor], t = geo[r.code]; arrows.push({ x1: p.right, y1: p.mid, x2: t.left, y2: t.mid, crit: critical.has(r.code) && critical.has(r.predecessor) }); } });
 
   const Zb = ({ z, l }: { z: any; l: string }) => <button className={`btn btn-sm ${zoom === z ? 'btn-pri' : ''}`} onClick={() => setZoom(z)} style={{ padding: '3px 10px' }}>{l}</button>;
 
@@ -195,6 +217,7 @@ export function Gantt({ rows, openDetail, save, create }: { rows: any[]; openDet
       <div className="row" style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', gap: 8, flexWrap: 'wrap' }}>
         <div className="sect" style={{ margin: 0 }}>간트차트 · 일정 계획</div>
         <div style={{ display: 'flex', gap: 4, marginLeft: 8 }}><Zb z="day" l="일" /><Zb z="week" l="주" /><Zb z="month" l="월" /></div>
+        {critical.size > 1 && (<span title="선행관계 기반 임계경로(여유 0일) 작업 수" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 700, color: '#c0414f', background: '#fdedef', border: '1px solid #f3c7cd', borderRadius: 20, padding: '2px 10px' }}><span style={{ width: 8, height: 8, borderRadius: 8, background: '#c0414f' }} />주경로 {critical.size}개{critOverdue > 0 ? ` · 지연 ${critOverdue}` : ''}</span>)}
         <div className="sp" />
         <span className="muted" style={{ fontSize: 11 }}>막대=이동 · 양끝=기간 · 아래손잡이=진척 · 하단행=새 작업 · 자동저장 · <span style={{ color: '#c0414f', fontWeight: 700 }}>▭ 주경로</span></span>
       </div>
@@ -248,8 +271,8 @@ export function Gantt({ rows, openDetail, save, create }: { rows: any[]; openDet
               );
             })}
             <svg style={{ position: 'absolute', left: LBL, top: 0, width: W, height: bodyH, pointerEvents: 'none', overflow: 'visible' }}>
-              <defs><marker id="gtar" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--text-4)" /></marker></defs>
-              {arrows.map((a, i) => { return <path key={i} d={`M ${a.x1} ${a.y1} C ${a.x1 + 16} ${a.y1}, ${a.x2 - 16} ${a.y2}, ${a.x2} ${a.y2}`} fill="none" stroke="var(--text-4)" strokeWidth="1.3" markerEnd="url(#gtar)" opacity="0.75" />; })}
+              <defs><marker id="gtar" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--text-4)" /></marker><marker id="gtarC" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#c0414f" /></marker></defs>
+              {arrows.map((a, i) => { return <path key={i} d={`M ${a.x1} ${a.y1} C ${a.x1 + 16} ${a.y1}, ${a.x2 - 16} ${a.y2}, ${a.x2} ${a.y2}`} fill="none" stroke={a.crit ? '#c0414f' : 'var(--text-4)'} strokeWidth={a.crit ? 1.9 : 1.3} markerEnd={a.crit ? 'url(#gtarC)' : 'url(#gtar)'} opacity={a.crit ? 0.95 : 0.75} />; })}
             </svg>
           </div>
           {create && (

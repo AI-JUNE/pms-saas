@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Plus, Search, X, Pencil, Trash2, Inbox, SlidersHorizontal, Download, Layers, Sheet } from 'lucide-react';
@@ -32,6 +32,23 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
   const [form, setForm] = useState<any>({});
   const [err, setErr] = useState('');
   const [mode, setMode] = useState('table');
+  const swipeRef = useRef<{ y0: number; active: boolean }>({ y0: 0, active: false });
+  const [swipeY, setSwipeY] = useState(0);
+  useEffect(() => { setSwipeY(0); }, [detail]);
+  function onOverTouchStart(e: React.TouchEvent) {
+    const body = (e.currentTarget as HTMLElement).querySelector('.over-b') as HTMLElement | null;
+    swipeRef.current = { y0: e.touches[0].clientY, active: !body || body.scrollTop <= 0 };
+  }
+  function onOverTouchMove(e: React.TouchEvent) {
+    if (!swipeRef.current.active) return;
+    const dy = e.touches[0].clientY - swipeRef.current.y0;
+    setSwipeY(dy > 0 ? dy : 0);
+  }
+  function onOverTouchEnd() {
+    if (swipeRef.current.active && swipeY > 90) setDetail(null);
+    else setSwipeY(0);
+    swipeRef.current.active = false;
+  }
 
   async function load(p: number | null) {
     setLoading(true);
@@ -217,7 +234,8 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
 
       {detail && (<>
         <div className="scrim" onClick={() => setDetail(null)} />
-        <aside className="over">
+        <aside className="over" onTouchStart={onOverTouchStart} onTouchMove={onOverTouchMove} onTouchEnd={onOverTouchEnd} style={swipeY > 0 ? { transform: `translateY(${swipeY}px)`, transition: 'none' } : undefined}>
+          <div className="over-grip" aria-hidden />
           <div className="over-h"><span className="mono" style={{ fontSize: 13 }}>{detail.code || `#${detail.id}`}</span><div className="sp" /><button className="iconbtn" onClick={() => setDetail(null)}><X /></button></div>
           <div className="over-b">
             <h3 style={{ margin: '0 0 16px', fontSize: 19, fontWeight: 800, letterSpacing: '-.02em' }}>{detail.title || detail.name || detail.code}</h3>

@@ -127,7 +127,8 @@ textarea.in{min-height:84px;resize:vertical}
 
 /* slide-over */
 .scrim{position:fixed;inset:0;background:rgba(11,18,32,.42);z-index:60;animation:fade .15s ease}
-.over{position:fixed;top:0;right:0;height:100vh;width:480px;max-width:94vw;background:#fff;box-shadow:var(--sh-lg);z-index:61;display:flex;flex-direction:column;animation:slide .2s cubic-bezier(.2,.7,.3,1)}
+.over{position:fixed;top:0;right:0;height:100vh;width:480px;max-width:94vw;background:#fff;box-shadow:var(--sh-lg);z-index:61;display:flex;flex-direction:column;animation:slide .2s cubic-bezier(.2,.7,.3,1);transition:transform .22s cubic-bezier(.2,.7,.3,1)}
+.over-grip{display:none}
 @keyframes slide{from{transform:translateX(30px);opacity:.6}to{transform:translateX(0);opacity:1}}
 @keyframes fade{from{opacity:0}to{opacity:1}}
 .over-h{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
@@ -337,6 +338,8 @@ a.brand:focus-visible,.btn:focus-visible{outline:2px solid var(--brand);outline-
   .seg button{white-space:nowrap}
   table.tbl{min-width:560px}              /* keep columns readable, scroll horizontally */
   .kpis{grid-template-columns:1fr 1fr}
+  .over-grip{display:block;width:40px;height:5px;border-radius:5px;background:var(--surface-3);margin:8px auto 0;flex-shrink:0;touch-action:none}
+  .over-h{cursor:grab}
 }
 @media (max-width:520px){
   .proj-btn-text{max-width:84px}

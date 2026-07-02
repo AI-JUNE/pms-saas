@@ -72,6 +72,28 @@ export default function Page({ params }: { params: { id: string } }) {
               </div>
             </div>
           )}
+          {d.issues?.byPriority && (
+            <div style={{ background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px', marginBottom: 16 }}>
+              <div style={{ fontWeight: 750, fontSize: 14, marginBottom: 14 }}>이슈 · 리스크 분포</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 24 }}>
+                {(() => {
+                  const Bar = ({ items, title }: any) => { const mx = Math.max(1, ...items.map((i: any) => i.v)); return (
+                    <div><div className="muted" style={{ fontSize: 12, marginBottom: 8 }}>{title}</div>
+                      {items.map((i: any) => (<div key={i.l} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 7 }}>
+                        <span style={{ width: 62, fontSize: 12, color: 'var(--text-2)' }}>{i.l}</span>
+                        <div className="pbar" style={{ flex: 1 }}><i style={{ width: `${(i.v / mx) * 100}%`, background: i.c }} /></div>
+                        <span style={{ width: 22, textAlign: 'right', fontWeight: 800, fontSize: 12.5 }}>{i.v}</span>
+                      </div>))}
+                    </div>); };
+                  const bp = d.issues.byPriority, bl = d.risks.byLevel || { high: 0, medium: 0, low: 0 };
+                  return <>
+                    <Bar title="이슈 우선순위" items={[{ l: 'Critical', v: bp.critical, c: '#c0414f' }, { l: 'High', v: bp.high, c: '#f2772e' }, { l: 'Medium', v: bp.medium, c: '#d98a16' }, { l: 'Low', v: bp.low, c: '#2f8f5b' }]} />
+                    <Bar title="리스크 등급" items={[{ l: 'High', v: bl.high, c: '#c0414f' }, { l: 'Medium', v: bl.medium, c: '#d98a16' }, { l: 'Low', v: bl.low, c: '#2f8f5b' }]} />
+                  </>;
+                })()}
+              </div>
+            </div>
+          )}
           <div style={{ background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontWeight: 750, fontSize: 14, marginBottom: 14 }}><TrendingUp style={{ width: 16, color: 'var(--brand)' }} />단계 진행 현황</div>
             {d.phases.list.length === 0 ? <div className="muted">등록된 단계가 없습니다.</div> : (
