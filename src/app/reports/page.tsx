@@ -1,14 +1,20 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { BarChart3, TrendingDown, Users, Gauge } from 'lucide-react';
+import { BarChart3, TrendingDown, Users, Gauge, Printer } from 'lucide-react';
 import { Shell } from '@/components/Shell';
 import { Pill } from '@/lib/ui';
 const cnt = (a: any[], k: string, v: string) => a.filter((x) => x[k] === v).length;
 
+function shade(hex: string, amt: number) {
+  const h = hex.replace('#',''); const f = h.length===3 ? h.split('').map((c)=>c+c).join('') : h; const n = parseInt(f,16);
+  let r=(n>>16)&255,g=(n>>8)&255,b=n&255;
+  r=Math.max(0,Math.min(255,Math.round(r*(1+amt)))); g=Math.max(0,Math.min(255,Math.round(g*(1+amt)))); b=Math.max(0,Math.min(255,Math.round(b*(1+amt))));
+  return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
+}
 function Burndown({ tasks }: { tasks: any[] }) {
   const total = tasks.length || 1; const done = tasks.filter((t) => t.status === 'done').length;
-  const pts = 12, W = 560, H = 200, pad = 34;
+  const pts = 12, W = 560, H = 210, pad = 36;
   const ideal: number[] = []; for (let i = 0; i < pts; i++) ideal.push(total - (total * i) / (pts - 1));
   const avg = tasks.reduce((s, t) => s + (t.progress || 0), 0) / total / 100;
   const actual: number[] = []; for (let i = 0; i < pts; i++) { const f = i / (pts - 1); actual.push(total - total * f * (0.45 + avg)); }
@@ -18,19 +24,29 @@ function Burndown({ tasks }: { tasks: any[] }) {
   const area = line(actual) + ` L${x(pts-1).toFixed(1)} ${(H-pad).toFixed(1)} L${x(0).toFixed(1)} ${(H-pad).toFixed(1)} Z`;
   return (
     <svg width="100%" viewBox={`0 0 ${W} ${H}`}>
-      {[0,0.25,0.5,0.75,1].map((g,i)=><g key={i}><line x1={pad} y1={y(total*g)} x2={W-pad} y2={y(total*g)} stroke="var(--border)" /><text x={pad-6} y={y(total*g)+3} textAnchor="end" fontSize="9" fill="var(--text-3)">{Math.round(total*g)}</text></g>)}
-      <path d={area} fill="var(--brand-50)" />
-      <path d={line(ideal)} fill="none" stroke="var(--text-4)" strokeWidth="2" strokeDasharray="5 5" />
-      <path className="gl" d={line(actual)} fill="none" stroke="var(--brand)" strokeWidth="2.5" />
-      <text x={W-pad} y={pad-4} textAnchor="end" fontSize="10" fill="var(--text-3)">완료 {done}/{tasks.length} · 잔여 추세</text>
+      <defs>
+        <linearGradient id="bdArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="var(--brand)" stopOpacity="0.28" /><stop offset="1" stopColor="var(--brand)" stopOpacity="0.02" /></linearGradient>
+        <linearGradient id="bdLine" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#e08a5b" /><stop offset="1" stopColor="var(--brand)" /></linearGradient>
+      </defs>
+      {[0,0.25,0.5,0.75,1].map((g,i)=><g key={i}><line x1={pad} y1={y(total*g)} x2={W-pad} y2={y(total*g)} stroke="var(--border)" strokeDasharray={i===0?'0':'2 4'} /><text x={pad-8} y={y(total*g)+3} textAnchor="end" fontSize="9.5" fill="var(--text-4)">{Math.round(total*g)}</text></g>)}
+      <path d={area} fill="url(#bdArea)" />
+      <path d={line(ideal)} fill="none" stroke="var(--text-4)" strokeWidth="1.8" strokeDasharray="5 5" />
+      <path className="gl" d={line(actual)} fill="none" stroke="url(#bdLine)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 3px 6px rgba(190,85,53,.22))' }} />
+      {actual.map((v,i)=> i%2===0 ? <circle key={i} cx={x(i)} cy={y(v)} r="3.2" fill="#fff" stroke="var(--brand)" strokeWidth="2" /> : null)}
+      <g transform={`translate(${pad+4}, ${pad-16})`}>
+        <line x1="0" y1="0" x2="18" y2="0" stroke="var(--text-4)" strokeWidth="1.8" strokeDasharray="5 5" /><text x="23" y="3.5" fontSize="10" fill="var(--text-3)">이상선</text>
+        <line x1="70" y1="0" x2="88" y2="0" stroke="var(--brand)" strokeWidth="3" strokeLinecap="round" /><text x="93" y="3.5" fontSize="10" fill="var(--text-3)">실제 잔여</text>
+      </g>
+      <text x={W-pad} y={pad-8} textAnchor="end" fontSize="10.5" fontWeight="700" fill="var(--text-2)">완료 {done}/{tasks.length}</text>
     </svg>
   );
 }
 function Bars({ data }: { data: { label: string; value: number; color: string }[] }) {
   const max = Math.max(1, ...data.map((d) => d.value));
-  return (<div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{data.map((d, i) => (
-    <div key={i}><div className="row" style={{ fontSize: 12.5, marginBottom: 4 }}><span style={{ fontWeight: 600, color: 'var(--text-2)' }}>{d.label}</span><span style={{ marginLeft: 'auto', fontWeight: 800 }}>{d.value}</span></div>
-      <div className="bar" style={{ height: 10 }}><i className="gbar2" style={{ width: `${(d.value / max) * 100}%`, background: d.color }} /></div></div>))}</div>);
+  return (<div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>{data.map((d, i) => (
+    <div key={i}><div className="row" style={{ fontSize: 12.5, marginBottom: 6 }}><span style={{ fontWeight: 600, color: 'var(--text-2)' }}>{d.label}</span>
+      <span style={{ marginLeft: 'auto', fontWeight: 800, background: `${d.color}18`, color: shade(d.color, -0.15), padding: '1px 9px', borderRadius: 20, fontSize: 11.5 }}>{d.value}</span></div>
+      <div className="pbar"><i className="pbar-anim" style={{ width: `${(d.value / max) * 100}%`, background: `linear-gradient(90deg, ${shade(d.color, 0.14)}, ${d.color})`, animationDelay: `${i * 110}ms` }} /></div></div>))}</div>);
 }
 function Stat({ icon: Icon, label, value, c, bg }: any) {
   return <div className="kpi"><div className="kpi-ic" style={{ background: bg, color: c }}><Icon style={{ width: 18 }} /></div><div className="kpi-label">{label}</div><div className="kpi-value" style={{ color: c }}>{value}</div></div>;
@@ -54,8 +70,7 @@ export default function Page() {
   const velocity = sprints.map((s: any) => ({ s, pts: issues.filter((i: any) => i.sprintId === s.id).reduce((x: number, i: any) => x + (Number(i.storyPoints) || 0), 0), cnt: issues.filter((i: any) => i.sprintId === s.id).length }));
   return (
     <Shell title="리포트">
-      <h2 className="h1">리포트 <BarChart3 style={{ width: 22, verticalAlign: -3, color: 'var(--brand)' }} /></h2>
-      <p className="h-sub">프로젝트 진척·품질·팀 지표를 종합 분석합니다.</p>
+      <div className="row"><div><h2 className="h1">리포트 <BarChart3 style={{ width: 22, verticalAlign: -3, color: 'var(--brand)' }} /></h2><p className="h-sub">프로젝트 진척·품질·팀 지표를 종합 분석합니다.</p></div><div className="sp" /><button className="btn no-print" onClick={() => window.print()}><Printer style={{ width: 15 }} />인쇄 / PDF</button></div>
       <div style={{ height: 16 }} />
       <div className="kpis">
         <Stat icon={Gauge} label="평균 진척" value={avgProg + '%'} c="#2f8f5b" bg="#e9faf0" />

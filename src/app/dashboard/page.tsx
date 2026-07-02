@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FolderKanban, ClipboardList, Bug, ShieldAlert, ListTodo, TrendingUp, ArrowRight } from 'lucide-react';
@@ -16,31 +17,45 @@ function useCountUp(target: number, ms = 900) {
 }
 function Num({ n, suffix = '' }: { n: number; suffix?: string }) { return <span className="countup">{useCountUp(n)}{suffix}</span>; }
 
+function shade(hex: string, amt: number) {
+  const h = hex.replace('#',''); const f = h.length===3 ? h.split('').map((c)=>c+c).join('') : h; const n = parseInt(f,16);
+  let r=(n>>16)&255,g=(n>>8)&255,b=n&255;
+  r=Math.max(0,Math.min(255,Math.round(r*(1+amt)))); g=Math.max(0,Math.min(255,Math.round(g*(1+amt)))); b=Math.max(0,Math.min(255,Math.round(b*(1+amt))));
+  return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
+}
 function Donut({ data, mounted }: { data: { label: string; value: number; color: string }[]; mounted: boolean }) {
   const total = data.reduce((s, d) => s + d.value, 0) || 1;
-  let acc = 0; const R = 54, C = 2 * Math.PI * R;
+  let acc = 0; const R = 56, C = 2 * Math.PI * R;
   return (
-    <div className="row" style={{ gap: 22 }}>
-      <svg width="138" height="138" viewBox="0 0 138 138">
-        <circle cx="69" cy="69" r={R} fill="none" stroke="var(--surface-3)" strokeWidth="15" />
+    <div className="row" style={{ gap: 24, alignItems: 'center' }}>
+      <svg width="150" height="150" viewBox="0 0 150 150" style={{ filter: 'drop-shadow(0 6px 14px rgba(0,0,0,.08))' }}>
+        <defs>{data.map((d, i) => (<linearGradient key={i} id={`dseg${i}`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor={shade(d.color, 0.16)} /><stop offset="1" stopColor={shade(d.color, -0.12)} /></linearGradient>))}</defs>
+        <circle cx="75" cy="75" r={R} fill="none" stroke="var(--surface-3)" strokeWidth="16" />
         {data.map((d, i) => { const len = (d.value / total) * C; const target = C - acc; acc += len;
-          return <circle key={i} className="donut-seg" cx="69" cy="69" r={R} fill="none" stroke={d.color} strokeWidth="15"
-            strokeDasharray={`${len} ${C - len}`} strokeDashoffset={mounted ? target : C} transform="rotate(-90 69 69)" strokeLinecap="butt"
-            style={{ transitionDelay: `${i * 120}ms` }} />; })}
-        <text x="69" y="64" textAnchor="middle" fontSize="26" fontWeight="800" fill="var(--text-1)">{total}</text>
-        <text x="69" y="82" textAnchor="middle" fontSize="10" fill="var(--text-3)">전체</text>
+          return <circle key={i} className="donut-seg" cx="75" cy="75" r={R} fill="none" stroke={`url(#dseg${i})`} strokeWidth="16"
+            strokeDasharray={`${Math.max(0, len - 3)} ${C - Math.max(0, len - 3)}`} strokeDashoffset={mounted ? target : C} transform="rotate(-90 75 75)" strokeLinecap="round"
+            style={{ transitionDelay: `${i * 130}ms` }} />; })}
+        <text x="75" y="71" textAnchor="middle" fontSize="30" fontWeight="800" fill="var(--text-1)">{total}</text>
+        <text x="75" y="89" textAnchor="middle" fontSize="10.5" fill="var(--text-3)" fontWeight="600">전체</text>
       </svg>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {data.map((d, i) => <div key={i} className="row" style={{ gap: 8, fontSize: 12.5 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: d.color }} /><span style={{ color: 'var(--text-2)', fontWeight: 600 }}>{d.label}</span><span style={{ marginLeft: 'auto', fontWeight: 800 }}>{d.value}</span></div>)}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1, minWidth: 0 }}>
+        {data.map((d, i) => { const pv = Math.round((d.value / total) * 100); return (
+          <div key={i} className="row" style={{ gap: 9, fontSize: 12.5 }}>
+            <span style={{ width: 11, height: 11, borderRadius: 4, background: d.color, boxShadow: `0 0 0 3px ${d.color}22`, flexShrink: 0 }} />
+            <span style={{ color: 'var(--text-2)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.label}</span>
+            <span style={{ marginLeft: 'auto', fontWeight: 800 }}>{d.value}</span>
+            <span className="muted" style={{ minWidth: 36, textAlign: 'right', fontSize: 11.5 }}>{pv}%</span>
+          </div>); })}
       </div>
     </div>
   );
 }
 function Bars({ data, mounted }: { data: { label: string; value: number; color: string }[]; mounted: boolean }) {
   const max = Math.max(1, ...data.map((d) => d.value));
-  return (<div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{data.map((d, i) => (
-    <div key={i}><div className="row" style={{ fontSize: 12.5, marginBottom: 5 }}><span style={{ fontWeight: 600, color: 'var(--text-2)' }}>{d.label}</span><span style={{ marginLeft: 'auto', fontWeight: 800 }}>{d.value}</span></div>
-      <div className="bar" style={{ height: 10 }}><i className="gbar" style={{ width: mounted ? `${(d.value / max) * 100}%` : '0%', background: d.color, transitionDelay: `${i * 100}ms` }} /></div></div>))}</div>);
+  return (<div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>{data.map((d, i) => (
+    <div key={i}><div className="row" style={{ fontSize: 12.5, marginBottom: 6 }}><span style={{ fontWeight: 600, color: 'var(--text-2)' }}>{d.label}</span>
+      <span style={{ marginLeft: 'auto', fontWeight: 800, background: `${d.color}18`, color: shade(d.color, -0.15), padding: '1px 9px', borderRadius: 20, fontSize: 11.5 }}>{d.value}</span></div>
+      <div className="pbar"><i style={{ width: mounted ? `${(d.value / max) * 100}%` : '0%', background: `linear-gradient(90deg, ${shade(d.color, 0.14)}, ${d.color})`, transitionDelay: `${i * 110}ms` }} /></div></div>))}</div>);
 }
 const cnt = (a: any[], k: string, v: string) => a.filter((x) => x[k] === v).length;
 
@@ -51,11 +66,16 @@ export default function Dashboard() {
   const [busy, setBusy] = useState(false);
   async function fillDemo() { setBusy(true); const r = await fetch('/api/admin/seed-demo', { method: 'POST' }); if (r.ok) location.reload(); else setBusy(false); }
   const [d, setD] = useState<any>({ projects: [], requirements: [], issues: [], risks: [], tasks: [] });
+  const [mywork, setMywork] = useState<any>({ tasks: [], issues: [], risks: [] });
+  const [docs, setDocs] = useState<any[]>([]);
   useEffect(() => {
     fetch('/api/auth/me').then((r) => r.json()).then(async (m) => {
       if (!m.authenticated) { router.push('/login'); return; } setMe(m);
-      const [projects, requirements, issues, risks, tasks] = await Promise.all(['projects','requirements','issues','risks','tasks'].map((e) => fetch('/api/' + e).then((r) => r.ok ? r.json() : [])));
+      const [projects, requirements, issues, risks, tasks, documents] = await Promise.all(['projects','requirements','issues','risks','tasks','documents'].map((e) => fetch('/api/' + e).then((r) => r.ok ? r.json() : [])));
       setD({ projects: projects||[], requirements: requirements||[], issues: issues||[], risks: risks||[], tasks: tasks||[] });
+      setDocs(Array.isArray(documents) ? documents : []);
+      fetch('/api/notifications/generate', { method: 'POST' }).catch(() => {});
+      fetch('/api/my-work').then((r) => r.ok ? r.json() : null).then((w) => { if (w) setMywork(w); }).catch(() => {});
       requestAnimationFrame(() => setMounted(true));
     });
   }, [router]);
@@ -105,9 +125,51 @@ export default function Dashboard() {
           <Bars mounted={mounted} data={[{ label: 'High', value: cnt(risks,'level','high'), color: '#c0414f' },{ label: 'Medium', value: cnt(risks,'level','medium'), color: '#d98a16' },{ label: 'Low', value: cnt(risks,'level','low'), color: '#2f8f5b' }]} /></div>
       </div>
       <div style={{ height: 16 }} />
-      <div className="card card-pad dash-card" style={{ animationDelay: '300ms' }}>
-        <div className="row" style={{ marginBottom: 14 }}><div className="sect">최근 프로젝트</div><div className="sp" /><a href="/projects" className="muted" style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>전체 보기 <ArrowRight style={{ width: 14 }} /></a></div>
-        {projects.length === 0 ? <p className="muted">프로젝트가 없습니다. <a href="/projects" style={{ color: 'var(--brand)' }}>만들기 →</a></p>
+      <div className="g2">
+        <div className="card card-pad dash-card" style={{ animationDelay: '260ms' }}>
+          <div className="row" style={{ marginBottom: 12 }}><div className="sect">내 작업</div><div className="sp" /><Link href="/mywork" className="muted" style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>모두 보기 <ArrowRight style={{ width: 14 }} /></Link></div>
+          {(() => {
+            const myOpenTasks = (mywork.tasks || []).filter((t: any) => t.status !== 'done');
+            const myOpenIssues = (mywork.issues || []).filter((i: any) => !['resolved','closed'].includes(i.status));
+            const items = [...myOpenTasks.map((t: any) => ({ ...t, _t: 'task' })), ...myOpenIssues.map((i: any) => ({ ...i, _t: 'issue' }))];
+            if (items.length === 0) return <p className="muted" style={{ fontSize: 13 }}>나에게 배정된 미완료 항목이 없습니다.</p>;
+            return <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{items.slice(0, 6).map((it: any) => (
+              <div key={it._t + it.id} onClick={() => router.push(it._t === 'task' ? '/tasks' : '/issues')} style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer' }}>
+                <span className="mono" style={{ fontSize: 11, color: 'var(--text-3)', minWidth: 64 }}>{it.code}</span>
+                <span style={{ flex: 1, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.name || it.title}</span>
+                <Pill v={it.status} />
+              </div>))}
+              {items.length > 6 && <div className="muted" style={{ fontSize: 12 }}>외 {items.length - 6}건</div>}</div>;
+          })()}
+        </div>
+        <div className="card card-pad dash-card" style={{ animationDelay: '320ms' }}>
+          <div className="sect" style={{ marginBottom: 12 }}>마감 임박 · 결재 대기</div>
+          {(() => {
+            const now = new Date(); const t0 = new Date(now); t0.setHours(0,0,0,0); const in7 = new Date(t0.getTime() + 7 * 86400000);
+            const overdue = tasks.filter((t: any) => t.status !== 'done' && t.endDate && new Date(t.endDate) < t0);
+            const soon = tasks.filter((t: any) => t.status !== 'done' && t.endDate && new Date(t.endDate) >= t0 && new Date(t.endDate) <= in7);
+            const pending = docs.filter((x: any) => x.status === 'review');
+            const rows: any[] = [
+              ...overdue.map((t: any) => ({ k: 't'+t.id, label: t.name, code: t.code, tag: '마감초과', col: '#c0414f', sub: t.endDate, href: '/tasks' })),
+              ...soon.map((t: any) => ({ k: 's'+t.id, label: t.name, code: t.code, tag: 'D-'+Math.max(0, Math.round((new Date(t.endDate).getTime()-t0.getTime())/86400000)), col: '#d98a16', sub: t.endDate, href: '/tasks' })),
+              ...pending.map((x: any) => ({ k: 'd'+x.id, label: x.title, code: x.code, tag: '결재대기', col: '#0e9bb8', sub: x.approver||'', href: '/documents' })),
+            ];
+            if (rows.length === 0) return <p className="muted" style={{ fontSize: 13 }}>마감 임박·결재 대기 항목이 없습니다.</p>;
+            return <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{rows.slice(0, 7).map((r: any) => (
+              <div key={r.k} onClick={() => router.push(r.href)} style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer' }}>
+                <span style={{ fontSize: 10.5, fontWeight: 800, color: '#fff', background: r.col, padding: '1px 7px', borderRadius: 20, minWidth: 52, textAlign: 'center' }}>{r.tag}</span>
+                <span className="mono" style={{ fontSize: 11, color: 'var(--text-3)', minWidth: 64 }}>{r.code}</span>
+                <span style={{ flex: 1, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.label}</span>
+                <span className="muted" style={{ fontSize: 11 }}>{r.sub}</span>
+              </div>))}
+              {rows.length > 7 && <div className="muted" style={{ fontSize: 12 }}>외 {rows.length - 7}건</div>}</div>;
+          })()}
+        </div>
+      </div>
+      <div style={{ height: 16 }} />
+      <div className="card card-pad dash-card" style={{ animationDelay: '360ms' }}>
+        <div className="row" style={{ marginBottom: 14 }}><div className="sect">최근 프로젝트</div><div className="sp" /><Link href="/projects" className="muted" style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>전체 보기 <ArrowRight style={{ width: 14 }} /></Link></div>
+        {projects.length === 0 ? <p className="muted">프로젝트가 없습니다. <Link href="/projects" style={{ color: 'var(--brand)' }}>만들기 →</Link></p>
           : <div className="tbl-wrap"><table className="tbl"><thead><tr><th>코드</th><th>이름</th><th>고객</th><th>기간</th><th>상태</th></tr></thead>
             <tbody>{projects.slice(0, 6).map((p: any) => <tr key={p.id} onClick={() => router.push('/projects')}><td className="mono">{p.code}</td><td style={{ fontWeight: 650 }}>{p.name}</td><td>{p.client || '—'}</td><td className="muted">{p.startDate || '—'} ~ {p.endDate || '—'}</td><td><Pill v={p.status} /></td></tr>)}</tbody></table></div>}
       </div>

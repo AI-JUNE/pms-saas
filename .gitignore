@@ -5,3 +5,5 @@ node_modules/
 .env*.local
 npm-debug.log*
 *.tsbuildinfo
+*.ps1
+*.zip

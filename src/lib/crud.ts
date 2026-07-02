@@ -1,4 +1,4 @@
-import { and, eq, desc } from 'drizzle-orm';
+import { and, eq, desc, asc } from 'drizzle-orm';
 import { db } from '@/db';
 import { projects } from '@/db/schema';
 import { requireUser } from './auth';
@@ -8,7 +8,7 @@ import { nextSeq, formatCode } from './codegen';
 import { audit } from './audit';
 import { handle, ok, ApiError, ERROR } from './http';
 type Scope = 'org' | 'project';
-export type CrudConfig = { table: any; resource: string; scope: Scope; codePrefix?: string; fields: string[]; required?: string[]; transform?: (values: any) => any; };
+export type CrudConfig = { table: any; resource: string; scope: Scope; codePrefix?: string; fields: string[]; required?: string[]; transform?: (values: any) => any; orderAsc?: boolean; };
 async function ctxOf(): Promise<TenantContext> { return requireTenant(await requireUser()); }
 async function assertProject(orgId: number, projectId: number) {
   const p = (await db.select().from(projects).where(and(eq(projects.id, projectId), eq(projects.orgId, orgId))).limit(1))[0];
@@ -18,7 +18,7 @@ export function collection(cfg: CrudConfig) {
   const GET = (req: Request) => handle(async () => {
     const ctx = await ctxOf(); const t = cfg.table; const conds = [eq(t.orgId, ctx.orgId)];
     if (cfg.scope === 'project') { const pid = new URL(req.url).searchParams.get('projectId'); if (pid) conds.push(eq(t.projectId, Number(pid))); }
-    const rows: any = await db.select().from(t).where(and(...conds)).orderBy(desc(t.id)); return ok(rows);
+    const rows: any = await db.select().from(t).where(and(...conds)).orderBy(cfg.orderAsc ? asc(t.id) : desc(t.id)); return ok(rows);
   });
   const POST = (req: Request) => handle(async () => {
     const ctx = await ctxOf(); await requirePermission(ctx, cfg.resource, 'write');
@@ -54,4 +54,9 @@ export function item(cfg: CrudConfig) {
 export const RISK_TRANSFORM = (v: any) => {
   const p = Number(v.probability) || 3, i = Number(v.impact) || 3; const s = p * i;
   return { probability: p, impact: i, level: s >= 15 ? 'high' : s >= 8 ? 'medium' : 'low' };
+};
+export const DOCUMENTS_TRANSFORM = (v: any) => {
+  if (v.status === 'approved') return { approvedAt: new Date() };
+  if (v.status === 'rejected' || v.status === 'draft' || v.status === 'review') return { approvedAt: null };
+  return {};
 };

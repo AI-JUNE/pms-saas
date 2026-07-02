@@ -1,11 +1,12 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import Link from 'next/link';
 import {
   LayoutDashboard, FolderKanban, Layers3, ListTodo, FileCheck2, ClipboardList,
   Bug, ShieldAlert, CalendarClock, Users, Bell, Search, LogOut, ChevronDown, Check,
   BarChart3, Activity, Settings, ShieldCheck, Command, User, GitBranch, Type, Circle, Menu,
-  Share2, Server, Flame, ShoppingCart, MessageSquare,
+  Share2, Server, Flame, ShoppingCart, MessageSquare, UserCheck, CalendarRange, Network,
 } from 'lucide-react';
 import { Logo } from './Logo';
 import { GowonMark } from './GowonMark';
@@ -13,14 +14,16 @@ import { GowonMark } from './GowonMark';
 const NAV = [
   { group: '현황', items: [
     { href: '/dashboard', label: '대시보드', icon: LayoutDashboard },
+    { href: '/mywork', label: '내 작업', icon: UserCheck },
     { href: '/projects', label: '프로젝트', icon: FolderKanban },
     { href: '/phases', label: '단계', icon: Layers3 },
     { href: '/reports', label: '리포트', icon: BarChart3 },
+    { href: '/weekly', label: '주간보고', icon: CalendarRange },
   ]},
   { group: '실행', items: [
     { href: '/tasks', label: '업무 (WBS)', icon: ListTodo },
-    { href: '/backlog', label: '백로그·스프린트', icon: GitBranch },
     { href: '/requirements', label: '요구사항', icon: ClipboardList },
+    { href: '/rtm', label: '요구사항 추적(RTM)', icon: Network },
     { href: '/documents', label: '산출물·결재', icon: FileCheck2 },
   ]},
   { group: '통제', items: [
@@ -36,7 +39,6 @@ const NAV = [
   ]},
   { group: '조직·협업', items: [
     { href: '/members', label: '인력', icon: Users },
-    { href: '/boards', label: '게시판', icon: MessageSquare },
     { href: '/notifications', label: '알림', icon: Bell },
   ]},
   { group: '관리', items: [
@@ -46,27 +48,30 @@ const NAV = [
   ]},
 ];
 const ALL = NAV.flatMap((g) => g.items);
+let SHELL_CACHE: { me?: any; projects?: any[]; notifs?: any[] } = {};
 
 export function Shell({ children, title }: { children: React.ReactNode; title: string }) {
   const router = useRouter();
   const path = usePathname();
-  const [me, setMe] = useState<any>(null);
-  const [projects, setProjects] = useState<any[]>([]);
+  const [me, setMe] = useState<any>(SHELL_CACHE.me ?? null);
+  const [projects, setProjects] = useState<any[]>(SHELL_CACHE.projects ?? []);
   const [pid, setPid] = useState<number | null>(null);
-  const [notifs, setNotifs] = useState<any[]>([]);
+  const [notifs, setNotifs] = useState<any[]>(SHELL_CACHE.notifs ?? []);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [cmd, setCmd] = useState(false);
   const [cq, setCq] = useState('');
   const [ci, setCi] = useState(0);
+  const [recs, setRecs] = useState<any[]>([]);
   const [big, setBig] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   useEffect(() => { const b = localStorage.getItem('pms.big') === '1'; setBig(b); document.documentElement.classList.toggle('big', b); }, []);
   function toggleBig() { const b = !big; setBig(b); localStorage.setItem('pms.big', b ? '1' : '0'); document.documentElement.classList.toggle('big', b); }
 
   useEffect(() => {
-    fetch('/api/auth/me').then((r) => r.json()).then((d) => { if (!d.authenticated) router.push('/login'); else setMe(d); });
-    fetch('/api/projects').then((r) => r.ok ? r.json() : []).then((d) => { const a = Array.isArray(d) ? d : []; setProjects(a); setPid(Number(localStorage.getItem('pms.project')) || (a[0]?.id ?? null)); });
-    fetch('/api/notifications').then((r) => r.ok ? r.json() : []).then((d) => setNotifs(Array.isArray(d) ? d : []));
+    setPid(Number(localStorage.getItem('pms.project')) || (SHELL_CACHE.projects?.[0]?.id ?? null));
+    fetch('/api/auth/me').then((r) => r.json()).then((d) => { if (!d.authenticated) router.push('/login'); else { setMe(d); SHELL_CACHE.me = d; } });
+    fetch('/api/projects').then((r) => r.ok ? r.json() : []).then((d) => { const a = Array.isArray(d) ? d : []; setProjects(a); SHELL_CACHE.projects = a; setPid(Number(localStorage.getItem('pms.project')) || (a[0]?.id ?? null)); });
+    fetch('/api/notifications').then((r) => r.ok ? r.json() : []).then((d) => { const a = Array.isArray(d) ? d : []; setNotifs(a); SHELL_CACHE.notifs = a; });
   }, [router]);
 
   const onKey = useCallback((e: KeyboardEvent) => {
@@ -75,11 +80,26 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
   }, []);
   useEffect(() => { window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey); }, [onKey]);
 
+  useEffect(() => {
+    if (!cmd) return;
+    const q = cq.trim();
+    if (q.length < 1) { setRecs([]); return; }
+    const t = setTimeout(() => {
+      fetch('/api/search?q=' + encodeURIComponent(q)).then((r) => r.ok ? r.json() : []).then((d) => setRecs(Array.isArray(d) ? d : [])).catch(() => {});
+    }, 180);
+    return () => clearTimeout(t);
+  }, [cq, cmd]);
+
   function pickProject(id: number) { localStorage.setItem('pms.project', String(id)); setPid(id); setOpenMenu(null); location.reload(); }
   async function logout() { await fetch('/api/auth/logout', { method: 'POST' }); router.push('/login'); }
   const unread = notifs.filter((n) => !n.isRead).length;
   const curProj = projects.find((p) => p.id === pid);
-  const cmdResults = ALL.filter((n) => n.label.toLowerCase().includes(cq.toLowerCase()));
+  const TYPE_ICON: any = { project: FolderKanban, issue: Bug, requirement: ClipboardList, risk: ShieldAlert, task: ListTodo, document: FileCheck2, member: Users, meeting: CalendarClock };
+  const TYPE_KO: any = { project: '프로젝트', issue: '이슈', requirement: '요구사항', risk: '리스크', task: '업무', document: '산출물', member: '인력', meeting: '회의' };
+  const _q = cq.trim();
+  const navItems = ALL.filter((n) => n.label.toLowerCase().includes(_q.toLowerCase())).map((n) => ({ kind: 'nav', href: n.href, label: n.label, icon: n.icon, tag: '' }));
+  const recItems = recs.map((r: any) => ({ kind: 'rec', href: r.href, label: (r.code ? r.code + ' · ' : '') + (r.title || ''), icon: TYPE_ICON[r.type] || Search, tag: TYPE_KO[r.type] || r.type }));
+  const cmdResults = _q.length >= 1 ? [...navItems, ...recItems] : navItems;
 
   return (
     <div className="app" onClick={() => setOpenMenu(null)}>
@@ -89,13 +109,14 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
           <div key={g.group}>
             <div className="nav-group">{g.group}</div>
             {g.items.map((n) => { const Icon = n.icon; const active = path === n.href || (n.href !== '/dashboard' && path.startsWith(n.href));
-              return (<a key={n.href} href={n.href} onClick={() => setMenuOpen(false)} className={`nav-item ${active ? 'active' : ''}`}><Icon /><span>{n.label}</span>{n.href === '/notifications' && unread > 0 && <span className="nav-badge">{unread}</span>}</a>); })}
+              return (<Link key={n.href} href={n.href} prefetch onClick={() => setMenuOpen(false)} className={`nav-item ${active ? 'active' : ''}`}><Icon /><span>{n.label}</span>{n.href === '/notifications' && unread > 0 && <span className="nav-badge">{unread}</span>}</Link>); })}
           </div>
         ))}
         <div style={{ flex: 1 }} />
         <div className="statusblock">
           <div className="row" style={{ gap: 6 }}><Circle style={{ width: 8, height: 8, fill: '#2f8f5b', color: '#2f8f5b' }} /><span style={{ fontWeight: 700, fontSize: 11.5 }}>연결됨 · Vercel</span></div>
           <div style={{ fontSize: 10.5, color: 'var(--text-3)', marginTop: 3 }}>구축 · 주식회사 <b style={{ color: 'var(--brand)' }}>고원(GOWON)</b></div>
+          <div style={{ fontSize: 10, color: 'var(--text-4)', marginTop: 2 }}>빌드 <b style={{ color: 'var(--text-3)' }}>v17</b> · 2026-07-01</div>
         </div>
         <div className="gowon-foot">
           <div className="gowon-cap">운영 법인</div>
@@ -112,7 +133,7 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
             <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
               <button className="btn btn-sm" onClick={() => setOpenMenu(openMenu === 'proj' ? null : 'proj')}>
                 <FolderKanban style={{ color: 'var(--brand)' }} />
-                <span style={{ maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{curProj ? `${curProj.code} · ${curProj.name}` : '프로젝트 선택'}</span>
+                <span className="proj-btn-text" style={{ maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{curProj ? `${curProj.code} · ${curProj.name}` : '프로젝트 선택'}</span>
                 <ChevronDown style={{ width: 14, color: 'var(--text-3)' }} />
               </button>
               {openMenu === 'proj' && (
@@ -133,7 +154,7 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
                 <div style={{ padding: '6px 10px', fontWeight: 750, fontSize: 13 }}>알림 {unread > 0 ? `(${unread})` : ''}</div><div className="menu-sep" />
                 {notifs.slice(0, 6).map((n) => (<div key={n.id} className="menu-item" style={{ alignItems: 'flex-start', cursor: 'default' }}><span style={{ width: 7, height: 7, borderRadius: 9, background: n.isRead ? 'var(--text-4)' : 'var(--brand)', marginTop: 6 }} /><span style={{ fontWeight: n.isRead ? 500 : 700 }}>{n.message}</span></div>))}
                 {notifs.length === 0 && <div className="muted" style={{ padding: 10 }}>알림이 없습니다.</div>}
-                <div className="menu-sep" /><a href="/notifications" className="menu-item">모두 보기</a>
+                <div className="menu-sep" /><Link href="/notifications" className="menu-item">모두 보기</Link>
               </div>
             )}
           </div>
@@ -154,12 +175,12 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
         <div className="cmdk-scrim" onClick={() => setCmd(false)}>
           <div className="cmdk" onClick={(e) => e.stopPropagation()}>
             <div className="cmdk-in"><Command style={{ width: 18, color: 'var(--text-3)' }} />
-              <input autoFocus placeholder="화면 검색 / 이동…" value={cq}
+              <input autoFocus placeholder="화면·데이터 검색 / 이동…" value={cq}
                 onChange={(e) => { setCq(e.target.value); setCi(0); }}
                 onKeyDown={(e) => { if (e.key === 'ArrowDown') setCi((i) => Math.min(i + 1, cmdResults.length - 1)); if (e.key === 'ArrowUp') setCi((i) => Math.max(i - 1, 0)); if (e.key === 'Enter' && cmdResults[ci]) { router.push(cmdResults[ci].href); setCmd(false); } }} />
               <span className="kbd">ESC</span></div>
             <div style={{ maxHeight: 320, overflowY: 'auto', padding: 6 }}>
-              {cmdResults.map((n, i) => { const Icon = n.icon; return (<div key={n.href} className={`cmdk-item ${i === ci ? 'sel' : ''}`} onMouseEnter={() => setCi(i)} onClick={() => { router.push(n.href); setCmd(false); }}><Icon style={{ width: 17 }} />{n.label}</div>); })}
+              {cmdResults.map((n: any, i: number) => { const Icon = n.icon; return (<div key={n.kind + ':' + n.href + ':' + i} className={`cmdk-item ${i === ci ? 'sel' : ''}`} onMouseEnter={() => setCi(i)} onClick={() => { router.push(n.href); setCmd(false); }}><Icon style={{ width: 17 }} /><span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.label}</span>{n.tag && <span className="muted" style={{ fontSize: 11 }}>{n.tag}</span>}</div>); })}
               {cmdResults.length === 0 && <div className="muted" style={{ padding: 14 }}>결과 없음</div>}
             </div>
           </div>

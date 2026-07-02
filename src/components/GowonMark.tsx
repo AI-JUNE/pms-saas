@@ -1,8 +1,28 @@
-// GOWON logo — particle-infinity mark (rainbow dots) + wordmark, pure SVG.
+'use client';
+import { useState } from 'react';
+// Real GOWON emblem served by /api/brand-logo (fetched from the official site); falls back to a mark if unavailable.
 export function GowonMark() {
+  const [ok, setOk] = useState(true);
+  if (ok) {
+    return (
+      <div className="gowon-logo">
+        <img src="/api/brand-logo" alt="GOWON" onError={() => setOk(false)}
+          style={{ height: 26, width: 'auto', maxWidth: 60, objectFit: 'contain', display: 'block' }} />
+        <span className="gowon-word">GOWON</span>
+      </div>
+    );
+  }
   return (
     <div className="gowon-logo">
-      <svg width="38" height="22" viewBox="0 0 60 34" fill="none" aria-label="GOWON"><circle cx="54.0" cy="17.0" r="2.00" fill="#f22b2b"/><circle cx="53.5" cy="20.5" r="1.99" fill="#f23f2b"/><circle cx="52.2" cy="23.6" r="1.97" fill="#f2542b"/><circle cx="50.2" cy="26.0" r="1.94" fill="#f2682b"/><circle cx="47.9" cy="27.4" r="1.90" fill="#f27c2b"/><circle cx="45.4" cy="28.0" r="1.84" fill="#f2902b"/><circle cx="43.0" cy="27.9" r="1.78" fill="#f2a42b"/><circle cx="40.8" cy="27.2" r="1.70" fill="#f2b92b"/><circle cx="38.7" cy="26.1" r="1.62" fill="#f2cd2b"/><circle cx="36.9" cy="24.7" r="1.53" fill="#f2e12b"/><circle cx="35.2" cy="23.2" r="1.43" fill="#eef22b"/><circle cx="33.6" cy="21.5" r="1.32" fill="#daf22b"/><circle cx="32.1" cy="19.7" r="1.21" fill="#c6f22b"/><circle cx="30.7" cy="17.9" r="1.11" fill="#b1f22b"/><circle cx="29.3" cy="16.1" r="1.11" fill="#9df22b"/><circle cx="27.9" cy="14.3" r="1.21" fill="#89f22b"/><circle cx="26.4" cy="12.5" r="1.32" fill="#75f22b"/><circle cx="24.8" cy="10.8" r="1.43" fill="#60f22b"/><circle cx="23.1" cy="9.3" r="1.52" fill="#4cf22b"/><circle cx="21.3" cy="7.9" r="1.62" fill="#38f22b"/><circle cx="19.2" cy="6.8" r="1.70" fill="#2bf232"/><circle cx="17.0" cy="6.1" r="1.78" fill="#2bf247"/><circle cx="14.6" cy="6.0" r="1.84" fill="#2bf25b"/><circle cx="12.1" cy="6.6" r="1.90" fill="#2bf26f"/><circle cx="9.8" cy="8.0" r="1.94" fill="#2bf283"/><circle cx="7.8" cy="10.4" r="1.97" fill="#2bf298"/><circle cx="6.5" cy="13.5" r="1.99" fill="#2bf2ac"/><circle cx="6.0" cy="17.0" r="2.00" fill="#2bf2c0"/><circle cx="6.5" cy="20.5" r="1.99" fill="#2bf2d4"/><circle cx="7.8" cy="23.6" r="1.97" fill="#2bf2e9"/><circle cx="9.8" cy="26.0" r="1.94" fill="#2be7f2"/><circle cx="12.1" cy="27.4" r="1.90" fill="#2bd2f2"/><circle cx="14.6" cy="28.0" r="1.84" fill="#2bbef2"/><circle cx="17.0" cy="27.9" r="1.78" fill="#2baaf2"/><circle cx="19.2" cy="27.2" r="1.70" fill="#2b96f2"/><circle cx="21.3" cy="26.1" r="1.62" fill="#2b82f2"/><circle cx="23.1" cy="24.7" r="1.53" fill="#2b6df2"/><circle cx="24.8" cy="23.2" r="1.43" fill="#2b59f2"/><circle cx="26.4" cy="21.5" r="1.32" fill="#2b45f2"/><circle cx="27.9" cy="19.7" r="1.21" fill="#2b31f2"/><circle cx="29.3" cy="17.9" r="1.11" fill="#3a2bf2"/><circle cx="30.7" cy="16.1" r="1.11" fill="#4e2bf2"/><circle cx="32.1" cy="14.3" r="1.21" fill="#622bf2"/><circle cx="33.6" cy="12.5" r="1.32" fill="#772bf2"/><circle cx="35.2" cy="10.8" r="1.43" fill="#8b2bf2"/><circle cx="36.9" cy="9.3" r="1.53" fill="#9f2bf2"/><circle cx="38.7" cy="7.9" r="1.62" fill="#b32bf2"/><circle cx="40.8" cy="6.8" r="1.70" fill="#c72bf2"/><circle cx="43.0" cy="6.1" r="1.78" fill="#dc2bf2"/><circle cx="45.4" cy="6.0" r="1.84" fill="#f02bf2"/><circle cx="47.9" cy="6.6" r="1.90" fill="#f22bdf"/><circle cx="50.2" cy="8.0" r="1.94" fill="#f22bcb"/><circle cx="52.2" cy="10.4" r="1.97" fill="#f22bb7"/><circle cx="53.5" cy="13.5" r="1.99" fill="#f22ba3"/></svg>
+      <svg width="26" height="26" viewBox="0 0 32 32" fill="none" aria-label="GOWON" style={{ display: 'block' }}>
+        <defs><linearGradient id="gw-em" x1="2" y1="3" x2="30" y2="29" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#7c5cff" /><stop offset=".37" stopColor="#22b8c4" /><stop offset=".7" stopColor="#f7b733" /><stop offset="1" stopColor="#fc575e" />
+        </linearGradient></defs>
+        <rect x="1.5" y="1.5" width="29" height="29" rx="8.5" fill="url(#gw-em)" />
+        <circle cx="16" cy="16" r="7.6" stroke="#fff" strokeWidth="1.9" opacity=".96" />
+        <ellipse cx="16" cy="16" rx="3.1" ry="7.6" stroke="#fff" strokeWidth="1.5" opacity=".9" />
+        <line x1="8.6" y1="16" x2="23.4" y2="16" stroke="#fff" strokeWidth="1.5" opacity=".9" />
+      </svg>
       <span className="gowon-word">GOWON</span>
     </div>
   );

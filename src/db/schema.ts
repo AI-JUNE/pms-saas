@@ -74,7 +74,7 @@ export const requirements = pgTable('requirements', {
 export const issues = pgTable('issues', {
   id: serial('id').primaryKey(), orgId: integer('org_id').notNull(),
   projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
-  code: text('code'), title: text('title').notNull(), description: text('description'),
+  code: text('code'), reqCode: text('req_code'), title: text('title').notNull(), description: text('description'),
   type: text('type').default('bug').notNull(), priority: text('priority').default('medium').notNull(),
   status: text('status').default('open').notNull(), assignee: text('assignee'), dueDate: text('due_date'), labels: text('labels'),
   storyPoints: integer('story_points').default(0).notNull(), sprintId: integer('sprint_id'), epic: text('epic'),
@@ -91,7 +91,7 @@ export const risks = pgTable('risks', {
 export const tasks = pgTable('tasks', {
   id: serial('id').primaryKey(), orgId: integer('org_id').notNull(),
   projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
-  code: text('code'), name: text('name').notNull(), phase: text('phase'), assignee: text('assignee'),
+  code: text('code'), reqCode: text('req_code'), predecessor: text('predecessor'), name: text('name').notNull(), phase: text('phase'), assignee: text('assignee'),
   status: text('status').default('todo').notNull(), startDate: text('start_date'), endDate: text('end_date'),
   progress: integer('progress').default(0).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -101,6 +101,7 @@ export const documents = pgTable('documents', {
   projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
   code: text('code'), title: text('title').notNull(), type: text('type'), version: text('version').default('v1.0').notNull(),
   status: text('status').default('draft').notNull(), author: text('author'), approver: text('approver'),
+  approvedAt: timestamp('approved_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({ projIdx: index('docs_project_idx').on(t.orgId, t.projectId) }));
 export const meetings = pgTable('meetings', {

@@ -7,10 +7,17 @@ export const BADGE: Record<string, string> = {
   high:'p-red', medium:'p-amber', low:'p-green', critical:'p-red', urgent:'p-red',
   bug:'p-red', task:'p-blue', improvement:'p-cyan',
 };
+export const LABEL: Record<string, string> = {
+  active:'진행', approved:'승인', done:'완료', resolved:'해결', closed:'종료', completed:'완료',
+  open:'열림', draft:'작성중', planned:'계획', todo:'할 일', identified:'식별', review:'결재요청',
+  in_progress:'진행중', doing:'진행중', mitigating:'대응중', rejected:'반려', archived:'보관',
+  high:'높음', medium:'보통', low:'낮음', critical:'긴급', urgent:'긴급',
+  bug:'버그', task:'작업', improvement:'개선',
+};
 export const badge = (v: any) => BADGE[String(v)] || 'p-gray';
 export function Pill({ v }: { v: any }) {
   if (v == null || v === '') return <span className="muted">—</span>;
-  return <span className={`pill ${badge(v)}`}>{String(v)}</span>;
+  return <span className={`pill ${badge(v)}`}>{LABEL[String(v)] || String(v)}</span>;
 }
 export function useProjects(): [any[], number | null, (id: number) => void] {
   const [list, setList] = useState<any[]>([]);

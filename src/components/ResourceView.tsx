@@ -1,19 +1,21 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Search, X, Pencil, Trash2, Inbox, SlidersHorizontal, Download, Layers } from 'lucide-react';
+import Link from 'next/link';
+import { Plus, Search, X, Pencil, Trash2, Inbox, SlidersHorizontal, Download, Layers, Sheet } from 'lucide-react';
 import { Shell } from './Shell';
 import { Pill } from '@/lib/ui';
 import { Comments } from './Comments';
 
 export type Col = { key: string; label: string; badge?: boolean; strong?: boolean; mono?: boolean; render?: (v: any, row: any) => any };
-export type Field = { key: string; label: string; type?: 'text'|'textarea'|'number'|'date'|'select'; options?: string[]; required?: boolean; half?: boolean };
-export type AltView = { key: string; label: string; icon?: any; render: (rows: any[], openDetail: (r: any) => void) => any };
-type Props = { title: string; subtitle?: string; endpoint: string; projectScoped?: boolean; columns: Col[]; fields: Field[]; statusKey?: string; altViews?: AltView[]; entity?: string };
+type Opt = string | { value: string; label: string };
+export type Field = { key: string; label: string; type?: 'text'|'textarea'|'number'|'date'|'select'|'combo'; options?: Opt[]; required?: boolean; half?: boolean; numeric?: boolean; hint?: string; placeholder?: string; optionsFrom?: 'members' };
+export type AltView = { key: string; label: string; icon?: any; render: (rows: any[], openDetail: (r: any) => void, save: (id: number, patch: any) => Promise<void>, create: (body: any) => Promise<boolean>) => any };
+type Props = { title: string; subtitle?: string; endpoint: string; projectScoped?: boolean; columns: Col[]; fields: Field[]; statusKey?: string; altViews?: AltView[]; entity?: string; rowHref?: (row: any) => string };
 
 const GROUPABLE = ['status','priority','type','assignee','epic','level','category','role'];
 
-export function ResourceView({ title, subtitle, endpoint, projectScoped, columns, fields, statusKey = 'status', altViews = [], entity }: Props) {
+export function ResourceView({ title, subtitle, endpoint, projectScoped, columns, fields, statusKey = 'status', altViews = [], entity, rowHref }: Props) {
   const router = useRouter();
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,6 +26,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
   const [sortDir, setSortDir] = useState<1 | -1>(-1);
   const [groupBy, setGroupBy] = useState('');
   const [detail, setDetail] = useState<any>(null);
+  const [memberOpts, setMemberOpts] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [form, setForm] = useState<any>({});
@@ -38,6 +41,12 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
     const d = await r.json(); setRows(Array.isArray(d) ? d : []); setLoading(false);
   }
   useEffect(() => { const p = projectScoped ? (Number(localStorage.getItem('pms.project')) || null) : null; setPid(p); load(p); /* eslint-disable-next-line */ }, []);
+  useEffect(() => {
+    if (fields.some((f) => f.optionsFrom === 'members')) {
+      fetch('/api/members').then((r) => r.ok ? r.json() : []).then((d) => setMemberOpts((Array.isArray(d) ? d : []).map((m: any) => m.name).filter(Boolean)));
+    }
+    // eslint-disable-next-line
+  }, []);
 
   const statuses = useMemo(() => Array.from(new Set(rows.map((r) => r[statusKey]).filter(Boolean))), [rows, statusKey]);
   const groupCols = useMemo(() => columns.filter((c) => GROUPABLE.includes(c.key)).map((c) => c.key), [columns]);
@@ -65,7 +74,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
     for (const f of fields) {
       const v = form[f.key];
       if (v === undefined || v === '') continue;            // empty -> use default/null
-      body[f.key] = f.type === 'number' ? Number(v) : v;    // number fields as real numbers
+      body[f.key] = (f.type === 'number' || f.numeric) ? Number(v) : v;    // number fields as real numbers
     }
     if (projectScoped) { if (!pid) { setErr('먼저 상단에서 프로젝트를 선택하세요'); return; } body.projectId = pid; }
     const url = editing ? `${endpoint}/${editing.id}` : endpoint;
@@ -81,6 +90,16 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
     const res = await fetch(`${endpoint}/${row.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
     if (res.ok) { setDetail({ ...row, status }); load(pid); }
   }
+  async function quickPatch(id: number, patch: any) {
+    const res = await fetch(`${endpoint}/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch) });
+    if (res.ok) load(pid);
+  }
+  async function quickCreate(body: any) {
+    const b: any = { ...body }; if (projectScoped) { if (!pid) return false; b.projectId = pid; }
+    const res = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
+    if (res.ok) load(pid);
+    return res.ok;
+  }
   function exportCsv() {
     const cols = columns.map((c) => c.key);
     const head = columns.map((c) => '"' + c.label + '"').join(',');
@@ -90,8 +109,17 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
     a.download = `${title}_${new Date().toISOString().slice(0,10)}.csv`; a.click();
   }
 
+  function exportXlsx() {
+    const esc = (v: string) => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const head = '<tr>' + columns.map((c) => `<th style="background:#be5535;color:#fff;font-weight:bold;border:1px solid #d9c3b8;padding:7px 10px;text-align:left">${esc(c.label)}</th>`).join('') + '</tr>';
+    const rows = view.map((r) => '<tr>' + columns.map((c) => `<td style="border:1px solid #e6ddd6;padding:6px 10px">${esc(String(r[c.key] ?? ''))}</td>`).join('') + '</tr>').join('');
+    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>${title}</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body><table style="border-collapse:collapse;font-family:sans-serif;font-size:13px">${head}${rows}</table></body></html>`;
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel' }));
+    a.download = `${title}_${new Date().toISOString().slice(0, 10)}.xls`; a.click();
+  }
+
   const Row = ({ row }: { row: any }) => (
-    <tr onClick={() => setDetail(row)}>
+    <tr onClick={() => rowHref ? router.push(rowHref(row)) : setDetail(row)}>
       {columns.map((c) => (
         <td key={c.key}>
           {c.render ? c.render(row[c.key], row)
@@ -141,6 +169,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
         )}
         <div className="sp" />
         <button className="btn btn-sm" onClick={exportCsv} title="CSV 내보내기"><Download style={{ width: 14 }} />CSV</button>
+        <button className="btn btn-sm" onClick={exportXlsx} title="Excel 내보내기"><Sheet style={{ width: 14 }} />Excel</button>
         <span className="muted"><SlidersHorizontal style={{ width: 13, verticalAlign: -2 }} /> {view.length}건</span>
       </div>
 
@@ -150,12 +179,12 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
             <div><div style={{ fontWeight: 750, color: 'var(--brand-700)' }}>프로젝트가 없습니다</div>
               <p className="muted" style={{ margin: '3px 0 0' }}>이 화면은 프로젝트 단위로 동작합니다. 먼저 프로젝트를 만들거나, 설정에서 데모 데이터를 채우세요.</p></div>
             <div className="sp" />
-            <a href="/projects" className="btn">프로젝트 만들기</a>
-            <a href="/settings" className="btn btn-pri">데모 데이터 채우기</a>
+            <Link href="/projects" className="btn">프로젝트 만들기</Link>
+            <Link href="/settings" className="btn btn-pri">데모 데이터 채우기</Link>
           </div>
         </div>
       )}
-      {mode !== 'table' && !loading && <div style={{ marginBottom: 6 }}>{altViews.find((v) => v.key === mode)?.render(view, setDetail)}</div>}
+      {mode !== 'table' && !loading && <div style={{ marginBottom: 6 }}>{altViews.find((v) => v.key === mode)?.render(view, setDetail, quickPatch, quickCreate)}</div>}
 
       {(mode === 'table' || loading) && <div className="card tbl-wrap">
         <table className="tbl">
@@ -191,7 +220,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
               <div style={{ marginTop: 18 }}>
                 <div className="sect" style={{ marginBottom: 8 }}>상태 변경</div>
                 <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
-                  {sf.options.map((o) => <button key={o} className={`btn btn-sm ${detail.status === o ? 'btn-pri' : ''}`} onClick={() => quickStatus(detail, o)}>{o}</button>)}
+                  {sf.options.map((oo: any) => { const o = typeof oo === 'string' ? oo : oo.value; const lb = typeof oo === 'string' ? oo : oo.label; return <button key={o} className={`btn btn-sm ${detail.status === o ? 'btn-pri' : ''}`} onClick={() => quickStatus(detail, o)}>{lb}</button>; })}
                 </div>
               </div>
             ) : null; })()}
@@ -207,14 +236,21 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
             <div className="modal-h"><h3 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>{editing ? '수정' : '새로 만들기'}</h3><div className="sp" /><button type="button" className="iconbtn" onClick={() => setOpen(false)}><X /></button></div>
             {err && <div className="err">{err}</div>}
             <div className="modal-b"><div className="grid2">
-              {fields.map((f) => (
+              {fields.map((f) => {
+                const srcOpts = f.optionsFrom === 'members' ? memberOpts : (f.options || []);
+                const optNorm = (srcOpts as any[]).map((o: any) => (typeof o === 'string' ? { value: o, label: o } : o));
+                const dlId = 'dl-' + f.key;
+                return (
                 <div className="field" key={f.key} style={{ gridColumn: f.half ? 'auto' : '1 / -1' }}>
                   <label>{f.label}{f.required && ' *'}</label>
                   {f.type === 'textarea' ? <textarea className="in" value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} />
-                    : f.type === 'select' ? <select className="in" value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}><option value="">선택</option>{(f.options || []).map((o) => <option key={o} value={o}>{o}</option>)}</select>
-                    : <input className="in" type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'} value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} />}
+                    : f.type === 'select' ? <select className="in" value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}><option value="">선택</option>{optNorm.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
+                    : f.type === 'combo' ? <><input className="in" list={dlId} placeholder={f.placeholder || '선택하거나 직접 입력'} value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} /><datalist id={dlId}>{optNorm.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}</datalist></>
+                    : <input className="in" type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'} placeholder={f.placeholder || ''} value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} />}
+                  {f.hint && <span style={{ fontSize: 11, color: 'var(--text-4)', marginTop: 3, display: 'block' }}>{f.hint}</span>}
                 </div>
-              ))}
+                );
+              })}
             </div></div>
             <div className="modal-f"><div className="sp" /><button type="button" className="btn btn-ghost" onClick={() => setOpen(false)}>취소</button><button type="submit" className="btn btn-pri">저장</button></div>
           </form>
