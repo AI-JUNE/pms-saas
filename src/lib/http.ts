@@ -14,5 +14,18 @@ export class ApiError extends Error {
 }
 export async function handle(fn: () => Promise<Response>): Promise<Response> {
   try { return await fn(); }
-  catch (e) { if (e instanceof ApiError) return sendError(e.err, e.message, e.extra); console.error(e); return sendError(ERROR.SERVER, '서버 오류가 발생했습니다'); }
+  catch (e: any) {
+    if (e instanceof ApiError) return sendError(e.err, e.message, e.extra);
+    const code = e?.code || e?.cause?.code || '';
+    const map: Record<string, [Err, string]> = {
+      '23505': [ERROR.CONFLICT, '이미 존재하는 값입니다. 중복 여부를 확인하세요.'],
+      '23503': [ERROR.VALIDATION, '연결된 데이터가 있어 처리할 수 없습니다.'],
+      '23502': [ERROR.VALIDATION, '필수 값이 비어 있습니다.'],
+      '22P02': [ERROR.VALIDATION, '입력 형식이 올바르지 않습니다.'],
+      '23514': [ERROR.VALIDATION, '허용되지 않는 값입니다.'],
+    };
+    if (map[code]) return sendError(map[code][0], map[code][1]);
+    console.error(e);
+    return sendError(ERROR.SERVER, '서버 오류가 발생했습니다');
+  }
 }
