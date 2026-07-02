@@ -4,7 +4,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
   LayoutDashboard, FolderKanban, Layers3, ListTodo, FileCheck2, ClipboardList,
-  Bug, ShieldAlert, CalendarClock, Users, Bell, Search, LogOut, ChevronDown, Check, ClipboardCheck,
+  Bug, ShieldAlert, CalendarClock, Users, Bell, Search, LogOut, ChevronDown, Check, ClipboardCheck, CalendarDays,
   BarChart3, Activity, Settings, ShieldCheck, Command, User, GitBranch, Type, Circle, Menu,
   Share2, Server, Flame, ShoppingCart, MessageSquare, UserCheck, CalendarRange, Network, Gauge,
 } from 'lucide-react';
@@ -31,6 +31,7 @@ const NAV = [
     { href: '/tests', label: '테스트', icon: ClipboardCheck },
     { href: '/risks', label: '리스크', icon: ShieldAlert },
     { href: '/meetings', label: '회의', icon: CalendarClock },
+    { href: '/calendar', label: '캘린더', icon: CalendarDays },
   ]},
   { group: '인프라·운영', items: [
     { href: '/interfaces', label: '인터페이스', icon: Share2 },
