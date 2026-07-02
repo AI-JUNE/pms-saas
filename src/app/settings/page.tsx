@@ -6,9 +6,11 @@ import { Shell } from '@/components/Shell';
 export default function Page() {
   const router = useRouter();
   const [d, setD] = useState<any>(null); const [name, setName] = useState(''); const [saved, setSaved] = useState(false);
+  const [myName, setMyName] = useState(''); const [mySaved, setMySaved] = useState(false);
   const [busy, setBusy] = useState(false); const [done, setDone] = useState(false);
   useEffect(() => { fetch('/api/settings').then((r) => r.ok ? r.json() : Promise.reject()).then((x) => { setD(x); setName(x.org?.name || ''); }).catch(() => router.push('/login')); }, [router]);
   async function save() { await fetch('/api/settings', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) }); setSaved(true); setTimeout(() => setSaved(false), 1500); }
+  async function saveProfile() { const r = await fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: myName }) }); if (r.ok) { setMySaved(true); setTimeout(() => { setMySaved(false); location.reload(); }, 900); } }
   async function fillDemo() { setBusy(true); const r = await fetch('/api/admin/seed-demo', { method: 'POST' }); setBusy(false); if (r.ok) setDone(true); }
   if (!d) return <Shell title="설정"><div className="empty">불러오는 중…</div></Shell>;
   return (
@@ -20,6 +22,12 @@ export default function Page() {
         <div className="field"><label>조직명</label><input className="in" value={name} onChange={(e) => setName(e.target.value)} disabled={!d.isOrgAdmin} /></div>
         <div className="row" style={{ gap: 18, fontSize: 13 }}><span className="muted">플랜</span><span className="pill p-blue np">{d.org?.plan || 'free'}</span><span className="muted">내 역할</span><span className="pill p-purple np">{d.role}</span></div>
         {d.isOrgAdmin && <div style={{ marginTop: 16 }}><button className="btn btn-pri" onClick={save}>{saved ? '저장됨 ✓' : '저장'}</button></div>}
+      </div>
+      <div className="card card-pad" style={{ maxWidth: 560, marginTop: 14 }}>
+        <div className="sect" style={{ marginBottom: 14 }}>내 계정</div>
+        <div className="field"><label>표시 이름</label><input className="in" value={myName} onChange={(e) => setMyName(e.target.value)} placeholder="예: PM" /></div>
+        <p className="muted" style={{ margin: '2px 0 14px', fontSize: 12.5 }}>대시보드 인사말과 담당자 표시에 사용됩니다. 로그인 계정별로 개별 적용됩니다.</p>
+        <button className="btn btn-pri" onClick={saveProfile}>{mySaved ? '저장됨 ✓' : '저장'}</button>
       </div>
       {d.isOrgAdmin && (
         <div className="card card-pad" style={{ maxWidth: 560, marginTop: 14 }}>
