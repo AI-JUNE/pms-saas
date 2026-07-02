@@ -42,6 +42,11 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
   }
   useEffect(() => { const p = projectScoped ? (Number(localStorage.getItem('pms.project')) || null) : null; setPid(p); load(p); /* eslint-disable-next-line */ }, []);
   useEffect(() => {
+    const onEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') { setOpen(false); setDetail(null); } };
+    window.addEventListener('keydown', onEsc);
+    return () => window.removeEventListener('keydown', onEsc);
+  }, []);
+  useEffect(() => {
     if (fields.some((f) => f.optionsFrom === 'members')) {
       fetch('/api/members').then((r) => r.ok ? r.json() : []).then((d) => setMemberOpts((Array.isArray(d) ? d : []).map((m: any) => m.name).filter(Boolean)));
     }

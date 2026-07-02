@@ -6,7 +6,7 @@ import {
   LayoutDashboard, FolderKanban, Layers3, ListTodo, FileCheck2, ClipboardList,
   Bug, ShieldAlert, CalendarClock, Users, Bell, Search, LogOut, ChevronDown, Check,
   BarChart3, Activity, Settings, ShieldCheck, Command, User, GitBranch, Type, Circle, Menu,
-  Share2, Server, Flame, ShoppingCart, MessageSquare, UserCheck, CalendarRange, Network,
+  Share2, Server, Flame, ShoppingCart, MessageSquare, UserCheck, CalendarRange, Network, Gauge,
 } from 'lucide-react';
 import { Logo } from './Logo';
 import { GowonMark } from './GowonMark';
@@ -39,6 +39,7 @@ const NAV = [
   ]},
   { group: '조직·협업', items: [
     { href: '/members', label: '인력', icon: Users },
+    { href: '/workload', label: '업무 부하', icon: Gauge },
     { href: '/notifications', label: '알림', icon: Bell },
   ]},
   { group: '관리', items: [

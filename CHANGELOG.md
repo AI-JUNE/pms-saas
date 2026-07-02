@@ -16,4 +16,9 @@
 - 간트: 막대에 담당자 이니셜 칩 표시. — components/views.tsx
 - 검증: tsc --noEmit 타입체크 통과(에러 0).
 
+## 2026-07-02 (주간 배치 B·C — 배포 대기)
+- 리포트/분석: **담당자별 업무 부하(리소스) 뷰** 신규 (/workload, 사이드바 '업무 부하'). 인력별 진행업무+미결이슈 합산·부하바. — app/api/workload, app/workload, Shell
+- 품질: 상세 슬라이드오버·모달을 **ESC 키로 닫기**. — components/ResourceView.tsx
+- 검증: tsc --noEmit 통과(에러 0).
+
 <!-- 야간 자동 개발은 이 줄 위에 새 날짜 블록을 추가하세요 -->
