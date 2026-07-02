@@ -70,6 +70,10 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
   function openEdit(row: any) { const f: any = {}; fields.forEach((x) => (f[x.key] = row[x.key] ?? '')); setForm(f); setEditing(row); setErr(''); setOpen(true); }
   async function save(e: React.FormEvent) {
     e.preventDefault(); setErr('');
+    const _ds = fields.filter((f) => f.type === 'date');
+    const _sf = _ds.find((f) => /start|시작/i.test(f.key));
+    const _ef = _ds.find((f) => /end|due|마감|종료|기한/i.test(f.key));
+    if (_sf && _ef && form[_sf.key] && form[_ef.key] && form[_sf.key] > form[_ef.key]) { setErr('시작일이 마감일보다 늦을 수 없습니다.'); return; }
     const body: any = {};
     for (const f of fields) {
       const v = form[f.key];

@@ -212,6 +212,8 @@ export function Gantt({ rows, openDetail, save, create }: { rows: any[]; openDet
               const left = xOf(x.s), width = Math.max(pxDay, xOf(x.e) - xOf(x.s));
               const prog = progOf(r);
               const isDragging = drag && drag.id === r.id;
+              const overdue = x.planned && r.status !== 'done' && x.e < todayMid;
+              const initial = (r.assignee || '').trim().charAt(0);
               return (
                 <div key={r.id} style={{ display: 'flex', height: rowH, borderBottom: '1px solid var(--border)' }} className="gt-row">
                   <div onClick={() => openDetail(r)} style={{ width: LBL, flexShrink: 0, borderRight: '1px solid var(--border)', padding: '0 14px', display: 'flex', flexDirection: 'column', justifyContent: 'center', cursor: 'pointer' }}>
@@ -223,9 +225,10 @@ export function Gantt({ rows, openDetail, save, create }: { rows: any[]; openDet
                       <div onMouseDown={(e) => startDrag(e, r, 'move')} title={`마일스톤 · ${fmt(x.s)}`} style={{ position: 'absolute', left: left - 9, top: rowH / 2 - 9, width: 18, height: 18, background: color(r.status), transform: 'rotate(45deg)', borderRadius: 3, cursor: save ? 'grab' : 'pointer', boxShadow: 'var(--sh-sm)' }} />
                     ) : (
                       <div onMouseDown={(e) => startDrag(e, r, 'move')} title={`${fmt(x.s)} ~ ${fmt(x.e)} · ${prog}%${x.planned ? '' : ' · 드래그하여 계획'}`}
-                        style={{ position: 'absolute', left, width, top: 9, height: 22, borderRadius: 7, background: x.planned ? 'var(--surface-3)' : 'transparent', border: `1.5px ${x.planned ? 'solid' : 'dashed'} ${color(r.status)}${x.planned ? '55' : '99'}`, overflow: 'visible', boxShadow: isDragging ? 'var(--sh-md)' : 'var(--sh-sm)', cursor: save ? 'grab' : 'pointer', opacity: x.planned ? 1 : .75, transition: isDragging ? 'none' : 'box-shadow .15s' }}>
+                        style={{ position: 'absolute', left, width, top: 9, height: 22, borderRadius: 7, background: x.planned ? 'var(--surface-3)' : 'transparent', border: `1.5px ${x.planned ? 'solid' : 'dashed'} ${overdue ? '#c0414f' : color(r.status) + (x.planned ? '55' : '99')}`, overflow: 'visible', boxShadow: isDragging ? 'var(--sh-md)' : 'var(--sh-sm)', cursor: save ? 'grab' : 'pointer', opacity: x.planned ? 1 : .75, transition: isDragging ? 'none' : 'box-shadow .15s' }}>
                         <div style={{ width: `${prog}%`, height: '100%', background: color(r.status), opacity: .9, borderRadius: 6 }} />
                         <span style={{ position: 'absolute', left: 8, top: 0, height: '100%', display: 'flex', alignItems: 'center', fontSize: 10.5, fontWeight: 700, color: prog > 50 ? '#fff' : 'var(--text-2)', pointerEvents: 'none' }}>{x.planned ? `${prog}%` : '계획'}</span>
+                        {initial && <span style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', width: 15, height: 15, borderRadius: 9, background: '#fff', color: color(r.status), fontSize: 8.5, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${color(r.status)}`, pointerEvents: 'none' }}>{initial}</span>}
                         {save && <>
                           <span onMouseDown={(e) => startDrag(e, r, 'l')} style={{ position: 'absolute', left: -1, top: 0, height: '100%', width: 9, cursor: 'ew-resize' }} />
                           <span onMouseDown={(e) => startDrag(e, r, 'r')} style={{ position: 'absolute', right: -1, top: 0, height: '100%', width: 9, cursor: 'ew-resize' }} />
