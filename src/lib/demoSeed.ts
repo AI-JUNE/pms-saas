@@ -1,5 +1,5 @@
 import { db } from '@/db';
-import { projects, phases, members, requirements, issues, risks, tasks, documents, meetings, sprints, interfaces, infraAssets, firewallRequests, procurementItems, boards, notifications } from '@/db/schema';
+import { projects, phases, members, requirements, issues, risks, tasks, documents, meetings, sprints, interfaces, infraAssets, firewallRequests, procurementItems, boards, tests, notifications } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 
 // Populates a org with rich demo data. Idempotent: only fills tables that are empty.
@@ -57,6 +57,13 @@ export async function seedDemo(O: number, userId: number) {
     { orgId: O, projectId: P, code: 'DOC-0001', title: '요구사항 정의서', type: '산출물', version: 'v1.0', status: 'approved', author: '김개발', approver: '홍길동' },
     { orgId: O, projectId: P, code: 'DOC-0002', title: '아키텍처 설계서', type: '산출물', version: 'v0.9', status: 'review', author: '이엔지', approver: '홍길동' },
     { orgId: O, projectId: P, code: 'DOC-0003', title: '테스트 계획서', type: '산출물', version: 'v0.5', status: 'draft', author: '최QA', approver: '홍길동' },
+  ]);
+  await seedIf(tests, [
+    { orgId: O, projectId: P, code: 'TC-0001', reqCode: 'REQ-0001', title: '로그인 인증 정상 흐름', type: '단위', priority: 'high', steps: '1) 로그인 화면 진입\n2) 유효 계정 입력\n3) 로그인 클릭', expected: '대시보드로 이동', assignee: '이엔지', status: 'done', result: 'pass' },
+    { orgId: O, projectId: P, code: 'TC-0002', reqCode: 'REQ-0001', title: '로그인 실패 처리', type: '단위', priority: 'medium', steps: '잘못된 비밀번호 입력', expected: '오류 메시지 표시, 이동 없음', assignee: '이엔지', status: 'pl', result: 'pass' },
+    { orgId: O, projectId: P, code: 'TC-0003', reqCode: 'REQ-0002', title: '대시보드 집계 정확성', type: '통합', priority: 'high', steps: '데이터 입력 후 대시보드 확인', expected: '카드 수치가 실제와 일치', assignee: '김개발', status: 'dev', result: 'na' },
+    { orgId: O, projectId: P, code: 'TC-0004', reqCode: 'REQ-0002', title: '리포트 PDF 출력', type: '시스템', priority: 'medium', steps: '리포트 > 인쇄/PDF', expected: 'PDF 정상 생성', assignee: '홍길동', status: 'draft', result: 'na' },
+    { orgId: O, projectId: P, code: 'TC-0005', reqCode: 'REQ-0003', title: '권한별 접근 제어', type: '보안', priority: 'high', steps: 'read 권한 계정으로 쓰기 시도', expected: '403 차단', assignee: '이엔지', status: 'pm', result: 'fail' },
   ]);
   await seedIf(meetings, [
     { orgId: O, projectId: P, code: 'MTG-0001', title: '착수 회의', meetingDate: '2026-03-05', location: '본사 3층', attendees: '홍길동, 김개발, 이엔지', agenda: '범위·일정 확정', decisions: '4단계 일정 승인' },

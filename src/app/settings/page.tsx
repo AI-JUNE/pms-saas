@@ -11,7 +11,7 @@ export default function Page() {
   useEffect(() => { fetch('/api/settings').then((r) => r.ok ? r.json() : Promise.reject()).then((x) => { setD(x); setName(x.org?.name || ''); }).catch(() => router.push('/login')); }, [router]);
   async function save() { await fetch('/api/settings', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) }); setSaved(true); setTimeout(() => setSaved(false), 1500); }
   async function saveProfile() { const r = await fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: myName }) }); if (r.ok) { setMySaved(true); setTimeout(() => { setMySaved(false); location.reload(); }, 900); } }
-  async function fillDemo() { setBusy(true); const r = await fetch('/api/admin/seed-demo', { method: 'POST' }); setBusy(false); if (r.ok) setDone(true); }
+  async function fillDemo() { setBusy(true); const r = await fetch('/api/admin/seed-demo', { method: 'POST' }); if (r.ok) { setDone(true); setTimeout(() => location.reload(), 900); } else setBusy(false); }
   if (!d) return <Shell title="설정"><div className="empty">불러오는 중…</div></Shell>;
   return (
     <Shell title="설정">

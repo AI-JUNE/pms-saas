@@ -163,9 +163,18 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
           <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
             <button className="avatar" onClick={() => setOpenMenu(openMenu === 'user' ? null : 'user')} aria-label="내 메뉴"><User style={{ width: 18, height: 18 }} /></button>
             {openMenu === 'user' && (
-              <div className="menu" style={{ minWidth: 200 }}>
-                <div style={{ padding: '8px 11px' }}><div style={{ fontWeight: 750, fontSize: 13.5 }}>{me?.user?.name}</div><div className="muted">{me?.user?.email}</div></div>
-                <div className="menu-sep" /><button className="menu-item" onClick={logout}><LogOut style={{ width: 16 }} />로그아웃</button>
+              <div className="menu" style={{ minWidth: 236 }}>
+                <div style={{ padding: '11px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span className="avatar" style={{ width: 36, height: 36 }}><User style={{ width: 18, height: 18 }} /></span>
+                  <div style={{ minWidth: 0 }}><div style={{ fontWeight: 750, fontSize: 14 }}>{me?.user?.name || '사용자'}</div><div className="muted" style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{me?.user?.email}</div></div>
+                </div>
+                <div className="menu-sep" />
+                <Link href="/mywork" className="menu-item" onClick={() => setOpenMenu(null)}><UserCheck style={{ width: 16 }} />내 작업</Link>
+                <Link href="/notifications" className="menu-item" onClick={() => setOpenMenu(null)}><Bell style={{ width: 16 }} />알림{unread > 0 && <span className="nav-badge" style={{ marginLeft: 'auto' }}>{unread}</span>}</Link>
+                <Link href="/settings" className="menu-item" onClick={() => setOpenMenu(null)}><Settings style={{ width: 16 }} />내 계정·설정</Link>
+                <Link href="/audit" className="menu-item" onClick={() => setOpenMenu(null)}><Activity style={{ width: 16 }} />감사 로그</Link>
+                <div className="menu-sep" />
+                <button className="menu-item" onClick={logout}><LogOut style={{ width: 16 }} />로그아웃</button>
               </div>
             )}
           </div>
