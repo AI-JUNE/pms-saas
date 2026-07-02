@@ -155,8 +155,8 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
         </td>
       ))}
       <td onClick={(e) => e.stopPropagation()} style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-        <button className="btn btn-ghost btn-sm" onClick={() => openEdit(row)}><Pencil style={{ width: 14 }} /></button>
-        <button className="btn btn-danger btn-sm" onClick={() => remove(row)}><Trash2 style={{ width: 14 }} /></button>
+        <button className="btn btn-ghost btn-sm" aria-label="수정" title="수정" onClick={() => openEdit(row)}><Pencil style={{ width: 14 }} /></button>
+        <button className="btn btn-danger btn-sm" aria-label="삭제" title="삭제" onClick={() => remove(row)}><Trash2 style={{ width: 14 }} /></button>
       </td>
     </tr>
   );
@@ -236,7 +236,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
         <div className="scrim" onClick={() => setDetail(null)} />
         <aside className="over" onTouchStart={onOverTouchStart} onTouchMove={onOverTouchMove} onTouchEnd={onOverTouchEnd} style={swipeY > 0 ? { transform: `translateY(${swipeY}px)`, transition: 'none' } : undefined}>
           <div className="over-grip" aria-hidden />
-          <div className="over-h"><span className="mono" style={{ fontSize: 13 }}>{detail.code || `#${detail.id}`}</span><div className="sp" /><button className="iconbtn" onClick={() => setDetail(null)}><X /></button></div>
+          <div className="over-h"><span className="mono" style={{ fontSize: 13 }}>{detail.code || `#${detail.id}`}</span><div className="sp" /><button className="iconbtn" aria-label="닫기" onClick={() => setDetail(null)}><X /></button></div>
           <div className="over-b">
             <h3 style={{ margin: '0 0 16px', fontSize: 19, fontWeight: 800, letterSpacing: '-.02em' }}>{detail.title || detail.name || detail.code}</h3>
             <dl className="dl">
@@ -260,7 +260,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
       {open && (
         <div className="mscrim" onClick={() => setOpen(false)}>
           <form className="modal" onClick={(e) => e.stopPropagation()} onSubmit={save}>
-            <div className="modal-h"><h3 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>{editing ? '수정' : '새로 만들기'}</h3><div className="sp" /><button type="button" className="iconbtn" onClick={() => setOpen(false)}><X /></button></div>
+            <div className="modal-h"><h3 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>{editing ? '수정' : '새로 만들기'}</h3><div className="sp" /><button type="button" className="iconbtn" aria-label="닫기" onClick={() => setOpen(false)}><X /></button></div>
             {err && <div className="err">{err}</div>}
             <div className="modal-b"><div className="grid2">
               {fields.map((f) => {

@@ -149,7 +149,7 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
             <Search style={{ width: 16, height: 16 }} /><span style={{ flex: 1, textAlign: 'left' }}>검색 / 이동…</span><span className="kbd">⌘K</span>
           </button>
           <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
-            <button className="iconbtn" onClick={() => setOpenMenu(openMenu === 'notif' ? null : 'notif')}><Bell style={{ width: 19 }} />{unread > 0 && <span className="dot" />}</button>
+            <button className="iconbtn" aria-label="알림" onClick={() => setOpenMenu(openMenu === 'notif' ? null : 'notif')}><Bell style={{ width: 19 }} />{unread > 0 && <span className="dot" />}</button>
             {openMenu === 'notif' && (
               <div className="menu" style={{ minWidth: 300 }}>
                 <div style={{ padding: '6px 10px', fontWeight: 750, fontSize: 13 }}>알림 {unread > 0 ? `(${unread})` : ''}</div><div className="menu-sep" />
