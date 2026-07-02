@@ -181,6 +181,12 @@ export function Gantt({ rows, openDetail, save, create }: { rows: any[]; openDet
   const arrows: { x1: number; y1: number; x2: number; y2: number }[] = [];
   rows.forEach((r) => { if (r.predecessor && geo[r.predecessor] && geo[r.code]) { const p = geo[r.predecessor], t = geo[r.code]; arrows.push({ x1: p.right, y1: p.mid, x2: t.left, y2: t.mid }); } });
   const bodyH = rows.length * rowH;
+  // 임계경로(근사): 가장 늦게 끝나는 작업에서 선행을 따라 올라간 체인
+  const byCode: Record<string, any> = {}; rows.forEach((r) => { byCode[r.code] = r; });
+  const endMs = (r: any) => r.endDate ? new Date(r.endDate).getTime() : (r.startDate ? new Date(r.startDate).getTime() : 0);
+  let lastT: any = null; rows.forEach((r) => { if (endMs(r) && (!lastT || endMs(r) > endMs(lastT))) lastT = r; });
+  const critical = new Set<string>();
+  { let c: any = lastT, g = 0; while (c && g++ < 200) { critical.add(c.code); c = c.predecessor && byCode[c.predecessor] ? byCode[c.predecessor] : null; } }
 
   const Zb = ({ z, l }: { z: any; l: string }) => <button className={`btn btn-sm ${zoom === z ? 'btn-pri' : ''}`} onClick={() => setZoom(z)} style={{ padding: '3px 10px' }}>{l}</button>;
 
@@ -190,7 +196,7 @@ export function Gantt({ rows, openDetail, save, create }: { rows: any[]; openDet
         <div className="sect" style={{ margin: 0 }}>간트차트 · 일정 계획</div>
         <div style={{ display: 'flex', gap: 4, marginLeft: 8 }}><Zb z="day" l="일" /><Zb z="week" l="주" /><Zb z="month" l="월" /></div>
         <div className="sp" />
-        <span className="muted" style={{ fontSize: 11 }}>막대=이동 · 양끝=기간 · 아래손잡이=진척 · 하단행=새 작업 · 자동저장</span>
+        <span className="muted" style={{ fontSize: 11 }}>막대=이동 · 양끝=기간 · 아래손잡이=진척 · 하단행=새 작업 · 자동저장 · <span style={{ color: '#c0414f', fontWeight: 700 }}>▭ 주경로</span></span>
       </div>
       <div style={{ overflowX: 'auto' }}>
         <div style={{ minWidth: LBL + W, userSelect: (drag || nsel) ? 'none' : 'auto' }}>
@@ -213,6 +219,7 @@ export function Gantt({ rows, openDetail, save, create }: { rows: any[]; openDet
               const prog = progOf(r);
               const isDragging = drag && drag.id === r.id;
               const overdue = x.planned && r.status !== 'done' && x.e < todayMid;
+              const isCrit = critical.size > 1 && critical.has(r.code);
               const initial = (r.assignee || '').trim().charAt(0);
               return (
                 <div key={r.id} style={{ display: 'flex', height: rowH, borderBottom: '1px solid var(--border)' }} className="gt-row">
@@ -224,8 +231,8 @@ export function Gantt({ rows, openDetail, save, create }: { rows: any[]; openDet
                     {isMs ? (
                       <div onMouseDown={(e) => startDrag(e, r, 'move')} title={`마일스톤 · ${fmt(x.s)}`} style={{ position: 'absolute', left: left - 9, top: rowH / 2 - 9, width: 18, height: 18, background: color(r.status), transform: 'rotate(45deg)', borderRadius: 3, cursor: save ? 'grab' : 'pointer', boxShadow: 'var(--sh-sm)' }} />
                     ) : (
-                      <div onMouseDown={(e) => startDrag(e, r, 'move')} title={`${fmt(x.s)} ~ ${fmt(x.e)} · ${prog}%${x.planned ? '' : ' · 드래그하여 계획'}`}
-                        style={{ position: 'absolute', left, width, top: 9, height: 22, borderRadius: 7, background: x.planned ? 'var(--surface-3)' : 'transparent', border: `1.5px ${x.planned ? 'solid' : 'dashed'} ${overdue ? '#c0414f' : color(r.status) + (x.planned ? '55' : '99')}`, overflow: 'visible', boxShadow: isDragging ? 'var(--sh-md)' : 'var(--sh-sm)', cursor: save ? 'grab' : 'pointer', opacity: x.planned ? 1 : .75, transition: isDragging ? 'none' : 'box-shadow .15s' }}>
+                      <div onMouseDown={(e) => startDrag(e, r, 'move')} title={`${fmt(x.s)} ~ ${fmt(x.e)} · ${prog}%${isCrit ? ' · 주경로' : ''}${x.planned ? '' : ' · 드래그하여 계획'}`}
+                        style={{ position: 'absolute', left, width, top: 9, height: 22, borderRadius: 7, background: x.planned ? 'var(--surface-3)' : 'transparent', border: `1.5px ${x.planned ? 'solid' : 'dashed'} ${overdue ? '#c0414f' : color(r.status) + (x.planned ? '55' : '99')}`, overflow: 'visible', boxShadow: isCrit ? '0 0 0 2px #c0414f66, var(--sh-sm)' : (isDragging ? 'var(--sh-md)' : 'var(--sh-sm)'), cursor: save ? 'grab' : 'pointer', opacity: x.planned ? 1 : .75, transition: isDragging ? 'none' : 'box-shadow .15s' }}>
                         <div style={{ width: `${prog}%`, height: '100%', background: color(r.status), opacity: .9, borderRadius: 6 }} />
                         <span style={{ position: 'absolute', left: 8, top: 0, height: '100%', display: 'flex', alignItems: 'center', fontSize: 10.5, fontWeight: 700, color: prog > 50 ? '#fff' : 'var(--text-2)', pointerEvents: 'none' }}>{x.planned ? `${prog}%` : '계획'}</span>
                         {initial && <span style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', width: 15, height: 15, borderRadius: 9, background: '#fff', color: color(r.status), fontSize: 8.5, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${color(r.status)}`, pointerEvents: 'none' }}>{initial}</span>}
