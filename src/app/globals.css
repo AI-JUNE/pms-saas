@@ -343,3 +343,13 @@ a.brand:focus-visible,.btn:focus-visible{outline:2px solid var(--brand);outline-
   .kpis{grid-template-columns:1fr 1fr;gap:8px}
   .hero h2{font-size:17px}
 }
+
+/* table scroll-shadow hint (가로 스크롤 안내) */
+.tbl-wrap{ /* scroll-shadow */
+  background:
+    linear-gradient(90deg, var(--surface) 30%, rgba(255,255,255,0)) left center / 36px 100% no-repeat,
+    linear-gradient(90deg, rgba(255,255,255,0), var(--surface) 70%) right center / 36px 100% no-repeat,
+    radial-gradient(farthest-side at 0 50%, rgba(0,0,0,.10), rgba(0,0,0,0)) left center / 14px 100% no-repeat,
+    radial-gradient(farthest-side at 100% 50%, rgba(0,0,0,.10), rgba(0,0,0,0)) right center / 14px 100% no-repeat;
+  background-attachment: local, local, scroll, scroll;
+}

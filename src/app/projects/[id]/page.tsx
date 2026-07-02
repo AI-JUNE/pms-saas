@@ -62,6 +62,16 @@ export default function Page({ params }: { params: { id: string } }) {
             <Metric icon={FileCheck2} label="산출물" value={`${d.documents.approved}/${d.documents.total}`} sub="승인 / 전체" href="/documents" />
           </div>
 
+          {d.schedule && (
+            <div style={{ background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 20px', marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontWeight: 750, fontSize: 14, marginBottom: 12 }}><TrendingUp style={{ width: 16, color: 'var(--brand)' }} />일정 성과 (SPI)</div>
+              <div style={{ display: 'flex', gap: 26, flexWrap: 'wrap', alignItems: 'center' }}>
+                <div><div className="muted" style={{ fontSize: 12 }}>계획 진척</div><div style={{ fontSize: 22, fontWeight: 800 }}>{d.schedule.plannedPct}%</div></div>
+                <div><div className="muted" style={{ fontSize: 12 }}>실제 진척</div><div style={{ fontSize: 22, fontWeight: 800 }}>{d.schedule.actualPct}%</div></div>
+                <div><div className="muted" style={{ fontSize: 12 }}>SPI</div>{(() => { const v = d.schedule.spi; const c = v == null ? 'var(--text-3)' : v >= 1 ? '#2f8f5b' : v >= 0.8 ? '#d98a16' : '#c0414f'; const t = v == null ? '' : v >= 1 ? '일정 준수/선행' : v >= 0.8 ? '경미 지연' : '지연 위험'; return <div style={{ fontSize: 22, fontWeight: 800, color: c }}>{v == null ? '—' : v}<span style={{ fontSize: 12, fontWeight: 700, marginLeft: 6 }}>{t}</span></div>; })()}</div>
+              </div>
+            </div>
+          )}
           <div style={{ background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontWeight: 750, fontSize: 14, marginBottom: 14 }}><TrendingUp style={{ width: 16, color: 'var(--brand)' }} />단계 진행 현황</div>
             {d.phases.list.length === 0 ? <div className="muted">등록된 단계가 없습니다.</div> : (

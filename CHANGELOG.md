@@ -21,4 +21,9 @@
 - 품질: 상세 슬라이드오버·모달을 **ESC 키로 닫기**. — components/ResourceView.tsx
 - 검증: tsc --noEmit 통과(에러 0).
 
+## 2026-07-02 (주간 배치 D — 배포 대기)
+- 리포트/분석: 프로젝트 상세에 **일정 성과(SPI) 카드** (계획진척 vs 실제진척 + SPI 색상 판정). — app/api/project-summary, app/projects/[id]
+- 모바일/UX: 표 **가로 스크롤 그림자 힌트**(끝에서 사라지는 스크롤 셰도우). — app/globals.css
+- 검증: tsc --noEmit 통과(에러 0). DB 변경 없음(마이그레이션 불필요).
+
 <!-- 야간 자동 개발은 이 줄 위에 새 날짜 블록을 추가하세요 -->

@@ -23,6 +23,11 @@ export async function GET(req: Request) {
       db.select().from(documents).where(and(eq(documents.orgId, org), eq(documents.projectId, pid))),
     ]);
     const avg = tk.length ? Math.round(tk.reduce((s, t) => s + (t.progress || 0), 0) / tk.length) : 0;
+    const starts = tk.map((t) => t.startDate ? new Date(t.startDate).getTime() : null).filter((x): x is number => !!x);
+    const ends = tk.map((t) => t.endDate ? new Date(t.endDate).getTime() : null).filter((x): x is number => !!x);
+    let plannedPct = 0;
+    if (starts.length && ends.length) { const ss = Math.min(...starts), ee = Math.max(...ends), now = Date.now(); plannedPct = ee > ss ? Math.round(Math.max(0, Math.min(1, (now - ss) / (ee - ss))) * 100) : 0; }
+    const spi = plannedPct > 0 ? +(avg / plannedPct).toFixed(2) : null;
     return ok({
       project: pj,
       phases: { total: ph.length, done: ph.filter((p) => p.status === 'done').length, list: ph.map((p) => ({ id: p.id, code: p.code, name: p.name, status: p.status })) },
@@ -30,6 +35,7 @@ export async function GET(req: Request) {
       issues: { total: is.length, open: is.filter((i) => i.status !== 'closed' && i.status !== 'resolved').length },
       risks: { total: rk.length, high: rk.filter((r) => r.level === 'high').length },
       requirements: { total: rq.length, approved: rq.filter((r) => r.status === 'approved').length },
+      schedule: { plannedPct, actualPct: avg, spi },
       documents: { total: dc.length, approved: dc.filter((d) => d.status === 'approved').length },
     });
   });
