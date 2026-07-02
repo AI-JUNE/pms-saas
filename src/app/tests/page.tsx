@@ -14,7 +14,7 @@ export default function Page() {
         ]} />
       )},
     ]}
-    columns={[{key:'code',label:'코드'},{key:'title',label:'테스트 케이스',strong:true},{key:'type',label:'유형'},{key:'reqCode',label:'요구사항'},{key:'assignee',label:'담당'},{key:'result',label:'결과',badge:true},{key:'status',label:'검증단계',badge:true}]}
+    columns={[{key:'code',label:'코드'},{key:'title',label:'테스트 케이스',strong:true},{key:'type',label:'유형'},{key:'reqCode',label:'요구사항'},{key:'assignee',label:'담당'},{key:'dueDate',label:'기한'},{key:'result',label:'결과',badge:true},{key:'status',label:'검증단계',badge:true}]}
     fields={[
       {key:'title',label:'테스트 케이스명',required:true},
       {key:'reqCode',label:'연계 요구사항',type:'combo',options:[],placeholder:'예: REQ-0001',hint:'요구사항 추적(RTM)에 연결됩니다'},
@@ -23,6 +23,9 @@ export default function Page() {
       {key:'steps',label:'테스트 절차',type:'textarea'},
       {key:'expected',label:'기대 결과',type:'textarea'},
       {key:'assignee',label:'담당(개발자)',type:'combo',optionsFrom:'members',half:true},
+      {key:'reporter',label:'보고자',type:'combo',optionsFrom:'members',half:true},
+      {key:'dueDate',label:'기한',type:'date',half:true},
+      {key:'progress',label:'진척률',type:'select',numeric:true,half:true,options:[{value:'0',label:'0%'},{value:'25',label:'25%'},{value:'50',label:'50%'},{value:'75',label:'75%'},{value:'100',label:'100%'}]},
       {key:'result',label:'결과',type:'select',half:true,options:[{value:'na',label:'미실행'},{value:'pass',label:'통과'},{value:'fail',label:'실패'},{value:'blocked',label:'블록'}]},
       {key:'status',label:'검증 단계',type:'select',options:[{value:'draft',label:'작성'},{value:'dev',label:'개발자검증'},{value:'pl',label:'PL검증'},{value:'pm',label:'PM승인'},{value:'done',label:'완료'},{value:'rejected',label:'반려'}]},
     ]} />;

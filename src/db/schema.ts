@@ -87,6 +87,7 @@ export const tests = pgTable('tests', {
   type: text('type').default('단위').notNull(), priority: text('priority').default('medium').notNull(),
   steps: text('steps'), expected: text('expected'), assignee: text('assignee'),
   status: text('status').default('draft').notNull(), result: text('result').default('na').notNull(),
+  reporter: text('reporter'), dueDate: text('due_date'), progress: integer('progress').default(0).notNull(),
   executedAt: timestamp('executed_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({ i: index('tests_project_idx').on(t.orgId, t.projectId) }));
