@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { BarChart3, TrendingDown, Users, Gauge, Printer, Download } from 'lucide-react';
 import { Shell } from '@/components/Shell';
 import { Pill } from '@/lib/ui';
-const cnt = (a: any[], k: string, v: string) => a.filter((x) => x[k] === v).length;
+const cnt = (a: any[], k: string, v: string) => a.filter((x) => x[k] === v).length; // reports
 
 // --- Excel(다중 시트) 내보내기: 외부 의존성 없이 SpreadsheetML(엑셀 XML)로 워크북 생성 ---
 const xmlEsc = (v: any) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -75,12 +75,23 @@ export default function Page() {
   const [d, setD] = useState<any>(null);
   useEffect(() => {
     fetch('/api/auth/me').then((r) => r.json()).then(async (m) => { if (!m.authenticated) { router.push('/login'); return; }
-      const [issues, tasks, risks, requirements, projects, sprints] = await Promise.all(['issues','tasks','risks','requirements','projects','sprints'].map((e) => fetch('/api/' + e).then((r) => r.ok ? r.json() : [])));
-      setD({ issues: issues||[], tasks: tasks||[], risks: risks||[], requirements: requirements||[], projects: projects||[], sprints: sprints||[] });
+      const [issues, tasks, risks, requirements, projects, sprints, tests] = await Promise.all(['issues','tasks','risks','requirements','projects','sprints','tests'].map((e) => fetch('/api/' + e).then((r) => r.ok ? r.json() : [])));
+      setD({ issues: issues||[], tasks: tasks||[], risks: risks||[], requirements: requirements||[], projects: projects||[], sprints: sprints||[], tests: tests||[] });
     });
   }, [router]);
   if (!d) return <Shell title="리포트"><div className="card card-pad" style={{ display: 'grid', gap: 12 }}>{Array.from({ length: 5 }).map((_, i) => <div key={i} className="skel" style={{ height: i === 0 ? 30 : 18, width: i === 0 ? '38%' : '100%' }} />)}</div></Shell>;
-  const { issues, tasks, risks, requirements, projects, sprints } = d;
+  const { issues, tasks, risks, requirements, projects, sprints, tests } = d;
+  // 테스트 실행 결과(통과율·실패)
+  const tCnt = (r: string) => tests.filter((t: any) => t.result === r).length;
+  const tPass = tCnt('pass'), tFail = tCnt('fail'), tBlocked = tCnt('blocked'), tNa = tests.length - tPass - tFail - tBlocked;
+  const tExecuted = tPass + tFail + tBlocked;
+  const tPassRate = (tPass + tFail) > 0 ? Math.round((tPass / (tPass + tFail)) * 100) : null;
+  const testByProject = projects.map((p: any) => {
+    const ts = tests.filter((t: any) => t.projectId === p.id);
+    const pp = ts.filter((t: any) => t.result === 'pass').length, pf = ts.filter((t: any) => t.result === 'fail').length;
+    const exec = ts.filter((t: any) => ['pass','fail','blocked'].includes(t.result)).length;
+    return { p, total: ts.length, exec, pass: pp, fail: pf, rate: (pp + pf) > 0 ? Math.round((pp / (pp + pf)) * 100) : null };
+  }).filter((r: any) => r.total > 0);
   // assignee breakdown
   const assignees = Array.from(new Set(issues.map((i: any) => i.assignee).filter(Boolean)));
   const byAssignee = assignees.map((a: any) => ({ a, total: issues.filter((i: any) => i.assignee === a).length, open: issues.filter((i: any) => i.assignee === a && i.status === 'open').length, prog: issues.filter((i: any) => i.assignee === a && i.status === 'in_progress').length, done: issues.filter((i: any) => i.assignee === a && ['resolved','closed'].includes(i.status)).length }));
@@ -94,6 +105,7 @@ export default function Page() {
       xlsSheet('이슈', ['제목', '유형', '우선순위', '상태', '담당자', '기한'], issues.map((i: any) => [i.title || '', i.type || '', i.priority || '', i.status || '', i.assignee || '', i.dueDate || ''])),
       xlsSheet('리스크', ['제목', '확률', '영향', '등급', '상태', '담당'], risks.map((r: any) => [r.title || '', r.probability || '', r.impact || '', r.level || '', r.status || '', r.owner || ''])),
       xlsSheet('요구사항', ['코드', '제목', '분류', '우선순위', '상태'], requirements.map((q: any) => [q.reqCode || q.code || '', q.title || '', q.category || '', q.priority || '', q.status || ''])),
+      xlsSheet('테스트실행', ['프로젝트', '전체', '실행', '통과', '실패', '통과율(%)'], testByProject.map((r: any) => [r.p.name || '', r.total, r.exec, r.pass, r.fail, r.rate ?? ''])),
     ];
     downloadWorkbook(sheets);
   };
@@ -126,6 +138,23 @@ export default function Page() {
           <div className="tbl-wrap" style={{ marginTop: 8 }}><table className="tbl"><thead><tr><th>스프린트</th><th>상태</th><th>이슈</th><th>포인트</th></tr></thead>
             <tbody>{velocity.map((v: any) => <tr key={v.s.id}><td style={{ fontWeight: 650 }}>{v.s.name}</td><td><Pill v={v.s.status} /></td><td>{v.cnt}</td><td style={{ fontWeight: 800 }}>{v.pts} pts</td></tr>)}
               {velocity.length === 0 && <tr><td colSpan={4}><div className="empty">스프린트 없음</div></td></tr>}</tbody></table></div>
+        </div>
+      </div>
+      <div style={{ height: 16 }} />
+      <div className="g2">
+        <div className="card card-pad dash-card"><div className="sect" style={{ marginBottom: 16 }}>테스트 실행 결과</div>
+          <div className="row" style={{ alignItems: 'baseline', gap: 10, marginBottom: 14 }}>
+            <span style={{ fontSize: 34, fontWeight: 800, color: tPassRate == null ? 'var(--text-4)' : tPassRate >= 80 ? '#2f8f5b' : tPassRate >= 50 ? '#d98a16' : '#c0414f' }}>{tPassRate == null ? '—' : tPassRate + '%'}</span>
+            <span style={{ fontSize: 12.5, color: 'var(--text-3)', fontWeight: 600 }}>통과율</span>
+            <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-3)' }}>실행 {tExecuted}/{tests.length}</span>
+          </div>
+          <Bars data={[{ label: '통과', value: tPass, color: '#2f8f5b' },{ label: '실패', value: tFail, color: '#c0414f' },{ label: '블록', value: tBlocked, color: '#d98a16' },{ label: '미실행', value: tNa, color: '#8a94a6' }]} />
+        </div>
+        <div className="card dash-card" style={{ overflow: 'hidden' }}>
+          <div className="card-pad" style={{ paddingBottom: 0 }}><div className="sect">프로젝트별 테스트 통과율</div></div>
+          <div className="tbl-wrap" style={{ marginTop: 8 }}><table className="tbl"><thead><tr><th>프로젝트</th><th>실행</th><th>통과</th><th>실패</th><th>통과율</th></tr></thead>
+            <tbody>{testByProject.map((r: any) => <tr key={r.p.id}><td style={{ fontWeight: 650 }}>{r.p.name}</td><td>{r.exec}/{r.total}</td><td><span className="pill p-green">{r.pass}</span></td><td><span className="pill p-red">{r.fail}</span></td><td style={{ fontWeight: 800, color: r.rate == null ? 'var(--text-4)' : r.rate >= 80 ? '#2f8f5b' : r.rate >= 50 ? '#d98a16' : '#c0414f' }}>{r.rate == null ? '—' : r.rate + '%'}</td></tr>)}
+              {testByProject.length === 0 && <tr><td colSpan={5}><div className="empty">실행된 테스트 없음</div></td></tr>}</tbody></table></div>
         </div>
       </div>
       <div style={{ height: 16 }} />
