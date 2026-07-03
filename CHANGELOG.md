@@ -3,6 +3,14 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-07-03 (주간 배치 HH — 성능/DB 튜닝 · 배포 대기 · ⚠️마이그레이션 필요)
+- 성능(핵심): **세션 토큰 인덱스** 추가 — 모든 인증 요청이 매번 sessions.token 전체 스캔하던 것을 인덱스 조회로 전환(요청당 DB 비용 대폭 감소). — db/schema, migrate
+- 성능: **담당자/소유자 인덱스** 추가 — 내 작업·업무 부하의 담당자 필터 조회 가속(tasks/issues.assignee, risks.owner). — db/schema, migrate
+- 안정화(중요): 마이그레이션을 **문장별 예외 처리**로 견고화 — 한 문장 실패가 전체를 중단시키지 않고 나머지를 계속 적용(applied/failed 리포트). 배포 직후 신규 컬럼 미적용으로 화면이 멈추는 문제 재발 방지. — app/api/admin/migrate
+- 버그(운영): EE·FF 배포 직후 tasks 신규 컬럼(planned/actual_hours) 미마이그레이션으로 tasks·my-work·dashboard가 500 → 스키마 업데이트 실행(31개 적용)으로 복구 확인.
+- ⚠️ 신규 인덱스 — 배포 후 관리자 > "스키마 업데이트 실행" 1회.
+- 검증: tsc --noEmit 통과(에러 0). 16개 API 200 라이브 확인.
+
 ## 2026-07-03 (주간 배치 EE·FF — 배포 대기 · ⚠️마이그레이션 필요)
 - 핵심 ★ **테스트 실행 리포트** (EE) — 프로젝트 상세에 **통과율·실행/전체·통과/실패/블록** + 결과 분포 막대 + 검증단계(개발·PL·PM·완료) 요약 카드 추가. DB 변경 없음. — app/api/project-summary, app/projects/[id]
 - 핵심 ★ **공수(계획/실제 시간)** (FF) — 업무에 계획공수·실제공수(시간) 입력 추가. EVM을 **공수 시간 기준**으로 전환(입력 시): **AC(실제원가)·CPI(원가효율)** 실값 계산·표시. 공수 미입력 시 기존 작업수 기준으로 자동 폴백. — db/schema(tasks.planned_hours/actual_hours), lib/configs, app/tasks, app/api/project-summary, app/projects/[id]

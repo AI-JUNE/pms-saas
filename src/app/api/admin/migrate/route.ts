@@ -39,6 +39,11 @@ const DDL: string[] = [
   `ALTER TABLE IF EXISTS tests ADD COLUMN IF NOT EXISTS reporter text`,
   `ALTER TABLE IF EXISTS tests ADD COLUMN IF NOT EXISTS due_date text`,
   `ALTER TABLE IF EXISTS tests ADD COLUMN IF NOT EXISTS progress integer DEFAULT 0 NOT NULL`,
+  // 성능 인덱스 (세션 토큰·담당자·소유자)
+  `CREATE INDEX IF NOT EXISTS sessions_token_idx ON sessions (token)`,
+  `CREATE INDEX IF NOT EXISTS tasks_assignee_idx ON tasks (org_id, assignee)`,
+  `CREATE INDEX IF NOT EXISTS issues_assignee_idx ON issues (org_id, assignee)`,
+  `CREATE INDEX IF NOT EXISTS risks_owner_idx ON risks (org_id, owner)`,
   // phases sort order safety
   `ALTER TABLE IF EXISTS phases ADD COLUMN IF NOT EXISTS sort_order integer DEFAULT 0 NOT NULL`,
   `ALTER TABLE IF EXISTS phases ADD COLUMN IF NOT EXISTS color text`,
@@ -48,8 +53,11 @@ export async function POST() {
   return handle(async () => {
     const ctx = await requireTenant(await requireUser());
     if (!ctx.isOrgAdmin && !ctx.user.isSuperadmin) throw new ApiError(ERROR.FORBIDDEN, '관리자만 실행할 수 있습니다');
-    const applied: string[] = [];
-    for (const stmt of DDL) { await db.execute(dsql.raw(stmt)); applied.push(stmt.replace(/ALTER TABLE IF EXISTS /,'').slice(0,60)); }
-    return ok({ applied: applied.length });
+    const applied: string[] = []; const failed: { stmt: string; error: string }[] = [];
+    for (const stmt of DDL) {
+      try { await db.execute(dsql.raw(stmt)); applied.push(stmt.slice(0, 60)); }
+      catch (e: any) { failed.push({ stmt: stmt.slice(0, 80), error: String(e?.message || e) }); }
+    }
+    return ok({ applied: applied.length, failed });
   });
 }

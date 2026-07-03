@@ -11,7 +11,7 @@ export const sessions = pgTable('sessions', {
   activeOrgId: integer('active_org_id'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(), userAgent: text('user_agent'),
-}, (t) => ({ userIdx: index('sessions_user_idx').on(t.userId) }));
+}, (t) => ({ userIdx: index('sessions_user_idx').on(t.userId), tokenIdx: index('sessions_token_idx').on(t.token) }));
 export const organizations = pgTable('organizations', {
   id: serial('id').primaryKey(), slug: text('slug').notNull(), name: text('name').notNull(),
   plan: text('plan').default('free').notNull(),
@@ -79,7 +79,7 @@ export const issues = pgTable('issues', {
   status: text('status').default('open').notNull(), assignee: text('assignee'), dueDate: text('due_date'), labels: text('labels'),
   storyPoints: integer('story_points').default(0).notNull(), sprintId: integer('sprint_id'), epic: text('epic'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-}, (t) => ({ projIdx: index('issues_project_idx').on(t.orgId, t.projectId) }));
+}, (t) => ({ projIdx: index('issues_project_idx').on(t.orgId, t.projectId), asgIdx: index('issues_assignee_idx').on(t.orgId, t.assignee) }));
 export const tests = pgTable('tests', {
   id: serial('id').primaryKey(), orgId: integer('org_id').notNull(),
   projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
@@ -98,7 +98,7 @@ export const risks = pgTable('risks', {
   probability: integer('probability').default(3).notNull(), impact: integer('impact').default(3).notNull(),
   level: text('level').default('medium').notNull(), status: text('status').default('identified').notNull(), owner: text('owner'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-}, (t) => ({ projIdx: index('risks_project_idx').on(t.orgId, t.projectId) }));
+}, (t) => ({ projIdx: index('risks_project_idx').on(t.orgId, t.projectId), ownIdx: index('risks_owner_idx').on(t.orgId, t.owner) }));
 export const tasks = pgTable('tasks', {
   id: serial('id').primaryKey(), orgId: integer('org_id').notNull(),
   projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
@@ -107,7 +107,7 @@ export const tasks = pgTable('tasks', {
   progress: integer('progress').default(0).notNull(),
   plannedHours: integer('planned_hours').default(0).notNull(), actualHours: integer('actual_hours').default(0).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-}, (t) => ({ projIdx: index('tasks_project_idx').on(t.orgId, t.projectId) }));
+}, (t) => ({ projIdx: index('tasks_project_idx').on(t.orgId, t.projectId), asgIdx: index('tasks_assignee_idx').on(t.orgId, t.assignee) }));
 export const documents = pgTable('documents', {
   id: serial('id').primaryKey(), orgId: integer('org_id').notNull(),
   projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
