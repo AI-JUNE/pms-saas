@@ -27,8 +27,8 @@ function Donut({ data, mounted }: { data: { label: string; value: number; color:
   const total = data.reduce((s, d) => s + d.value, 0) || 1;
   let acc = 0; const R = 56, C = 2 * Math.PI * R;
   return (
-    <div className="row" style={{ gap: 24, alignItems: 'center' }}>
-      <svg width="150" height="150" viewBox="0 0 150 150" style={{ filter: 'drop-shadow(0 6px 14px rgba(0,0,0,.08))' }}>
+    <div className="row donut-wrap" style={{ gap: 24, alignItems: 'center' }}>
+      <svg className="donut-svg" width="150" height="150" viewBox="0 0 150 150" style={{ filter: 'drop-shadow(0 6px 14px rgba(0,0,0,.08))' }}>
         <defs>{data.map((d, i) => (<linearGradient key={i} id={`dseg${i}`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor={shade(d.color, 0.16)} /><stop offset="1" stopColor={shade(d.color, -0.12)} /></linearGradient>))}</defs>
         <circle cx="75" cy="75" r={R} fill="none" stroke="var(--surface-3)" strokeWidth="16" />
         {data.map((d, i) => { const len = (d.value / total) * C; const target = C - acc; acc += len;

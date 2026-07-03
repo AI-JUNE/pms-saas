@@ -390,3 +390,20 @@ a.brand:focus-visible,.btn:focus-visible{outline:2px solid var(--brand);outline-
     display:flex;align-items:center;justify-content:center;line-height:1}
   .main .content{padding-bottom:72px}
 }
+
+/* ===== v22: 모바일 KPI/차트 카드 레이아웃 최적화 (mobile KPI/chart cards) ===== */
+@media (max-width:640px){
+  /* 카드 여백을 줄여 좁은 화면에서 도넛+범례 공간 확보 */
+  .card-pad{padding:14px 15px}
+  /* 도넛 차트를 화면폭에 맞춰 축소 — 범례와 겹침·넘침 방지 (CSS가 width/height 속성 override) */
+  .donut-svg{width:120px;height:120px}
+  .donut-wrap{gap:16px}
+}
+@media (max-width:400px){
+  /* 초소형 화면: 도넛은 위, 범례는 아래로 세로 배치해 가독성 확보 */
+  .donut-wrap{flex-direction:column;align-items:stretch;gap:12px}
+  .donut-svg{align-self:center}
+  /* KPI 값·여백을 살짝 줄여 2열에서 숫자가 넘치지 않게 */
+  .kpi{padding:13px 14px}
+  .kpi-value{font-size:21px}
+}

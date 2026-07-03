@@ -3,6 +3,10 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-07-03 (야간 배치 6 — 배포 대기)
+- 모바일 ②: **KPI/차트 카드 레이아웃 최적화** — 좁은 화면에서 카드 여백(.card-pad)을 줄여 도넛+범례 공간을 확보하고, 대시보드 도넛 차트(150px 고정)를 ≤640px에서 120px로 축소해 범례와 겹침·넘침을 방지. ≤400px 초소형 화면에선 도넛(위)+범례(아래) 세로 배치로 전환하고 KPI 값·여백을 살짝 줄여 2열에서 숫자가 넘치지 않도록 함. — components? 아님: app/globals.css(v22), app/dashboard(Donut에 .donut-wrap/.donut-svg 클래스 훅 2개만 추가)
+- 검증: tsc --noEmit 통과(에러 0). CSS + className 2건 추가로 DB·타입 영향 없음, 마이그레이션 불필요. (야간 OneDrive 마운트 동기화 지연으로 tsc가 dashboard 꼬리 4줄이 잘린 사본을 읽어 오탐 → 호스트 원본(Read)으로 무결성 확인 후 마운트 사본 보정해 0에러 재확인.)
+
 ## 2026-07-03 (주간 배치 II — 배포 자동 마이그레이션 · 무인 자동배포)
 - 핵심(안정화): **배포 시 마이그레이션 자동 실행** — Next.js instrumentation(서버 기동 훅)에서 스키마 자가정합(ensureSchema)을 1회 실행. 이제 스키마가 바뀐 배포도 **관리자 버튼 없이** 자동 정합 → 오늘 같은 "배포 직후 컬럼 미적용으로 화면 멈춤" 원천 차단. — src/instrumentation.ts, src/lib/migrate.ts, next.config.js
 - 리팩터: 마이그레이션 DDL을 lib/migrate로 공용화(라우트/기동훅 공유). ensureSchema는 인스턴스당 1회·throw 없음(요청 무영향). — lib/migrate, app/api/admin/migrate
