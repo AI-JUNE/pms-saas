@@ -102,7 +102,7 @@ export const risks = pgTable('risks', {
 export const tasks = pgTable('tasks', {
   id: serial('id').primaryKey(), orgId: integer('org_id').notNull(),
   projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
-  code: text('code'), reqCode: text('req_code'), predecessor: text('predecessor'), name: text('name').notNull(), phase: text('phase'), assignee: text('assignee'),
+  code: text('code'), reqCode: text('req_code'), predecessor: text('predecessor'), parentId: integer('parent_id'), name: text('name').notNull(), phase: text('phase'), assignee: text('assignee'),
   status: text('status').default('todo').notNull(), startDate: text('start_date'), endDate: text('end_date'),
   progress: integer('progress').default(0).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),

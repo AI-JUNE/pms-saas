@@ -7,3 +7,4 @@ npm-debug.log*
 *.tsbuildinfo
 *.ps1
 *.zip
+__synctest.txt

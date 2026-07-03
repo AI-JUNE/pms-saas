@@ -28,6 +28,12 @@ export async function GET(req: Request) {
     let plannedPct = 0;
     if (starts.length && ends.length) { const ss = Math.min(...starts), ee = Math.max(...ends), now = Date.now(); plannedPct = ee > ss ? Math.round(Math.max(0, Math.min(1, (now - ss) / (ee - ss))) * 100) : 0; }
     const spi = plannedPct > 0 ? +(avg / plannedPct).toFixed(2) : null;
+    // EVM(획득가치) — 작업 환산 단위(BAC=작업 수) 기준. AC(실적원가)는 공수 데이터 연동 시.
+    const bac = tk.length;
+    const ev = +(tk.reduce((s, t) => s + (t.progress || 0), 0) / 100).toFixed(2);
+    const pv = +((bac * plannedPct) / 100).toFixed(2);
+    const sv = +(ev - pv).toFixed(2);
+    const evmSpi = pv > 0 ? +(ev / pv).toFixed(2) : null;
     return ok({
       project: pj,
       phases: { total: ph.length, done: ph.filter((p) => p.status === 'done').length, list: ph.map((p) => ({ id: p.id, code: p.code, name: p.name, status: p.status })) },
@@ -36,6 +42,7 @@ export async function GET(req: Request) {
       risks: { total: rk.length, high: rk.filter((r) => r.level === 'high').length, byLevel: { high: rk.filter((r)=>r.level==='high').length, medium: rk.filter((r)=>r.level==='medium').length, low: rk.filter((r)=>r.level==='low').length } },
       requirements: { total: rq.length, approved: rq.filter((r) => r.status === 'approved').length },
       schedule: { plannedPct, actualPct: avg, spi },
+      evm: { bac, pv, ev, ac: null, sv, spi: evmSpi, cpi: null },
       documents: { total: dc.length, approved: dc.filter((d) => d.status === 'approved').length },
     });
   });

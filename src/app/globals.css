@@ -88,6 +88,11 @@ input,select,textarea{font-family:inherit}
 .tbl tr:last-child td{border-bottom:none}
 .tbl tbody tr{cursor:pointer;transition:.1s}
 .tbl tbody tr:hover td{background:var(--surface-2)}
+/* row hover quick actions (monday식): 마우스 있는 기기에서만 숨김→hover 노출 */
+@media (hover:hover){.tbl td.row-act{opacity:0;transition:opacity .14s}.tbl tbody tr:hover td.row-act,.tbl td.row-act:focus-within{opacity:1}}
+/* 행 밀도 전환(컴팩트) */
+.tbl-wrap.compact .tbl td{padding:6px 10px;font-size:12.5px}
+.tbl-wrap.compact .tbl th{padding:7px 10px}
 .mono{font-family:var(--mono);font-size:12px;color:var(--text-2);font-weight:600}
 
 /* pills */
@@ -344,15 +349,44 @@ a.brand:focus-visible,.btn:focus-visible{outline:2px solid var(--brand);outline-
 @media (max-width:520px){
   .proj-btn-text{max-width:84px}
   .kpis{grid-template-columns:1fr 1fr;gap:8px}
-  .hero h2{font-size:17px}
 }
 
-/* table scroll-shadow hint (가로 스크롤 안내) */
-.tbl-wrap{ /* scroll-shadow */
-  background:
-    linear-gradient(90deg, var(--surface) 30%, rgba(255,255,255,0)) left center / 36px 100% no-repeat,
-    linear-gradient(90deg, rgba(255,255,255,0), var(--surface) 70%) right center / 36px 100% no-repeat,
-    radial-gradient(farthest-side at 0 50%, rgba(0,0,0,.10), rgba(0,0,0,0)) left center / 14px 100% no-repeat,
-    radial-gradient(farthest-side at 100% 50%, rgba(0,0,0,.10), rgba(0,0,0,0)) right center / 14px 100% no-repeat;
-  background-attachment: local, local, scroll, scroll;
+
+/* ===== v20: 접근성 — 키보드 포커스 링 통일 (a11y focus-visible) ===== */
+/* 마우스 클릭에는 링을 숨기고 키보드(Tab) 탐색에만 브랜드 색 링 노출 */
+:where(a,button,[role="button"],[role="tab"],[role="menuitem"],input,select,textarea,summary,[tabindex]):focus-visible{
+  outline:2px solid var(--brand);
+  outline-offset:2px;
+  border-radius:6px;
+}
+/* 폼 입력·검색: 자체 box-shadow 링을 이미 쓰므로 이중 링 방지 */
+.in:focus-visible,.search:focus-within,.search input:focus-visible{outline:none}
+/* 커스텀 인터랙티브 요소 명시 (낮은 특이도 :where 보강) */
+.pill:focus-visible,.seg button:focus-visible,.iconbtn:focus-visible,.menu-item:focus-visible,.nav-item:focus-visible,.avatar:focus-visible{
+  outline:2px solid var(--brand);
+  outline-offset:2px;
+}
+/* 목록 행 클릭영역이 포커스될 때 은은한 배경 강조 */
+.tbl tbody tr:focus-within{background:var(--surface-2)}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
+}
+
+/* ===== v21: 모바일 하단 탭바 네비게이션 (mobile bottom tabbar) ===== */
+.mobiletabs{display:none}
+@media (max-width:860px){
+  .mobiletabs{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:70;
+    background:var(--surface);border-top:1px solid var(--border);
+    box-shadow:0 -2px 12px rgba(11,18,32,.06);
+    padding:4px 4px calc(env(safe-area-inset-bottom,0px) + 4px);}
+  .mobiletab{flex:1 1 0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:2px;min-height:52px;padding:6px 2px;border:none;background:none;cursor:pointer;
+    color:var(--text-3);font-size:10.5px;font-weight:700;text-decoration:none;position:relative;
+    border-radius:10px;transition:color .14s,background .14s}
+  .mobiletab svg{width:21px;height:21px}
+  .mobiletab.active{color:var(--brand);background:var(--brand-50,rgba(190,85,53,.09))}
+  .mobiletab .mt-badge{position:absolute;top:4px;right:calc(50% - 20px);min-width:15px;height:15px;
+    padding:0 3px;border-radius:99px;background:var(--brand);color:#fff;font-size:9.5px;font-weight:800;
+    display:flex;align-items:center;justify-content:center;line-height:1}
+  .main .content{padding-bottom:72px}
 }

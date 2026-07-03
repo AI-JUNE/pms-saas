@@ -1,8 +1,8 @@
 'use client';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, Search, X, Pencil, Trash2, Inbox, SlidersHorizontal, Download, Layers, Sheet } from 'lucide-react';
+import { Plus, Search, X, Pencil, Trash2, Inbox, SlidersHorizontal, Download, Sheet } from 'lucide-react';
 import { Shell } from './Shell';
 import { Pill } from '@/lib/ui';
 import { Comments } from './Comments';
@@ -18,13 +18,13 @@ const STATUS_COLOR: Record<string, string> = {
   high: '#c0414f', critical: '#c0414f', rejected: '#c0414f', fail: '#c0414f', blocked: '#c0414f',
   pm: '#7c4dff',
 };
-export type Field = { key: string; label: string; type?: 'text'|'textarea'|'number'|'date'|'select'|'combo'; options?: Opt[]; required?: boolean; half?: boolean; numeric?: boolean; hint?: string; placeholder?: string; optionsFrom?: 'members' };
+export type Field = { key: string; label: string; type?: 'text'|'textarea'|'number'|'date'|'select'|'combo'; options?: Opt[]; required?: boolean; half?: boolean; numeric?: boolean; hint?: string; placeholder?: string; optionsFrom?: 'members' | 'tasks' };
 export type AltView = { key: string; label: string; icon?: any; render: (rows: any[], openDetail: (r: any) => void, save: (id: number, patch: any) => Promise<void>, create: (body: any) => Promise<boolean>) => any };
-type Props = { title: string; subtitle?: string; endpoint: string; projectScoped?: boolean; columns: Col[]; fields: Field[]; statusKey?: string; altViews?: AltView[]; entity?: string; rowHref?: (row: any) => string };
+type Props = { title: string; subtitle?: string; endpoint: string; projectScoped?: boolean; columns: Col[]; fields: Field[]; statusKey?: string; altViews?: AltView[]; entity?: string; rowHref?: (row: any) => string; emptyText?: string; treeKey?: string };
 
 const GROUPABLE = ['status','priority','type','assignee','epic','level','category','role'];
 
-export function ResourceView({ title, subtitle, endpoint, projectScoped, columns, fields, statusKey = 'status', altViews = [], entity, rowHref }: Props) {
+export function ResourceView({ title, subtitle, endpoint, projectScoped, columns, fields, statusKey = 'status', altViews = [], entity, rowHref, emptyText, treeKey }: Props) {
   const router = useRouter();
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,15 +34,37 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
   const [sortK, setSortK] = useState('id');
   const [sortDir, setSortDir] = useState<1 | -1>(-1);
   const [groupBy, setGroupBy] = useState('');
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const toggleGroup = (g: string) => setCollapsed((p) => { const n = new Set(p); n.has(g) ? n.delete(g) : n.add(g); return n; });
   const [detail, setDetail] = useState<any>(null);
   const [memberOpts, setMemberOpts] = useState<string[]>([]);
+  const taskOpts = useMemo<Opt[]>(() => rows.map((r: any) => ({ value: String(r.id), label: (r.code ? `[${r.code}] ` : '') + (r.name || r.title || ('#' + r.id)) })), [rows]);
   const [sel, setSel] = useState<Set<number>>(new Set());
+  const [editCell, setEditCell] = useState<{ id: number; key: string } | null>(null);
+  const [quickText, setQuickText] = useState('');
+  const primaryField = (fields.find((f) => f.required)?.key) || fields[0]?.key;
   const toggleSel = (id: number) => setSel((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [form, setForm] = useState<any>({});
   const [err, setErr] = useState('');
   const [mode, setMode] = useState('table');
+  const [density, setDensity] = useState<'comfort' | 'compact'>('comfort');
+  useEffect(() => { const d = localStorage.getItem('pms.density'); if (d === 'compact' || d === 'comfort') setDensity(d); }, []);
+  function toggleDensity() { setDensity((d) => { const n = d === 'compact' ? 'comfort' : 'compact'; localStorage.setItem('pms.density', n); return n; }); }
+  const [hiddenCols, setHiddenCols] = useState<Set<string>>(new Set());
+  const [colMenu, setColMenu] = useState(false);
+  const [fullTag, setFullTag] = useState(false);
+  useEffect(() => {
+    try {
+      const hc = localStorage.getItem('pms.cols.' + title);
+      if (hc) setHiddenCols(new Set(JSON.parse(hc)));
+      setFullTag(localStorage.getItem('pms.fulltag') === '1');
+    } catch {}
+  }, [title]);
+  function toggleCol(k: string) { setHiddenCols((p) => { const n = new Set(p); n.has(k) ? n.delete(k) : n.add(k); try { localStorage.setItem('pms.cols.' + title, JSON.stringify(Array.from(n))); } catch {} return n; }); }
+  function toggleFullTag() { setFullTag((v) => { const n = !v; try { localStorage.setItem('pms.fulltag', n ? '1' : '0'); } catch {} return n; }); }
+  const visibleColumns = useMemo(() => columns.filter((c) => !hiddenCols.has(c.key)), [columns, hiddenCols]);
   const swipeRef = useRef<{ y0: number; active: boolean }>({ y0: 0, active: false });
   const [swipeY, setSwipeY] = useState(0);
   useEffect(() => { setSwipeY(0); }, [detail]);
@@ -88,8 +110,17 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
     if (q) { const s = q.toLowerCase(); v = v.filter((r) => Object.values(r).some((x) => String(x ?? '').toLowerCase().includes(s))); }
     if (filter) v = v.filter((r) => r[statusKey] === filter);
     v = [...v].sort((a, b) => { const x = a[sortK], y = b[sortK]; if (x === y) return 0; return (x > y ? 1 : -1) * sortDir; });
+    if (treeKey && !q && !filter) {
+      const byId = new Map<any, any>(v.map((r) => [r.id, r]));
+      const kids = new Map<any, any[]>(); const roots: any[] = [];
+      for (const r of v) { const pid = r[treeKey]; if (pid && byId.has(pid)) { (kids.get(pid) || kids.set(pid, []).get(pid))!.push(r); } else roots.push(r); }
+      const out: any[] = [];
+      const walk = (node: any, depth: number, prefix: string) => { out.push({ ...node, __depth: depth, __wbs: prefix }); (kids.get(node.id) || []).forEach((c, i) => walk(c, depth + 1, prefix + '.' + (i + 1))); };
+      roots.forEach((r, i) => walk(r, 0, String(i + 1)));
+      return out;
+    }
     return v;
-  }, [rows, q, filter, sortK, sortDir, statusKey]);
+  }, [rows, q, filter, sortK, sortDir, statusKey, treeKey]);
 
   const grouped = useMemo(() => {
     if (!groupBy) return null;
@@ -167,10 +198,17 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
   const Row = ({ row }: { row: any }) => (
     <tr onClick={() => rowHref ? router.push(rowHref(row)) : setDetail(row)} style={{ boxShadow: `inset 3px 0 0 ${STATUS_COLOR[String(row[statusKey])] || 'transparent'}` }}>
       <td onClick={(e) => e.stopPropagation()} style={{ width: 34, textAlign: 'center' }}><input type="checkbox" checked={sel.has(row.id)} onChange={() => toggleSel(row.id)} /></td>
-      {columns.map((c) => (
-        <td key={c.key}>
+      {visibleColumns.map((c) => (
+        <td key={c.key} style={c.badge && fullTag ? { background: (STATUS_COLOR[String(row[c.key])] || '#94a3b8') + '1f' } : undefined}>
           {c.render ? c.render(row[c.key], row)
-            : c.badge ? <Pill v={row[c.key]} />
+            : c.badge ? (() => {
+                const fld = fields.find((f) => f.key === c.key && f.type === 'select');
+                if (fld && editCell && editCell.id === row.id && editCell.key === c.key) {
+                  const opts = (fld.options || []).map((o: any) => (typeof o === 'string' ? { value: o, label: o } : o));
+                  return <select autoFocus className="sel" style={{ padding: '2px 6px', fontSize: 12 }} defaultValue={String(row[c.key] ?? '')} onClick={(e) => e.stopPropagation()} onChange={(e) => { quickPatch(row.id, { [c.key]: e.target.value }); setEditCell(null); }} onBlur={() => setEditCell(null)}>{opts.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}</select>;
+                }
+                return <span onClick={(e) => { if (fld) { e.stopPropagation(); setEditCell({ id: row.id, key: c.key }); } }} style={{ cursor: fld ? 'pointer' : 'default' }} title={fld ? '클릭하여 변경' : undefined}><Pill v={row[c.key]} /></span>;
+              })()
             : c.mono || c.key === 'code' ? <span className="mono">{row[c.key] || '—'}</span>
             : /due|end/i.test(c.key) && row[c.key] ? (() => {
                 const done = ['done', 'closed', 'resolved', 'completed', 'approved'].includes(String(row.status));
@@ -178,10 +216,10 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
                 const col = done || isNaN(t) ? undefined : t < now ? '#c0414f' : dd <= 7 ? '#d98a16' : undefined;
                 return <span style={{ color: col, fontWeight: col ? 700 : undefined }}>{row[c.key]}{col === '#c0414f' ? ' ⚠' : ''}</span>;
               })()
-            : <span style={c.strong ? { fontWeight: 650, color: 'var(--text-1)' } : undefined}>{row[c.key] ?? '—'}</span>}
+            : <span style={c.strong ? { fontWeight: 650, color: 'var(--text-1)' } : undefined}>{c.strong && row.__wbs != null && <span className="muted" style={{ marginRight: 6, paddingLeft: (row.__depth || 0) * 16, fontVariantNumeric: 'tabular-nums' }}>{row.__wbs}</span>}{row[c.key] ?? '—'}</span>}
         </td>
       ))}
-      <td onClick={(e) => e.stopPropagation()} style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+      <td className="row-act" onClick={(e) => e.stopPropagation()} style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
         <button className="btn btn-ghost btn-sm" aria-label="수정" title="수정" onClick={() => openEdit(row)}><Pencil style={{ width: 14 }} /></button>
         <button className="btn btn-danger btn-sm" aria-label="삭제" title="삭제" onClick={() => remove(row)}><Trash2 style={{ width: 14 }} /></button>
       </td>
@@ -223,6 +261,18 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
         <div className="sp" />
         <button className="btn btn-sm" onClick={exportCsv} title="CSV 내보내기"><Download style={{ width: 14 }} />CSV</button>
         <button className="btn btn-sm" onClick={exportXlsx} title="Excel 내보내기"><Sheet style={{ width: 14 }} />Excel</button>
+        <button className="btn btn-sm" onClick={toggleDensity} title="행 밀도 전환" aria-label="행 밀도 전환">{density === 'compact' ? '편안하게' : '컴팩트'}</button>
+        <button className="btn btn-sm" onClick={toggleFullTag} title="풀셀 컬러 태그" aria-label="풀셀 컬러 태그" style={fullTag ? { background: 'var(--brand-50)', borderColor: 'var(--brand-100)', color: 'var(--brand-700)' } : undefined}>컬러셀</button>
+        <div style={{ position: 'relative' }}>
+          <button className="btn btn-sm" onClick={() => setColMenu((v) => !v)} title="컬럼 표시/숨김" aria-label="컬럼 표시/숨김"><SlidersHorizontal style={{ width: 14 }} />컬럼</button>
+          {colMenu && (<>
+            <div onClick={() => setColMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+            <div className="card" style={{ position: 'absolute', right: 0, top: '110%', zIndex: 50, minWidth: 170, padding: 8, boxShadow: 'var(--sh-md)' }}>
+              <div className="muted" style={{ fontSize: 11, padding: '2px 6px 6px' }}>표시할 컬럼</div>
+              {columns.map((c) => (<label key={c.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 6px', fontSize: 13, cursor: 'pointer' }}><input type="checkbox" checked={!hiddenCols.has(c.key)} onChange={() => toggleCol(c.key)} />{c.label}</label>))}
+            </div>
+          </>)}
+        </div>
         <span className="muted"><SlidersHorizontal style={{ width: 13, verticalAlign: -2 }} /> {view.length}건</span>
       </div>
 
@@ -250,23 +300,31 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
           <div className="sp" /><button className="btn btn-sm btn-ghost" onClick={() => setSel(new Set())}>선택 해제</button>
         </div>);
       })()}
-      {(mode === 'table' || loading) && <div className="card tbl-wrap">
+      {(mode === 'table' || loading) && <div className={`card tbl-wrap${density === 'compact' ? ' compact' : ''}`}>
         <table className="tbl">
           <thead><tr>
             <th style={{ width: 34, textAlign: 'center' }}><input type="checkbox" aria-label="전체 선택" checked={view.length > 0 && view.every((r) => sel.has(r.id))} onChange={(e) => setSel(e.target.checked ? new Set(view.map((r) => r.id)) : new Set())} /></th>
-            {columns.map((c) => <th key={c.key} onClick={() => sort(c.key)}>{c.label}{sortK === c.key && <span className="arr">{sortDir === 1 ? '▲' : '▼'}</span>}</th>)}
+            {visibleColumns.map((c) => <th key={c.key} onClick={() => sort(c.key)}>{c.label}{sortK === c.key && <span className="arr">{sortDir === 1 ? '▲' : '▼'}</span>}</th>)}
             <th className="no-sort" style={{ width: 90 }}></th>
           </tr></thead>
           <tbody>
-            {loading && Array.from({ length: 5 }).map((_, i) => (<tr key={i}><td></td>{columns.map((c) => <td key={c.key}><div className="skel" style={{ height: 14, width: '70%' }} /></td>)}<td></td></tr>))}
+            {loading && Array.from({ length: 5 }).map((_, i) => (<tr key={i}><td></td>{visibleColumns.map((c) => <td key={c.key}><div className="skel" style={{ height: 14, width: '70%' }} /></td>)}<td></td></tr>))}
             {!loading && !grouped && view.map((row) => <Row key={row.id} row={row} />)}
             {!loading && grouped && grouped.map(([g, list]) => (
-              <>
-                <tr key={'g' + g}><td colSpan={columns.length + 2} style={{ background: 'var(--surface-3)', fontWeight: 750, fontSize: 12.5 }}><Layers style={{ width: 13, verticalAlign: -2, marginRight: 6, color: 'var(--brand)' }} />{g} <span className="muted">· {list.length}</span></td></tr>
-                {list.map((row) => <Row key={row.id} row={row} />)}
-              </>
+              <Fragment key={'g' + g}>
+                <tr onClick={() => toggleGroup(g)} style={{ cursor: 'pointer' }}><td colSpan={visibleColumns.length + 2} style={{ background: 'var(--surface-3)', fontWeight: 750, fontSize: 12.5, boxShadow: `inset 4px 0 0 ${STATUS_COLOR[g] || 'var(--brand)'}` }}><span style={{ display: 'inline-block', width: 14, transform: collapsed.has(g) ? 'none' : 'rotate(90deg)', color: 'var(--muted)' }}>▸</span>{g} <span className="muted">· {list.length}</span></td></tr>
+                {!collapsed.has(g) && list.map((row) => <Row key={row.id} row={row} />)}
+              </Fragment>
             ))}
-            {!loading && view.length === 0 && (<tr><td colSpan={columns.length + 2}><div className="empty"><Inbox /><div>데이터가 없습니다. “새로 만들기”로 추가하세요.</div></div></td></tr>)}
+            {!loading && view.length === 0 && (<tr><td colSpan={visibleColumns.length + 2}><div className="empty"><Inbox /><div>{emptyText || (q || filter ? `조건에 맞는 ${title} 항목이 없습니다.` : `아직 등록된 ${title} 항목이 없습니다. “새로 만들기”로 추가하세요.`)}</div></div></td></tr>)}
+            {!loading && primaryField && (
+              <tr><td colSpan={visibleColumns.length + 2} style={{ padding: '6px 12px', background: 'var(--surface-2)' }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <span style={{ color: 'var(--brand)', fontWeight: 800 }}>+</span>
+                  <input className="in" style={{ maxWidth: 300, height: 30 }} placeholder={(Boolean(projectScoped) && !pid) ? '먼저 프로젝트를 선택하세요' : '여기에 입력 후 Enter로 빠른 추가'} value={quickText} onChange={(e) => setQuickText(e.target.value)} disabled={Boolean(projectScoped) && !pid} onKeyDown={async (e) => { if (e.key === 'Enter' && quickText.trim()) { const okc = await quickCreate({ [primaryField]: quickText.trim() }); if (okc !== false) setQuickText(''); } }} />
+                </div>
+              </td></tr>
+            )}
           </tbody>
         </table>
       </div>}
@@ -280,7 +338,12 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
             <h3 style={{ margin: '0 0 16px', fontSize: 19, fontWeight: 800, letterSpacing: '-.02em' }}>{detail.title || detail.name || detail.code}</h3>
             <dl className="dl">
               {fields.map((f) => (<div key={f.key} style={{ display: 'contents' }}><dt>{f.label}</dt><dd>{['status','priority','level','type'].includes(f.key) ? <Pill v={detail[f.key]} /> : (detail[f.key] || <span className="muted">—</span>)}</dd></div>))}
-              <dt>생성</dt><dd className="muted">{detail.createdAt ? new Date(detail.createdAt).toLocaleString('ko-KR') : '—'}</dd>
+              {(() => {
+                const fieldKeys = new Set(fields.map((f) => f.key));
+                const who = (!fieldKeys.has('author') && detail.author) || (!fieldKeys.has('owner') && detail.owner) || (!fieldKeys.has('approver') && detail.approver) || (!fieldKeys.has('assignee') && detail.assignee);
+                return who ? (<><dt>작성자</dt><dd className="muted">{who}</dd></>) : null;
+              })()}
+              <dt>생성 일시</dt><dd className="muted">{detail.createdAt ? new Date(detail.createdAt).toLocaleString('ko-KR') : '—'}</dd>
             </dl>
             {entity === 'documents' && (() => {
               const steps: [string, string][] = [['draft', '작성중'], ['review', '결재요청'], ['approved', '승인']];
@@ -321,7 +384,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
             {err && <div className="err">{err}</div>}
             <div className="modal-b"><div className="grid2">
               {fields.map((f) => {
-                const srcOpts = f.optionsFrom === 'members' ? memberOpts : (f.options || []);
+                const srcOpts = f.optionsFrom === 'members' ? memberOpts : f.optionsFrom === 'tasks' ? taskOpts.filter((o: any) => o.value !== String(editing?.id)) : (f.options || []);
                 const optNorm = (srcOpts as any[]).map((o: any) => (typeof o === 'string' ? { value: o, label: o } : o));
                 const dlId = 'dl-' + f.key;
                 return (
@@ -343,3 +406,4 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
     </Shell>
   );
 }
+// prism-pms: monday UX (column toggle + full-cell color tag)

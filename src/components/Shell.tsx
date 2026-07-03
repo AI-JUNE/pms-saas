@@ -181,6 +181,24 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
           </div>
         </header>
         <div className="content">{children}</div>
+        <nav className="mobiletabs" aria-label="모바일 탐색">
+          {[
+            { href: '/dashboard', label: '대시보드', icon: LayoutDashboard },
+            { href: '/mywork', label: '내 작업', icon: UserCheck },
+            { href: '/tasks', label: '업무', icon: ListTodo },
+            { href: '/notifications', label: '알림', icon: Bell },
+          ].map((t) => {
+            const Icon = t.icon;
+            const active = path === t.href || (t.href !== '/dashboard' && path.startsWith(t.href));
+            return (
+              <Link key={t.href} href={t.href} prefetch className={`mobiletab ${active ? 'active' : ''}`} aria-current={active ? 'page' : undefined}>
+                <Icon />
+                {t.href === '/notifications' && unread > 0 && <span className="mt-badge">{unread}</span>}
+                <span>{t.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
       </div>
 
       {cmd && (

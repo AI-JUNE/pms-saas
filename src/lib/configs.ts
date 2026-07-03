@@ -8,7 +8,7 @@ export const CONFIGS: Record<string, CrudConfig> = {
   tests: { table: tests, resource: 'test', scope: 'project', codePrefix: 'TC', orderAsc: true, fields: ['title','reqCode','type','priority','steps','expected','assignee','reporter','dueDate','progress','status','result'], required: ['title'] },
   issues: { table: issues, resource: 'issue', scope: 'project', codePrefix: 'ISS', fields: ['title','description','type','priority','status','assignee','dueDate','labels','storyPoints','sprintId','epic','reqCode'], required: ['title'] },
   risks: { table: risks, resource: 'risk', scope: 'project', codePrefix: 'RSK', fields: ['title','description','probability','impact','status','owner'], required: ['title'], transform: RISK_TRANSFORM },
-  tasks: { table: tasks, resource: 'task', scope: 'project', codePrefix: 'WBS', orderAsc: true, fields: ['name','phase','assignee','status','startDate','endDate','progress','reqCode','predecessor'], required: ['name'] },
+  tasks: { table: tasks, resource: 'task', scope: 'project', codePrefix: 'WBS', orderAsc: true, fields: ['name','phase','assignee','status','startDate','endDate','progress','reqCode','predecessor','parentId'], required: ['name'] },
   documents: { table: documents, resource: 'document', scope: 'project', codePrefix: 'DOC', fields: ['title','type','version','status','author','approver'], required: ['title'], transform: DOCUMENTS_TRANSFORM },
   meetings: { table: meetings, resource: 'meeting', scope: 'project', codePrefix: 'MTG', fields: ['title','meetingDate','location','attendees','agenda','decisions'], required: ['title'] },
   sprints: { table: sprints, resource: 'sprint', scope: 'project', codePrefix: 'SPR', fields: ['name','goal','status','startDate','endDate'], required: ['name'] },

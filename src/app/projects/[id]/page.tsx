@@ -72,6 +72,20 @@ export default function Page({ params }: { params: { id: string } }) {
               </div>
             </div>
           )}
+          {d.evm && (
+            <div style={{ background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 20px', marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontWeight: 750, fontSize: 14, marginBottom: 6 }}><TrendingUp style={{ width: 16, color: 'var(--brand)' }} />획득가치 (EVM)</div>
+              <div className="muted" style={{ fontSize: 11.5, marginBottom: 12 }}>작업 환산 단위(BAC {d.evm.bac}) 기준 · AC·CPI는 공수(실적) 연동 시 표시</div>
+              <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                <div><div className="muted" style={{ fontSize: 12 }}>PV (계획가치)</div><div style={{ fontSize: 20, fontWeight: 800 }}>{d.evm.pv}</div></div>
+                <div><div className="muted" style={{ fontSize: 12 }}>EV (획득가치)</div><div style={{ fontSize: 20, fontWeight: 800 }}>{d.evm.ev}</div></div>
+                <div><div className="muted" style={{ fontSize: 12 }}>AC (실제원가)</div><div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-3)' }}>—</div></div>
+                <div><div className="muted" style={{ fontSize: 12 }}>SV (일정차이)</div>{(() => { const v = d.evm.sv; const c = v >= 0 ? '#2f8f5b' : '#c0414f'; return <div style={{ fontSize: 20, fontWeight: 800, color: c }}>{v > 0 ? '+' : ''}{v}</div>; })()}</div>
+                <div><div className="muted" style={{ fontSize: 12 }}>SPI</div>{(() => { const v = d.evm.spi; const c = v == null ? 'var(--text-3)' : v >= 1 ? '#2f8f5b' : v >= 0.8 ? '#d98a16' : '#c0414f'; return <div style={{ fontSize: 20, fontWeight: 800, color: c }}>{v == null ? '—' : v}</div>; })()}</div>
+                <div><div className="muted" style={{ fontSize: 12 }}>CPI</div><div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-3)' }}>—</div></div>
+              </div>
+            </div>
+          )}
           {d.issues?.byPriority && (
             <div style={{ background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px', marginBottom: 16 }}>
               <div style={{ fontWeight: 750, fontSize: 14, marginBottom: 14 }}>이슈 · 리스크 분포</div>
