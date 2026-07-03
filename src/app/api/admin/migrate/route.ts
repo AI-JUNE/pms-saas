@@ -33,6 +33,8 @@ const DDL: string[] = [
   `ALTER TABLE IF EXISTS issues ADD COLUMN IF NOT EXISTS req_code text`,
   `ALTER TABLE IF EXISTS tasks ADD COLUMN IF NOT EXISTS predecessor text`,
   `ALTER TABLE IF EXISTS tasks ADD COLUMN IF NOT EXISTS parent_id integer`,
+  `ALTER TABLE IF EXISTS tasks ADD COLUMN IF NOT EXISTS planned_hours integer DEFAULT 0 NOT NULL`,
+  `ALTER TABLE IF EXISTS tasks ADD COLUMN IF NOT EXISTS actual_hours integer DEFAULT 0 NOT NULL`,
   `ALTER TABLE IF EXISTS documents ADD COLUMN IF NOT EXISTS approved_at timestamptz`,
   `ALTER TABLE IF EXISTS tests ADD COLUMN IF NOT EXISTS reporter text`,
   `ALTER TABLE IF EXISTS tests ADD COLUMN IF NOT EXISTS due_date text`,

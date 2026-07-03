@@ -3,6 +3,12 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-07-03 (주간 배치 EE·FF — 배포 대기 · ⚠️마이그레이션 필요)
+- 핵심 ★ **테스트 실행 리포트** (EE) — 프로젝트 상세에 **통과율·실행/전체·통과/실패/블록** + 결과 분포 막대 + 검증단계(개발·PL·PM·완료) 요약 카드 추가. DB 변경 없음. — app/api/project-summary, app/projects/[id]
+- 핵심 ★ **공수(계획/실제 시간)** (FF) — 업무에 계획공수·실제공수(시간) 입력 추가. EVM을 **공수 시간 기준**으로 전환(입력 시): **AC(실제원가)·CPI(원가효율)** 실값 계산·표시. 공수 미입력 시 기존 작업수 기준으로 자동 폴백. — db/schema(tasks.planned_hours/actual_hours), lib/configs, app/tasks, app/api/project-summary, app/projects/[id]
+- ⚠️ tasks 신규 컬럼 planned_hours·actual_hours — 배포 후 관리자 > "스키마 업데이트 실행" 1회.
+- 검증: tsc --noEmit 통과(에러 0).
+
 ## 2026-07-03 (주간 배치 CC — 배포 대기 · ⚠️마이그레이션 필요)
 - 핵심 ★ **WBS 계층구조** — 업무에 **상위 작업** 지정 기능 추가. 목록이 상위→하위 순으로 자동 정렬되고, **WBS 번호(1·1.1·1.2)** 부여 + 단계별 **들여쓰기**로 계층 표시. 상위 작업은 현재 프로젝트 작업 중에서 선택(자기 자신 제외). — db/schema(tasks.parent_id), lib/configs, components/ResourceView(treeKey), app/tasks
 - 편의: 관리자 화면에 **"DB 스키마 업데이트" 버튼** 추가 — 배포 후 원클릭으로 마이그레이션 실행(반복 안전). — app/admin

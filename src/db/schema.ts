@@ -105,6 +105,7 @@ export const tasks = pgTable('tasks', {
   code: text('code'), reqCode: text('req_code'), predecessor: text('predecessor'), parentId: integer('parent_id'), name: text('name').notNull(), phase: text('phase'), assignee: text('assignee'),
   status: text('status').default('todo').notNull(), startDate: text('start_date'), endDate: text('end_date'),
   progress: integer('progress').default(0).notNull(),
+  plannedHours: integer('planned_hours').default(0).notNull(), actualHours: integer('actual_hours').default(0).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({ projIdx: index('tasks_project_idx').on(t.orgId, t.projectId) }));
 export const documents = pgTable('documents', {
