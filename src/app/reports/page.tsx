@@ -1,10 +1,28 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { BarChart3, TrendingDown, Users, Gauge, Printer } from 'lucide-react';
+import { BarChart3, TrendingDown, Users, Gauge, Printer, Download } from 'lucide-react';
 import { Shell } from '@/components/Shell';
 import { Pill } from '@/lib/ui';
 const cnt = (a: any[], k: string, v: string) => a.filter((x) => x[k] === v).length;
+
+// --- Excel(다중 시트) 내보내기: 외부 의존성 없이 SpreadsheetML(엑셀 XML)로 워크북 생성 ---
+const xmlEsc = (v: any) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+function xlsSheet(name: string, headers: string[], rows: (string | number)[][]) {
+  const cell = (v: any) => { const num = typeof v === 'number' && isFinite(v); return `<Cell><Data ss:Type="${num ? 'Number' : 'String'}">${xmlEsc(v)}</Data></Cell>`; };
+  const head = `<Row>${headers.map((h) => `<Cell ss:StyleID="hd"><Data ss:Type="String">${xmlEsc(h)}</Data></Cell>`).join('')}</Row>`;
+  const body = rows.map((r) => `<Row>${r.map(cell).join('')}</Row>`).join('');
+  const safe = xmlEsc(name).replace(/[\\/?*[\]:]/g, ' ').slice(0, 31);
+  return `<Worksheet ss:Name="${safe}"><Table>${head}${body}</Table></Worksheet>`;
+}
+function downloadWorkbook(sheets: string[]) {
+  const style = `<Styles><Style ss:ID="hd"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#BE5535" ss:Pattern="Solid"/></Style></Styles>`;
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<?mso-application progid="Excel.Sheet"?>\n<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">${style}${sheets.join('')}</Workbook>`;
+  const blob = new Blob(['﻿' + xml], { type: 'application/vnd.ms-excel;charset=utf-8' });
+  const url = URL.createObjectURL(blob); const a = document.createElement('a');
+  a.href = url; a.download = `PRISM_리포트_${new Date().toISOString().slice(0, 10)}.xls`;
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
 
 function shade(hex: string, amt: number) {
   const h = hex.replace('#',''); const f = h.length===3 ? h.split('').map((c)=>c+c).join('') : h; const n = parseInt(f,16);
@@ -68,9 +86,20 @@ export default function Page() {
   const byAssignee = assignees.map((a: any) => ({ a, total: issues.filter((i: any) => i.assignee === a).length, open: issues.filter((i: any) => i.assignee === a && i.status === 'open').length, prog: issues.filter((i: any) => i.assignee === a && i.status === 'in_progress').length, done: issues.filter((i: any) => i.assignee === a && ['resolved','closed'].includes(i.status)).length }));
   const avgProg = tasks.length ? Math.round(tasks.reduce((s: number, t: any) => s + (t.progress || 0), 0) / tasks.length) : 0;
   const velocity = sprints.map((s: any) => ({ s, pts: issues.filter((i: any) => i.sprintId === s.id).reduce((x: number, i: any) => x + (Number(i.storyPoints) || 0), 0), cnt: issues.filter((i: any) => i.sprintId === s.id).length }));
+  const exportExcel = () => {
+    const sheets = [
+      xlsSheet('프로젝트', ['코드', '프로젝트', '고객', '상태', '시작일', '종료일'], projects.map((p: any) => [p.code || '', p.name || '', p.client || '', p.status || '', p.startDate || '', p.endDate || ''])),
+      xlsSheet('담당자별이슈', ['담당자', '전체', '열림', '진행', '완료'], byAssignee.map((r: any) => [r.a, r.total, r.open, r.prog, r.done])),
+      xlsSheet('스프린트벨로시티', ['스프린트', '상태', '이슈', '포인트'], velocity.map((v: any) => [v.s.name || '', v.s.status || '', v.cnt, v.pts])),
+      xlsSheet('이슈', ['제목', '유형', '우선순위', '상태', '담당자', '기한'], issues.map((i: any) => [i.title || '', i.type || '', i.priority || '', i.status || '', i.assignee || '', i.dueDate || ''])),
+      xlsSheet('리스크', ['제목', '확률', '영향', '등급', '상태', '담당'], risks.map((r: any) => [r.title || '', r.probability || '', r.impact || '', r.level || '', r.status || '', r.owner || ''])),
+      xlsSheet('요구사항', ['코드', '제목', '분류', '우선순위', '상태'], requirements.map((q: any) => [q.reqCode || q.code || '', q.title || '', q.category || '', q.priority || '', q.status || ''])),
+    ];
+    downloadWorkbook(sheets);
+  };
   return (
     <Shell title="리포트">
-      <div className="row"><div><h2 className="h1">리포트 <BarChart3 style={{ width: 22, verticalAlign: -3, color: 'var(--brand)' }} /></h2><p className="h-sub">프로젝트 진척·품질·팀 지표를 종합 분석합니다.</p></div><div className="sp" /><button className="btn no-print" onClick={() => window.print()}><Printer style={{ width: 15 }} />인쇄 / PDF</button></div>
+      <div className="row"><div><h2 className="h1">리포트 <BarChart3 style={{ width: 22, verticalAlign: -3, color: 'var(--brand)' }} /></h2><p className="h-sub">프로젝트 진척·품질·팀 지표를 종합 분석합니다.</p></div><div className="sp" /><button className="btn no-print" onClick={exportExcel} style={{ marginRight: 8 }}><Download style={{ width: 15 }} />엑셀 내보내기</button><button className="btn no-print" onClick={() => window.print()}><Printer style={{ width: 15 }} />인쇄 / PDF</button></div>
       <div style={{ height: 16 }} />
       <div className="kpis">
         <Stat icon={Gauge} label="평균 진척" value={avgProg + '%'} c="#2f8f5b" bg="#e9faf0" />
