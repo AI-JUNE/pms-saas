@@ -3,6 +3,12 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-07-03 (주간 배치 II — 배포 자동 마이그레이션 · 무인 자동배포)
+- 핵심(안정화): **배포 시 마이그레이션 자동 실행** — Next.js instrumentation(서버 기동 훅)에서 스키마 자가정합(ensureSchema)을 1회 실행. 이제 스키마가 바뀐 배포도 **관리자 버튼 없이** 자동 정합 → 오늘 같은 "배포 직후 컬럼 미적용으로 화면 멈춤" 원천 차단. — src/instrumentation.ts, src/lib/migrate.ts, next.config.js
+- 리팩터: 마이그레이션 DDL을 lib/migrate로 공용화(라우트/기동훅 공유). ensureSchema는 인스턴스당 1회·throw 없음(요청 무영향). — lib/migrate, app/api/admin/migrate
+- 배포 스크립트: **tsc 검증 게이트** 추가 — 타입 오류 시 푸시 중단(무인 자동배포에서 깨진 코드 방지). SETUP-SCHEDULE.ps1로 **2시간마다 자동 배포** 예약작업 등록(주말 무인 운영). (로컬 스크립트, 미배포)
+- 검증: tsc --noEmit 통과(에러 0).
+
 ## 2026-07-03 (주간 배치 HH — 성능/DB 튜닝 · 배포 대기 · ⚠️마이그레이션 필요)
 - 성능(핵심): **세션 토큰 인덱스** 추가 — 모든 인증 요청이 매번 sessions.token 전체 스캔하던 것을 인덱스 조회로 전환(요청당 DB 비용 대폭 감소). — db/schema, migrate
 - 성능: **담당자/소유자 인덱스** 추가 — 내 작업·업무 부하의 담당자 필터 조회 가속(tasks/issues.assignee, risks.owner). — db/schema, migrate
