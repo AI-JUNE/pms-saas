@@ -53,7 +53,7 @@ export default function Page() {
         <table className="tbl">
           <thead><tr><th>요구사항</th><th>우선순위</th><th>연계 업무</th><th>연계 이슈</th><th>연계 테스트</th><th>커버리지</th></tr></thead>
           <tbody>
-            {!loaded && <tr><td colSpan={6}><div className="muted" style={{ padding: 16 }}>불러오는 중…</div></td></tr>}
+            {!loaded && Array.from({ length: 4 }).map((_, i) => <tr key={`sk${i}`}><td colSpan={6}><div className="skel" style={{ height: 18, margin: '4px 0' }} /></td></tr>)}
             {loaded && rows.length === 0 && <tr><td colSpan={6}><div className="empty" style={{ padding: 24 }}>요구사항이 없습니다.</div></td></tr>}
             {rows.map(({ rq, lt, li, ltest, cov, col, Icon }) => (
               <tr key={rq.id}>

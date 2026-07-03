@@ -35,7 +35,7 @@ export default function Page({ params }: { params: { id: string } }) {
     <Shell title={p ? `${p.code} · ${p.name}` : '프로젝트'}>
       <button className="btn btn-ghost btn-sm" onClick={() => router.push('/projects')} style={{ marginBottom: 14 }}><ArrowLeft style={{ width: 15 }} />프로젝트 목록</button>
       {err && <div className="err">{err}</div>}
-      {!d && !err && <div className="muted" style={{ padding: 20 }}>불러오는 중…</div>}
+      {!d && !err && <div className="card card-pad" style={{ display: 'grid', gap: 12 }}>{Array.from({ length: 5 }).map((_, i) => <div key={i} className="skel" style={{ height: i === 0 ? 26 : 18, width: i === 0 ? '34%' : '100%' }} />)}</div>}
       {p && (
         <>
           <div style={{ background: 'linear-gradient(135deg, var(--brand), var(--brand-2, #d97757))', borderRadius: 18, padding: '22px 26px', color: '#fff', marginBottom: 20 }}>

@@ -30,7 +30,7 @@ export default function Page() {
   return (
     <Shell title="내 작업">
       <div className="row" style={{ marginBottom: 6 }}><div><h2 className="h1">내 작업</h2><p className="h-sub">{d?.name ? `${d.name}님에게 배정된 업무·이슈·리스크입니다.` : '나에게 배정된 항목을 모아봅니다.'}</p></div></div>
-      {!d ? <div className="muted" style={{ padding: 20 }}>불러오는 중…</div> : (<>
+      {!d ? <div className="card card-pad" style={{ display: 'grid', gap: 12 }}>{Array.from({ length: 5 }).map((_, i) => <div key={i} className="skel" style={{ height: i === 0 ? 26 : 18, width: i === 0 ? '30%' : '100%' }} />)}</div> : (<>
         <Section icon={ListTodo} title="내 업무 (WBS)" rows={d.tasks} href="/tasks" cols={[{ key: 'code', label: '코드', mono: true }, { key: 'name', label: '작업' }, { key: 'status', label: '상태', badge: true }, { key: 'endDate', label: '마감' }]} />
         <Section icon={Bug} title="내 이슈" rows={d.issues} href="/issues" cols={[{ key: 'code', label: '코드', mono: true }, { key: 'title', label: '제목' }, { key: 'priority', label: '우선순위', badge: true }, { key: 'status', label: '상태', badge: true }]} />
         <Section icon={ShieldAlert} title="내 리스크" rows={d.risks} href="/risks" cols={[{ key: 'code', label: '코드', mono: true }, { key: 'title', label: '제목' }, { key: 'level', label: '등급', badge: true }, { key: 'status', label: '상태', badge: true }]} />

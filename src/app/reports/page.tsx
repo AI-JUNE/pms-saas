@@ -61,7 +61,7 @@ export default function Page() {
       setD({ issues: issues||[], tasks: tasks||[], risks: risks||[], requirements: requirements||[], projects: projects||[], sprints: sprints||[] });
     });
   }, [router]);
-  if (!d) return <Shell title="리포트"><div className="empty">불러오는 중…</div></Shell>;
+  if (!d) return <Shell title="리포트"><div className="card card-pad" style={{ display: 'grid', gap: 12 }}>{Array.from({ length: 5 }).map((_, i) => <div key={i} className="skel" style={{ height: i === 0 ? 30 : 18, width: i === 0 ? '38%' : '100%' }} />)}</div></Shell>;
   const { issues, tasks, risks, requirements, projects, sprints } = d;
   // assignee breakdown
   const assignees = Array.from(new Set(issues.map((i: any) => i.assignee).filter(Boolean)));

@@ -17,7 +17,7 @@ export default function Page() {
         <table className="tbl">
           <thead><tr><th>담당자</th><th style={{ width: 90 }}>진행 업무</th><th style={{ width: 90 }}>미결 이슈</th><th style={{ width: 80 }}>완료</th><th>부하</th></tr></thead>
           <tbody>
-            {!rows && <tr><td colSpan={5}><div className="muted" style={{ padding: 16 }}>불러오는 중…</div></td></tr>}
+            {!rows && Array.from({ length: 4 }).map((_, i) => <tr key={`sk${i}`}><td colSpan={5}><div className="skel" style={{ height: 18, margin: '4px 0' }} /></td></tr>)}
             {rows && rows.length === 0 && <tr><td colSpan={5}><div className="empty" style={{ padding: 24 }}>인력·배정 데이터가 없습니다.</div></td></tr>}
             {rows && rows.map((r) => { const load = r.taskOpen + r.issueOpen; const pct = Math.round((load / max) * 100); const col = load >= max * 0.7 ? '#c0414f' : load >= max * 0.4 ? '#d98a16' : '#2f8f5b'; return (
               <tr key={r.name}>
