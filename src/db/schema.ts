@@ -106,6 +106,7 @@ export const tasks = pgTable('tasks', {
   status: text('status').default('todo').notNull(), startDate: text('start_date'), endDate: text('end_date'),
   progress: integer('progress').default(0).notNull(),
   plannedHours: integer('planned_hours').default(0).notNull(), actualHours: integer('actual_hours').default(0).notNull(),
+  baselineStart: text('baseline_start'), baselineEnd: text('baseline_end'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({ projIdx: index('tasks_project_idx').on(t.orgId, t.projectId), asgIdx: index('tasks_assignee_idx').on(t.orgId, t.assignee) }));
 export const documents = pgTable('documents', {

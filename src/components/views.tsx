@@ -241,7 +241,7 @@ export function Gantt({ rows, openDetail, save, create }: { rows: any[]; openDet
         {groupOrder.length > 1 && <button className={`btn btn-sm ${grouped ? 'btn-pri' : ''}`} onClick={() => setGrouped((g) => !g)} style={{ padding: '3px 10px' }} title="단계(phase)별로 작업을 묶어 스윔레인으로 표시하고 접기/펼치기">단계 묶기</button>}
         {critical.size > 1 && (<span title="선행관계 기반 임계경로(여유 0일) 작업 수" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 700, color: '#c0414f', background: '#fdedef', border: '1px solid #f3c7cd', borderRadius: 20, padding: '2px 10px' }}><span style={{ width: 8, height: 8, borderRadius: 8, background: '#c0414f' }} />주경로 {critical.size}개{critOverdue > 0 ? ` · 지연 ${critOverdue}` : ''}</span>)}
         <div className="sp" />
-        <span className="muted" style={{ fontSize: 11 }}>막대=이동 · 양끝=기간 · 아래손잡이=진척 · 하단행=새 작업 · 자동저장 · <span style={{ color: '#c0414f', fontWeight: 700 }}>▭ 주경로</span></span>
+        <span className="muted" style={{ fontSize: 11 }}>막대=이동 · 양끝=기간 · 아래손잡이=진척 · 하단행=새 작업 · 자동저장 · <span style={{ color: '#c0414f', fontWeight: 700 }}>▭ 주경로</span> · <span style={{ color: 'var(--text-3)', fontWeight: 700 }}>▬ 기준선(계획)</span></span>
       </div>
       <div style={{ overflowX: 'auto' }}>
         <div style={{ minWidth: LBL + W, userSelect: (drag || nsel) ? 'none' : 'auto' }}>
@@ -287,6 +287,11 @@ export function Gantt({ rows, openDetail, save, create }: { rows: any[]; openDet
               const overdue = x.planned && r.status !== 'done' && x.e < todayMid;
               const isCrit = critical.size > 1 && critical.has(r.code);
               const initial = (r.assignee || '').trim().charAt(0);
+              const bs = r.baselineStart ? new Date(r.baselineStart).getTime() : null;
+              const be = r.baselineEnd ? new Date(r.baselineEnd).getTime() : null;
+              const hasBase = bs != null && be != null && be >= bs;
+              const bLeft = hasBase ? xOf(bs as number) : 0, bWidth = hasBase ? Math.max(pxDay, xOf(be as number) - xOf(bs as number)) : 0;
+              const slipDays = hasBase ? Math.round((x.e - (be as number)) / DAY) : 0;
               return (
                 <div key={r.id} style={{ display: 'flex', height: rowH, borderBottom: '1px solid var(--border)' }} className="gt-row">
                   <div onClick={() => openDetail(r)} style={{ width: LBL, flexShrink: 0, borderRight: '1px solid var(--border)', padding: '0 14px', display: 'flex', flexDirection: 'column', justifyContent: 'center', cursor: 'pointer' }}>
@@ -294,6 +299,7 @@ export function Gantt({ rows, openDetail, save, create }: { rows: any[]; openDet
                     <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>{r.assignee || '—'} · {r.code}</div>
                   </div>
                   <div style={{ position: 'relative', width: W }}>
+                    {hasBase && <div title={`기준선(계획) ${fmt(bs as number)} ~ ${fmt(be as number)} · ${slipDays > 0 ? `${slipDays}일 지연` : slipDays < 0 ? `${-slipDays}일 단축` : '계획대로'}`} style={{ position: 'absolute', left: bLeft, width: bWidth, top: rowH / 2 + 9, height: 4, borderRadius: 3, background: slipDays > 0 ? '#c0414f' : 'var(--text-4)', opacity: slipDays > 0 ? 0.5 : 0.38 }} />}
                     {isMs ? (
                       <div onMouseDown={(e) => startDrag(e, r, 'move')} title={`마일스톤 · ${fmt(x.s)}`} style={{ position: 'absolute', left: left - 9, top: rowH / 2 - 9, width: 18, height: 18, background: color(r.status), transform: 'rotate(45deg)', borderRadius: 3, cursor: save ? 'grab' : 'pointer', boxShadow: 'var(--sh-sm)' }} />
                     ) : (

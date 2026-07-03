@@ -3,6 +3,11 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-07-04 (야간 배치 13 — 배포 대기 · ⚠️마이그레이션 필요)
+- 간트/WBS ①: **베이스라인(기준선) 이중 막대** — 업무에 `기준선 시작/마감(계획)`(baselineStart·baselineEnd) 날짜 필드를 추가하고, 간트차트 각 작업 막대 **아래에 옅은 기준선 막대**를 렌더링해 "최초 계획 vs 현재 일정"을 한눈에 비교. 현재 마감이 기준선보다 늦으면 기준선 막대를 **적색·툴팁에 "N일 지연"**, 빠르면 "N일 단축", 같으면 "계획대로"로 표기. 헤더 범례에 `▬ 기준선(계획)` 추가. 기준선 미입력 작업은 기존과 동일(추가 렌더 없음)해 영향 없음. — db/schema.ts(tasks.baseline_start/baseline_end), lib/migrate.ts(ALTER 2건), lib/configs.ts(tasks fields 화이트리스트), app/tasks/page.tsx(폼 필드 2), components/views.tsx(간트 렌더)
+- ⚠️ tasks 신규 컬럼 baseline_start·baseline_end(둘 다 nullable text) — 배포 후 기동훅(ensureSchema)이 자동 정합하거나, 필요 시 관리자 > "스키마 업데이트 실행" 1회. 기존 데이터/동작 무영향(순수 추가·표시 로직).
+- 검증: tsc --noEmit 통과(에러 0). (야간 OneDrive 마운트 동기화 지연으로 tsc가 schema·configs·migrate·tasks·views 5개 사본을 각각 끝단이 잘린 상태로 읽어 오탐 → 호스트 원본(Read) 무결성 확인 후 python(utf-8)으로 마운트 사본을 원본과 동일 재구성해 0에러 재확인.)
+
 ## 2026-07-04 (야간 배치 12 — 배포 대기)
 - 안정화 ④ **RBAC 결재 경계 강화** — 공용 CRUD(lib/crud.ts)에 설정 기반 `approveOn`(필드+확정값 목록)을 추가. 항목 PATCH 시 상태를 **결재 확정값**으로 변경하는 요청은 기존 `write`에 더해 `approve` 권한을 추가로 요구하도록 게이트. 산출물(documents) 설정에 `approveOn: { field:'status', values:['approved','rejected'] }`를 배선 — 이제 **승인/반려는 PM·PMO·관리자(approve 이상)만** 가능하고, 일반 멤버(write)는 결재 확정을 할 수 없음(자가결재 방지). 조직관리자·슈퍼관리자는 기존대로 전권. 일반 편집/생성/삭제 흐름은 영향 없음. — lib/crud.ts, lib/configs.ts (2개 파일)
 - 스키마/DB 변경 없음, 마이그레이션 불필요. 권한 판정만 강화(hasPermission의 approve 랭크 재사용).

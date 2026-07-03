@@ -30,6 +30,8 @@ export const MIGRATION_DDL: string[] = [
   `ALTER TABLE IF EXISTS tasks ADD COLUMN IF NOT EXISTS parent_id integer`,
   `ALTER TABLE IF EXISTS tasks ADD COLUMN IF NOT EXISTS planned_hours integer DEFAULT 0 NOT NULL`,
   `ALTER TABLE IF EXISTS tasks ADD COLUMN IF NOT EXISTS actual_hours integer DEFAULT 0 NOT NULL`,
+  `ALTER TABLE IF EXISTS tasks ADD COLUMN IF NOT EXISTS baseline_start text`,
+  `ALTER TABLE IF EXISTS tasks ADD COLUMN IF NOT EXISTS baseline_end text`,
   `ALTER TABLE IF EXISTS documents ADD COLUMN IF NOT EXISTS approved_at timestamptz`,
   `ALTER TABLE IF EXISTS tests ADD COLUMN IF NOT EXISTS reporter text`,
   `ALTER TABLE IF EXISTS tests ADD COLUMN IF NOT EXISTS due_date text`,
