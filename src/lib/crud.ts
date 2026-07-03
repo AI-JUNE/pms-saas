@@ -1,6 +1,6 @@
 import { and, eq, desc, asc } from 'drizzle-orm';
 import { db } from '@/db';
-import { projects } from '@/db/schema';
+import { projects, tasks, phases } from '@/db/schema';
 import { requireUser } from './auth';
 import { requireTenant, type TenantContext } from './tenant';
 import { requirePermission } from './rbac';
@@ -8,7 +8,7 @@ import { nextSeq, formatCode } from './codegen';
 import { audit } from './audit';
 import { handle, ok, ApiError, ERROR } from './http';
 type Scope = 'org' | 'project';
-export type CrudConfig = { table: any; resource: string; scope: Scope; codePrefix?: string; fields: string[]; required?: string[]; transform?: (values: any) => any; orderAsc?: boolean; };
+export type CrudConfig = { table: any; resource: string; scope: Scope; codePrefix?: string; fields: string[]; required?: string[]; transform?: (values: any) => any; orderAsc?: boolean; guardDelete?: (ctx: TenantContext, id: number) => Promise<void>; };
 async function ctxOf(): Promise<TenantContext> { return requireTenant(await requireUser()); }
 async function assertProject(orgId: number, projectId: number) {
   const p = (await db.select().from(projects).where(and(eq(projects.id, projectId), eq(projects.orgId, orgId))).limit(1))[0];
@@ -45,6 +45,7 @@ export function item(cfg: CrudConfig) {
   });
   const DELETE = (_req: Request, c: { params: { id: string } }) => handle(async () => {
     const ctx = await ctxOf(); await requirePermission(ctx, cfg.resource, 'write'); const t = cfg.table;
+    if (cfg.guardDelete) await cfg.guardDelete(ctx, Number(c.params.id));
     const res: any = await db.delete(t).where(and(eq(t.id, Number(c.params.id)), eq(t.orgId, ctx.orgId))).returning();
     if (!res[0]) throw new ApiError(ERROR.NOT_FOUND, '대상을 찾을 수 없습니다');
     await audit(ctx, `${cfg.resource.toUpperCase()}_DELETE`, { entity: cfg.resource, entityId: c.params.id }); return ok();
@@ -59,4 +60,20 @@ export const DOCUMENTS_TRANSFORM = (v: any) => {
   if (v.status === 'approved') return { approvedAt: new Date() };
   if (v.status === 'rejected' || v.status === 'draft' || v.status === 'review') return { approvedAt: null };
   return {};
+};
+// ---- 삭제 정합성 가드 (관련 데이터가 남아있으면 삭제 차단) ----
+// 상위 작업 삭제 시 하위 작업 고아 방지: parentId가 이 작업을 가리키는 하위 작업이 있으면 차단
+export const GUARD_TASK_CHILDREN = async (ctx: TenantContext, id: number) => {
+  const dep = await db.select({ id: tasks.id }).from(tasks)
+    .where(and(eq(tasks.orgId, ctx.orgId), eq(tasks.parentId, id))).limit(1);
+  if (dep[0]) throw new ApiError(ERROR.VALIDATION, '하위 작업이 있어 삭제할 수 없습니다. 먼저 하위 작업을 삭제하거나 상위 작업을 변경하세요');
+};
+// 단계 삭제 시 해당 단계를 사용하는 업무가 있으면 차단(업무의 phase 텍스트=단계명)
+export const GUARD_PHASE_IN_USE = async (ctx: TenantContext, id: number) => {
+  const ph = (await db.select({ name: phases.name }).from(phases)
+    .where(and(eq(phases.id, id), eq(phases.orgId, ctx.orgId))).limit(1))[0];
+  if (!ph) return;
+  const dep = await db.select({ id: tasks.id }).from(tasks)
+    .where(and(eq(tasks.orgId, ctx.orgId), eq(tasks.phase, ph.name))).limit(1);
+  if (dep[0]) throw new ApiError(ERROR.VALIDATION, '이 단계를 사용 중인 업무가 있어 삭제할 수 없습니다. 먼저 해당 업무의 단계를 변경하세요');
 };
