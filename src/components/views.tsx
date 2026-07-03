@@ -75,6 +75,8 @@ export function Gantt({ rows, openDetail, save, create }: { rows: any[]; openDet
   const [progPrev, setProgPrev] = useState<Record<number, number>>({});
   const [nsel, setNsel] = useState<any>(null);
   const [zoom, setZoom] = useState<'day' | 'week' | 'month'>('week');
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [grouped, setGrouped] = useState(true);
   const previewRef = useRef(preview); previewRef.current = preview;
   const progRef = useRef(progPrev); progRef.current = progPrev;
   const dragRef = useRef(drag); dragRef.current = drag;
@@ -175,10 +177,29 @@ export function Gantt({ rows, openDetail, save, create }: { rows: any[]; openDet
   if (pxDay >= 6) { let c = new Date(min); c.setHours(0, 0, 0, 0); while (c.getTime() <= max) { const dow = c.getDay(); if (dow === 0 || dow === 6) weekends.push(xOf(c.getTime())); c = new Date(c.getTime() + DAY); } }
   const todayLeft = xOf(todayMid);
 
-  // geometry for dependency arrows
+  // ---- swimlane grouping by phase (단계별 스윔레인 + 접기/펼치기) ----
+  const groupKey = (r: any) => ((r.phase || '').trim() || '__none');
+  const groupOrder: string[] = [];
+  const groups: Record<string, any[]> = {};
+  rows.forEach((r) => { const g = groupKey(r); if (!groups[g]) { groups[g] = []; groupOrder.push(g); } groups[g].push(r); });
+  const useGroups = grouped && groupOrder.length > 1 && groupOrder.some((g) => g !== '__none');
+  const gColor = (g: string) => { if (g === '__none') return '#94a3b8'; let h = 0; for (let i = 0; i < g.length; i++) h = (h * 31 + g.charCodeAt(i)) % 360; return `hsl(${h},52%,52%)`; };
+  const gLabel = (g: string) => (g === '__none' ? '단계 미지정' : g);
+  type DispRow = { kind: 'group'; key: string; y: number } | { kind: 'task'; r: any; y: number };
+  const disp: DispRow[] = [];
+  let yAcc = 0;
+  if (useGroups) {
+    groupOrder.forEach((g) => {
+      disp.push({ kind: 'group', key: g, y: yAcc }); yAcc += rowH;
+      if (!collapsed[g]) groups[g].forEach((r) => { disp.push({ kind: 'task', r, y: yAcc }); yAcc += rowH; });
+    });
+  } else {
+    rows.forEach((r) => { disp.push({ kind: 'task', r, y: yAcc }); yAcc += rowH; });
+  }
+  const bodyH = Math.max(rowH, yAcc);
+  // geometry for dependency arrows (visible tasks only)
   const geo: Record<string, { left: number; right: number; mid: number }> = {};
-  rows.forEach((r, idx) => { const x = eff(r); geo[r.code] = { left: xOf(x.s), right: xOf(x.e), mid: idx * rowH + rowH / 2 }; });
-  const bodyH = rows.length * rowH;
+  disp.forEach((d) => { if (d.kind === 'task') { const x = eff(d.r); geo[d.r.code] = { left: xOf(x.s), right: xOf(x.e), mid: d.y + rowH / 2 }; } });
   // CPM
   const byCode: Record<string, any> = {}; rows.forEach((r) => { byCode[r.code] = r; });
   const durOf = (r: any) => { const x = eff(r); return Math.max(1, Math.round((x.e - x.s) / DAY)); };
@@ -217,6 +238,7 @@ export function Gantt({ rows, openDetail, save, create }: { rows: any[]; openDet
       <div className="row" style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', gap: 8, flexWrap: 'wrap' }}>
         <div className="sect" style={{ margin: 0 }}>간트차트 · 일정 계획</div>
         <div style={{ display: 'flex', gap: 4, marginLeft: 8 }}><Zb z="day" l="일" /><Zb z="week" l="주" /><Zb z="month" l="월" /></div>
+        {groupOrder.length > 1 && <button className={`btn btn-sm ${grouped ? 'btn-pri' : ''}`} onClick={() => setGrouped((g) => !g)} style={{ padding: '3px 10px' }} title="단계(phase)별로 작업을 묶어 스윔레인으로 표시하고 접기/펼치기">단계 묶기</button>}
         {critical.size > 1 && (<span title="선행관계 기반 임계경로(여유 0일) 작업 수" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 700, color: '#c0414f', background: '#fdedef', border: '1px solid #f3c7cd', borderRadius: 20, padding: '2px 10px' }}><span style={{ width: 8, height: 8, borderRadius: 8, background: '#c0414f' }} />주경로 {critical.size}개{critOverdue > 0 ? ` · 지연 ${critOverdue}` : ''}</span>)}
         <div className="sp" />
         <span className="muted" style={{ fontSize: 11 }}>막대=이동 · 양끝=기간 · 아래손잡이=진척 · 하단행=새 작업 · 자동저장 · <span style={{ color: '#c0414f', fontWeight: 700 }}>▭ 주경로</span></span>
@@ -235,7 +257,28 @@ export function Gantt({ rows, openDetail, save, create }: { rows: any[]; openDet
               {months.map((m, i) => <div key={'g' + i} style={{ position: 'absolute', left: m.left, top: 0, height: bodyH, borderLeft: '1px solid var(--surface-3)' }} />)}
               {todayMid >= min && todayMid <= max && <div style={{ position: 'absolute', left: todayLeft, top: 0, height: bodyH, width: 2, background: 'rgba(190,85,53,.5)' }} />}
             </div>
-            {rows.map((r, idx) => {
+            {disp.map((d) => {
+              if (d.kind === 'group') {
+                const gr = groups[d.key];
+                const spans = gr.map(eff);
+                const gs = Math.min(...spans.map((z) => z.s)), ge = Math.max(...spans.map((z) => z.e));
+                const gLeft = xOf(gs), gW = Math.max(pxDay, xOf(ge) - xOf(gs));
+                const isCol = !!collapsed[d.key];
+                return (
+                  <div key={'g_' + d.key} style={{ display: 'flex', height: rowH, borderBottom: '1px solid var(--border)', background: 'var(--surface-2)' }} className="gt-grp">
+                    <div onClick={() => setCollapsed((c) => ({ ...c, [d.key]: !c[d.key] }))} title={isCol ? '펼치기' : '접기'} style={{ width: LBL, flexShrink: 0, borderRight: '1px solid var(--border)', padding: '0 12px', display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', fontWeight: 750, fontSize: 12.5 }}>
+                      <span style={{ display: 'inline-block', width: 12, textAlign: 'center', transition: 'transform .15s', transform: isCol ? 'rotate(-90deg)' : 'none', color: 'var(--text-3)' }}>▾</span>
+                      <span style={{ width: 9, height: 9, borderRadius: 9, background: gColor(d.key), flexShrink: 0 }} />
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{gLabel(d.key)}</span>
+                      <span className="muted" style={{ fontWeight: 600, fontSize: 11 }}>{gr.length}</span>
+                    </div>
+                    <div style={{ position: 'relative', width: W }}>
+                      <div title={`${fmt(gs)} ~ ${fmt(ge)}`} style={{ position: 'absolute', left: gLeft, width: gW, top: rowH / 2 - 4, height: 8, borderRadius: 6, background: gColor(d.key), opacity: 0.28 }} />
+                    </div>
+                  </div>
+                );
+              }
+              const r = d.r;
               const x = eff(r);
               const isMs = Math.abs(x.e - x.s) < DAY * 0.6;
               const left = xOf(x.s), width = Math.max(pxDay, xOf(x.e) - xOf(x.s));
