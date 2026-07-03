@@ -8,7 +8,8 @@ import { nextSeq, formatCode } from './codegen';
 import { audit } from './audit';
 import { handle, ok, ApiError, ERROR } from './http';
 type Scope = 'org' | 'project';
-export type CrudConfig = { table: any; resource: string; scope: Scope; codePrefix?: string; fields: string[]; required?: string[]; transform?: (values: any) => any; orderAsc?: boolean; guardDelete?: (ctx: TenantContext, id: number) => Promise<void>; };
+// approveOn: 지정 필드 값이 목록에 포함되면 'write'가 아닌 'approve' 권한을 요구(결재 경계)
+export type CrudConfig = { table: any; resource: string; scope: Scope; codePrefix?: string; fields: string[]; required?: string[]; transform?: (values: any) => any; orderAsc?: boolean; guardDelete?: (ctx: TenantContext, id: number) => Promise<void>; approveOn?: { field: string; values: string[] }; };
 async function ctxOf(): Promise<TenantContext> { return requireTenant(await requireUser()); }
 async function assertProject(orgId: number, projectId: number) {
   const p = (await db.select().from(projects).where(and(eq(projects.id, projectId), eq(projects.orgId, orgId))).limit(1))[0];
@@ -37,6 +38,8 @@ export function item(cfg: CrudConfig) {
   const PATCH = (req: Request, c: { params: { id: string } }) => handle(async () => {
     const ctx = await ctxOf(); await requirePermission(ctx, cfg.resource, 'write');
     const t = cfg.table; const body = await req.json(); const patch: any = {};
+    // 결재(승인/반려) 경계: 상태를 결재 확정값으로 바꾸는 경우 'approve' 권한 추가 요구
+    if (cfg.approveOn && cfg.approveOn.values.includes(body[cfg.approveOn.field])) await requirePermission(ctx, cfg.resource, 'approve');
     for (const f of cfg.fields) if (body[f] !== undefined && body[f] !== null && body[f] !== '') patch[f] = body[f];
     if (cfg.transform) Object.assign(patch, cfg.transform({ ...body, ...patch }));
     const upd: any = await db.update(t).set(patch).where(and(eq(t.id, Number(c.params.id)), eq(t.orgId, ctx.orgId))).returning(); const row = upd[0];

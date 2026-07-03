@@ -3,6 +3,12 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-07-04 (야간 배치 12 — 배포 대기)
+- 안정화 ④ **RBAC 결재 경계 강화** — 공용 CRUD(lib/crud.ts)에 설정 기반 `approveOn`(필드+확정값 목록)을 추가. 항목 PATCH 시 상태를 **결재 확정값**으로 변경하는 요청은 기존 `write`에 더해 `approve` 권한을 추가로 요구하도록 게이트. 산출물(documents) 설정에 `approveOn: { field:'status', values:['approved','rejected'] }`를 배선 — 이제 **승인/반려는 PM·PMO·관리자(approve 이상)만** 가능하고, 일반 멤버(write)는 결재 확정을 할 수 없음(자가결재 방지). 조직관리자·슈퍼관리자는 기존대로 전권. 일반 편집/생성/삭제 흐름은 영향 없음. — lib/crud.ts, lib/configs.ts (2개 파일)
+- 스키마/DB 변경 없음, 마이그레이션 불필요. 권한 판정만 강화(hasPermission의 approve 랭크 재사용).
+- 보류·메모: 목록 GET의 **읽기(read) 게이트**는 커스텀 롤(권한 미부여) 사용자가 즉시 잠길 위험이 있어 야간 자동 적용에서 제외(주간 검토 권장). 쓰기/관리 경계는 기존 write/isOrgAdmin 검사로 이미 강제됨 확인.
+- 검증: tsc --noEmit 통과(에러 0). (야간 OneDrive 마운트 동기화 지연으로 tsc가 crud.ts·configs.ts 사본을 각각 76/19줄에서 잘린 상태로 읽어 오탐 → 호스트 원본(Read) 무결성 확인 후 python(utf-8)으로 마운트 사본을 원본과 동일 재구성해 0에러 재확인.)
+
 ## 2026-07-04 (야간 배치 11 — 배포 대기)
 - 안정화 ④: **삭제 시 관련 데이터 정합성 가드** — 공용 CRUD(lib/crud.ts)에 `guardDelete` 훅을 추가하고 DELETE 실행 전 호출. (1) **단계 삭제 차단** — 해당 단계를 사용 중인 업무(tasks.phase=단계명)가 있으면 삭제를 막고 "단계를 변경하세요" 안내(고아 단계 방지). (2) **상위 작업 삭제 차단** — parentId로 연결된 하위 작업이 있으면 삭제를 막아 WBS 계층 고아 방지. 두 가드를 configs.ts의 phases/tasks 설정에 배선. 위반 시 사용자 친화 메시지(ApiError VALIDATION)로 응답, 정상 삭제는 그대로 동작. — lib/crud.ts, lib/configs.ts (2개 파일)
 - 스키마/DB 변경 없음, 마이그레이션 불필요. 조회(select limit 1) 기반 가드로 삭제 경로만 보강.
