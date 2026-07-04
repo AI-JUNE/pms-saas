@@ -77,10 +77,14 @@ export function Gantt({ rows, openDetail, save, create }: { rows: any[]; openDet
   const [zoom, setZoom] = useState<'day' | 'week' | 'month'>('week');
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [grouped, setGrouped] = useState(true);
+  const [link, setLink] = useState<any>(null);
   const previewRef = useRef(preview); previewRef.current = preview;
   const progRef = useRef(progPrev); progRef.current = progPrev;
   const dragRef = useRef(drag); dragRef.current = drag;
   const nselRef = useRef(nsel); nselRef.current = nsel;
+  const linkRef = useRef(link); linkRef.current = link;
+  const linkTargetRef = useRef<any>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
 
   const eff = (t: any) => {
     const pv = preview[t.id];
@@ -152,6 +156,20 @@ export function Gantt({ rows, openDetail, save, create }: { rows: any[]; openDet
     // eslint-disable-next-line
   }, [nsel, pxDay, min]);
 
+  useEffect(() => {
+    if (!link) return;
+    function mv(ev: MouseEvent) { const l = linkRef.current; if (!l) return; setLink({ ...l, x1: ev.clientX - l.baseLeft, y1: ev.clientY - l.baseTop }); }
+    async function up() {
+      const l = linkRef.current; const tgt = linkTargetRef.current; setLink(null); linkTargetRef.current = null;
+      if (!l || !save || !tgt) return;
+      if (tgt.id === l.fromId || tgt.code === l.fromCode) return;
+      await save(tgt.id, { predecessor: l.fromCode });
+    }
+    window.addEventListener('mousemove', mv); window.addEventListener('mouseup', up);
+    return () => { window.removeEventListener('mousemove', mv); window.removeEventListener('mouseup', up); };
+    // eslint-disable-next-line
+  }, [link]);
+
   function startDrag(e: React.MouseEvent, t: any, mode: 'move' | 'l' | 'r' | 'p', barW?: number) {
     if (!save) return; e.stopPropagation(); e.preventDefault();
     const x = eff(t);
@@ -161,6 +179,14 @@ export function Gantt({ rows, openDetail, save, create }: { rows: any[]; openDet
     if (!create) return;
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     setNsel({ baseLeft: rect.left, x0: e.clientX, x1: e.clientX });
+  }
+  function startLink(e: React.MouseEvent, t: any) {
+    if (!save) return; e.stopPropagation(); e.preventDefault();
+    const rect = bodyRef.current?.getBoundingClientRect();
+    const g = geo[t.code];
+    const x0 = g ? g.right : 0, y0 = g ? g.mid : 0;
+    linkTargetRef.current = null;
+    setLink({ fromId: t.id, fromCode: t.code, baseLeft: (rect?.left || 0) + LBL, baseTop: rect?.top || 0, x0, y0, x1: x0, y1: y0 });
   }
 
   if (rows.length === 0) return <div className="card card-pad muted">작업이 없습니다. “새로 만들기”로 작업을 추가하거나, 하단 타임라인 행을 드래그해 작업을 그려 계획하세요.</div>;
@@ -241,7 +267,7 @@ export function Gantt({ rows, openDetail, save, create }: { rows: any[]; openDet
         {groupOrder.length > 1 && <button className={`btn btn-sm ${grouped ? 'btn-pri' : ''}`} onClick={() => setGrouped((g) => !g)} style={{ padding: '3px 10px' }} title="단계(phase)별로 작업을 묶어 스윔레인으로 표시하고 접기/펼치기">단계 묶기</button>}
         {critical.size > 1 && (<span title="선행관계 기반 임계경로(여유 0일) 작업 수" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 700, color: '#c0414f', background: '#fdedef', border: '1px solid #f3c7cd', borderRadius: 20, padding: '2px 10px' }}><span style={{ width: 8, height: 8, borderRadius: 8, background: '#c0414f' }} />주경로 {critical.size}개{critOverdue > 0 ? ` · 지연 ${critOverdue}` : ''}</span>)}
         <div className="sp" />
-        <span className="muted" style={{ fontSize: 11 }}>막대=이동 · 양끝=기간 · 아래손잡이=진척 · 하단행=새 작업 · 자동저장 · <span style={{ color: '#c0414f', fontWeight: 700 }}>▭ 주경로</span> · <span style={{ color: 'var(--text-3)', fontWeight: 700 }}>▬ 기준선(계획)</span></span>
+        <span className="muted" style={{ fontSize: 11 }}>막대=이동 · 양끝=기간 · 아래손잡이=진척 · <span style={{ color: 'var(--brand)', fontWeight: 700 }}>우측●=선행연결</span> · 하단행=새 작업 · 자동저장 · <span style={{ color: '#c0414f', fontWeight: 700 }}>▭ 주경로</span> · <span style={{ color: 'var(--text-3)', fontWeight: 700 }}>▬ 기준선(계획)</span></span>
       </div>
       <div style={{ overflowX: 'auto' }}>
         <div style={{ minWidth: LBL + W, userSelect: (drag || nsel) ? 'none' : 'auto' }}>
@@ -251,7 +277,7 @@ export function Gantt({ rows, openDetail, save, create }: { rows: any[]; openDet
               {months.map((m, i) => <div key={i} style={{ position: 'absolute', left: m.left, width: m.width, top: 0, height: 30, borderLeft: '1px solid var(--border)', fontSize: 10.5, fontWeight: 700, color: 'var(--text-3)', display: 'flex', alignItems: 'center', paddingLeft: 6 }}>{m.label}</div>)}
             </div>
           </div>
-          <div style={{ position: 'relative' }}>
+          <div ref={bodyRef} style={{ position: 'relative' }}>
             <div style={{ position: 'absolute', left: LBL, top: 0, width: W, height: bodyH, pointerEvents: 'none' }}>
               {weekends.map((x, i) => <div key={'w' + i} style={{ position: 'absolute', left: x, width: pxDay, top: 0, height: bodyH, background: 'rgba(30,20,10,.035)' }} />)}
               {months.map((m, i) => <div key={'g' + i} style={{ position: 'absolute', left: m.left, top: 0, height: bodyH, borderLeft: '1px solid var(--surface-3)' }} />)}
@@ -301,9 +327,9 @@ export function Gantt({ rows, openDetail, save, create }: { rows: any[]; openDet
                   <div style={{ position: 'relative', width: W }}>
                     {hasBase && <div title={`기준선(계획) ${fmt(bs as number)} ~ ${fmt(be as number)} · ${slipDays > 0 ? `${slipDays}일 지연` : slipDays < 0 ? `${-slipDays}일 단축` : '계획대로'}`} style={{ position: 'absolute', left: bLeft, width: bWidth, top: rowH / 2 + 9, height: 4, borderRadius: 3, background: slipDays > 0 ? '#c0414f' : 'var(--text-4)', opacity: slipDays > 0 ? 0.5 : 0.38 }} />}
                     {isMs ? (
-                      <div onMouseDown={(e) => startDrag(e, r, 'move')} title={`마일스톤 · ${fmt(x.s)}`} style={{ position: 'absolute', left: left - 9, top: rowH / 2 - 9, width: 18, height: 18, background: color(r.status), transform: 'rotate(45deg)', borderRadius: 3, cursor: save ? 'grab' : 'pointer', boxShadow: 'var(--sh-sm)' }} />
+                      <div onMouseDown={(e) => startDrag(e, r, 'move')} onMouseEnter={() => { if (linkRef.current) linkTargetRef.current = r; }} onMouseLeave={() => { if (linkTargetRef.current === r) linkTargetRef.current = null; }} title={`마일스톤 · ${fmt(x.s)}`} style={{ position: 'absolute', left: left - 9, top: rowH / 2 - 9, width: 18, height: 18, background: color(r.status), transform: 'rotate(45deg)', borderRadius: 3, cursor: save ? 'grab' : 'pointer', boxShadow: 'var(--sh-sm)' }} />
                     ) : (
-                      <div onMouseDown={(e) => startDrag(e, r, 'move')} title={`${fmt(x.s)} ~ ${fmt(x.e)} · ${prog}%${isCrit ? ' · 주경로' : ''}${x.planned ? '' : ' · 드래그하여 계획'}`}
+                      <div onMouseDown={(e) => startDrag(e, r, 'move')} onMouseEnter={() => { if (linkRef.current) linkTargetRef.current = r; }} onMouseLeave={() => { if (linkTargetRef.current === r) linkTargetRef.current = null; }} title={`${fmt(x.s)} ~ ${fmt(x.e)} · ${prog}%${isCrit ? ' · 주경로' : ''}${x.planned ? '' : ' · 드래그하여 계획'}`}
                         style={{ position: 'absolute', left, width, top: 9, height: 22, borderRadius: 7, background: x.planned ? 'var(--surface-3)' : 'transparent', border: `1.5px ${x.planned ? 'solid' : 'dashed'} ${overdue ? '#c0414f' : color(r.status) + (x.planned ? '55' : '99')}`, overflow: 'visible', boxShadow: isCrit ? '0 0 0 2px #c0414f66, var(--sh-sm)' : (isDragging ? 'var(--sh-md)' : 'var(--sh-sm)'), cursor: save ? 'grab' : 'pointer', opacity: x.planned ? 1 : .75, transition: isDragging ? 'none' : 'box-shadow .15s' }}>
                         <div style={{ width: `${prog}%`, height: '100%', background: color(r.status), opacity: .9, borderRadius: 6 }} />
                         <span style={{ position: 'absolute', left: 8, top: 0, height: '100%', display: 'flex', alignItems: 'center', fontSize: 10.5, fontWeight: 700, color: prog > 50 ? '#fff' : 'var(--text-2)', pointerEvents: 'none' }}>{x.planned ? `${prog}%` : '계획'}</span>
@@ -312,6 +338,7 @@ export function Gantt({ rows, openDetail, save, create }: { rows: any[]; openDet
                           <span onMouseDown={(e) => startDrag(e, r, 'l')} style={{ position: 'absolute', left: -1, top: 0, height: '100%', width: 9, cursor: 'ew-resize' }} />
                           <span onMouseDown={(e) => startDrag(e, r, 'r')} style={{ position: 'absolute', right: -1, top: 0, height: '100%', width: 9, cursor: 'ew-resize' }} />
                           <span onMouseDown={(e) => startDrag(e, r, 'p', width)} title="진척 조정" style={{ position: 'absolute', left: `calc(${prog}% - 5px)`, bottom: -5, width: 10, height: 10, borderRadius: 10, background: '#fff', border: `2px solid ${color(r.status)}`, cursor: 'ew-resize', boxShadow: 'var(--sh-sm)' }} />
+                          <span onMouseDown={(e) => startLink(e, r)} title="드래그해 다른 작업 위에 놓으면 선행(의존) 관계로 연결됩니다" style={{ position: 'absolute', right: -15, top: '50%', transform: 'translateY(-50%)', width: 11, height: 11, borderRadius: 11, background: 'var(--brand)', border: '2px solid #fff', cursor: 'crosshair', boxShadow: 'var(--sh-sm)', opacity: link ? 0.35 : 0.85 }} />
                         </>}
                       </div>
                     )}
@@ -322,6 +349,7 @@ export function Gantt({ rows, openDetail, save, create }: { rows: any[]; openDet
             <svg style={{ position: 'absolute', left: LBL, top: 0, width: W, height: bodyH, pointerEvents: 'none', overflow: 'visible' }}>
               <defs><marker id="gtar" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--text-4)" /></marker><marker id="gtarC" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#c0414f" /></marker></defs>
               {arrows.map((a, i) => { return <path key={i} d={`M ${a.x1} ${a.y1} C ${a.x1 + 16} ${a.y1}, ${a.x2 - 16} ${a.y2}, ${a.x2} ${a.y2}`} fill="none" stroke={a.crit ? '#c0414f' : 'var(--text-4)'} strokeWidth={a.crit ? 1.9 : 1.3} markerEnd={a.crit ? 'url(#gtarC)' : 'url(#gtar)'} opacity={a.crit ? 0.95 : 0.75} />; })}
+              {link && <path d={`M ${link.x0} ${link.y0} C ${link.x0 + 16} ${link.y0}, ${link.x1 - 16} ${link.y1}, ${link.x1} ${link.y1}`} fill="none" stroke="var(--brand)" strokeWidth={2} strokeDasharray="4 3" markerEnd="url(#gtar)" opacity={0.9} />}
             </svg>
           </div>
           {create && (
