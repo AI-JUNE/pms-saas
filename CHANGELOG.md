@@ -3,6 +3,11 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-07-06 (야간 배치 22 — 배포 대기)
+- 공통 ⑥/⑧: **상세 슬라이드오버 기한 필드 D-day·초과 강조** — 목록 기한(due/end) 셀에만 적용되던 임박(≤7일, amber)/초과(적색) 하이라이트와 D-day·초과일수 표기를 상세 패널의 항목 정의 목록(dl)에도 확장. 기한/마감/종료 성격의 **date 필드**(키가 due·end·마감·기한·종료 매칭)에 대해 값 옆에 `(D-3)`·`(오늘 마감)`·`(2일 초과)`를 색상과 함께 인라인 표기. 완료/종료 상태(done·closed·resolved·completed·approved) 항목은 강조하지 않아 목록 규칙과 완전히 일치. 이제 목록에서 열어본 상세에서도 일정 긴급도를 한눈에 파악 가능. — src/components/ResourceView.tsx (단일 파일, dl 렌더의 fields.map 1블록)
+- 데이터/스키마·타입 영향 없음(순수 표시 계산), 마이그레이션 불필요. ⑥ 백로그는 전 항목 완료 상태라, 배치16의 목록 기한 툴팁 패턴을 상세 패널로 이어붙인 보너스 폴리시(⑥ 일관성 + ⑧ monday UX)로 진행.
+- 검증: tsc --noEmit 통과(에러 0). (야간 OneDrive 마운트 동기화 지연으로 ResourceView.tsx 마운트 사본이 412줄에서 모달 combo 입력 필드 중간이 잘려 tsc TS17008/1005 오탐 → 호스트 원본(Read/Edit) 무결성 확인 후 python(utf-8)으로 마운트 사본의 잘린 꼬리(combo 필드~Shell 닫힘·안내주석)를 원본과 동일하게 재구성해 0에러 재확인.)
+
 ## 2026-07-06 (야간 배치 21 — 배포 대기)
 - 공통 ⑧: **그룹 헤더에 완료율 진척 표시** — 목록을 상태/우선순위/담당자 등으로 그룹화(group-by)했을 때, 각 그룹 헤더가 그동안 건수(`· N`)만 보여주던 것을, 그룹 내 항목의 **완료율 미니 진척 막대 + %**를 오른쪽에 함께 표기하도록 개선(monday식 그룹 요약). 완료 판정은 기존 종료 상태 집합(done·closed·resolved·completed·approved·pass)을 재사용하고, hover 시 `완료 M / 전체 N (P%)` 툴팁 제공. 그룹 내 어떤 항목도 상태값이 없으면(예: 상태 없는 도메인) 표시하지 않아 오해 소지를 차단. 이제 그룹 접힘 상태에서도 단계·담당자별 진척을 한눈에 스캔 가능. — src/components/ResourceView.tsx (단일 파일, 그룹 헤더 렌더에 완료율 계산 1블록)
 - 데이터/스키마·타입 영향 없음(순수 표시 계산), 마이그레이션 불필요. ⑥ 백로그는 전 항목 완료 상태라 monday UX(⑧) 연장선의 보너스 폴리시로 진행.
@@ -80,57 +85,4 @@
 
 ## 2026-07-03 (야간 배치 6 — 배포 대기)
 - 모바일 ②: **KPI/차트 카드 레이아웃 최적화** — 좁은 화면에서 카드 여백(.card-pad)을 줄여 도넛+범례 공간을 확보하고, 대시보드 도넛 차트(150px 고정)를 ≤640px에서 120px로 축소해 범례와 겹침·넘침을 방지. ≤400px 초소형 화면에선 도넛(위)+범례(아래) 세로 배치로 전환하고 KPI 값·여백을 살짝 줄여 2열에서 숫자가 넘치지 않도록 함. — components? 아님: app/globals.css(v22), app/dashboard(Donut에 .donut-wrap/.donut-svg 클래스 훅 2개만 추가)
-- 검증: tsc --noEmit 통과(에러 0). CSS + className 2건 추가로 DB·타입 영향 없음, 마이그레이션 불필요. (야간 OneDrive 마운트 동기화 지연으로 tsc가 dashboard 꼬리 4줄이 잘린 사본을 읽어 오탐 → 호스트 원본(Read)으로 무결성 확인 후 마운트 사본 보정해 0에러 재확인.)
-
-## 2026-07-03 (주간 배치 II — 배포 자동 마이그레이션 · 무인 자동배포)
-- 핵심(안정화): **배포 시 마이그레이션 자동 실행** — Next.js instrumentation(서버 기동 훅)에서 스키마 자가정합(ensureSchema)을 1회 실행. 이제 스키마가 바뀐 배포도 **관리자 버튼 없이** 자동 정합 → 오늘 같은 "배포 직후 컬럼 미적용으로 화면 멈춤" 원천 차단. — src/instrumentation.ts, src/lib/migrate.ts, next.config.js
-- 리팩터: 마이그레이션 DDL을 lib/migrate로 공용화(라우트/기동훅 공유). ensureSchema는 인스턴스당 1회·throw 없음(요청 무영향). — lib/migrate, app/api/admin/migrate
-- 배포 스크립트: **tsc 검증 게이트** 추가 — 타입 오류 시 푸시 중단(무인 자동배포에서 깨진 코드 방지). SETUP-SCHEDULE.ps1로 **2시간마다 자동 배포** 예약작업 등록(주말 무인 운영). (로컬 스크립트, 미배포)
-- 검증: tsc --noEmit 통과(에러 0).
-
-## 2026-07-03 (주간 배치 HH — 성능/DB 튜닝 · 배포 대기 · ⚠️마이그레이션 필요)
-- 성능(핵심): **세션 토큰 인덱스** 추가 — 모든 인증 요청이 매번 sessions.token 전체 스캔하던 것을 인덱스 조회로 전환(요청당 DB 비용 대폭 감소). — db/schema, migrate
-- 성능: **담당자/소유자 인덱스** 추가 — 내 작업·업무 부하의 담당자 필터 조회 가속(tasks/issues.assignee, risks.owner). — db/schema, migrate
-- 안정화(중요): 마이그레이션을 **문장별 예외 처리**로 견고화 — 한 문장 실패가 전체를 중단시키지 않고 나머지를 계속 적용(applied/failed 리포트). 배포 직후 신규 컬럼 미적용으로 화면이 멈추는 문제 재발 방지. — app/api/admin/migrate
-- 버그(운영): EE·FF 배포 직후 tasks 신규 컬럼(planned/actual_hours) 미마이그레이션으로 tasks·my-work·dashboard가 500 → 스키마 업데이트 실행(31개 적용)으로 복구 확인.
-- ⚠️ 신규 인덱스 — 배포 후 관리자 > "스키마 업데이트 실행" 1회.
-- 검증: tsc --noEmit 통과(에러 0). 16개 API 200 라이브 확인.
-
-## 2026-07-03 (주간 배치 EE·FF — 배포 대기 · ⚠️마이그레이션 필요)
-- 핵심 ★ **테스트 실행 리포트** (EE) — 프로젝트 상세에 **통과율·실행/전체·통과/실패/블록** + 결과 분포 막대 + 검증단계(개발·PL·PM·완료) 요약 카드 추가. DB 변경 없음. — app/api/project-summary, app/projects/[id]
-- 핵심 ★ **공수(계획/실제 시간)** (FF) — 업무에 계획공수·실제공수(시간) 입력 추가. EVM을 **공수 시간 기준**으로 전환(입력 시): **AC(실제원가)·CPI(원가효율)** 실값 계산·표시. 공수 미입력 시 기존 작업수 기준으로 자동 폴백. — db/schema(tasks.planned_hours/actual_hours), lib/configs, app/tasks, app/api/project-summary, app/projects/[id]
-- ⚠️ tasks 신규 컬럼 planned_hours·actual_hours — 배포 후 관리자 > "스키마 업데이트 실행" 1회.
-- 검증: tsc --noEmit 통과(에러 0).
-
-## 2026-07-03 (주간 배치 CC — 배포 대기 · ⚠️마이그레이션 필요)
-- 핵심 ★ **WBS 계층구조** — 업무에 **상위 작업** 지정 기능 추가. 목록이 상위→하위 순으로 자동 정렬되고, **WBS 번호(1·1.1·1.2)** 부여 + 단계별 **들여쓰기**로 계층 표시. 상위 작업은 현재 프로젝트 작업 중에서 선택(자기 자신 제외). — db/schema(tasks.parent_id), lib/configs, components/ResourceView(treeKey), app/tasks
-- 편의: 관리자 화면에 **"DB 스키마 업데이트" 버튼** 추가 — 배포 후 원클릭으로 마이그레이션 실행(반복 안전). — app/admin
-- ⚠️ tasks 신규 컬럼 parent_id — 배포 후 관리자 > "스키마 업데이트 실행" 1회 클릭.
-- 검증: tsc --noEmit 통과(에러 0).
-
-## 2026-07-03 (야간 배치 5 — 배포 대기)
-- 모바일 ②: **하단 탭바 네비게이션** 신규 — 모바일(≤860px)에서 화면 하단에 고정 탭바(대시보드·내 작업·업무·알림)를 추가해 엄지 도달 범위에서 핵심 화면 전환. 현재 경로 active 강조, 알림 미읽음 배지 표시, iOS 세이프에어리어(safe-area-inset) 대응, 콘텐츠 하단 패딩 확보. 데스크톱에선 미표시. — components/Shell.tsx, app/globals.css
-- 안정화/버그픽스 ④: **globals.css 손상 복구** — 직전 배치들의 OneDrive 동기화 잘림으로 `@media (max-width:520px)` 블록의 `.kpis{…;gap:8` 규칙이 미완결·미닫힘 상태로 남아, v20 포커스링(:focus-visible) 전역 블록이 통째로 520px 미디어쿼리에 갇혀 있던 문제 수정. 규칙을 `gap:8px}`로 완결하고 미디어쿼리를 정상 종료해 포커스링이 전 해상도에서 다시 동작하도록 복원. — app/globals.css
-- 검증: tsc --noEmit 통과(에러 0). CSS·컴포넌트 변경, DB·타입영향 없음, 마이그레이션 불필요. (야간 OneDrive 마운트가 Shell.tsx를 잘린 사본으로 제공해 tsc가 오탐 → 호스트 원본(Read)으로 무결성 확인 + 완전 사본 재구성 후 tsc 0에러 확인.)
-
-## 2026-07-03 (야간 배치 4 — 배포 대기)
-- 모바일 ②: **터치 타깃 44px 확보** — 모바일(≤860px)에서 버튼(.btn)·셀렉트(.sel)·입력(.in)·메뉴버튼을 최소 44px 높이로, 아이콘버튼(.iconbtn)을 44×44px로 확대. 네비/메뉴 항목·목록 행(td) 세로 패딩을 늘려 탭 영역을 넓히고, 세그먼트 버튼·행 빠른액션 버튼도 40px+ 확보. 인라인 상태배지(.pill)는 제외해 표 가독성 유지. — app/globals.css
-- 검증: tsc --noEmit 통과(에러 0). CSS 전용 변경, DB·타입 영향 없음. (야간 OneDrive 마운트 동기화 지연으로 tsc는 직전 사본을 읽었으나 CSS는 타입검사 무관.)
-
-## 2026-07-03 (야간 배치 3 — 배포 대기)
-- 안정화/접근성 ④: **키보드 포커스 링 통일** — 링크·버튼·입력·셀렉트·역할요소(role=button/tab/menuitem)에 `:focus-visible` 브랜드 색 링을 전역 적용(마우스 클릭엔 숨김, Tab 탐색엔 노출). 폼 입력은 기존 box-shadow 링과 이중 표시되지 않게 예외 처리. 목록 행 포커스 시 배경 강조. — app/globals.css
-- 접근성: **prefers-reduced-motion** 지원 추가 — 모션 최소화 설정 사용자에겐 애니메이션/트랜지션을 사실상 제거. — app/globals.css
-- 검증: tsc --noEmit 통과(에러 0). CSS 전용 변경, DB·타입 영향 없음.
-
-## 2026-07-03 (야간 배치 2 — 배포 대기)
-- 리포트/분석 ★: **획득가치(EVM) 카드** 추가 — 프로젝트 상세에 PV(계획가치)·EV(획득가치)·SV(일정차이)·SPI를 표시. 작업 환산 단위(BAC=작업 수)로 계산해 DB 변경 없음. AC(실제원가)·CPI는 공수(실적) 데이터 연동 시 표시(현재 '—' 플레이스홀더). — app/api/project-summary/route.ts, app/projects/[id]/page.tsx
-- 검증: tsc --noEmit 통과(에러 0). DB 변경 없음(마이그레이션 불필요).
-
-## 2026-07-03 (야간 배치 — 배포 대기)
-- monday UX/⑧: **컬럼 표시/숨김 토글** 추가 — 툴바 '컬럼' 버튼으로 각 목록의 표시 컬럼을 체크박스로 켜고 끔. 화면(제목)별로 localStorage(pms.cols.{제목})에 기억. 표/스켈레톤/그룹헤더/빈상태/빠른추가 colSpan 모두 표시 컬럼 수에 맞춰 정합. — components/ResourceView.tsx
-- monday UX/⑧: **풀셀 컬러 태그** 옵션 — 툴바 '컬러셀' 토글 시 상태/우선순위 등 배지 셀 전체에 상태 색상 배경을 입혀 스캔 가독성↑(monday식). localStorage(pms.fulltag)에 기억. — components/ResourceView.tsx
-- 검증: tsc --noEmit 통과(에러 0). DB 변경 없음. (야간 중 OneDrive 마운트 동기화 지연으로 tsc가 잘린 사본을 읽는 이슈가 있어, 원본을 재구성해 검증함.)
-
-## 2026-07-02 (야간 배치 3 — 배포 대기)
-- monday UX/⑧: **행 hover 시 빠른 액션 노출** — 목록 행의 수정/삭제 버튼을 평소 숨기고 마우스 hover(또는 포커스) 시 부드럽게 표시(스캔 가독성↑). 터치 기기(hover 없음)에서는 항상 표시. — components/ResourceView.tsx, app/globals.css
-- monday UX/⑧: **행 밀도(컴팩트/편안) 전환** 토글 추가 — 툴바 버튼으로 표 셀 패딩/폰트를 컴팩트↔편안 전환, localStorage(pms.density)에
+- 검증: tsc --noEmit 통과(에러 0). CSS + className 2건 추가로 DB·타입 영향 없음, 마이그

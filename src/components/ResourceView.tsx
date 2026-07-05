@@ -345,7 +345,16 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
           <div className="over-b">
             <h3 style={{ margin: '0 0 16px', fontSize: 19, fontWeight: 800, letterSpacing: '-.02em' }}>{detail.title || detail.name || detail.code}</h3>
             <dl className="dl">
-              {fields.map((f) => (<div key={f.key} style={{ display: 'contents' }}><dt>{f.label}</dt><dd>{['status','priority','level','type'].includes(f.key) ? <Pill v={detail[f.key]} /> : (detail[f.key] || <span className="muted">—</span>)}</dd></div>))}
+              {fields.map((f) => {
+                const isDue = f.type === 'date' && /due|end|마감|기한|종료/i.test(f.key) && detail[f.key];
+                let dueCol: string | undefined, dueTip: string | undefined;
+                if (isDue) {
+                  const done = ['done', 'closed', 'resolved', 'completed', 'approved'].includes(String(detail.status));
+                  const t = new Date(detail[f.key]).getTime(); const now = Date.now(); const dd = Math.ceil((t - now) / 86400000); const od = Math.floor((now - t) / 86400000);
+                  if (!done && !isNaN(t)) { dueCol = t < now ? '#c0414f' : dd <= 7 ? '#d98a16' : undefined; if (dueCol) dueTip = t < now ? (od >= 1 ? `${od}일 초과` : '오늘 마감 초과') : (dd <= 0 ? '오늘 마감' : `D-${dd}`); }
+                }
+                return (<div key={f.key} style={{ display: 'contents' }}><dt>{f.label}</dt><dd>{['status','priority','level','type'].includes(f.key) ? <Pill v={detail[f.key]} /> : detail[f.key] ? (dueCol ? <span style={{ color: dueCol, fontWeight: 700 }}>{detail[f.key]} <span style={{ fontSize: 11 }}>({dueTip})</span></span> : detail[f.key]) : <span className="muted">—</span>}</dd></div>);
+              })}
               {(() => {
                 const fieldKeys = new Set(fields.map((f) => f.key));
                 const who = (!fieldKeys.has('author') && detail.author) || (!fieldKeys.has('owner') && detail.owner) || (!fieldKeys.has('approver') && detail.approver) || (!fieldKeys.has('assignee') && detail.assignee);
