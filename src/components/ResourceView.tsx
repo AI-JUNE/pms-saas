@@ -214,7 +214,9 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
                 const done = ['done', 'closed', 'resolved', 'completed', 'approved'].includes(String(row.status));
                 const t = new Date(row[c.key]).getTime(); const now = Date.now(); const dd = Math.ceil((t - now) / 86400000);
                 const col = done || isNaN(t) ? undefined : t < now ? '#c0414f' : dd <= 7 ? '#d98a16' : undefined;
-                return <span style={{ color: col, fontWeight: col ? 700 : undefined }}>{row[c.key]}{col === '#c0414f' ? ' ⚠' : ''}</span>;
+                const od = Math.floor((now - t) / 86400000);
+                const tip = col ? (t < now ? (od >= 1 ? `${od}일 초과` : '오늘 마감 초과') : (dd <= 0 ? '오늘 마감' : `D-${dd}`)) : undefined;
+                return <span title={tip} style={{ color: col, fontWeight: col ? 700 : undefined, cursor: tip ? 'help' : undefined }}>{row[c.key]}{col === '#c0414f' ? ' ⚠' : ''}</span>;
               })()
             : <span style={c.strong ? { fontWeight: 650, color: 'var(--text-1)' } : undefined}>{c.strong && row.__wbs != null && <span className="muted" style={{ marginRight: 6, paddingLeft: (row.__depth || 0) * 16, fontVariantNumeric: 'tabular-nums' }}>{row.__wbs}</span>}{row[c.key] ?? '—'}</span>}
         </td>

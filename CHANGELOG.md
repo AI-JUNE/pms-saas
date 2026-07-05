@@ -3,6 +3,11 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-07-05 (야간 배치 16 — 배포 대기)
+- 공통 ⑥/⑧: **목록 기한 셀 D-day·초과일수 툴팁** — 이미 적용된 "기한 임박/초과 하이라이트"(due/end 컬럼)를 보강. 하이라이트된 기한 셀에 hover 시 남은/지난 일수를 툴팁으로 표시(임박: `D-3`·`오늘 마감`, 초과: `2일 초과`·`오늘 마감 초과`)하고 커서를 `help`로 바꿔 인터랙션을 명시. 완료/종료 상태(done·closed·resolved·completed·approved) 항목은 툴팁 없음(기존 색상 규칙 그대로). 표시 로직만 추가라 이슈·테스트·업무 등 due/end 컬럼을 쓰는 모든 목록에 자동 적용. — src/components/ResourceView.tsx (단일 파일)
+- 데이터/스키마·타입 영향 없음(순수 표시 계산·title 속성 추가), 마이그레이션 불필요.
+- 검증: tsc --noEmit 통과(에러 0). (야간 OneDrive 마운트 동기화 지연으로 ResourceView.tsx 마운트 사본이 403줄에서 모달 종료부(`</div></div>`·form/Shell 닫힘)가 잘린 상태로 제공되어 tsc가 미종료 JSX 오탐 → 호스트 원본(Read) 무결성 확인 후 python(utf-8)으로 마운트 사본을 원본과 동일 412줄로 재구성해 0에러 재확인.)
+
 ## 2026-07-05 (야간 배치 15 — 배포 대기)
 - 공통 ⑥: **배지 한글 라벨/색상 누락 상태값 보강** — 방화벽(firewall)·조달(procurement)·인프라(infra) 목록의 상태 배지에서 그동안 영문 원문(requested/ordered/received/standby/retired)으로 노출되던 값에 한글 라벨과 색상을 부여. `requested→요청`(amber), `ordered→발주`(blue), `received→입고`(cyan), `standby→예비`(gray), `retired→폐기`(gray)를 lib/ui.tsx의 LABEL·BADGE 맵에 추가. 이제 조달 발주 흐름(요청→발주→입고→완료)과 방화벽 요청·자산 생애주기가 전 화면에서 일관된 한글 배지로 표시됨. — src/lib/ui.tsx (단일 파일)
 - 데이터/스키마·타입 영향 없음(표시 매핑만 추가), 마이그레이션 불필요. 기존 값과 의미 충돌 없음 확인.
