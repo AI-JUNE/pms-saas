@@ -59,6 +59,42 @@ function Burndown({ tasks }: { tasks: any[] }) {
     </svg>
   );
 }
+function WeeklyTrend({ tasks }: { tasks: any[] }) {
+  const total = tasks.length || 1;
+  const withEnd = tasks.filter((t: any) => t.endDate);
+  const doneSet = ['done', 'closed', 'resolved', 'completed', 'approved'];
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const dow = today.getDay(); // 0=일
+  const thisSun = new Date(today); thisSun.setDate(today.getDate() + (dow === 0 ? 0 : 7 - dow));
+  const N = 10, W = 560, H = 210, pad = 36;
+  const weeks = Array.from({ length: N }, (_, i) => { const d = new Date(thisSun); d.setDate(thisSun.getDate() - (N - 1 - i) * 7); return d; });
+  const ser = weeks.map((w) => {
+    const we = w.getTime();
+    const due = withEnd.filter((t: any) => { const e = new Date(t.endDate).getTime(); return !isNaN(e) && e <= we; }).length;
+    const fin = withEnd.filter((t: any) => { const e = new Date(t.endDate).getTime(); return !isNaN(e) && e <= we && doneSet.includes(t.status); }).length;
+    return { plan: Math.min(100, Math.round((due / total) * 100)), act: Math.min(100, Math.round((fin / total) * 100)) };
+  });
+  const x = (i: number) => pad + (i / (N - 1)) * (W - pad * 2);
+  const y = (v: number) => H - pad - (v / 100) * (H - pad * 2);
+  const path = (key: 'plan' | 'act') => ser.map((s, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(s[key]).toFixed(1)}`).join(' ');
+  const last = ser[N - 1]; const gap = last.plan - last.act;
+  const fmt = (d: Date) => `${d.getMonth() + 1}/${d.getDate()}`;
+  return (
+    <svg width="100%" viewBox={`0 0 ${W} ${H}`}>
+      <defs><linearGradient id="wtLine" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#e08a5b" /><stop offset="1" stopColor="var(--brand)" /></linearGradient></defs>
+      {[0, 0.25, 0.5, 0.75, 1].map((g, i) => <g key={i}><line x1={pad} y1={y(g * 100)} x2={W - pad} y2={y(g * 100)} stroke="var(--border)" strokeDasharray={i === 0 ? '0' : '2 4'} /><text x={pad - 8} y={y(g * 100) + 3} textAnchor="end" fontSize="9.5" fill="var(--text-4)">{Math.round(g * 100)}</text></g>)}
+      {weeks.map((w, i) => i % 2 === 0 ? <text key={i} x={x(i)} y={H - pad + 16} textAnchor="middle" fontSize="9" fill="var(--text-4)">{fmt(w)}</text> : null)}
+      <path d={path('plan')} fill="none" stroke="var(--text-4)" strokeWidth="1.8" strokeDasharray="5 5" />
+      <path className="gl" d={path('act')} fill="none" stroke="url(#wtLine)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 3px 6px rgba(190,85,53,.22))' }} />
+      {ser.map((s, i) => i % 2 === 0 ? <circle key={i} cx={x(i)} cy={y(s.act)} r="3.2" fill="#fff" stroke="var(--brand)" strokeWidth="2" /> : null)}
+      <g transform={`translate(${pad + 4}, ${pad - 16})`}>
+        <line x1="0" y1="0" x2="18" y2="0" stroke="var(--text-4)" strokeWidth="1.8" strokeDasharray="5 5" /><text x="23" y="3.5" fontSize="10" fill="var(--text-3)">계획(기한도래)</text>
+        <line x1="92" y1="0" x2="110" y2="0" stroke="var(--brand)" strokeWidth="3" strokeLinecap="round" /><text x="115" y="3.5" fontSize="10" fill="var(--text-3)">실제 완료</text>
+      </g>
+      <text x={W - pad} y={pad - 8} textAnchor="end" fontSize="10.5" fontWeight="700" fill={gap > 0 ? '#c0414f' : '#2f8f5b'}>{gap > 0 ? `계획 대비 ${gap}%p 지연` : '계획 대비 정상'}</text>
+    </svg>
+  );
+}
 function Bars({ data }: { data: { label: string; value: number; color: string }[] }) {
   const max = Math.max(1, ...data.map((d) => d.value));
   return (<div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>{data.map((d, i) => (
@@ -119,6 +155,8 @@ export default function Page() {
         <Stat icon={BarChart3} label="High 리스크" value={risks.filter((r:any)=>r.level==='high').length} c="#c0414f" bg="#fdedef" />
         <Stat icon={Users} label="참여 인원" value={assignees.length} c="#be5535" bg="#fbeeea" />
       </div>
+      <div style={{ height: 16 }} />
+      <div className="card card-pad dash-card"><div className="sect" style={{ marginBottom: 8 }}>주간 진척 추이 <span style={{ fontSize: 11, color: 'var(--text-4)', fontWeight: 600 }}>(최근 10주 · 기한 도래 대비 완료 누적)</span></div><WeeklyTrend tasks={tasks} /></div>
       <div style={{ height: 16 }} />
       <div className="g2">
         <div className="card card-pad dash-card"><div className="sect" style={{ marginBottom: 8 }}>번다운 차트</div><Burndown tasks={tasks} /></div>
