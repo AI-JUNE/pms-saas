@@ -14,7 +14,7 @@ export default function Page() {
         ]} />
       )},
     ]}
-    columns={[{key:'code',label:'코드'},{key:'title',label:'테스트 케이스',strong:true},{key:'type',label:'유형'},{key:'reqCode',label:'요구사항'},{key:'assignee',label:'담당'},{key:'dueDate',label:'기한'},{key:'result',label:'결과',badge:true},{key:'status',label:'검증단계',badge:true}]}
+    columns={[{key:'code',label:'코드'},{key:'title',label:'테스트 케이스',strong:true},{key:'type',label:'유형'},{key:'reqCode',label:'요구사항'},{key:'assignee',label:'담당'},{key:'dueDate',label:'기한'},{key:'progress',label:'진척',render:(v)=>(<div className="row" style={{gap:8}}><div className="bar"><i style={{width:`${v||0}%`}}/></div><span className="muted" style={{fontSize:11.5}}>{v||0}%</span></div>)},{key:'result',label:'결과',badge:true},{key:'status',label:'검증단계',badge:true}]}
     fields={[
       {key:'title',label:'테스트 케이스명',required:true},
       {key:'reqCode',label:'연계 요구사항',type:'combo',options:[],placeholder:'예: REQ-0001',hint:'요구사항 추적(RTM)에 연결됩니다'},
