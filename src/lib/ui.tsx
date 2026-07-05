@@ -7,6 +7,7 @@ export const BADGE: Record<string, string> = {
   high:'p-red', medium:'p-amber', low:'p-green', critical:'p-red', urgent:'p-red',
   bug:'p-red', task:'p-blue', improvement:'p-cyan', support:'p-amber', change:'p-purple',
   dev:'p-blue', pl:'p-amber', pm:'p-cyan', pass:'p-green', fail:'p-red', blocked:'p-red', na:'p-gray',
+  requested:'p-amber', ordered:'p-blue', received:'p-cyan', standby:'p-gray', retired:'p-gray',
 };
 export const LABEL: Record<string, string> = {
   active:'진행', approved:'승인', done:'완료', resolved:'해결', closed:'종료', completed:'완료',
@@ -15,6 +16,7 @@ export const LABEL: Record<string, string> = {
   high:'높음', medium:'보통', low:'낮음', critical:'긴급', urgent:'긴급',
   bug:'결함', task:'태스크', improvement:'기능개선', support:'지원', change:'변경요청',
   dev:'개발자검증', pl:'PL검증', pm:'PM승인', pass:'통과', fail:'실패', blocked:'블록', na:'미실행',
+  requested:'요청', ordered:'발주', received:'입고', standby:'예비', retired:'폐기',
 };
 export const badge = (v: any) => BADGE[String(v)] || 'p-gray';
 export function Pill({ v }: { v: any }) {
