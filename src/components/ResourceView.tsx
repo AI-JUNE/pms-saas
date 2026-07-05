@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Plus, Search, X, Pencil, Trash2, Inbox, SlidersHorizontal, Download, Sheet } from 'lucide-react';
 import { Shell } from './Shell';
-import { Pill } from '@/lib/ui';
+import { Pill, LABEL } from '@/lib/ui';
 import { Comments } from './Comments';
 
 export type Col = { key: string; label: string; badge?: boolean; strong?: boolean; mono?: boolean; render?: (v: any, row: any) => any };
@@ -245,7 +245,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
         {statuses.length > 0 && (
           <select className="sel" value={filter} onChange={(e) => setFilter(e.target.value)}>
             <option value="">전체 상태</option>
-            {statuses.map((s) => <option key={String(s)} value={String(s)}>{String(s)}</option>)}
+            {statuses.map((s) => <option key={String(s)} value={String(s)}>{LABEL[String(s)] || String(s)}</option>)}
           </select>
         )}
         {groupCols.length > 0 && (
