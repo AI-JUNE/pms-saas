@@ -275,7 +275,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
             </div>
           </>)}
         </div>
-        <span className="muted"><SlidersHorizontal style={{ width: 13, verticalAlign: -2 }} /> {view.length}건</span>
+        <span className="muted" title={(q || filter) ? `전체 ${rows.length}건 중 ${view.length}건 표시` : undefined}><SlidersHorizontal style={{ width: 13, verticalAlign: -2 }} /> {(q || filter) && view.length !== rows.length ? `${view.length}/${rows.length}건` : `${view.length}건`}</span>
       </div>
 
       {projectScoped && !pid && !loading && (
