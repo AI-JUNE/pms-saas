@@ -198,10 +198,15 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
     if (res.ok) load(pid);
     return res.ok;
   }
+  // 내보내기 셀 값: 배지 컬럼은 화면 표시와 동일하게 LABEL(한글)로 변환(값 없으면 빈칸)
+  function exportCell(c: Col, r: any) {
+    const v = r[c.key];
+    if (v == null || v === '') return '';
+    return c.badge ? (LABEL[String(v)] || String(v)) : String(v);
+  }
   function exportCsv() {
-    const cols = columns.map((c) => c.key);
     const head = columns.map((c) => '"' + c.label + '"').join(',');
-    const body = view.map((r) => cols.map((k) => '"' + String(r[k] ?? '').replace(/"/g, '""') + '"').join(',')).join('\n');
+    const body = view.map((r) => columns.map((c) => '"' + exportCell(c, r).replace(/"/g, '""') + '"').join(',')).join('\n');
     const csv = '﻿' + head + '\n' + body;
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
     a.download = `${title}_${new Date().toISOString().slice(0,10)}.csv`; a.click();
@@ -210,7 +215,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
   function exportXlsx() {
     const esc = (v: string) => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const head = '<tr>' + columns.map((c) => `<th style="background:#be5535;color:#fff;font-weight:bold;border:1px solid #d9c3b8;padding:7px 10px;text-align:left">${esc(c.label)}</th>`).join('') + '</tr>';
-    const rows = view.map((r) => '<tr>' + columns.map((c) => `<td style="border:1px solid #e6ddd6;padding:6px 10px">${esc(String(r[c.key] ?? ''))}</td>`).join('') + '</tr>').join('');
+    const rows = view.map((r) => '<tr>' + columns.map((c) => `<td style="border:1px solid #e6ddd6;padding:6px 10px">${esc(exportCell(c, r))}</td>`).join('') + '</tr>').join('');
     const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>${title}</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body><table style="border-collapse:collapse;font-family:sans-serif;font-size:13px">${head}${rows}</table></body></html>`;
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel' }));
     a.download = `${title}_${new Date().toISOString().slice(0, 10)}.xls`; a.click();
