@@ -60,6 +60,10 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
       const hc = localStorage.getItem('pms.cols.' + title);
       if (hc) setHiddenCols(new Set(JSON.parse(hc)));
       setFullTag(localStorage.getItem('pms.fulltag') === '1');
+      const g = localStorage.getItem('pms.group.' + title);
+      if (g !== null) setGroupBy(g);
+      const s = localStorage.getItem('pms.sort.' + title);
+      if (s) { const [sk, sd] = JSON.parse(s); if (sk) { setSortK(sk); setSortDir(sd === 1 ? 1 : -1); } }
     } catch {}
   }, [title]);
   function toggleCol(k: string) { setHiddenCols((p) => { const n = new Set(p); n.has(k) ? n.delete(k) : n.add(k); try { localStorage.setItem('pms.cols.' + title, JSON.stringify(Array.from(n))); } catch {} return n; }); }
@@ -129,7 +133,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
     return Array.from(m.entries());
   }, [view, groupBy]);
 
-  function sort(k: string) { if (sortK === k) setSortDir((d) => (d === 1 ? -1 : 1)); else { setSortK(k); setSortDir(1); } }
+  function sort(k: string) { const nd: 1 | -1 = sortK === k ? (sortDir === 1 ? -1 : 1) : 1; setSortK(k); setSortDir(nd); try { localStorage.setItem('pms.sort.' + title, JSON.stringify([k, nd])); } catch {} }
   function openNew() { const f: any = {}; fields.forEach((x) => (f[x.key] = '')); setForm(f); setEditing(null); setErr(''); setOpen(true); }
   function openEdit(row: any) { const f: any = {}; fields.forEach((x) => (f[x.key] = row[x.key] ?? '')); setForm(f); setEditing(row); setErr(''); setOpen(true); }
   async function save(e: React.FormEvent) {
@@ -249,7 +253,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
           </select>
         )}
         {groupCols.length > 0 && (
-          <select className="sel" value={groupBy} onChange={(e) => setGroupBy(e.target.value)} title="그룹화">
+          <select className="sel" value={groupBy} onChange={(e) => { setGroupBy(e.target.value); try { localStorage.setItem('pms.group.' + title, e.target.value); } catch {} }} title="그룹화">
             <option value="">그룹화 없음</option>
             {groupCols.map((k) => <option key={k} value={k}>그룹: {columns.find((c) => c.key === k)?.label}</option>)}
           </select>
@@ -276,6 +280,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
           </>)}
         </div>
         <span className="muted" title={(q || filter) ? `전체 ${rows.length}건 중 ${view.length}건 표시` : undefined}><SlidersHorizontal style={{ width: 13, verticalAlign: -2 }} /> {(q || filter) && view.length !== rows.length ? `${view.length}/${rows.length}건` : `${view.length}건`}</span>
+        {(q || filter) && <button className="btn btn-sm btn-ghost" onClick={() => { setQ(''); setFilter(''); }} title="검색·상태 필터 초기화" aria-label="검색·상태 필터 초기화"><X style={{ width: 13 }} />초기화</button>}
       </div>
 
       {projectScoped && !pid && !loading && (
