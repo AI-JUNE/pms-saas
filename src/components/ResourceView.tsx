@@ -2,7 +2,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, Search, X, Pencil, Trash2, Inbox, SlidersHorizontal, Download, Sheet } from 'lucide-react';
+import { Plus, Search, X, Pencil, Trash2, Inbox, SlidersHorizontal, Download, Sheet, ChevronUp, ChevronDown } from 'lucide-react';
 import { Shell } from './Shell';
 import { Pill, LABEL } from '@/lib/ui';
 import { Comments } from './Comments';
@@ -348,7 +348,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
         <div className="scrim" onClick={() => setDetail(null)} />
         <aside className="over" onTouchStart={onOverTouchStart} onTouchMove={onOverTouchMove} onTouchEnd={onOverTouchEnd} style={swipeY > 0 ? { transform: `translateY(${swipeY}px)`, transition: 'none' } : undefined}>
           <div className="over-grip" aria-hidden />
-          <div className="over-h"><span className="mono" style={{ fontSize: 13 }}>{detail.code || `#${detail.id}`}</span><div className="sp" /><button className="iconbtn" aria-label="닫기" onClick={() => setDetail(null)}><X /></button></div>
+          <div className="over-h"><span className="mono" style={{ fontSize: 13 }}>{detail.code || `#${detail.id}`}</span><div className="sp" />{(() => { const i = view.findIndex((r) => r.id === detail.id); if (i < 0 || view.length < 2) return null; return (<><span className="muted" style={{ fontSize: 11.5, marginRight: 4, fontVariantNumeric: 'tabular-nums' }} title="현재 목록에서의 위치">{i + 1}/{view.length}</span><button className="iconbtn" aria-label="이전 항목" title="이전 항목" disabled={i <= 0} style={i <= 0 ? { opacity: .4, cursor: 'default' } : undefined} onClick={() => i > 0 && setDetail(view[i - 1])}><ChevronUp /></button><button className="iconbtn" aria-label="다음 항목" title="다음 항목" disabled={i >= view.length - 1} style={i >= view.length - 1 ? { opacity: .4, cursor: 'default' } : undefined} onClick={() => i < view.length - 1 && setDetail(view[i + 1])}><ChevronDown /></button></>); })()}<button className="iconbtn" aria-label="닫기" onClick={() => setDetail(null)}><X /></button></div>
           <div className="over-b">
             <h3 style={{ margin: '0 0 16px', fontSize: 19, fontWeight: 800, letterSpacing: '-.02em' }}>{detail.title || detail.name || detail.code}</h3>
             <dl className="dl">
