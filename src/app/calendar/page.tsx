@@ -12,6 +12,8 @@ export default function Page() {
   const [evs, setEvs] = useState<Ev[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [cur, setCur] = useState(() => { const d = new Date(); return { y: d.getFullYear(), m: d.getMonth() }; });
+  const [hidden, setHidden] = useState<Set<string>>(() => new Set());
+  const toggleKind = (k: string) => setHidden((prev) => { const n = new Set(prev); n.has(k) ? n.delete(k) : n.add(k); return n; });
 
   useEffect(() => {
     const p = Number(localStorage.getItem('pms.project')) || null; setPid(p);
@@ -31,7 +33,8 @@ export default function Page() {
     });
   }, []);
 
-  const byDay = useMemo(() => { const m: Record<string, Ev[]> = {}; for (const e of evs) { const k = e.date.slice(0, 10); (m[k] ||= []).push(e); } return m; }, [evs]);
+  const kindCount = useMemo(() => { const c: Record<string, number> = {}; for (const e of evs) c[e.kind] = (c[e.kind] || 0) + 1; return c; }, [evs]);
+  const byDay = useMemo(() => { const m: Record<string, Ev[]> = {}; for (const e of evs) { if (hidden.has(e.kind)) continue; const k = e.date.slice(0, 10); (m[k] ||= []).push(e); } return m; }, [evs, hidden]);
   const first = new Date(cur.y, cur.m, 1);
   const startDow = first.getDay();
   const days = new Date(cur.y, cur.m + 1, 0).getDate();
@@ -58,10 +61,17 @@ export default function Page() {
           <button className="btn btn-sm" onClick={() => { const d = new Date(); setCur({ y: d.getFullYear(), m: d.getMonth() }); }}>오늘</button>
         </div>
       </div>
-      <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 10, fontSize: 12 }}>
-        {[['회의', '#0e9bb8'], ['업무마감', '#be5535'], ['테스트기한', '#7c4dff'], ['이슈기한', '#d98a16']].map(([l, c]) => (
-          <span key={l} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><span style={{ width: 9, height: 9, borderRadius: 3, background: c as string }} />{l}</span>
-        ))}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10, fontSize: 12 }}>
+        {[['회의', '#0e9bb8'], ['업무마감', '#be5535'], ['테스트기한', '#7c4dff'], ['이슈기한', '#d98a16']].map(([l, c]) => {
+          const off = hidden.has(l as string);
+          return (
+            <button key={l} type="button" onClick={() => toggleKind(l as string)} title={off ? `${l} 표시` : `${l} 숨기기`} aria-pressed={!off}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 20, cursor: 'pointer', fontSize: 12, fontWeight: 600, border: '1px solid var(--border)', background: off ? 'var(--surface-2)' : `${c}12`, color: off ? 'var(--text-4)' : 'var(--text-2)', opacity: off ? 0.55 : 1, textDecoration: off ? 'line-through' : 'none', transition: 'opacity .15s, background .15s' }}>
+              <span style={{ width: 9, height: 9, borderRadius: 3, background: off ? 'var(--text-4)' : c as string }} />{l}<span style={{ color: 'var(--text-4)', fontWeight: 700 }}>{kindCount[l as string] || 0}</span>
+            </button>
+          );
+        })}
+        {hidden.size > 0 && <button type="button" className="btn btn-sm" onClick={() => setHidden(new Set())} style={{ marginLeft: 2 }}>모두 표시</button>}
       </div>
       <div className="card" style={{ overflow: 'hidden' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', borderBottom: '1px solid var(--border)' }}>
