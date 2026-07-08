@@ -54,6 +54,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
   const [density, setDensity] = useState<'comfort' | 'compact'>('comfort');
   useEffect(() => { const d = localStorage.getItem('pms.density'); if (d === 'compact' || d === 'comfort') setDensity(d); }, []);
   function toggleDensity() { setDensity((d) => { const n = d === 'compact' ? 'comfort' : 'compact'; localStorage.setItem('pms.density', n); return n; }); }
+  function pickMode(m: string) { setMode(m); try { localStorage.setItem('pms.mode.' + title, m); } catch {} }
   const [hiddenCols, setHiddenCols] = useState<Set<string>>(new Set());
   const [colMenu, setColMenu] = useState(false);
   const [fullTag, setFullTag] = useState(false);
@@ -66,6 +67,8 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
       if (g !== null) setGroupBy(g);
       const s = localStorage.getItem('pms.sort.' + title);
       if (s) { const [sk, sd] = JSON.parse(s); if (sk) { setSortK(sk); setSortDir(sd === 1 ? 1 : -1); } }
+      const mv = localStorage.getItem('pms.mode.' + title);
+      if (mv && (mv === 'table' || altViews.some((v) => v.key === mv))) setMode(mv);
     } catch {}
   }, [title]);
   function toggleCol(k: string) { setHiddenCols((p) => { const n = new Set(p); n.has(k) ? n.delete(k) : n.add(k); try { localStorage.setItem('pms.cols.' + title, JSON.stringify(Array.from(n))); } catch {} return n; }); }
@@ -286,8 +289,8 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
         })()}
         {altViews.length > 0 && (
           <div className="seg">
-            <button className={mode === 'table' ? 'on' : ''} onClick={() => setMode('table')}>표</button>
-            {altViews.map((v) => <button key={v.key} className={mode === v.key ? 'on' : ''} onClick={() => setMode(v.key)}>{v.label}</button>)}
+            <button className={mode === 'table' ? 'on' : ''} onClick={() => pickMode('table')}>표</button>
+            {altViews.map((v) => <button key={v.key} className={mode === v.key ? 'on' : ''} onClick={() => pickMode(v.key)}>{v.label}</button>)}
           </div>
         )}
         <div className="sp" />
