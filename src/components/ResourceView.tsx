@@ -280,6 +280,10 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
             {groupCols.map((k) => <option key={k} value={k}>그룹: {columns.find((c) => c.key === k)?.label}</option>)}
           </select>
         )}
+        {groupBy && grouped && grouped.length > 1 && (() => {
+          const allC = grouped.every(([g]) => collapsed.has(g));
+          return <button className="btn btn-sm" onClick={() => setCollapsed(allC ? new Set() : new Set(grouped.map(([g]) => g)))} title={allC ? '모든 그룹 펼치기' : '모든 그룹 접기'} aria-label="그룹 일괄 접기/펼치기">{allC ? '모두 펼치기' : '모두 접기'}</button>;
+        })()}
         {altViews.length > 0 && (
           <div className="seg">
             <button className={mode === 'table' ? 'on' : ''} onClick={() => setMode('table')}>표</button>
