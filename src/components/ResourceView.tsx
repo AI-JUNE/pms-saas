@@ -23,6 +23,8 @@ export type AltView = { key: string; label: string; icon?: any; render: (rows: a
 type Props = { title: string; subtitle?: string; endpoint: string; projectScoped?: boolean; columns: Col[]; fields: Field[]; statusKey?: string; altViews?: AltView[]; entity?: string; rowHref?: (row: any) => string; emptyText?: string; treeKey?: string };
 
 const GROUPABLE = ['status','priority','type','assignee','epic','level','category','role'];
+// 문자열 옵션은 목록 배지와 동일하게 LABEL(한글)로 표시하되 value는 원본 코드를 유지
+const normOpt = (o: any) => (typeof o === 'string' ? { value: o, label: LABEL[o] || o } : o);
 
 export function ResourceView({ title, subtitle, endpoint, projectScoped, columns, fields, statusKey = 'status', altViews = [], entity, rowHref, emptyText, treeKey }: Props) {
   const router = useRouter();
@@ -208,7 +210,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
             : c.badge ? (() => {
                 const fld = fields.find((f) => f.key === c.key && f.type === 'select');
                 if (fld && editCell && editCell.id === row.id && editCell.key === c.key) {
-                  const opts = (fld.options || []).map((o: any) => (typeof o === 'string' ? { value: o, label: o } : o));
+                  const opts = (fld.options || []).map(normOpt);
                   return <select autoFocus className="sel" style={{ padding: '2px 6px', fontSize: 12 }} defaultValue={String(row[c.key] ?? '')} onClick={(e) => e.stopPropagation()} onChange={(e) => { quickPatch(row.id, { [c.key]: e.target.value }); setEditCell(null); }} onBlur={() => setEditCell(null)}>{opts.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}</select>;
                 }
                 return <span onClick={(e) => { if (fld) { e.stopPropagation(); setEditCell({ id: row.id, key: c.key }); } }} style={{ cursor: fld ? 'pointer' : 'default' }} title={fld ? '클릭하여 변경' : undefined}><Pill v={row[c.key]} /></span>;
@@ -298,7 +300,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
 
       {sel.size > 0 && (() => {
         const sf = fields.find((f) => f.key === statusKey && f.type === 'select');
-        const opts = (sf?.options || []).map((o: any) => (typeof o === 'string' ? { value: o, label: o } : o));
+        const opts = (sf?.options || []).map(normOpt);
         return (<div className="card" style={{ padding: '8px 12px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', background: 'var(--brand-50)', border: '1px solid var(--brand-100)' }}>
           <b style={{ fontSize: 13 }}>{sel.size}건 선택</b>
           {opts.length > 0 && <span className="muted" style={{ fontSize: 12 }}>상태 →</span>}
@@ -389,7 +391,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
               <div style={{ marginTop: 18 }}>
                 <div className="sect" style={{ marginBottom: 8 }}>상태 변경</div>
                 <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
-                  {sf.options.map((oo: any) => { const o = typeof oo === 'string' ? oo : oo.value; const lb = typeof oo === 'string' ? oo : oo.label; return <button key={o} className={`btn btn-sm ${detail.status === o ? 'btn-pri' : ''}`} onClick={() => quickStatus(detail, o)}>{lb}</button>; })}
+                  {sf.options.map((oo: any) => { const o = typeof oo === 'string' ? oo : oo.value; const lb = typeof oo === 'string' ? (LABEL[oo] || oo) : oo.label; return <button key={o} className={`btn btn-sm ${detail.status === o ? 'btn-pri' : ''}`} onClick={() => quickStatus(detail, o)}>{lb}</button>; })}
                 </div>
               </div>
             ) : null; })()}
@@ -407,7 +409,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
             <div className="modal-b"><div className="grid2">
               {fields.map((f) => {
                 const srcOpts = f.optionsFrom === 'members' ? memberOpts : f.optionsFrom === 'tasks' ? taskOpts.filter((o: any) => o.value !== String(editing?.id)) : (f.options || []);
-                const optNorm = (srcOpts as any[]).map((o: any) => (typeof o === 'string' ? { value: o, label: o } : o));
+                const optNorm = (srcOpts as any[]).map(normOpt);
                 const dlId = 'dl-' + f.key;
                 return (
                 <div className="field" key={f.key} style={{ gridColumn: f.half ? 'auto' : '1 / -1' }}>
