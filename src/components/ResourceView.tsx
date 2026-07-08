@@ -135,6 +135,21 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
     return Array.from(m.entries());
   }, [view, groupBy]);
 
+  // 상세 패널 열림 상태에서 ↑/↓로 현재 목록(view) 순서대로 앞뒤 레코드 이동 (배치26 ▲/▼ 버튼의 키보드판)
+  useEffect(() => {
+    if (!detail) return;
+    const onNav = (e: KeyboardEvent) => {
+      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+      const t = e.target as HTMLElement | null;
+      if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return; // 입력 중에는 무시
+      const i = view.findIndex((r) => r.id === detail.id);
+      if (i < 0 || view.length < 2) return;
+      if (e.key === 'ArrowDown' && i < view.length - 1) { e.preventDefault(); setDetail(view[i + 1]); }
+      else if (e.key === 'ArrowUp' && i > 0) { e.preventDefault(); setDetail(view[i - 1]); }
+    };
+    window.addEventListener('keydown', onNav);
+    return () => window.removeEventListener('keydown', onNav);
+  }, [detail, view]);
   function sort(k: string) { const nd: 1 | -1 = sortK === k ? (sortDir === 1 ? -1 : 1) : 1; setSortK(k); setSortDir(nd); try { localStorage.setItem('pms.sort.' + title, JSON.stringify([k, nd])); } catch {} }
   function openNew() { const f: any = {}; fields.forEach((x) => (f[x.key] = '')); setForm(f); setEditing(null); setErr(''); setOpen(true); }
   function openEdit(row: any) { const f: any = {}; fields.forEach((x) => (f[x.key] = row[x.key] ?? '')); setForm(f); setEditing(row); setErr(''); setOpen(true); }
@@ -348,7 +363,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
         <div className="scrim" onClick={() => setDetail(null)} />
         <aside className="over" onTouchStart={onOverTouchStart} onTouchMove={onOverTouchMove} onTouchEnd={onOverTouchEnd} style={swipeY > 0 ? { transform: `translateY(${swipeY}px)`, transition: 'none' } : undefined}>
           <div className="over-grip" aria-hidden />
-          <div className="over-h"><span className="mono" style={{ fontSize: 13 }}>{detail.code || `#${detail.id}`}</span><div className="sp" />{(() => { const i = view.findIndex((r) => r.id === detail.id); if (i < 0 || view.length < 2) return null; return (<><span className="muted" style={{ fontSize: 11.5, marginRight: 4, fontVariantNumeric: 'tabular-nums' }} title="현재 목록에서의 위치">{i + 1}/{view.length}</span><button className="iconbtn" aria-label="이전 항목" title="이전 항목" disabled={i <= 0} style={i <= 0 ? { opacity: .4, cursor: 'default' } : undefined} onClick={() => i > 0 && setDetail(view[i - 1])}><ChevronUp /></button><button className="iconbtn" aria-label="다음 항목" title="다음 항목" disabled={i >= view.length - 1} style={i >= view.length - 1 ? { opacity: .4, cursor: 'default' } : undefined} onClick={() => i < view.length - 1 && setDetail(view[i + 1])}><ChevronDown /></button></>); })()}<button className="iconbtn" aria-label="닫기" onClick={() => setDetail(null)}><X /></button></div>
+          <div className="over-h"><span className="mono" style={{ fontSize: 13 }}>{detail.code || `#${detail.id}`}</span><div className="sp" />{(() => { const i = view.findIndex((r) => r.id === detail.id); if (i < 0 || view.length < 2) return null; return (<><span className="muted" style={{ fontSize: 11.5, marginRight: 4, fontVariantNumeric: 'tabular-nums' }} title="현재 목록에서의 위치">{i + 1}/{view.length}</span><button className="iconbtn" aria-label="이전 항목" title="이전 항목 (↑)" disabled={i <= 0} style={i <= 0 ? { opacity: .4, cursor: 'default' } : undefined} onClick={() => i > 0 && setDetail(view[i - 1])}><ChevronUp /></button><button className="iconbtn" aria-label="다음 항목" title="다음 항목 (↓)" disabled={i >= view.length - 1} style={i >= view.length - 1 ? { opacity: .4, cursor: 'default' } : undefined} onClick={() => i < view.length - 1 && setDetail(view[i + 1])}><ChevronDown /></button></>); })()}<button className="iconbtn" aria-label="닫기" onClick={() => setDetail(null)}><X /></button></div>
           <div className="over-b">
             <h3 style={{ margin: '0 0 16px', fontSize: 19, fontWeight: 800, letterSpacing: '-.02em' }}>{detail.title || detail.name || detail.code}</h3>
             <dl className="dl">
