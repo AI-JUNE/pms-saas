@@ -62,9 +62,16 @@ export function Kanban({ rows, openDetail, columns, titleKey = 'title' }:
 // ---- Risk heatmap (5x5) ----
 const heatColor = (s: number) => s >= 15 ? '#e0394b' : s >= 10 ? '#f2772e' : s >= 5 ? '#e0a800' : '#15a34a';
 export function RiskMatrix({ rows, openDetail }: { rows: any[]; openDetail: (r: any) => void }) {
+  // 매트릭스에 실제로 배치되는 건수(발생가능성·영향도 1~5) vs 미표시(값 누락/범위 밖)
+  const inCell = (v: any) => { const n = Number(v); return n >= 1 && n <= 5; };
+  const plotted = rows.filter((r) => inCell(r.impact) && inCell(r.probability)).length;
+  const unplotted = rows.length - plotted;
   return (
     <div className="card card-pad" style={{ display: 'inline-block' }}>
-      <div className="sect" style={{ marginBottom: 12 }}>리스크 매트릭스 (발생가능성 × 영향도)</div>
+      <div className="row" style={{ marginBottom: 12, gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
+        <div className="sect" style={{ margin: 0 }}>리스크 매트릭스 (발생가능성 × 영향도)</div>
+        <span className="muted" style={{ fontSize: 11.5, fontWeight: 600 }} title="전체 리스크 건수 · 발생가능성/영향도 값이 없거나 1~5 범위 밖이라 매트릭스에 표시되지 않은 건수">총 {rows.length}건{unplotted > 0 && <span style={{ color: '#a86a12' }}> · 미표시 {unplotted}건</span>}</span>
+      </div>
       <table className="heat">
         <tbody>
           {[5, 4, 3, 2, 1].map((impact) => (
