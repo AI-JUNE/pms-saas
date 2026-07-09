@@ -27,7 +27,7 @@ function Donut({ data, mounted }: { data: { label: string; value: number; color:
   const total = data.reduce((s, d) => s + d.value, 0) || 1;
   let acc = 0; const R = 56, C = 2 * Math.PI * R;
   return (
-    <div className="row donut-wrap" style={{ gap: 24, alignItems: 'center' }}>
+    <div className="row donut-wrap" style={{ gap: 18, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
       <svg className="donut-svg" width="150" height="150" viewBox="0 0 150 150" style={{ filter: 'drop-shadow(0 6px 14px rgba(0,0,0,.08))' }}>
         <defs>{data.map((d, i) => (<linearGradient key={i} id={`dseg${i}`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor={shade(d.color, 0.16)} /><stop offset="1" stopColor={shade(d.color, -0.12)} /></linearGradient>))}</defs>
         <circle cx="75" cy="75" r={R} fill="none" stroke="var(--surface-3)" strokeWidth="16" />
@@ -38,7 +38,7 @@ function Donut({ data, mounted }: { data: { label: string; value: number; color:
         <text x="75" y="71" textAnchor="middle" fontSize="30" fontWeight="800" fill="var(--text-1)">{total}</text>
         <text x="75" y="89" textAnchor="middle" fontSize="10.5" fill="var(--text-3)" fontWeight="600">전체</text>
       </svg>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1, minWidth: 0 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1, minWidth: 190 }}>
         {data.map((d, i) => { const pv = Math.round((d.value / total) * 100); return (
           <div key={i} className="row" style={{ gap: 9, fontSize: 12.5 }}>
             <span style={{ width: 11, height: 11, borderRadius: 4, background: d.color, boxShadow: `0 0 0 3px ${d.color}22`, flexShrink: 0 }} />
