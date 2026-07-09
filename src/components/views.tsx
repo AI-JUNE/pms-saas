@@ -81,6 +81,14 @@ export function RiskMatrix({ rows, openDetail }: { rows: any[]; openDetail: (r: 
           <tr><td className="axis"></td><td className="axis" colSpan={5}>발생가능성 →</td></tr>
         </tbody>
       </table>
+      <div className="row" style={{ gap: 10, marginTop: 12, flexWrap: 'wrap', fontSize: 11.5 }}>
+        {([['심각', '#e0394b', '15+'], ['높음', '#f2772e', '10–14'], ['중간', '#e0a800', '5–9'], ['낮음', '#15a34a', '1–4']] as const).map(([lb, c, rg]) => (
+          <span key={lb} className="row" style={{ gap: 5, alignItems: 'center' }}>
+            <span style={{ width: 11, height: 11, borderRadius: 3, background: c, display: 'inline-block' }} />
+            <span className="muted">{lb} <span style={{ opacity: .7 }}>({rg})</span></span>
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
