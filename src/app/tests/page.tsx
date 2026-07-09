@@ -14,10 +14,11 @@ export default function Page() {
         ]} />
       )},
     ]}
-    columns={[{key:'code',label:'코드'},{key:'title',label:'테스트 케이스',strong:true},{key:'type',label:'유형'},{key:'reqCode',label:'요구사항'},{key:'assignee',label:'담당'},{key:'dueDate',label:'기한'},{key:'progress',label:'진척',render:(v)=>(<div className="row" style={{gap:8}}><div className="bar"><i style={{width:`${v||0}%`}}/></div><span className="muted" style={{fontSize:11.5}}>{v||0}%</span></div>)},{key:'result',label:'결과',badge:true},{key:'status',label:'검증단계',badge:true}]}
+    columns={[{key:'code',label:'코드'},{key:'title',label:'테스트 케이스',strong:true},{key:'type',label:'유형'},{key:'reqCode',label:'요구사항'},{key:'cycle',label:'차수'},{key:'assignee',label:'담당'},{key:'dueDate',label:'기한'},{key:'progress',label:'진척',render:(v)=>(<div className="row" style={{gap:8}}><div className="bar"><i style={{width:`${v||0}%`}}/></div><span className="muted" style={{fontSize:11.5}}>{v||0}%</span></div>)},{key:'result',label:'결과',badge:true},{key:'status',label:'검증단계',badge:true}]}
     fields={[
       {key:'title',label:'테스트 케이스명',required:true},
       {key:'reqCode',label:'연계 요구사항',type:'combo',options:[],placeholder:'예: REQ-0001',hint:'요구사항 추적(RTM)에 연결됩니다'},
+      {key:'cycle',label:'테스트 차수',type:'combo',options:['1차','2차','3차','회귀','인수','성능'],placeholder:'예: 1차',hint:'회차별로 묶어 관리합니다(그룹화 가능)'},
       {key:'type',label:'유형',type:'select',options:['단위','통합','시스템','인수','회귀','성능','보안'],half:true},
       {key:'priority',label:'우선순위',type:'select',options:['high','medium','low'],half:true},
       {key:'steps',label:'테스트 절차',type:'textarea'},

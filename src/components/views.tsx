@@ -380,19 +380,24 @@ export function CalendarView({ rows, dateKey, openDetail }: { rows: any[]; dateK
   const today = new Date();
   const isToday = (d: number) => today.getFullYear() === cur.y && today.getMonth() === cur.m && today.getDate() === d;
   const move = (n: number) => { let m = cur.m + n, y = cur.y; if (m < 0) { m = 11; y--; } if (m > 11) { m = 0; y++; } setCur({ y, m }); };
+  const monthPrefix = `${cur.y}-${String(cur.m + 1).padStart(2, '0')}`;
+  const monthCount = rows.filter((r) => (r[dateKey] || '').slice(0, 7) === monthPrefix).length;
+  const dowColor = (i: number) => i === 0 ? '#c0414f' : i === 6 ? '#3b6fb0' : 'var(--text-3)';
   return (
     <div className="card card-pad">
       <div className="row" style={{ marginBottom: 12 }}>
-        <div className="sect">{cur.y}년 {cur.m + 1}월</div><div className="sp" />
+        <div className="sect">{cur.y}년 {cur.m + 1}월</div>
+        {monthCount > 0 && <span className="muted" style={{ fontSize: 11.5, fontWeight: 600, marginLeft: 8 }} title="이번 달 표시 일정 건수">이번 달 {monthCount}건</span>}
+        <div className="sp" />
         <button className="btn btn-sm" onClick={() => move(-1)}>‹</button>
         <button className="btn btn-sm" onClick={() => setCur({ y: today.getFullYear(), m: today.getMonth() })}>오늘</button>
         <button className="btn btn-sm" onClick={() => move(1)}>›</button>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 1, background: 'var(--border)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
-        {['일','월','화','수','목','금','토'].map((w) => <div key={w} style={{ background: 'var(--surface-2)', textAlign: 'center', padding: '7px 0', fontSize: 11.5, fontWeight: 700, color: 'var(--text-3)' }}>{w}</div>)}
+        {['일','월','화','수','목','금','토'].map((w, i) => <div key={w} style={{ background: 'var(--surface-2)', textAlign: 'center', padding: '7px 0', fontSize: 11.5, fontWeight: 700, color: dowColor(i) }}>{w}</div>)}
         {cells.map((d, i) => (
-          <div key={i} style={{ background: 'var(--surface)', minHeight: 92, padding: 6, opacity: d ? 1 : 0.4 }}>
-            {d && <div style={{ fontSize: 11.5, fontWeight: 700, color: isToday(d) ? '#fff' : 'var(--text-2)', background: isToday(d) ? 'var(--brand)' : 'transparent', width: 20, height: 20, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{d}</div>}
+          <div key={i} style={{ background: (i % 7 === 0 || i % 7 === 6) ? 'var(--surface-2)' : 'var(--surface)', minHeight: 92, padding: 6, opacity: d ? 1 : 0.4 }}>
+            {d && <div style={{ fontSize: 11.5, fontWeight: 700, color: isToday(d) ? '#fff' : (i % 7 === 0 || i % 7 === 6) ? dowColor(i % 7) : 'var(--text-2)', background: isToday(d) ? 'var(--brand)' : 'transparent', width: 20, height: 20, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{d}</div>}
             {d && itemsOn(d).slice(0, 3).map((r) => (
               <div key={r.id} onClick={() => openDetail(r)} title={r.title || r.name} style={{ marginTop: 3, fontSize: 10.5, fontWeight: 600, background: 'var(--brand-50)', color: 'var(--brand-600)', borderRadius: 5, padding: '2px 5px', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title || r.name}</div>
             ))}

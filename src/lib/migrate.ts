@@ -50,6 +50,10 @@ export const MIGRATION_DDL: string[] = [
   `CREATE TABLE IF NOT EXISTS issue_watchers (id serial PRIMARY KEY, org_id integer NOT NULL, issue_id integer NOT NULL REFERENCES issues(id) ON DELETE CASCADE, user_id integer NOT NULL, user_name text NOT NULL, created_at timestamptz DEFAULT now() NOT NULL)`,
   `CREATE INDEX IF NOT EXISTS issue_watchers_idx ON issue_watchers (org_id, issue_id)`,
   `CREATE UNIQUE INDEX IF NOT EXISTS issue_watchers_uniq ON issue_watchers (org_id, issue_id, user_id)`,
+  // 테스트 차수(Cycle)
+  `CREATE TABLE IF NOT EXISTS test_cycles (id serial PRIMARY KEY, org_id integer NOT NULL, project_id integer NOT NULL REFERENCES projects(id) ON DELETE CASCADE, code text, name text NOT NULL, goal text, status text DEFAULT 'planned' NOT NULL, start_date text, end_date text, created_at timestamptz DEFAULT now() NOT NULL)`,
+  `CREATE INDEX IF NOT EXISTS test_cycles_project_idx ON test_cycles (org_id, project_id)`,
+  `ALTER TABLE IF EXISTS tests ADD COLUMN IF NOT EXISTS cycle text`,
 ];
 
 export async function runMigrations(): Promise<{ applied: number; failed: { stmt: string; error: string }[] }> {

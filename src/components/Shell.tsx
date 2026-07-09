@@ -29,6 +29,7 @@ const NAV = [
   { group: '통제', items: [
     { href: '/issues', label: '이슈·결함', icon: Bug },
     { href: '/tests', label: '테스트', icon: ClipboardCheck },
+    { href: '/test-cycles', label: '테스트 차수', icon: Layers3 },
     { href: '/risks', label: '리스크', icon: ShieldAlert },
     { href: '/meetings', label: '회의', icon: CalendarClock },
     { href: '/calendar', label: '캘린더', icon: CalendarDays },

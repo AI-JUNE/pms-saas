@@ -74,7 +74,7 @@ export const requirements = pgTable('requirements', {
 export const issues = pgTable('issues', {
   id: serial('id').primaryKey(), orgId: integer('org_id').notNull(),
   projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
-  code: text('code'), reqCode: text('req_code'), title: text('title').notNull(), description: text('description'),
+  code: text('code'), reqCode: text('req_code'), cycle: text('cycle'), title: text('title').notNull(), description: text('description'),
   type: text('type').default('bug').notNull(), priority: text('priority').default('medium').notNull(),
   status: text('status').default('open').notNull(), assignee: text('assignee'), dueDate: text('due_date'), labels: text('labels'),
   storyPoints: integer('story_points').default(0).notNull(), sprintId: integer('sprint_id'), epic: text('epic'),
@@ -175,6 +175,14 @@ export const boards = pgTable('boards', {
   code: text('code'), title: text('title').notNull(), category: text('category'), author: text('author'), content: text('content'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({ i: index('board_org_idx').on(t.orgId) }));
+// 테스트 차수(Cycle) — 회차별 테스트 묶음
+export const testCycles = pgTable('test_cycles', {
+  id: serial('id').primaryKey(), orgId: integer('org_id').notNull(),
+  projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  code: text('code'), name: text('name').notNull(), goal: text('goal'),
+  status: text('status').default('planned').notNull(), startDate: text('start_date'), endDate: text('end_date'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({ i: index('test_cycles_project_idx').on(t.orgId, t.projectId) }));
 
 // 이슈 이력(journal) — 변경 추적(누가 언제 무엇을)
 export const issueJournals = pgTable('issue_journals', {
