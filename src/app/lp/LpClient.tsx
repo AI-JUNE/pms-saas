@@ -14,10 +14,10 @@ const css = `
 .lp .lead{color:var(--text-2);font-size:clamp(14.5px,1.5vw,16.5px);line-height:1.72;margin:16px 0 0;max-width:640px}
 .lp .hl{background:linear-gradient(120deg,#be5535,#e6915f);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 
-/* reveal + motion */
-[data-reveal]{opacity:0;transform:translateY(26px);transition:opacity .7s cubic-bezier(.2,.7,.2,1),transform .7s cubic-bezier(.2,.7,.2,1)}
-[data-reveal].in{opacity:1;transform:none}
-@media(prefers-reduced-motion:reduce){[data-reveal]{opacity:1!important;transform:none!important;transition:none!important}.lp *{animation:none!important}}
+/* reveal + motion : content is visible by default; hidden only once JS marks .lp.anim */
+[data-reveal]{transition:opacity .7s cubic-bezier(.2,.7,.2,1),transform .7s cubic-bezier(.2,.7,.2,1)}
+.lp.anim [data-reveal]:not(.rvl){opacity:0;transform:translateY(26px)}
+@media(prefers-reduced-motion:reduce){.lp.anim [data-reveal]:not(.rvl){opacity:1;transform:none}.lp *{animation:none!important;transition-duration:.001s!important}}
 
 /* nav */
 .lp-nav{position:sticky;top:0;z-index:50;background:rgba(247,245,242,.8);backdrop-filter:saturate(1.5) blur(12px);border-bottom:1px solid var(--border)}
@@ -67,59 +67,58 @@ const css = `
 .lp-center{text-align:center;max-width:700px;margin:0 auto}
 .lp-center .lead{margin-left:auto;margin-right:auto}
 
-/* benefit / feature cards */
+/* cards */
 .lp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:44px}
-.lp-grid.g2{grid-template-columns:repeat(3,1fr)}
 .lp-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:24px;box-shadow:var(--sh-sm);transition:transform .18s,box-shadow .18s,border-color .18s}
 .lp-card:hover{transform:translateY(-4px);box-shadow:var(--sh-md);border-color:var(--brand-100)}
 .lp-card .ic{width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:23px;background:linear-gradient(145deg,var(--brand-50),#fff);border:1px solid var(--brand-100);margin-bottom:15px;box-shadow:var(--sh-sm)}
 .lp-card h3{font-size:17px;font-weight:820;letter-spacing:-.025em;margin:0}
 .lp-card p{color:var(--text-2);font-size:13.5px;line-height:1.68;margin:9px 0 0}
-@media(max-width:900px){.lp-grid,.lp-grid.g2{grid-template-columns:1fr 1fr}}
-@media(max-width:600px){.lp-grid,.lp-grid.g2{grid-template-columns:1fr}}
+@media(max-width:900px){.lp-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.lp-grid{grid-template-columns:1fr}}
 
 /* split (mockup + bullets) */
 .lp-split{display:grid;grid-template-columns:1.05fr 1fr;gap:44px;align-items:center;margin-top:12px}
 .lp-split.rev{grid-template-columns:1fr 1.05fr}
 .lp-split .txt h2{margin-top:12px}
-.lp-bullets{margin:22px 0 0;display:flex;flex-direction:column;gap:13px}
-.lp-bullets li{list-style:none;display:flex;gap:11px;align-items:flex-start;font-size:14px;font-weight:600;color:var(--text-1)}
+.lp-bullets{margin:22px 0 0;display:flex;flex-direction:column;gap:13px;padding:0}
+.lp-bullets li{list-style:none;display:flex;gap:11px;align-items:flex-start;font-size:14px}
 .lp-bullets li .ck{flex-shrink:0;width:22px;height:22px;border-radius:7px;background:var(--brand-50);color:var(--brand);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;margin-top:1px}
 .lp-bullets li span{color:var(--text-2);font-weight:600;line-height:1.55}
 @media(max-width:860px){.lp-split,.lp-split.rev{grid-template-columns:1fr;gap:28px}.lp-split.rev .visual{order:2}}
 
 /* mock frame */
 .mock{background:var(--surface);border:1px solid var(--border);border-radius:20px;box-shadow:var(--sh-lg);overflow:hidden}
-.mock .bar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface-2)}
-.mock .bar i{width:11px;height:11px;border-radius:50%;display:block;background:var(--border-strong)}
-.mock .bar i:nth-child(1){background:#e0625b}.mock .bar i:nth-child(2){background:#e3ab3a}.mock .bar i:nth-child(3){background:#3bb35a}
-.mock .bar span{margin-left:8px;font-size:11.5px;color:var(--text-3);font-weight:750}
+.mock .lp-tbar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface-2)}
+.mock .lp-tbar i{width:11px;height:11px;border-radius:50%;display:block;background:var(--border-strong)}
+.mock .lp-tbar i:nth-child(1){background:#e0625b}.mock .lp-tbar i:nth-child(2){background:#e3ab3a}.mock .lp-tbar i:nth-child(3){background:#3bb35a}
+.mock .lp-tbar span{margin-left:8px;font-size:11.5px;color:var(--text-3);font-weight:750}
 .mock .body{padding:18px}
 
-/* gantt mock */
-.gantt .gr{display:flex;align-items:center;gap:12px;margin-top:12px}
-.gantt .gr:first-child{margin-top:0}
-.gantt .gr .lbl{width:110px;font-size:12px;font-weight:750;color:var(--text-2);flex-shrink:0;text-align:right}
-.gantt .gr .track{flex:1;height:18px;background:var(--surface-3);border-radius:7px;position:relative;overflow:hidden}
-.gantt .gr .bar2{position:absolute;top:0;height:18px;border-radius:7px;background:linear-gradient(90deg,#be5535,#e6915f);transform:scaleX(0);transform-origin:left;transition:transform .9s cubic-bezier(.2,.7,.2,1)}
-.visual.in .gantt .gr .bar2{transform:scaleX(1)}
-.gantt .gr .bar2.b2{background:linear-gradient(90deg,#7c4dff,#a98bff)}
-.gantt .gr .bar2.b3{background:linear-gradient(90deg,#0e9bb8,#4bc6dd)}
-.gantt .gr .bar2.b4{background:linear-gradient(90deg,#15a34a,#54c47d)}
-.gantt .ms{position:absolute;top:-3px;width:2px;height:24px;background:var(--brand-700);opacity:.35}
+/* lp-gantt mock : bars visible by default, collapse-then-grow only in anim mode */
+.lp-gantt .gr{display:flex;align-items:center;gap:12px;margin-top:12px}
+.lp-gantt .gr:first-child{margin-top:0}
+.lp-gantt .gr .lbl{width:110px;font-size:12px;font-weight:750;color:var(--text-2);flex-shrink:0;text-align:right}
+.lp-gantt .gr .track{flex:1;height:18px;background:var(--surface-3);border-radius:7px;position:relative;overflow:hidden}
+.lp-gantt .gr .bar2{position:absolute;top:0;height:18px;border-radius:7px;background:linear-gradient(90deg,#be5535,#e6915f);transform:scaleX(1);transform-origin:left;transition:transform .9s cubic-bezier(.2,.7,.2,1)}
+.lp.anim .visual:not(.rvl) .lp-gantt .gr .bar2{transform:scaleX(0)}
+.lp-gantt .gr .bar2.b2{background:linear-gradient(90deg,#7c4dff,#a98bff)}
+.lp-gantt .gr .bar2.b3{background:linear-gradient(90deg,#0e9bb8,#4bc6dd)}
+.lp-gantt .gr .bar2.b4{background:linear-gradient(90deg,#15a34a,#54c47d)}
+.lp-gantt .ms{position:absolute;top:-3px;width:2px;height:24px;background:var(--brand-700);opacity:.35}
 
 /* dashboard mock */
 .dash .krow{display:grid;grid-template-columns:repeat(2,1fr);gap:11px}
-.dash .kpi{background:var(--surface-2);border:1px solid var(--border);border-radius:13px;padding:13px 15px}
-.dash .kpi .k{font-size:11px;color:var(--text-3);font-weight:750}
-.dash .kpi .v{font-size:25px;font-weight:880;letter-spacing:-.035em;margin-top:5px;line-height:1}
-.dash .kpi .d{font-size:10.5px;font-weight:800;margin-top:5px}
-.dash .kpi .d.up{color:var(--green)}.dash .kpi .d.dn{color:var(--red)}
+.dash .lp-kpi{background:var(--surface-2);border:1px solid var(--border);border-radius:13px;padding:13px 15px}
+.dash .lp-kpi .k{font-size:11px;color:var(--text-3);font-weight:750}
+.dash .lp-kpi .v{font-size:25px;font-weight:880;letter-spacing:-.035em;margin-top:5px;line-height:1}
+.dash .lp-kpi .d{font-size:10.5px;font-weight:800;margin-top:5px}
+.dash .lp-kpi .d.up{color:var(--green)}.dash .lp-kpi .d.dn{color:var(--red)}
 .dash .chart{margin-top:12px;background:var(--surface-2);border:1px solid var(--border);border-radius:13px;padding:15px 15px 12px}
 .dash .chart .ct{font-size:11.5px;font-weight:800;color:var(--text-2);letter-spacing:.02em}
 .dash .bars{display:flex;align-items:flex-end;gap:8px;height:78px;margin-top:12px}
-.dash .bars .cb{flex:1;border-radius:5px 5px 0 0;background:linear-gradient(180deg,#e6915f,#be5535);transform:scaleY(0);transform-origin:bottom;transition:transform .8s cubic-bezier(.2,.7,.2,1)}
-.visual.in .dash .bars .cb{transform:scaleY(1)}
+.dash .bars .cb{flex:1;border-radius:5px 5px 0 0;background:linear-gradient(180deg,#e6915f,#be5535);transform:scaleY(1);transform-origin:bottom;transition:transform .8s cubic-bezier(.2,.7,.2,1)}
+.lp.anim .visual:not(.rvl) .dash .bars .cb{transform:scaleY(0)}
 
 /* workflow */
 .lp-flow{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:44px}
@@ -240,11 +239,24 @@ const faqs = [
 
 export default function LpClient() {
   useEffect(() => {
+    const root = document.querySelector('.lp');
+    root?.classList.add('anim');
+    const vh = window.innerHeight || 800;
+    const inView = (el: Element) => { const r = el.getBoundingClientRect(); return r.top < vh * 0.92 && r.bottom > 0; };
+
     const rio = new IntersectionObserver(
-      (es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); rio.unobserve(e.target); } }),
+      (es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('rvl'); rio.unobserve(e.target); } }),
       { threshold: 0.14 }
     );
-    document.querySelectorAll('[data-reveal]').forEach((el) => rio.observe(el));
+    document.querySelectorAll('[data-reveal]').forEach((el) => {
+      if (inView(el)) el.classList.add('rvl'); else rio.observe(el);
+    });
+    const failsafe = window.setTimeout(() => {
+      document.querySelectorAll('[data-reveal]:not(.rvl)').forEach((el) => {
+        const r = el.getBoundingClientRect();
+        if (r.top < vh) el.classList.add('rvl');
+      });
+    }, 2600);
 
     const cio = new IntersectionObserver(
       (es) => es.forEach((e) => {
@@ -267,7 +279,7 @@ export default function LpClient() {
     );
     document.querySelectorAll('[data-count]').forEach((el) => cio.observe(el));
 
-    return () => { rio.disconnect(); cio.disconnect(); };
+    return () => { rio.disconnect(); cio.disconnect(); window.clearTimeout(failsafe); };
   }, []);
 
   return (
@@ -292,7 +304,6 @@ export default function LpClient() {
         </div>
       </nav>
 
-      {/* hero */}
       <section className="lp-hero">
         <div className="wrap">
           <span className="eyebrow" data-reveal>프로젝트 관리 통합 플랫폼</span>
@@ -322,7 +333,6 @@ export default function LpClient() {
         </div>
       </section>
 
-      {/* why */}
       <section className="lp-band" id="why">
         <div className="wrap">
           <div className="lp-center" data-reveal>
@@ -342,7 +352,6 @@ export default function LpClient() {
         </div>
       </section>
 
-      {/* features */}
       <section className="lp-band tint" id="features">
         <div className="wrap">
           <div className="lp-center" data-reveal>
@@ -350,7 +359,7 @@ export default function LpClient() {
             <h2>프로젝트의 처음부터 끝까지,<br /><span className="hl">한 플랫폼에서</span></h2>
             <p className="lead">계획하고, 실행하고, 추적하고, 검증하고, 정산합니다. 흩어진 솔루션 대신 하나로 연결된 관리 스택.</p>
           </div>
-          <div className="lp-grid g2">
+          <div className="lp-grid">
             {caps.map((f, i) => (
               <div className="lp-card" key={f.t} data-reveal style={{ transitionDelay: `${(i % 3) * 0.08}s` }}>
                 <div className="ic">{f.ic}</div>
@@ -362,15 +371,14 @@ export default function LpClient() {
         </div>
       </section>
 
-      {/* schedule split */}
       <section className="lp-band">
         <div className="wrap">
           <div className="lp-split">
             <div className="visual" data-reveal>
               <div className="mock">
-                <div className="bar"><i /><i /><i /><span>PMS · 일정(간트)</span></div>
+                <div className="lp-tbar"><i /><i /><i /><span>PMS · 일정(간트)</span></div>
                 <div className="body">
-                  <div className="gantt">
+                  <div className="lp-gantt">
                     <div className="gr"><div className="lbl">요구사항 정의</div><div className="track"><div className="bar2" style={{ left: '2%', width: '26%' }} /></div></div>
                     <div className="gr"><div className="lbl">설계</div><div className="track"><div className="bar2 b2" style={{ left: '20%', width: '30%' }} /></div></div>
                     <div className="gr"><div className="lbl">개발 · 구현</div><div className="track"><div className="bar2 b3" style={{ left: '40%', width: '40%' }} /><div className="ms" style={{ left: '80%' }} /></div></div>
@@ -392,7 +400,6 @@ export default function LpClient() {
         </div>
       </section>
 
-      {/* dashboard split */}
       <section className="lp-band tint">
         <div className="wrap">
           <div className="lp-split rev">
@@ -407,13 +414,13 @@ export default function LpClient() {
             </div>
             <div className="visual" data-reveal style={{ transitionDelay: '.08s' }}>
               <div className="mock">
-                <div className="bar"><i /><i /><i /><span>PMS · 대시보드</span></div>
+                <div className="lp-tbar"><i /><i /><i /><span>PMS · 대시보드</span></div>
                 <div className="body dash">
                   <div className="krow">
-                    <div className="kpi"><div className="k">진행 프로젝트</div><div className="v"><span data-count="12">0</span></div><div className="d up">▲ 정상 9</div></div>
-                    <div className="kpi"><div className="k">SPI · 일정</div><div className="v"><span data-count="1.04" data-dec="2">0</span></div><div className="d up">▲ 계획 대비</div></div>
-                    <div className="kpi"><div className="k">CPI · 비용</div><div className="v"><span data-count="0.97" data-dec="2">0</span></div><div className="d dn">▼ 주의 2</div></div>
-                    <div className="kpi"><div className="k">열린 이슈</div><div className="v"><span data-count="28">0</span></div><div className="d up">▲ 이번주 -6</div></div>
+                    <div className="lp-kpi"><div className="k">진행 프로젝트</div><div className="v"><span data-count="12">12</span></div><div className="d up">▲ 정상 9</div></div>
+                    <div className="lp-kpi"><div className="k">SPI · 일정</div><div className="v"><span data-count="1.04" data-dec="2">1.04</span></div><div className="d up">▲ 계획 대비</div></div>
+                    <div className="lp-kpi"><div className="k">CPI · 비용</div><div className="v"><span data-count="0.97" data-dec="2">0.97</span></div><div className="d dn">▼ 주의 2</div></div>
+                    <div className="lp-kpi"><div className="k">열린 이슈</div><div className="v"><span data-count="28">28</span></div><div className="d up">▲ 이번주 -6</div></div>
                   </div>
                   <div className="chart">
                     <div className="ct">주간 진척 추이</div>
@@ -430,7 +437,6 @@ export default function LpClient() {
         </div>
       </section>
 
-      {/* flow */}
       <section className="lp-band" id="flow">
         <div className="wrap">
           <div className="lp-center" data-reveal>
@@ -450,7 +456,6 @@ export default function LpClient() {
         </div>
       </section>
 
-      {/* differentiators */}
       <section className="lp-band tint">
         <div className="wrap">
           <div className="lp-center" data-reveal>
@@ -469,16 +474,15 @@ export default function LpClient() {
             ))}
           </div>
           <div className="lp-stats">
-            <div className="stat" data-reveal><div className="n"><span data-count="15" data-suffix="+">0</span></div><div className="l">통합 관리 영역</div><div className="s">프로젝트 ~ 조달까지</div></div>
-            <div className="stat" data-reveal style={{ transitionDelay: '.08s' }}><div className="n"><span data-count="130" data-suffix="ms">0</span></div><div className="l">Warm 평균 응답</div><div className="s">sin1 리전 · 핵심 인덱스</div></div>
+            <div className="stat" data-reveal><div className="n"><span data-count="15" data-suffix="+">15+</span></div><div className="l">통합 관리 영역</div><div className="s">프로젝트 ~ 조달까지</div></div>
+            <div className="stat" data-reveal style={{ transitionDelay: '.08s' }}><div className="n"><span data-count="130" data-suffix="ms">130ms</span></div><div className="l">Warm 평균 응답</div><div className="s">sin1 리전 · 핵심 인덱스</div></div>
             <div className="stat" data-reveal style={{ transitionDelay: '.16s' }}><div className="n">24/7</div><div className="l">무중단 자동 운영</div><div className="s">멱등 마이그레이션 · 자동배포</div></div>
-            <div className="stat" data-reveal style={{ transitionDelay: '.24s' }}><div className="n"><span data-count="100" data-suffix="%">0</span></div><div className="l">반응형 · 모바일 대응</div><div className="s">하단탭바 · 44px 터치</div></div>
+            <div className="stat" data-reveal style={{ transitionDelay: '.24s' }}><div className="n"><span data-count="100" data-suffix="%">100%</span></div><div className="l">반응형 · 모바일 대응</div><div className="s">하단탭바 · 44px 터치</div></div>
           </div>
           <p className="lp-note">※ 수치는 운영 환경·설정 기준의 참고값입니다.</p>
         </div>
       </section>
 
-      {/* roles */}
       <section className="lp-band">
         <div className="wrap">
           <div className="lp-center" data-reveal>
@@ -498,7 +502,6 @@ export default function LpClient() {
         </div>
       </section>
 
-      {/* faq */}
       <section className="lp-band tint" id="faq">
         <div className="wrap">
           <div className="lp-center" data-reveal>
@@ -516,7 +519,6 @@ export default function LpClient() {
         </div>
       </section>
 
-      {/* final cta */}
       <section className="lp-final">
         <div className="box" data-reveal>
           <h2>오늘, 프로젝트를 한 곳으로 모으세요</h2>
@@ -528,7 +530,6 @@ export default function LpClient() {
         </div>
       </section>
 
-      {/* footer */}
       <footer className="lp-foot">
         <div className="wrap">
           <div className="about">
