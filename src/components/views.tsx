@@ -5,6 +5,23 @@ import { Pill } from '@/lib/ui';
 // ---- Kanban board (issues / tasks) ----
 export function Kanban({ rows, openDetail, columns, titleKey = 'title' }:
   { rows: any[]; openDetail: (r: any) => void; columns: { key: string; label: string; color: string }[]; titleKey?: string }) {
+  // 카드 기한(dueDate/endDate) D-day·초과 강조 — 목록/상세와 동일 규칙(완료·종료 상태 제외)
+  const KB_DONE = new Set(['done', 'closed', 'resolved', 'completed', 'approved', 'pass']);
+  const dueChip = (r: any): { label: string; fg?: string; bg?: string; muted?: boolean } | null => {
+    const raw = String(r.dueDate || r.endDate || '');
+    const t = new Date(raw).getTime();
+    if (!raw || isNaN(t)) return null;
+    const now = Date.now();
+    const dd = Math.ceil((t - now) / 86400000);
+    const od = Math.floor((now - t) / 86400000);
+    const md = raw.slice(5, 10).replace('-', '/');
+    if (!KB_DONE.has(String(r.status))) {
+      if (t < now) return { label: od >= 1 ? `${od}일 초과` : '오늘 마감 초과', fg: '#c0414f', bg: '#fdedef' };
+      if (dd <= 0) return { label: '오늘 마감', fg: '#a86a12', bg: '#fbeed6' };
+      if (dd <= 7) return { label: `D-${dd}`, fg: '#a86a12', bg: '#fbeed6' };
+    }
+    return { label: `${md} 마감`, muted: true };
+  };
   return (
     <div className="kb">
       {columns.map((col) => {
@@ -16,10 +33,13 @@ export function Kanban({ rows, openDetail, columns, titleKey = 'title' }:
               <div className="kb-card" key={r.id} onClick={() => openDetail(r)}>
                 <div className="mono" style={{ fontSize: 11, marginBottom: 4 }}>{r.code}</div>
                 <div style={{ fontWeight: 650, fontSize: 13.5, marginBottom: 8 }}>{r[titleKey]}</div>
-                <div className="row" style={{ gap: 6 }}>
+                <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
                   {r.priority && <Pill v={r.priority} />}
                   {r.type && <Pill v={r.type} />}
                   {typeof r.progress === 'number' && r.progress > 0 && <span className="muted">{r.progress}%</span>}
+                  {(() => { const c = dueChip(r); if (!c) return null; return c.muted
+                    ? <span className="muted" style={{ fontSize: 11 }} title="기한">{c.label}</span>
+                    : <span title="기한 임박/초과" style={{ fontSize: 10.5, fontWeight: 700, color: c.fg, background: c.bg, borderRadius: 5, padding: '1px 6px' }}>{c.label}</span>; })()}
                   <div style={{ flex: 1 }} />
                   {r.assignee && <span className="muted" style={{ fontSize: 11.5 }}>{r.assignee}</span>}
                 </div>
