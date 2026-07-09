@@ -102,7 +102,7 @@ const css = `
 .gantt .gr .lbl{width:110px;font-size:12px;font-weight:750;color:var(--text-2);flex-shrink:0;text-align:right}
 .gantt .gr .track{flex:1;height:18px;background:var(--surface-3);border-radius:7px;position:relative;overflow:hidden}
 .gantt .gr .bar2{position:absolute;top:0;height:18px;border-radius:7px;background:linear-gradient(90deg,#be5535,#e6915f);transform:scaleX(0);transform-origin:left;transition:transform .9s cubic-bezier(.2,.7,.2,1)}
-.mock.in .gantt .gr .bar2{transform:scaleX(1)}
+.visual.in .gantt .gr .bar2{transform:scaleX(1)}
 .gantt .gr .bar2.b2{background:linear-gradient(90deg,#7c4dff,#a98bff)}
 .gantt .gr .bar2.b3{background:linear-gradient(90deg,#0e9bb8,#4bc6dd)}
 .gantt .gr .bar2.b4{background:linear-gradient(90deg,#15a34a,#54c47d)}
@@ -119,7 +119,7 @@ const css = `
 .dash .chart .ct{font-size:11.5px;font-weight:800;color:var(--text-2);letter-spacing:.02em}
 .dash .bars{display:flex;align-items:flex-end;gap:8px;height:78px;margin-top:12px}
 .dash .bars .cb{flex:1;border-radius:5px 5px 0 0;background:linear-gradient(180deg,#e6915f,#be5535);transform:scaleY(0);transform-origin:bottom;transition:transform .8s cubic-bezier(.2,.7,.2,1)}
-.mock.in .dash .bars .cb{transform:scaleY(1)}
+.visual.in .dash .bars .cb{transform:scaleY(1)}
 
 /* workflow */
 .lp-flow{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:44px}
