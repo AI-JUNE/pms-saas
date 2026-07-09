@@ -416,7 +416,7 @@ export function CalendarView({ rows, dateKey, openDetail }: { rows: any[]; dateK
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 1, background: 'var(--border)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
         {['일','월','화','수','목','금','토'].map((w, i) => <div key={w} style={{ background: 'var(--surface-2)', textAlign: 'center', padding: '7px 0', fontSize: 11.5, fontWeight: 700, color: dowColor(i) }}>{w}</div>)}
         {cells.map((d, i) => (
-          <div key={i} style={{ background: (i % 7 === 0 || i % 7 === 6) ? 'var(--surface-2)' : 'var(--surface)', minHeight: 92, padding: 6, opacity: d ? 1 : 0.4 }}>
+          <div key={i} style={{ background: (d && isToday(d)) ? 'var(--brand-50)' : (i % 7 === 0 || i % 7 === 6) ? 'var(--surface-2)' : 'var(--surface)', minHeight: 92, padding: 6, opacity: d ? 1 : 0.4, boxShadow: (d && isToday(d)) ? 'inset 0 0 0 2px var(--brand)' : undefined }}>
             {d && <div style={{ fontSize: 11.5, fontWeight: 700, color: isToday(d) ? '#fff' : (i % 7 === 0 || i % 7 === 6) ? dowColor(i % 7) : 'var(--text-2)', background: isToday(d) ? 'var(--brand)' : 'transparent', width: 20, height: 20, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{d}</div>}
             {d && itemsOn(d).slice(0, 3).map((r) => (
               <div key={r.id} onClick={() => openDetail(r)} title={r.title || r.name} style={{ marginTop: 3, fontSize: 10.5, fontWeight: 600, background: 'var(--brand-50)', color: 'var(--brand-600)', borderRadius: 5, padding: '2px 5px', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title || r.name}</div>
