@@ -66,6 +66,9 @@ export function RiskMatrix({ rows, openDetail }: { rows: any[]; openDetail: (r: 
   const inCell = (v: any) => { const n = Number(v); return n >= 1 && n <= 5; };
   const plotted = rows.filter((r) => inCell(r.impact) && inCell(r.probability)).length;
   const unplotted = rows.length - plotted;
+  // 심각도 구간별 건수(heatColor 임계값과 동일: ≥15·≥10·≥5) — 배치된 리스크만 집계
+  const sev = { s: 0, h: 0, m: 0, l: 0 };
+  rows.forEach((r) => { if (inCell(r.impact) && inCell(r.probability)) { const sc = Number(r.impact) * Number(r.probability); if (sc >= 15) sev.s++; else if (sc >= 10) sev.h++; else if (sc >= 5) sev.m++; else sev.l++; } });
   return (
     <div className="card card-pad" style={{ display: 'inline-block' }}>
       <div className="row" style={{ marginBottom: 12, gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
@@ -95,10 +98,10 @@ export function RiskMatrix({ rows, openDetail }: { rows: any[]; openDetail: (r: 
         </tbody>
       </table>
       <div className="row" style={{ gap: 10, marginTop: 12, flexWrap: 'wrap', fontSize: 11.5 }}>
-        {([['심각', '#e0394b', '15+'], ['높음', '#f2772e', '10–14'], ['중간', '#e0a800', '5–9'], ['낮음', '#15a34a', '1–4']] as const).map(([lb, c, rg]) => (
-          <span key={lb} className="row" style={{ gap: 5, alignItems: 'center' }}>
+        {([['심각', '#e0394b', '15+', sev.s], ['높음', '#f2772e', '10–14', sev.h], ['중간', '#e0a800', '5–9', sev.m], ['낮음', '#15a34a', '1–4', sev.l]] as const).map(([lb, c, rg, cnt]) => (
+          <span key={lb} className="row" style={{ gap: 5, alignItems: 'center' }} title={`${lb} 리스크 ${cnt}건`}>
             <span style={{ width: 11, height: 11, borderRadius: 3, background: c, display: 'inline-block' }} />
-            <span className="muted">{lb} <span style={{ opacity: .7 }}>({rg})</span></span>
+            <span className="muted">{lb} <span style={{ opacity: .7 }}>({rg})</span>{cnt > 0 && <strong style={{ marginLeft: 4, color: c }}>{cnt}</strong>}</span>
           </span>
         ))}
       </div>
