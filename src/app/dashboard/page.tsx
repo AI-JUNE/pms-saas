@@ -42,7 +42,7 @@ function Donut({ data, mounted }: { data: { label: string; value: number; color:
         {data.map((d, i) => { const pv = Math.round((d.value / total) * 100); return (
           <div key={i} className="row" style={{ gap: 9, fontSize: 12.5 }}>
             <span style={{ width: 11, height: 11, borderRadius: 4, background: d.color, boxShadow: `0 0 0 3px ${d.color}22`, flexShrink: 0 }} />
-            <span style={{ color: 'var(--text-2)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.label}</span>
+            <span style={{ color: 'var(--text-2)', fontWeight: 600, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.label}</span>
             <span style={{ marginLeft: 'auto', fontWeight: 800 }}>{d.value}</span>
             <span className="muted" style={{ minWidth: 36, textAlign: 'right', fontSize: 11.5 }}>{pv}%</span>
           </div>); })}

@@ -9,6 +9,7 @@ export default function LoginPage() {
   const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
   const set = (k: string) => (e: any) => setForm({ ...form, [k]: e.target.value });
   useEffect(() => {
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('manual')) return;
     (async () => {
       const me = await fetch('/api/auth/me').then((r) => r.json()).catch(() => null);
       if (me?.authenticated) { router.replace('/dashboard'); return; }

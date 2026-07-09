@@ -387,7 +387,7 @@ export default function LpClient() {
             <a href="#faq">FAQ</a>
           </div>
           <div className="spacer" />
-          <Link href="/login" className="lp-btn ghost">로그인</Link>
+          <Link href="/login?manual=1" className="lp-btn ghost">로그인</Link>
           <Link href="/dashboard" className="lp-btn pri">데모 둘러보기</Link>
         </div>
       </nav>
@@ -404,7 +404,7 @@ export default function LpClient() {
           </p>
           <div className="lp-cta" data-reveal style={{ transitionDelay: '.15s' }}>
             <Link href="/dashboard" className="lp-btn pri lg">데모 둘러보기 →</Link>
-            <Link href="/login" className="lp-btn ghost lg">로그인</Link>
+            <Link href="/login?manual=1" className="lp-btn ghost lg">로그인</Link>
           </div>
           <div className="lp-chips" data-reveal style={{ transitionDelay: '.2s' }}>
             <span className="lp-chip"><b>WBS·간트</b> 내장</span>
@@ -596,7 +596,7 @@ export default function LpClient() {
           <p>설치도 계약도 필요 없습니다. 데모에서 실제 화면을 보고 전체 기능을 바로 둘러보세요.</p>
           <div className="lp-cta">
             <Link href="/dashboard" className="lp-btn pri lg">데모 둘러보기 →</Link>
-            <Link href="/login" className="lp-btn ghost lg">로그인</Link>
+            <Link href="/login?manual=1" className="lp-btn ghost lg">로그인</Link>
           </div>
         </div>
       </section>
@@ -617,7 +617,7 @@ export default function LpClient() {
             <div className="col">
               <b>바로가기</b>
               <Link href="/dashboard">대시보드</Link>
-              <Link href="/login">로그인</Link>
+              <Link href="/login?manual=1">로그인</Link>
               <a href="#faq">자주 묻는 질문</a>
             </div>
           </div>
