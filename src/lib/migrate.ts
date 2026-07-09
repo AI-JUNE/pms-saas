@@ -44,6 +44,12 @@ export const MIGRATION_DDL: string[] = [
   // phases sort order safety
   `ALTER TABLE IF EXISTS phases ADD COLUMN IF NOT EXISTS sort_order integer DEFAULT 0 NOT NULL`,
   `ALTER TABLE IF EXISTS phases ADD COLUMN IF NOT EXISTS color text`,
+  // 이슈 이력(journal)·워처 (신규 테이블)
+  `CREATE TABLE IF NOT EXISTS issue_journals (id serial PRIMARY KEY, org_id integer NOT NULL, issue_id integer NOT NULL REFERENCES issues(id) ON DELETE CASCADE, user_id integer NOT NULL, author_name text NOT NULL, changes text, note text, created_at timestamptz DEFAULT now() NOT NULL)`,
+  `CREATE INDEX IF NOT EXISTS issue_journals_idx ON issue_journals (org_id, issue_id)`,
+  `CREATE TABLE IF NOT EXISTS issue_watchers (id serial PRIMARY KEY, org_id integer NOT NULL, issue_id integer NOT NULL REFERENCES issues(id) ON DELETE CASCADE, user_id integer NOT NULL, user_name text NOT NULL, created_at timestamptz DEFAULT now() NOT NULL)`,
+  `CREATE INDEX IF NOT EXISTS issue_watchers_idx ON issue_watchers (org_id, issue_id)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS issue_watchers_uniq ON issue_watchers (org_id, issue_id, user_id)`,
 ];
 
 export async function runMigrations(): Promise<{ applied: number; failed: { stmt: string; error: string }[] }> {

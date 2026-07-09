@@ -175,3 +175,19 @@ export const boards = pgTable('boards', {
   code: text('code'), title: text('title').notNull(), category: text('category'), author: text('author'), content: text('content'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({ i: index('board_org_idx').on(t.orgId) }));
+
+// 이슈 이력(journal) — 변경 추적(누가 언제 무엇을)
+export const issueJournals = pgTable('issue_journals', {
+  id: serial('id').primaryKey(), orgId: integer('org_id').notNull(),
+  issueId: integer('issue_id').notNull().references(() => issues.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull(), authorName: text('author_name').notNull(),
+  changes: text('changes'), note: text('note'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({ i: index('issue_journals_idx').on(t.orgId, t.issueId) }));
+// 이슈 워처 — 관심 등록자
+export const issueWatchers = pgTable('issue_watchers', {
+  id: serial('id').primaryKey(), orgId: integer('org_id').notNull(),
+  issueId: integer('issue_id').notNull().references(() => issues.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull(), userName: text('user_name').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({ i: index('issue_watchers_idx').on(t.orgId, t.issueId), u: uniqueIndex('issue_watchers_uniq').on(t.orgId, t.issueId, t.userId) }));

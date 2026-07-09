@@ -6,6 +6,7 @@ import { Plus, Search, X, Pencil, Trash2, Inbox, SlidersHorizontal, Download, Sh
 import { Shell } from './Shell';
 import { Pill, LABEL } from '@/lib/ui';
 import { Comments } from './Comments';
+import { IssueJournal } from './IssueJournal';
 
 export type Col = { key: string; label: string; badge?: boolean; strong?: boolean; mono?: boolean; render?: (v: any, row: any) => any };
 type Opt = string | { value: string; label: string };
@@ -422,6 +423,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
                 </div>
               </div>
             ) : null; })()}
+            {entity === 'issues' && <IssueJournal issueId={detail.id} />}
             {entity && <Comments entity={entity} entityId={detail.id} />}
           </div>
           <div className="over-f"><button className="btn btn-danger" onClick={() => remove(detail)}><Trash2 />삭제</button><div className="sp" /><button className="btn btn-pri" onClick={() => openEdit(detail)}><Pencil />수정</button></div>

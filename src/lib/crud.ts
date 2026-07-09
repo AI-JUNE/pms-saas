@@ -1,6 +1,6 @@
 import { and, eq, desc, asc } from 'drizzle-orm';
 import { db } from '@/db';
-import { projects, tasks, phases } from '@/db/schema';
+import { projects, tasks, phases, issueJournals } from '@/db/schema';
 import { requireUser } from './auth';
 import { requireTenant, type TenantContext } from './tenant';
 import { requirePermission } from './rbac';
@@ -9,7 +9,7 @@ import { audit } from './audit';
 import { handle, ok, ApiError, ERROR } from './http';
 type Scope = 'org' | 'project';
 // approveOn: 지정 필드 값이 목록에 포함되면 'write'가 아닌 'approve' 권한을 요구(결재 경계)
-export type CrudConfig = { table: any; resource: string; scope: Scope; codePrefix?: string; fields: string[]; required?: string[]; transform?: (values: any) => any; orderAsc?: boolean; guardDelete?: (ctx: TenantContext, id: number) => Promise<void>; approveOn?: { field: string; values: string[] }; };
+export type CrudConfig = { table: any; resource: string; scope: Scope; codePrefix?: string; fields: string[]; required?: string[]; transform?: (values: any) => any; orderAsc?: boolean; guardDelete?: (ctx: TenantContext, id: number) => Promise<void>; approveOn?: { field: string; values: string[] }; journal?: boolean; };
 async function ctxOf(): Promise<TenantContext> { return requireTenant(await requireUser()); }
 async function assertProject(orgId: number, projectId: number) {
   const p = (await db.select().from(projects).where(and(eq(projects.id, projectId), eq(projects.orgId, orgId))).limit(1))[0];
@@ -40,10 +40,16 @@ export function item(cfg: CrudConfig) {
     const t = cfg.table; const body = await req.json(); const patch: any = {};
     // 결재(승인/반려) 경계: 상태를 결재 확정값으로 바꾸는 경우 'approve' 권한 추가 요구
     if (cfg.approveOn && cfg.approveOn.values.includes(body[cfg.approveOn.field])) await requirePermission(ctx, cfg.resource, 'approve');
+    const before: any = cfg.journal ? (await db.select().from(t).where(and(eq(t.id, Number(c.params.id)), eq(t.orgId, ctx.orgId))).limit(1))[0] : null;
     for (const f of cfg.fields) if (body[f] !== undefined && body[f] !== null && body[f] !== '') patch[f] = body[f];
     if (cfg.transform) Object.assign(patch, cfg.transform({ ...body, ...patch }));
     const upd: any = await db.update(t).set(patch).where(and(eq(t.id, Number(c.params.id)), eq(t.orgId, ctx.orgId))).returning(); const row = upd[0];
     if (!row) throw new ApiError(ERROR.NOT_FOUND, '대상을 찾을 수 없습니다');
+    if (cfg.journal && before) {
+      const changes: { field: string; from: any; to: any }[] = [];
+      for (const f of cfg.fields) { if (patch[f] !== undefined && String(before[f] ?? '') !== String(row[f] ?? '')) changes.push({ field: f, from: before[f] ?? null, to: row[f] ?? null }); }
+      if (changes.length) { try { await db.insert(issueJournals).values({ orgId: ctx.orgId, issueId: row.id, userId: ctx.user.id, authorName: ctx.user.name, changes: JSON.stringify(changes) }); } catch (e) { console.error('[journal] insert 실패', e); } }
+    }
     await audit(ctx, `${cfg.resource.toUpperCase()}_UPDATE`, { entity: cfg.resource, entityId: row.id }); return ok(row);
   });
   const DELETE = (_req: Request, c: { params: { id: string } }) => handle(async () => {
