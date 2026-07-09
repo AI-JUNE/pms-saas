@@ -295,6 +295,7 @@ export function Gantt({ rows, openDetail, save, create }: { rows: any[]; openDet
   rows.forEach((r) => { if (predsOf(r).length || (succOf[r.code] || []).length) { if (Math.abs(slackOf(r.code)) < 0.5) critical.add(r.code); } });
   if (critical.size <= 1) critical.clear();
   const critOverdue = rows.filter((r) => critical.has(r.code) && r.status !== 'done' && eff(r).planned && eff(r).e < todayMid).length;
+  const overdueCount = rows.filter((r) => { const x = eff(r); return x.planned && r.status !== 'done' && x.e < todayMid; }).length;
   const arrows: { x1: number; y1: number; x2: number; y2: number; crit: boolean }[] = [];
   rows.forEach((r) => { if (r.predecessor && geo[r.predecessor] && geo[r.code]) { const p = geo[r.predecessor], t = geo[r.code]; arrows.push({ x1: p.right, y1: p.mid, x2: t.left, y2: t.mid, crit: critical.has(r.code) && critical.has(r.predecessor) }); } });
 
@@ -307,6 +308,7 @@ export function Gantt({ rows, openDetail, save, create }: { rows: any[]; openDet
         <div style={{ display: 'flex', gap: 4, marginLeft: 8 }}><Zb z="day" l="일" /><Zb z="week" l="주" /><Zb z="month" l="월" /></div>
         {groupOrder.length > 1 && <button className={`btn btn-sm ${grouped ? 'btn-pri' : ''}`} onClick={() => setGrouped((g) => !g)} style={{ padding: '3px 10px' }} title="단계(phase)별로 작업을 묶어 스윔레인으로 표시하고 접기/펼치기">단계 묶기</button>}
         {critical.size > 1 && (<span title="선행관계 기반 임계경로(여유 0일) 작업 수" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 700, color: '#c0414f', background: '#fdedef', border: '1px solid #f3c7cd', borderRadius: 20, padding: '2px 10px' }}><span style={{ width: 8, height: 8, borderRadius: 8, background: '#c0414f' }} />주경로 {critical.size}개{critOverdue > 0 ? ` · 지연 ${critOverdue}` : ''}</span>)}
+        {overdueCount > 0 && (<span title={`기한(마감)이 지난 미완료 작업 ${overdueCount}건 (완료 제외)`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 700, color: '#a86a12', background: '#fbeed6', border: '1px solid #f2e0b8', borderRadius: 20, padding: '2px 10px' }}><span style={{ width: 8, height: 8, borderRadius: 8, background: '#a86a12' }} />지연 {overdueCount}</span>)}
         <div className="sp" />
         <span className="muted" style={{ fontSize: 11 }}>막대=이동 · 양끝=기간 · 아래손잡이=진척 · <span style={{ color: 'var(--brand)', fontWeight: 700 }}>우측●=선행연결</span> · 하단행=새 작업 · 자동저장 · <span style={{ color: '#c0414f', fontWeight: 700 }}>▭ 주경로</span> · <span style={{ color: 'var(--text-3)', fontWeight: 700 }}>▬ 기준선(계획)</span></span>
       </div>
