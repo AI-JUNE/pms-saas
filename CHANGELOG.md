@@ -3,6 +3,10 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-07-09 (야간 배치 32 — 배포 대기)
+- ★ 최우선: **이슈 이력(journal)·워처** 구현 — 원본 PMS 핵심인 "누가 언제 무엇을 바꿨나" 변경 추적을 이슈에 도입. 이슈 수정 시 이전 값과 새 값을 필드별로 비교해 실제로 바뀐 항목만 `issue_journals`에 자동 기록(작성자·시각 포함), 이슈 상세 패널에 **변경 이력 타임라인**(필드 한글 라벨 + 이전값 취소선 → 새값 강조)을 표시. 함께 **워처(관심 등록)** 기능 추가: 상세 패널의 `관심`/`관심 해제` 토글로 `issue_watchers`에 현재 사용자를 등록/해제하고 워처 명단·인원수를 노출. 신규 테이블 2개(issue_journals, issue_watchers)는 schema.ts 정의 + migrate.ts MIGRATION_DDL에 `CREATE TABLE IF NOT EXISTS`(+인덱스, 워처 org·issue·user 유니크) 추가로 배포 시 자동 마이그레이션(관리자 버튼 불필요). 이력 기록은 제네릭 CRUD의 `item()` PATCH에 `journal` 플래그로 훅(이슈 config만 `journal:true`)해 다른 리소스에는 영향 없음. — src/db/schema.ts, src/lib/migrate.ts, src/lib/crud.ts, src/lib/configs.ts, src/app/api/issues/[id]/journal/route.ts(신규 GET), src/app/api/issues/[id]/watchers/route.ts(신규 GET·POST 토글), src/components/IssueJournal.tsx(신규), src/components/ResourceView.tsx(이슈 상세에 삽입)
+- 검증: `tsc --noEmit -p tsconfig.json` 통과(에러 0). 작업 전 `cp -r src /tmp/bak_pms` 백업. 예약작업 pms-nightly-dev·pms-progress-digest 재활성화(수요일 예산 재설정 후 재개).
+
 ## 2026-07-09 (야간 배치 31 — 배포 대기)
 - 공통 ⑧: **목록 뷰 모드(표/칸반/간트/캘린더) 사용자별 유지** — 배치24에서 그룹화·정렬·밀도·컬럼 표시를 localStorage로 유지하게 했으나, 대체뷰가 있는 목록(업무 간트·칸반, 리스크 매트릭스 등)의 **선택한 뷰 모드**만은 새로고침·재방문 시 항상 기본값(`표`)으로 되돌아갔던 것을 개선. 뷰 전환 세그먼트 버튼을 `pickMode(m)` 헬퍼로 일원화해 선택 시 `pms.mode.<제목>` 키로 저장하고, 마운트 시 복원. 저장값이 `table`이거나 현재 목록의 altViews에 실제 존재하는 key일 때만 적용해, 다른 목록의 값이나 사라진 뷰로 잘못 복원되지 않도록 검증(없으면 표 유지). 예: 업무를 칸반으로 보던 사용자는 다시 열어도 칸반으로 시작. 순수 클라이언트 상태라 데이터·API 무영향. — src/components/ResourceView.tsx (단일 파일: pickMode 헬퍼 1개 + 복원 useEffect 1줄 + seg 버튼 onClick 2곳)
 - 데이터/스키마·타입 영향 없음(순수 클라이언트 상태 저장/복원), 마이그레이션 불필요. ⑥ 안전 백로그·⑧ monday UX가 모두 [x] 소진 상태이고 ROADMAP 잔여 `[ ]`는 전부 신규 테이블/주간 수동 항목(★ 이슈 이력·테스트 차수, ⑦ 전 항목)이라 야간 금지 대상이므로, 배치24의 "내 뷰 유지" 패턴을 뷰 모드까지 확장한 보너스 폴리시로 진행(신규 테이블 미접촉).
