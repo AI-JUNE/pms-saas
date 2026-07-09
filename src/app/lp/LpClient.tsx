@@ -6,7 +6,7 @@ const css = `
 .lp{--lp-max:1160px;color:var(--text-1);background:var(--bg);overflow-x:hidden}
 .lp *{box-sizing:border-box}
 .lp .wrap{max-width:var(--lp-max);margin:0 auto;padding:0 24px}
-.lp .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:800;letter-spacing:.01em;color:var(--brand-600);background:var(--brand-50);border:1px solid var(--brand-100);padding:7px 15px;border-radius:999px}
+.lp .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:800;letter-spacing:.01em;color:var(--brand-600);background:transparent;border:1px solid var(--brand-100);padding:7px 15px;border-radius:999px}
 .lp .eyebrow::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--brand);box-shadow:0 0 0 4px var(--brand-50);animation:lp-pulse 2s ease-in-out infinite}
 @keyframes lp-pulse{0%,100%{opacity:1}50%{opacity:.35}}
 .lp .sec-tag{font-size:11.5px;font-weight:850;letter-spacing:.16em;color:var(--brand-600);text-transform:uppercase}
@@ -30,28 +30,27 @@ const css = `
 .lp-nav .navlinks a{padding:8px 13px;border-radius:9px;font-size:13.5px;font-weight:650;color:var(--text-2);transition:.13s}
 .lp-nav .navlinks a:hover{background:var(--surface-3);color:var(--text-1)}
 .lp-nav .spacer{flex:1}
-.lp-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:780;font-size:14px;padding:10px 18px;border-radius:11px;transition:.16s;border:1px solid transparent;white-space:nowrap}
-.lp-btn.pri{background:var(--brand);color:#fff;box-shadow:0 8px 20px rgba(190,85,53,.3)}
-.lp-btn.pri:hover{background:var(--brand-600);transform:translateY(-2px);box-shadow:0 12px 26px rgba(190,85,53,.38)}
+.lp-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:800;font-size:14px;padding:11px 19px;border-radius:12px;transition:.16s;border:1px solid transparent;white-space:nowrap}
+.lp-btn.pri{background:linear-gradient(135deg,#e6915f,#be5535);color:#fff;box-shadow:0 10px 22px rgba(190,85,53,.32)}
+.lp-btn.pri:hover{background:linear-gradient(135deg,#e0824c,#a8472b);transform:translateY(-2px);box-shadow:0 14px 30px rgba(190,85,53,.42)}
 .lp-btn.ghost{background:#fff;color:var(--text-1);border-color:var(--border-strong);box-shadow:var(--sh-sm)}
 .lp-btn.ghost:hover{background:var(--surface-2);border-color:var(--border-2);transform:translateY(-1px)}
-.lp-btn.lg{padding:14px 26px;font-size:15px;border-radius:13px}
+.lp-btn.lg{padding:14px 27px;font-size:15px;border-radius:14px}
 @media(max-width:760px){.lp-nav .navlinks{display:none}}
 
 /* hero */
 .lp-hero{padding:88px 0 46px;text-align:center;position:relative}
-.lp-hero::before{content:'';position:absolute;inset:-10% -20% auto;height:680px;background:
-  radial-gradient(760px 340px at 50% -6%,rgba(190,85,53,.17),transparent 66%),
-  radial-gradient(560px 300px at 84% 14%,rgba(230,145,95,.13),transparent 70%),
-  radial-gradient(520px 300px at 14% 22%,rgba(190,85,53,.08),transparent 72%);
-  pointer-events:none;animation:lp-float 16s ease-in-out infinite alternate}
+.lp-hero::before{content:'';position:absolute;left:50%;top:-160px;transform:translateX(-50%);width:1200px;height:620px;background:
+  radial-gradient(closest-side at 50% 30%,rgba(230,145,95,.22),rgba(230,145,95,.08) 55%,transparent 72%);
+  pointer-events:none;animation:lp-float 16s ease-in-out infinite alternate;z-index:0}
 @keyframes lp-float{0%{transform:translate3d(0,0,0) scale(1)}100%{transform:translate3d(0,16px,0) scale(1.05)}}
 .lp-hero .wrap{position:relative}
-.lp-hero h1{font-size:clamp(36px,6.3vw,70px);font-weight:900;letter-spacing:-.052em;line-height:1.05;margin:22px auto 0;max-width:900px}
+.lp-hero h1{font-size:clamp(33px,5vw,56px);font-weight:820;letter-spacing:-.035em;line-height:1.14;margin:22px auto 0;max-width:840px}
 .lp-hero .lead{margin:22px auto 0;text-align:center}
 .lp-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:32px}
 .lp-chips{display:flex;gap:9px;justify-content:center;flex-wrap:wrap;margin-top:28px}
 .lp-chip{display:inline-flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:9px 15px;font-size:12.5px;font-weight:750;color:var(--text-2);box-shadow:var(--sh-sm)}
+.lp-chip::before{content:'✓';color:var(--green);font-weight:900;font-size:11px}
 .lp-chip b{color:var(--brand-600)}
 
 /* hero product shot */
