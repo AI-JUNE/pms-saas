@@ -26,9 +26,15 @@ export function Kanban({ rows, openDetail, columns, titleKey = 'title' }:
     <div className="kb">
       {columns.map((col) => {
         const items = rows.filter((r) => r.status === col.key);
+        // 열별 기한 초과(지연) 카드 수 — dueChip과 동일 규칙(완료·종료 제외)
+        const overdue = items.filter((r) => {
+          const raw = String(r.dueDate || r.endDate || '');
+          const t = new Date(raw).getTime();
+          return raw && !isNaN(t) && !KB_DONE.has(String(r.status)) && t < Date.now();
+        }).length;
         return (
           <div className="kb-col" key={col.key}>
-            <div className="kb-h"><span style={{ width: 9, height: 9, borderRadius: 9, background: col.color }} />{col.label}<span className="cnt">{items.length}</span></div>
+            <div className="kb-h"><span style={{ width: 9, height: 9, borderRadius: 9, background: col.color }} />{col.label}<span className="cnt">{items.length}</span>{overdue > 0 && <span title={`기한 초과 ${overdue}건`} style={{ fontSize: 10.5, fontWeight: 700, color: '#c0414f', background: '#fdedef', borderRadius: 5, padding: '1px 6px', marginLeft: 4 }}>지연 {overdue}</span>}</div>
             {items.map((r) => (
               <div className="kb-card" key={r.id} onClick={() => openDetail(r)}>
                 <div className="mono" style={{ fontSize: 11, marginBottom: 4 }}>{r.code}</div>
