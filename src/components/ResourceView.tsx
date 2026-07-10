@@ -207,7 +207,10 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
   // 내보내기 셀 값: 배지 컬럼은 화면 표시와 동일하게 LABEL(한글)로 변환(값 없으면 빈칸)
   function exportCell(c: Col, r: any) {
     const v = r[c.key];
-    if (v == null || v === '') return '';
+    if (v == null || v === '') {
+      if (c.render) { const out = c.render(v, r); if (typeof out === 'string' || typeof out === 'number') return String(out); }
+      return '';
+    }
     return c.badge ? (LABEL[String(v)] || String(v)) : String(v);
   }
   function exportCsv() {
