@@ -3,6 +3,13 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-07-10 (배치 43 — 배포 대기, 다건)
+- ⑦ **개인 To-Do → 내 작업(/mywork) 연계** — 개인 할 일(미완료)을 '내 작업' 화면 최상단에 섹션으로 노출(제목·우선순위·상태·기한). /api/todos를 클라이언트에서 함께 조회해 배정 업무·이슈·리스크와 한 화면에 모아 봄. (배치42 To-Do 도메인의 주간/내작업 연계 완결.) — src/app/mywork/page.tsx
+- ★ **이슈 시간기록(공수)** — 이슈에 `estimateHours`(예상)·`spentHours`(실제) 공수 필드 추가. 이슈 폼에 입력란, 목록에 '공수(h)' 컬럼 노출. 업무(WBS)의 계획/실제 공수처럼 이슈 단위 공수 추적 가능. (⑦ '이슈 …시간기록(공수)' 하위기능 충족.) — src/db/schema.ts, src/lib/migrate.ts, src/lib/configs.ts, src/app/issues/page.tsx
+- ⑦ **인프라 자산 상세(CMDB 확장)** — 인프라 자산에 호스트명·OS·CPU·메모리·랙 위치·시리얼번호 필드 추가(폼 입력 + 목록에 호스트명·OS 컬럼). 랙·논리 서버 수준의 상세 자산 정보를 기록. — src/db/schema.ts, src/lib/migrate.ts, src/lib/configs.ts, src/app/infra/page.tsx
+- 신규 컬럼 8개는 migrate.ts MIGRATION_DDL의 `ALTER TABLE … ADD COLUMN IF NOT EXISTS`로 배포 시 자동 반영(관리자 버튼 불필요). 제네릭 CRUD+config 기반이라 중앙 ResourceView 미접촉(저위험).
+- 검증: `tsc --noEmit` 통과(에러 0). 작업 전 src 백업. 마운트 무결성(깨진문자 0) 확인.
+
 ## 2026-07-10 (배치 42 — 배포 대기)
 - ⑦ **개인 To-Do/체크인 도메인 신설** — 사용자별 개인 할 일 관리(원본 PMS 반영). 신규 `todos` 테이블(코드 TD, 제목·메모·우선순위·상태[할 일/진행중/완료]·기한). 제네릭 CRUD 엔진에 **`user` 스코프를 additive로 추가**: 목록은 현재 사용자 것만 필터(orgId+userId), 생성 시 userId 자동 설정, 수정·삭제도 소유자 한정. 개인 데이터이므로 user 스코프에 한해 RBAC 리소스 권한 체크는 스킵(소유권은 userId로 보장) — 기존 org/project 리소스 동작은 완전 무영향(조건부 분기). 전용 화면 `/todos`(좌측 내비 '현황' 그룹의 내 작업 아래)에 목록 + **보드(칸반)** 뷰 제공. 신규 테이블은 schema.ts + migrate.ts DDL(`CREATE TABLE IF NOT EXISTS`+인덱스)로 배포 시 자동 마이그레이션. — src/lib/crud.ts(user 스코프), src/db/schema.ts, src/lib/migrate.ts, src/lib/configs.ts, src/app/api/todos/route.ts(신규), src/app/api/todos/[id]/route.ts(신규), src/app/todos/page.tsx(신규), src/components/Shell.tsx(내비)
 - 검증: `tsc --noEmit` 통과(에러 0). 작업 전 src 백업. 마운트 무결성(깨진문자 0) 확인. (주간보고 연계는 프로젝트 단위 vs 개인 단위 스코프 차이로 다음 증분에서 별도 처리.) ROADMAP ⑦ '개인 To-Do/체크인' 도메인 [ ]→[x].

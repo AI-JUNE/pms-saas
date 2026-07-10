@@ -78,6 +78,7 @@ export const issues = pgTable('issues', {
   type: text('type').default('bug').notNull(), priority: text('priority').default('medium').notNull(),
   status: text('status').default('open').notNull(), assignee: text('assignee'), dueDate: text('due_date'), labels: text('labels'),
   storyPoints: integer('story_points').default(0).notNull(), sprintId: integer('sprint_id'), epic: text('epic'),
+  estimateHours: integer('estimate_hours').default(0).notNull(), spentHours: integer('spent_hours').default(0).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({ projIdx: index('issues_project_idx').on(t.orgId, t.projectId), asgIdx: index('issues_assignee_idx').on(t.orgId, t.assignee) }));
 export const tests = pgTable('tests', {
@@ -153,7 +154,7 @@ export const infraAssets = pgTable('infra_assets', {
   id: serial('id').primaryKey(), orgId: integer('org_id').notNull(),
   projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
   code: text('code'), name: text('name').notNull(), category: text('category'), model: text('model'),
-  location: text('location'), ipAddress: text('ip_address'), owner: text('owner'), status: text('status').default('active').notNull(),
+  location: text('location'), ipAddress: text('ip_address'), owner: text('owner'), hostname: text('hostname'), os: text('os'), cpu: text('cpu'), memory: text('memory'), rack: text('rack'), serialNo: text('serial_no'), status: text('status').default('active').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({ i: index('asset_proj_idx').on(t.orgId, t.projectId) }));
 export const firewallRequests = pgTable('firewall_requests', {

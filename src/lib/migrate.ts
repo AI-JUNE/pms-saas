@@ -57,6 +57,16 @@ export const MIGRATION_DDL: string[] = [
   // 개인 To-Do
   `CREATE TABLE IF NOT EXISTS todos (id serial PRIMARY KEY, org_id integer NOT NULL, user_id integer NOT NULL, code text, title text NOT NULL, note text, priority text DEFAULT 'medium' NOT NULL, status text DEFAULT 'todo' NOT NULL, due_date text, created_at timestamptz DEFAULT now() NOT NULL)`,
   `CREATE INDEX IF NOT EXISTS todos_user_idx ON todos (org_id, user_id)`,
+  // 이슈 공수(시간기록)
+  `ALTER TABLE IF EXISTS issues ADD COLUMN IF NOT EXISTS estimate_hours integer DEFAULT 0 NOT NULL`,
+  `ALTER TABLE IF EXISTS issues ADD COLUMN IF NOT EXISTS spent_hours integer DEFAULT 0 NOT NULL`,
+  // 인프라 자산 상세
+  `ALTER TABLE IF EXISTS infra_assets ADD COLUMN IF NOT EXISTS hostname text`,
+  `ALTER TABLE IF EXISTS infra_assets ADD COLUMN IF NOT EXISTS os text`,
+  `ALTER TABLE IF EXISTS infra_assets ADD COLUMN IF NOT EXISTS cpu text`,
+  `ALTER TABLE IF EXISTS infra_assets ADD COLUMN IF NOT EXISTS memory text`,
+  `ALTER TABLE IF EXISTS infra_assets ADD COLUMN IF NOT EXISTS rack text`,
+  `ALTER TABLE IF EXISTS infra_assets ADD COLUMN IF NOT EXISTS serial_no text`,
 ];
 
 export async function runMigrations(): Promise<{ applied: number; failed: { stmt: string; error: string }[] }> {

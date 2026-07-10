@@ -3,12 +3,13 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Shell } from '@/components/Shell';
 import { Pill } from '@/lib/ui';
-import { ListTodo, Bug, ShieldAlert, Inbox } from 'lucide-react';
+import { ListTodo, ListChecks, Bug, ShieldAlert, Inbox } from 'lucide-react';
 
 export default function Page() {
   const router = useRouter();
   const [d, setD] = useState<any>(null);
-  useEffect(() => { fetch('/api/my-work').then((r) => r.ok ? r.json() : null).then(setD).catch(() => setD({ tasks: [], issues: [], risks: [] })); }, []);
+  const [todos, setTodos] = useState<any[]>([]);
+  useEffect(() => { fetch('/api/my-work').then((r) => r.ok ? r.json() : null).then(setD).catch(() => setD({ tasks: [], issues: [], risks: [] })); fetch('/api/todos').then((r) => r.ok ? r.json() : []).then((t) => setTodos(Array.isArray(t) ? t : [])).catch(() => {}); }, []);
 
   const Section = ({ icon: Icon, title, rows, href, cols }: any) => (
     <div className="card" style={{ overflow: 'hidden', marginBottom: 18 }}>
@@ -31,6 +32,7 @@ export default function Page() {
     <Shell title="내 작업">
       <div className="row" style={{ marginBottom: 6 }}><div><h2 className="h1">내 작업</h2><p className="h-sub">{d?.name ? `${d.name}님에게 배정된 업무·이슈·리스크입니다.` : '나에게 배정된 항목을 모아봅니다.'}</p></div></div>
       {!d ? <div className="card card-pad" style={{ display: 'grid', gap: 12 }}>{Array.from({ length: 5 }).map((_, i) => <div key={i} className="skel" style={{ height: i === 0 ? 26 : 18, width: i === 0 ? '30%' : '100%' }} />)}</div> : (<>
+        <Section icon={ListChecks} title="내 To-Do (미완료)" rows={todos.filter((t: any) => t.status !== 'done')} href="/todos" cols={[{ key: 'title', label: '할 일' }, { key: 'priority', label: '우선순위', badge: true }, { key: 'status', label: '상태', badge: true }, { key: 'dueDate', label: '기한' }]} />
         <Section icon={ListTodo} title="내 업무 (WBS)" rows={d.tasks} href="/tasks" cols={[{ key: 'code', label: '코드', mono: true }, { key: 'name', label: '작업' }, { key: 'status', label: '상태', badge: true }, { key: 'endDate', label: '마감' }]} />
         <Section icon={Bug} title="내 이슈" rows={d.issues} href="/issues" cols={[{ key: 'code', label: '코드', mono: true }, { key: 'title', label: '제목' }, { key: 'priority', label: '우선순위', badge: true }, { key: 'status', label: '상태', badge: true }]} />
         <Section icon={ShieldAlert} title="내 리스크" rows={d.risks} href="/risks" cols={[{ key: 'code', label: '코드', mono: true }, { key: 'title', label: '제목' }, { key: 'level', label: '등급', badge: true }, { key: 'status', label: '상태', badge: true }]} />
