@@ -3,6 +3,21 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-07-10 (배치 48 — 배포 대기, 강화: 대시보드 To-Do 위젯)
+- ③ **대시보드 '내 To-Do' 위젯** — 대시보드에 개인 미완료 To-Do 카드를 추가(우선순위·제목·기한·상태, 상위 6건 + 초과건수, '모두 보기'→/todos). 대시보드 마운트 시 /api/todos를 함께 조회해 배정 업무·마감임박과 함께 개인 할 일까지 한 화면에서 파악. 배치42(To-Do 도메인)·배치43(내작업 연계)에 이어 대시보드까지 노출 완결. 순수 표시 위젯이라 데이터·기존 위젯 무영향. — src/app/dashboard/page.tsx
+- 검증: `tsc --noEmit` 통과(에러 0). 마운트 무결성(깨진문자 0) 확인.
+
+## 2026-07-10 (배치 47 — 배포 대기, ★ 산출물 버전이력/형상관리)
+- ★ **산출물 버전이력(형상관리)** 구현 — 산출물 문서의 버전 변경을 자동으로 이력화. 신규 `document_versions` 테이블(문서별 version·status·author·note·시각). 제네릭 CRUD에 **`versionOn` 플래그를 additive로 추가**(이슈 journal 패턴과 동일): 문서 생성 시 '최초 생성' 이력, 이후 PATCH에서 `version` 값이 바뀌면 '개정' 스냅샷을 자동 기록(documents config만 versionOn:true, 다른 리소스 무영향). 산출물 상세 슬라이드오버에 **버전 이력 타임라인** 표시(버전·결재상태·작성자·시각). 신규 API `GET /api/documents/[id]/versions`. 신규 컴포넌트 `DocumentVersions`를 ResourceView 상세에 `entity==='documents'` 조건으로 1줄 삽입(중앙 컴포넌트 최소 변경, 무결성 확인). — src/db/schema.ts, src/lib/migrate.ts, src/lib/configs.ts, src/lib/crud.ts(versionOn hook), src/app/api/documents/[id]/versions/route.ts(신규), src/components/DocumentVersions.tsx(신규), src/components/ResourceView.tsx(1줄)
+- 신규 테이블은 migrate.ts DDL로 배포 시 자동 반영. (커스텀 산출물 양식 form_definitions '동적 폼 빌더'는 대형/고위험이라 별도 세션 권장 — 이번엔 형상관리/버전이력을 우선 완결.)
+- 검증: `tsc --noEmit` 통과(에러 0). 작업 전 src 백업. 마운트 무결성(깨진문자 0, ResourceView 꼬리 정상) 확인.
+
+## 2026-07-10 (배치 46 — 배포 대기, 리스크·프로젝트 보강)
+- ④/⑦ **리스크 대응방안** — 리스크에 `mitigation`(대응방안·완화계획)·`contingency`(비상계획)·`dueDate`(대응기한) 필드 추가(폼 + 목록 '대응기한' 컬럼). 식별·평가에 더해 대응 전략·기한까지 관리해 리스크 관리 완성도 향상. — src/db/schema.ts, src/lib/migrate.ts, src/lib/configs.ts, src/app/risks/page.tsx
+- ⑦ **프로젝트 계약정보** — 프로젝트에 `orderer`(발주처)·`contractNo`(계약번호)·`budget`(계약금액) 필드 추가(폼 + 목록 '계약금액' 컬럼, 원화 포맷). SI 사업의 계약·발주 정보를 프로젝트 단위로 기록. — src/db/schema.ts, src/lib/migrate.ts, src/lib/configs.ts, src/app/projects/page.tsx
+- 신규 컬럼 6개는 migrate.ts `ALTER … ADD COLUMN IF NOT EXISTS`로 배포 시 자동 반영. 제네릭 CRUD+config 기반, 중앙 ResourceView 미접촉(저위험).
+- 검증: `tsc --noEmit` 통과(에러 0). 작업 전 src 백업. 마운트 무결성(깨진문자 0) 확인. (배포는 Windows PMS-AutoDeploy 2시간 주기 무인 반영.)
+
 ## 2026-07-10 (배치 45 — 배포 대기, 기성고 + 인터페이스)
 - ⑦ **기성고·스냅샷 도메인 신설** — 기준 시점(차수·마일스톤)별 계획/실적 진척과 기성률(billing%)을 기록. 신규 `snapshots` 테이블(프로젝트 범위: 기준(label)·기준일·계획%·실적%·기성률%·비고, 코드 SNP)과 전용 화면 `/snapshots`(좌측 내비 '현황' 그룹, 주간보고 아래) 추가. 기성 청구·진척 스냅샷을 시점별로 남겨 추이·정산 근거로 활용. — src/db/schema.ts, src/lib/migrate.ts, src/lib/configs.ts, src/app/api/snapshots/route.ts(신규), src/app/api/snapshots/[id]/route.ts(신규), src/app/snapshots/page.tsx(신규), src/components/Shell.tsx(내비)
 - ⑦ **인터페이스 상세 보강** — 인터페이스에 담당자(owner)·연동 규격(spec)·연동테스트 상태(testStatus: 미실시/진행/완료) 필드 추가(폼 + 목록 '담당'·'연동테스트' 컬럼). 인터페이스 정의서 수준의 상세·검증 상태 관리. — src/db/schema.ts, src/lib/migrate.ts, src/lib/configs.ts, src/app/interfaces/page.tsx

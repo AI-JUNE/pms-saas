@@ -68,9 +68,11 @@ export default function Dashboard() {
   const [d, setD] = useState<any>({ projects: [], requirements: [], issues: [], risks: [], tasks: [] });
   const [mywork, setMywork] = useState<any>({ tasks: [], issues: [], risks: [] });
   const [docs, setDocs] = useState<any[]>([]);
+  const [todos, setTodos] = useState<any[]>([]);
   useEffect(() => {
     fetch('/api/auth/me').then((r) => r.json()).then(async (m) => {
       if (!m.authenticated) { router.push('/login'); return; } setMe(m);
+      fetch('/api/todos').then((r) => r.ok ? r.json() : []).then((tt) => setTodos(Array.isArray(tt) ? tt : [])).catch(() => {});
       const a = await fetch('/api/dashboard').then((r) => r.ok ? r.json() : null);
       if (a) { setD({ projects: a.projects||[], requirements: a.requirements||[], issues: a.issues||[], risks: a.risks||[], tasks: a.tasks||[] }); setDocs(Array.isArray(a.documents) ? a.documents : []); setMywork(a.myWork || { tasks: [], issues: [] }); }
       const lg = Number(localStorage.getItem('pms.gen') || 0);
@@ -166,6 +168,22 @@ export default function Dashboard() {
               {rows.length > 7 && <div className="muted" style={{ fontSize: 12 }}>외 {rows.length - 7}건</div>}</div>;
           })()}
         </div>
+      </div>
+      <div style={{ height: 16 }} />
+      <div className="card card-pad dash-card" style={{ animationDelay: '340ms' }}>
+        <div className="row" style={{ marginBottom: 12 }}><div className="sect">내 To-Do</div><div className="sp" /><Link href="/todos" className="muted" style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>모두 보기 <ArrowRight style={{ width: 14 }} /></Link></div>
+        {(() => {
+          const open = todos.filter((t: any) => t.status !== 'done');
+          if (open.length === 0) return <p className="muted" style={{ fontSize: 13 }}>미완료 개인 할 일이 없습니다.</p>;
+          return <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{open.slice(0, 6).map((t: any) => (
+            <div key={t.id} onClick={() => router.push('/todos')} style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer' }}>
+              <Pill v={t.priority} />
+              <span style={{ flex: 1, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
+              <span className="muted" style={{ fontSize: 11 }}>{t.dueDate || ''}</span>
+              <Pill v={t.status} />
+            </div>))}
+            {open.length > 6 && <div className="muted" style={{ fontSize: 12 }}>외 {open.length - 6}건</div>}</div>;
+        })()}
       </div>
       <div style={{ height: 16 }} />
       <div className="card card-pad dash-card" style={{ animationDelay: '360ms' }}>

@@ -45,7 +45,7 @@ export const auditLog = pgTable('audit_log', {
 export const projects = pgTable('projects', {
   id: serial('id').primaryKey(),
   orgId: integer('org_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
-  code: text('code'), name: text('name').notNull(), client: text('client'),
+  code: text('code'), name: text('name').notNull(), client: text('client'), orderer: text('orderer'), contractNo: text('contract_no'), budget: integer('budget').default(0).notNull(),
   startDate: text('start_date'), endDate: text('end_date'), pmUserId: integer('pm_user_id'),
   status: text('status').default('active').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -97,7 +97,7 @@ export const risks = pgTable('risks', {
   projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
   code: text('code'), title: text('title').notNull(), description: text('description'),
   probability: integer('probability').default(3).notNull(), impact: integer('impact').default(3).notNull(),
-  level: text('level').default('medium').notNull(), status: text('status').default('identified').notNull(), owner: text('owner'),
+  level: text('level').default('medium').notNull(), status: text('status').default('identified').notNull(), owner: text('owner'), mitigation: text('mitigation'), contingency: text('contingency'), dueDate: text('due_date'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({ projIdx: index('risks_project_idx').on(t.orgId, t.projectId), ownIdx: index('risks_owner_idx').on(t.orgId, t.owner) }));
 export const tasks = pgTable('tasks', {
@@ -118,6 +118,13 @@ export const documents = pgTable('documents', {
   approvedAt: timestamp('approved_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({ projIdx: index('docs_project_idx').on(t.orgId, t.projectId) }));
+// 산출물 버전이력(형상관리)
+export const documentVersions = pgTable('document_versions', {
+  id: serial('id').primaryKey(), orgId: integer('org_id').notNull(),
+  documentId: integer('document_id').notNull().references(() => documents.id, { onDelete: 'cascade' }),
+  version: text('version'), status: text('status'), author: text('author'), note: text('note'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({ i: index('document_versions_idx').on(t.orgId, t.documentId) }));
 export const meetings = pgTable('meetings', {
   id: serial('id').primaryKey(), orgId: integer('org_id').notNull(),
   projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),

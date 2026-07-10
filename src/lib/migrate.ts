@@ -85,6 +85,17 @@ export const MIGRATION_DDL: string[] = [
   `ALTER TABLE IF EXISTS interfaces ADD COLUMN IF NOT EXISTS owner text`,
   `ALTER TABLE IF EXISTS interfaces ADD COLUMN IF NOT EXISTS spec text`,
   `ALTER TABLE IF EXISTS interfaces ADD COLUMN IF NOT EXISTS test_status text`,
+  // 프로젝트 계약정보
+  `ALTER TABLE IF EXISTS projects ADD COLUMN IF NOT EXISTS orderer text`,
+  `ALTER TABLE IF EXISTS projects ADD COLUMN IF NOT EXISTS contract_no text`,
+  `ALTER TABLE IF EXISTS projects ADD COLUMN IF NOT EXISTS budget integer DEFAULT 0 NOT NULL`,
+  // 리스크 대응방안
+  `ALTER TABLE IF EXISTS risks ADD COLUMN IF NOT EXISTS mitigation text`,
+  `ALTER TABLE IF EXISTS risks ADD COLUMN IF NOT EXISTS contingency text`,
+  `ALTER TABLE IF EXISTS risks ADD COLUMN IF NOT EXISTS due_date text`,
+  // 산출물 버전이력
+  `CREATE TABLE IF NOT EXISTS document_versions (id serial PRIMARY KEY, org_id integer NOT NULL, document_id integer NOT NULL REFERENCES documents(id) ON DELETE CASCADE, version text, status text, author text, note text, created_at timestamptz DEFAULT now() NOT NULL)`,
+  `CREATE INDEX IF NOT EXISTS document_versions_idx ON document_versions (org_id, document_id)`,
 ];
 
 export async function runMigrations(): Promise<{ applied: number; failed: { stmt: string; error: string }[] }> {

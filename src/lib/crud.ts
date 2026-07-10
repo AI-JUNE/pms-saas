@@ -1,6 +1,6 @@
 import { and, eq, desc, asc } from 'drizzle-orm';
 import { db } from '@/db';
-import { projects, tasks, phases, issueJournals } from '@/db/schema';
+import { projects, tasks, phases, issueJournals, documentVersions } from '@/db/schema';
 import { requireUser } from './auth';
 import { requireTenant, type TenantContext } from './tenant';
 import { requirePermission } from './rbac';
@@ -9,7 +9,7 @@ import { audit } from './audit';
 import { handle, ok, ApiError, ERROR } from './http';
 type Scope = 'org' | 'project' | 'user';
 // approveOn: 지정 필드 값이 목록에 포함되면 'write'가 아닌 'approve' 권한을 요구(결재 경계)
-export type CrudConfig = { table: any; resource: string; scope: Scope; codePrefix?: string; fields: string[]; required?: string[]; transform?: (values: any) => any; orderAsc?: boolean; guardDelete?: (ctx: TenantContext, id: number) => Promise<void>; approveOn?: { field: string; values: string[] }; journal?: boolean; };
+export type CrudConfig = { table: any; resource: string; scope: Scope; codePrefix?: string; fields: string[]; required?: string[]; transform?: (values: any) => any; orderAsc?: boolean; guardDelete?: (ctx: TenantContext, id: number) => Promise<void>; approveOn?: { field: string; values: string[] }; journal?: boolean; versionOn?: boolean; };
 async function ctxOf(): Promise<TenantContext> { return requireTenant(await requireUser()); }
 async function assertProject(orgId: number, projectId: number) {
   const p = (await db.select().from(projects).where(and(eq(projects.id, projectId), eq(projects.orgId, orgId))).limit(1))[0];
@@ -32,6 +32,7 @@ export function collection(cfg: CrudConfig) {
     if (cfg.transform) Object.assign(values, cfg.transform(values));
     if (cfg.codePrefix) { const key = cfg.scope === 'project' ? `${cfg.codePrefix}:${values.projectId}` : cfg.codePrefix; values.code = formatCode(cfg.codePrefix, await nextSeq(ctx.orgId, key)); }
     const ins: any = await db.insert(t).values(values).returning(); const row = ins[0];
+    if (cfg.versionOn) { try { await db.insert(documentVersions).values({ orgId: ctx.orgId, documentId: row.id, version: row.version, status: row.status, author: row.author, note: '최초 생성' }); } catch (e) { console.error('[version] init 실패', e); } }
     await audit(ctx, `${cfg.resource.toUpperCase()}_CREATE`, { entity: cfg.resource, entityId: row.id }); return ok(row, 201);
   });
   return { GET, POST };
@@ -42,7 +43,7 @@ export function item(cfg: CrudConfig) {
     const t = cfg.table; const body = await req.json(); const patch: any = {};
     // 결재(승인/반려) 경계: 상태를 결재 확정값으로 바꾸는 경우 'approve' 권한 추가 요구
     if (cfg.approveOn && cfg.approveOn.values.includes(body[cfg.approveOn.field])) await requirePermission(ctx, cfg.resource, 'approve');
-    const before: any = cfg.journal ? (await db.select().from(t).where(and(eq(t.id, Number(c.params.id)), eq(t.orgId, ctx.orgId))).limit(1))[0] : null;
+    const before: any = (cfg.journal || cfg.versionOn) ? (await db.select().from(t).where(and(eq(t.id, Number(c.params.id)), eq(t.orgId, ctx.orgId))).limit(1))[0] : null;
     for (const f of cfg.fields) if (body[f] !== undefined && body[f] !== null && body[f] !== '') patch[f] = body[f];
     if (cfg.transform) Object.assign(patch, cfg.transform({ ...body, ...patch }));
     const uw: any[] = [eq(t.id, Number(c.params.id)), eq(t.orgId, ctx.orgId)]; if (cfg.scope === 'user') uw.push(eq(t.userId, ctx.user.id)); const upd: any = await db.update(t).set(patch).where(and(...uw)).returning(); const row = upd[0];
@@ -51,6 +52,9 @@ export function item(cfg: CrudConfig) {
       const changes: { field: string; from: any; to: any }[] = [];
       for (const f of cfg.fields) { if (patch[f] !== undefined && String(before[f] ?? '') !== String(row[f] ?? '')) changes.push({ field: f, from: before[f] ?? null, to: row[f] ?? null }); }
       if (changes.length) { try { await db.insert(issueJournals).values({ orgId: ctx.orgId, issueId: row.id, userId: ctx.user.id, authorName: ctx.user.name, changes: JSON.stringify(changes) }); } catch (e) { console.error('[journal] insert 실패', e); } }
+    }
+    if (cfg.versionOn && before && String(before.version ?? '') !== String(row.version ?? '')) {
+      try { await db.insert(documentVersions).values({ orgId: ctx.orgId, documentId: row.id, version: row.version, status: row.status, author: row.author, note: '개정' }); } catch (e) { console.error('[version] insert 실패', e); }
     }
     await audit(ctx, `${cfg.resource.toUpperCase()}_UPDATE`, { entity: cfg.resource, entityId: row.id }); return ok(row);
   });
