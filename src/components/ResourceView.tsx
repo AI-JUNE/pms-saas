@@ -19,6 +19,7 @@ const STATUS_COLOR: Record<string, string> = {
   identified: '#d98a16', mitigating: '#d98a16', medium: '#d98a16', pl: '#d98a16', ordered: '#d98a16',
   high: '#c0414f', critical: '#c0414f', rejected: '#c0414f', fail: '#c0414f', blocked: '#c0414f',
   pm: '#7c4dff',
+  '미실시': '#94a3b8', '진행': '#0e9bb8', '완료': '#2f8f5b',
 };
 export type Field = { key: string; label: string; type?: 'text'|'textarea'|'number'|'date'|'select'|'combo'; options?: Opt[]; required?: boolean; half?: boolean; numeric?: boolean; hint?: string; placeholder?: string; optionsFrom?: 'members' | 'tasks' };
 export type AltView = { key: string; label: string; icon?: any; render: (rows: any[], openDetail: (r: any) => void, save: (id: number, patch: any) => Promise<void>, create: (body: any) => Promise<boolean>) => any };

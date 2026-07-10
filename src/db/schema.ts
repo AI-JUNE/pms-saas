@@ -125,6 +125,14 @@ export const documentVersions = pgTable('document_versions', {
   version: text('version'), status: text('status'), author: text('author'), note: text('note'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({ i: index('document_versions_idx').on(t.orgId, t.documentId) }));
+// 커스텀 산출물 양식(form_definitions) — 프로젝트별 산출물 템플릿 정의
+export const formDefinitions = pgTable('form_definitions', {
+  id: serial('id').primaryKey(), orgId: integer('org_id').notNull(),
+  projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  code: text('code'), name: text('name').notNull(), targetType: text('target_type'), fields: text('fields'), note: text('note'),
+  status: text('status').default('draft').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({ i: index('form_definitions_project_idx').on(t.orgId, t.projectId) }));
 export const meetings = pgTable('meetings', {
   id: serial('id').primaryKey(), orgId: integer('org_id').notNull(),
   projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),

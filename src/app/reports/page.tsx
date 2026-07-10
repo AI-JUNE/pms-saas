@@ -111,12 +111,12 @@ export default function Page() {
   const [d, setD] = useState<any>(null);
   useEffect(() => {
     fetch('/api/auth/me').then((r) => r.json()).then(async (m) => { if (!m.authenticated) { router.push('/login'); return; }
-      const [issues, tasks, risks, requirements, projects, sprints, tests] = await Promise.all(['issues','tasks','risks','requirements','projects','sprints','tests'].map((e) => fetch('/api/' + e).then((r) => r.ok ? r.json() : [])));
-      setD({ issues: issues||[], tasks: tasks||[], risks: risks||[], requirements: requirements||[], projects: projects||[], sprints: sprints||[], tests: tests||[] });
+      const [issues, tasks, risks, requirements, projects, sprints, tests, snapshots] = await Promise.all(['issues','tasks','risks','requirements','projects','sprints','tests','snapshots'].map((e) => fetch('/api/' + e).then((r) => r.ok ? r.json() : [])));
+      setD({ issues: issues||[], tasks: tasks||[], risks: risks||[], requirements: requirements||[], projects: projects||[], sprints: sprints||[], tests: tests||[], snapshots: snapshots||[] });
     });
   }, [router]);
   if (!d) return <Shell title="리포트"><div className="card card-pad" style={{ display: 'grid', gap: 12 }}>{Array.from({ length: 5 }).map((_, i) => <div key={i} className="skel" style={{ height: i === 0 ? 30 : 18, width: i === 0 ? '38%' : '100%' }} />)}</div></Shell>;
-  const { issues, tasks, risks, requirements, projects, sprints, tests } = d;
+  const { issues, tasks, risks, requirements, projects, sprints, tests, snapshots } = d;
   // 테스트 실행 결과(통과율·실패)
   const tCnt = (r: string) => tests.filter((t: any) => t.result === r).length;
   const tPass = tCnt('pass'), tFail = tCnt('fail'), tBlocked = tCnt('blocked'), tNa = tests.length - tPass - tFail - tBlocked;
@@ -157,6 +157,15 @@ export default function Page() {
       </div>
       <div style={{ height: 16 }} />
       <div className="card card-pad dash-card"><div className="sect" style={{ marginBottom: 8 }}>주간 진척 추이 <span style={{ fontSize: 11, color: 'var(--text-4)', fontWeight: 600 }}>(최근 10주 · 기한 도래 대비 완료 누적)</span></div><WeeklyTrend tasks={tasks} /></div>
+      <div style={{ height: 16 }} />
+      <div className="card card-pad dash-card"><div className="sect" style={{ marginBottom: 12 }}>기성고 · 진척 스냅샷 <span style={{ fontSize: 11, color: 'var(--text-4)', fontWeight: 600 }}>(기준 시점별 계획/실적/기성률)</span></div>
+        {snapshots.length === 0 ? <p className="muted" style={{ fontSize: 13 }}>스냅샷이 없습니다. 기성고·스냅샷 화면에서 기준 시점을 기록하면 여기에 추이가 표시됩니다.</p> : (
+          <div className="tbl-wrap"><table className="tbl"><thead><tr><th>기준</th><th>기준일</th><th>계획</th><th>실적</th><th style={{ minWidth: 150 }}>기성률</th></tr></thead>
+            <tbody>{snapshots.slice(0, 12).map((s: any) => (
+              <tr key={s.id}><td style={{ fontWeight: 650 }}>{s.label}</td><td className="muted">{s.snapshotDate || '\u2014'}</td><td>{s.plannedPct||0}%</td><td>{s.actualPct||0}%</td>
+                <td><div className="row" style={{ gap: 8 }}><div className="pbar" style={{ flex: 1 }}><i style={{ width: `${Math.min(100, s.billingPct||0)}%`, background: 'linear-gradient(90deg,#e6915f,#be5535)' }} /></div><span style={{ fontWeight: 800, fontSize: 12, minWidth: 34, textAlign: 'right' }}>{s.billingPct||0}%</span></div></td></tr>))}
+            </tbody></table></div>)}
+      </div>
       <div style={{ height: 16 }} />
       <div className="g2">
         <div className="card card-pad dash-card"><div className="sect" style={{ marginBottom: 8 }}>번다운 차트</div><Burndown tasks={tasks} /></div>

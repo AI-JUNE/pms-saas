@@ -8,6 +8,7 @@ export const BADGE: Record<string, string> = {
   bug:'p-red', task:'p-blue', improvement:'p-cyan', support:'p-amber', change:'p-purple',
   dev:'p-blue', pl:'p-amber', pm:'p-cyan', pass:'p-green', fail:'p-red', blocked:'p-red', na:'p-gray',
   requested:'p-amber', ordered:'p-blue', received:'p-cyan', standby:'p-gray', retired:'p-gray',
+  '미실시':'p-gray', '진행':'p-blue', '완료':'p-green',
 };
 export const LABEL: Record<string, string> = {
   active:'진행', approved:'승인', done:'완료', resolved:'해결', closed:'종료', completed:'완료',

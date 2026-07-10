@@ -3,6 +3,17 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-07-10 (배치 50 — 배포 대기, 인터페이스 연동테스트 상태 배지 색상화)
+- ⑥/⑧ **인터페이스 '연동테스트'(testStatus) 상태 배지 색상화** — 인터페이스 목록의 '연동테스트' 컬럼이 그동안 무색 일반 텍스트(미실시/진행/완료)로만 표시돼 다른 상태 컬럼과 달리 한눈에 스캔되지 않던 것을 개선. 컬럼에 `badge:true`를 부여해 Pill 배지로 렌더(미실시=회색·진행=파랑·완료=초록). lib/ui.tsx BADGE와 ResourceView STATUS_COLOR에 3개 한글 상태값 색상 키를 additive로 추가. testStatus가 select 필드이므로 배지 셀이 monday식 **인라인 드롭다운 편집**까지 자동 지원(다른 상태 셀과 동일 UX). 순수 표시/색상 매핑이라 데이터·API·스키마 무영향, 마이그레이션 불필요. 해당 한글 값(미실시/진행/완료)은 앱 내 어디서도 저장값으로 쓰이지 않아 색상 오적용 충돌 없음(검증). — src/lib/ui.tsx, src/components/ResourceView.tsx, src/app/interfaces/page.tsx
+- ⑥ 안전 백로그·⑧ monday UX·⑤ 테스트가 모두 [x] 소진, ROADMAP 잔여 `[ ]`는 전부 대형/주간 수동(⑦·라인17)이라 야간 금지 대상 → 배치40/41을 잇는 가독성 보너스 폴리시로 진행(신규 테이블 미접촉). ROADMAP 변경 없음.
+- 검증: `tsc --noEmit` 통과(에러 0). 작업 전 src 백업(/tmp/bak). (야간 OneDrive 마운트 동기화 지연으로 3개 마운트 사본 꼬리 잘림 → 호스트 원본 무결성 확인 후 python(utf-8)으로 백업+동일 치환 재구성해 0에러·깨진문자 0 재확인.)
+
+## 2026-07-10 (배치 49 — 배포 대기, 커스텀 산출물 양식 + 리포트 기성고)
+- ⑦ **커스텀 산출물 양식(form_definitions) — 안전 MVP** — 프로젝트별 산출물 템플릿을 정의·표준화하는 도메인 신설. 신규 `form_definitions` 테이블(양식명·대상 산출물 유형·항목 구성(fields, 줄바꿈 구분)·설명·상태, 코드 FORM)과 전용 화면 `/form-definitions`(내비 '실행' 그룹, 산출물·결재 아래). 팀이 산출물 양식의 항목 구성을 등록해 표준화. (동적 폼 렌더링은 ResourceView 대공사라 고위험 → 별도 세션; 이번엔 정의/표준화 기반을 안전하게 제공.) — src/db/schema.ts, src/lib/migrate.ts, src/lib/configs.ts, src/app/api/form-definitions/route.ts(신규), src/app/api/form-definitions/[id]/route.ts(신규), src/app/form-definitions/page.tsx(신규), src/components/Shell.tsx(내비)
+- ③ **리포트 기성고·스냅샷 추이 섹션** — 리포트 화면에 프로젝트 기성고 스냅샷(기준·기준일·계획%·실적%·기성률 바)을 표로 표시. 배치45 스냅샷 데이터를 종합 리포트에서 한눈에 확인. — src/app/reports/page.tsx
+- 신규 테이블 1개 + 리포트 표시 강화. migrate.ts DDL로 배포 시 자동 반영. 제네릭 CRUD+config 기반, 중앙 ResourceView 미접촉(저위험).
+- 검증: `tsc --noEmit` 통과(에러 0). 작업 전 src 백업. 마운트 무결성(깨진문자 0) 확인.
+
 ## 2026-07-10 (배치 48 — 배포 대기, 강화: 대시보드 To-Do 위젯)
 - ③ **대시보드 '내 To-Do' 위젯** — 대시보드에 개인 미완료 To-Do 카드를 추가(우선순위·제목·기한·상태, 상위 6건 + 초과건수, '모두 보기'→/todos). 대시보드 마운트 시 /api/todos를 함께 조회해 배정 업무·마감임박과 함께 개인 할 일까지 한 화면에서 파악. 배치42(To-Do 도메인)·배치43(내작업 연계)에 이어 대시보드까지 노출 완결. 순수 표시 위젯이라 데이터·기존 위젯 무영향. — src/app/dashboard/page.tsx
 - 검증: `tsc --noEmit` 통과(에러 0). 마운트 무결성(깨진문자 0) 확인.

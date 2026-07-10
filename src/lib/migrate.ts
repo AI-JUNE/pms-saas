@@ -96,6 +96,9 @@ export const MIGRATION_DDL: string[] = [
   // 산출물 버전이력
   `CREATE TABLE IF NOT EXISTS document_versions (id serial PRIMARY KEY, org_id integer NOT NULL, document_id integer NOT NULL REFERENCES documents(id) ON DELETE CASCADE, version text, status text, author text, note text, created_at timestamptz DEFAULT now() NOT NULL)`,
   `CREATE INDEX IF NOT EXISTS document_versions_idx ON document_versions (org_id, document_id)`,
+  // 커스텀 산출물 양식
+  `CREATE TABLE IF NOT EXISTS form_definitions (id serial PRIMARY KEY, org_id integer NOT NULL, project_id integer NOT NULL REFERENCES projects(id) ON DELETE CASCADE, code text, name text NOT NULL, target_type text, fields text, note text, status text DEFAULT 'draft' NOT NULL, created_at timestamptz DEFAULT now() NOT NULL)`,
+  `CREATE INDEX IF NOT EXISTS form_definitions_project_idx ON form_definitions (org_id, project_id)`,
 ];
 
 export async function runMigrations(): Promise<{ applied: number; failed: { stmt: string; error: string }[] }> {

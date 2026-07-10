@@ -27,6 +27,7 @@ const NAV = [
     { href: '/requirements', label: '요구사항', icon: ClipboardList },
     { href: '/rtm', label: '요구사항 추적(RTM)', icon: Network },
     { href: '/documents', label: '산출물·결재', icon: FileCheck2 },
+    { href: '/form-definitions', label: '산출물 양식', icon: FileCheck2 },
   ]},
   { group: '통제', items: [
     { href: '/issues', label: '이슈·결함', icon: Bug },
