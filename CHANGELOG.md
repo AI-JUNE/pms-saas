@@ -3,6 +3,12 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-07-10 (배치 45 — 배포 대기, 기성고 + 인터페이스)
+- ⑦ **기성고·스냅샷 도메인 신설** — 기준 시점(차수·마일스톤)별 계획/실적 진척과 기성률(billing%)을 기록. 신규 `snapshots` 테이블(프로젝트 범위: 기준(label)·기준일·계획%·실적%·기성률%·비고, 코드 SNP)과 전용 화면 `/snapshots`(좌측 내비 '현황' 그룹, 주간보고 아래) 추가. 기성 청구·진척 스냅샷을 시점별로 남겨 추이·정산 근거로 활용. — src/db/schema.ts, src/lib/migrate.ts, src/lib/configs.ts, src/app/api/snapshots/route.ts(신규), src/app/api/snapshots/[id]/route.ts(신규), src/app/snapshots/page.tsx(신규), src/components/Shell.tsx(내비)
+- ⑦ **인터페이스 상세 보강** — 인터페이스에 담당자(owner)·연동 규격(spec)·연동테스트 상태(testStatus: 미실시/진행/완료) 필드 추가(폼 + 목록 '담당'·'연동테스트' 컬럼). 인터페이스 정의서 수준의 상세·검증 상태 관리. — src/db/schema.ts, src/lib/migrate.ts, src/lib/configs.ts, src/app/interfaces/page.tsx
+- 신규 테이블 1개 + 컬럼 3개는 migrate.ts DDL(`CREATE TABLE IF NOT EXISTS`+인덱스, `ALTER … ADD COLUMN IF NOT EXISTS`)로 배포 시 자동 반영. 제네릭 CRUD+config 기반, 중앙 ResourceView 미접촉(저위험).
+- 검증: `tsc --noEmit` 통과(에러 0). 작업 전 src 백업. 마운트 무결성(깨진문자 0) 확인. ROADMAP ⑦ 스냅샷/기성고 부분 [x].
+
 ## 2026-07-10 (배치 44 — 배포 대기, SI 도메인 다건 보강)
 - ⑦ SI 실무 도메인 5종에 핵심 필드를 한 번에 보강(모두 config+migrate 기반, 중앙 ResourceView 미접촉·저위험):
   - **요구사항**: `acceptanceCriteria`(인수기준·완료조건, textarea) — 요구사항 검수 기준 명세.

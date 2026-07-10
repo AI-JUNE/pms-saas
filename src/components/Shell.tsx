@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {
   LayoutDashboard, FolderKanban, Layers3, ListTodo, FileCheck2, ClipboardList,
   Bug, ShieldAlert, CalendarClock, Users, Bell, Search, LogOut, ChevronDown, Check, ClipboardCheck, CalendarDays,
-  BarChart3, Activity, Settings, ShieldCheck, Command, User, GitBranch, Type, Circle, Menu,
+  BarChart3, Activity, Settings, ShieldCheck, Command, User, GitBranch, Type, Circle, Menu, Camera,
   Share2, Server, Flame, ShoppingCart, MessageSquare, UserCheck, CalendarRange, Network, Gauge, ListChecks,
 } from 'lucide-react';
 import { Logo } from './Logo';
@@ -20,6 +20,7 @@ const NAV = [
     { href: '/phases', label: '단계', icon: Layers3 },
     { href: '/reports', label: '리포트', icon: BarChart3 },
     { href: '/weekly', label: '주간보고', icon: CalendarRange },
+    { href: '/snapshots', label: '기성고·스냅샷', icon: Camera },
   ]},
   { group: '실행', items: [
     { href: '/tasks', label: '업무 (WBS)', icon: ListTodo },

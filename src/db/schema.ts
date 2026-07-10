@@ -147,7 +147,7 @@ export const interfaces = pgTable('interfaces', {
   id: serial('id').primaryKey(), orgId: integer('org_id').notNull(),
   projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
   code: text('code'), name: text('name').notNull(), srcSystem: text('src_system'), dstSystem: text('dst_system'),
-  protocol: text('protocol'), format: text('format'), cycle: text('cycle'), status: text('status').default('draft').notNull(),
+  protocol: text('protocol'), format: text('format'), cycle: text('cycle'), owner: text('owner'), spec: text('spec'), testStatus: text('test_status'), status: text('status').default('draft').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({ i: index('itf_proj_idx').on(t.orgId, t.projectId) }));
 export const infraAssets = pgTable('infra_assets', {
@@ -191,6 +191,15 @@ export const todos = pgTable('todos', {
   priority: text('priority').default('medium').notNull(), status: text('status').default('todo').notNull(), dueDate: text('due_date'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({ i: index('todos_user_idx').on(t.orgId, t.userId) }));
+// 기성고·진척 스냅샷
+export const snapshots = pgTable('snapshots', {
+  id: serial('id').primaryKey(), orgId: integer('org_id').notNull(),
+  projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  code: text('code'), label: text('label').notNull(), snapshotDate: text('snapshot_date'),
+  plannedPct: integer('planned_pct').default(0).notNull(), actualPct: integer('actual_pct').default(0).notNull(), billingPct: integer('billing_pct').default(0).notNull(),
+  note: text('note'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({ i: index('snapshots_project_idx').on(t.orgId, t.projectId) }));
 
 // 이슈 이력(journal) — 변경 추적(누가 언제 무엇을)
 export const issueJournals = pgTable('issue_journals', {

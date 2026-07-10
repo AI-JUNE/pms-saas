@@ -78,6 +78,13 @@ export const MIGRATION_DDL: string[] = [
   // 방화벽 승인자·만료
   `ALTER TABLE IF EXISTS firewall_requests ADD COLUMN IF NOT EXISTS approver text`,
   `ALTER TABLE IF EXISTS firewall_requests ADD COLUMN IF NOT EXISTS expire_date text`,
+  // 기성고 스냅샷
+  `CREATE TABLE IF NOT EXISTS snapshots (id serial PRIMARY KEY, org_id integer NOT NULL, project_id integer NOT NULL REFERENCES projects(id) ON DELETE CASCADE, code text, label text NOT NULL, snapshot_date text, planned_pct integer DEFAULT 0 NOT NULL, actual_pct integer DEFAULT 0 NOT NULL, billing_pct integer DEFAULT 0 NOT NULL, note text, created_at timestamptz DEFAULT now() NOT NULL)`,
+  `CREATE INDEX IF NOT EXISTS snapshots_project_idx ON snapshots (org_id, project_id)`,
+  // 인터페이스 상세
+  `ALTER TABLE IF EXISTS interfaces ADD COLUMN IF NOT EXISTS owner text`,
+  `ALTER TABLE IF EXISTS interfaces ADD COLUMN IF NOT EXISTS spec text`,
+  `ALTER TABLE IF EXISTS interfaces ADD COLUMN IF NOT EXISTS test_status text`,
 ];
 
 export async function runMigrations(): Promise<{ applied: number; failed: { stmt: string; error: string }[] }> {

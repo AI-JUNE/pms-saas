@@ -1,4 +1,4 @@
-import { projects, phases, members, requirements, issues, tests, risks, tasks, documents, meetings, sprints, interfaces, infraAssets, firewallRequests, procurementItems, boards, testCycles, todos } from '@/db/schema';
+import { projects, phases, members, requirements, issues, tests, risks, tasks, documents, meetings, sprints, interfaces, infraAssets, firewallRequests, procurementItems, boards, testCycles, todos, snapshots } from '@/db/schema';
 import { RISK_TRANSFORM, DOCUMENTS_TRANSFORM, GUARD_TASK_CHILDREN, GUARD_PHASE_IN_USE, type CrudConfig } from './crud';
 export const CONFIGS: Record<string, CrudConfig> = {
   projects: { table: projects, resource: 'project', scope: 'org', codePrefix: 'PRJ', fields: ['name','client','startDate','endDate','status','pmUserId'], required: ['name'] },
@@ -14,7 +14,8 @@ export const CONFIGS: Record<string, CrudConfig> = {
   sprints: { table: sprints, resource: 'sprint', scope: 'project', codePrefix: 'SPR', fields: ['name','goal','status','startDate','endDate'], required: ['name'] },
   testCycles: { table: testCycles, resource: 'testCycle', scope: 'project', codePrefix: 'CYC', fields: ['name','goal','status','startDate','endDate'], required: ['name'] },
   todos: { table: todos, resource: 'todo', scope: 'user', codePrefix: 'TD', fields: ['title','note','priority','status','dueDate'], required: ['title'] },
-  interfaces: { table: interfaces, resource: 'interface', scope: 'project', codePrefix: 'IF', fields: ['name','srcSystem','dstSystem','protocol','format','cycle','status'], required: ['name'] },
+  snapshots: { table: snapshots, resource: 'snapshot', scope: 'project', codePrefix: 'SNP', fields: ['label','snapshotDate','plannedPct','actualPct','billingPct','note'], required: ['label'] },
+  interfaces: { table: interfaces, resource: 'interface', scope: 'project', codePrefix: 'IF', fields: ['name','srcSystem','dstSystem','protocol','format','cycle','owner','spec','testStatus','status'], required: ['name'] },
   infra: { table: infraAssets, resource: 'infra', scope: 'project', codePrefix: 'AST', fields: ['name','category','model','location','ipAddress','owner','hostname','os','cpu','memory','rack','serialNo','status'], required: ['name'] },
   firewall: { table: firewallRequests, resource: 'firewall', scope: 'project', codePrefix: 'FW', fields: ['title','srcIp','dstIp','port','protocol','reason','approver','expireDate','status'], required: ['title'] },
   procurement: { table: procurementItems, resource: 'procurement', scope: 'project', codePrefix: 'PO', fields: ['item','category','qty','unitPrice','vendor','poNumber','deliveryDate','receiptDate','status'], required: ['item'] },
