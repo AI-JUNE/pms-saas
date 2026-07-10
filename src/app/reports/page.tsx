@@ -200,7 +200,7 @@ export default function Page() {
         <div className="card dash-card" style={{ overflow: 'hidden' }}>
           <div className="card-pad" style={{ paddingBottom: 0 }}><div className="sect">프로젝트별 테스트 통과율</div></div>
           <div className="tbl-wrap" style={{ marginTop: 8 }}><table className="tbl"><thead><tr><th>프로젝트</th><th>실행</th><th>통과</th><th>실패</th><th>통과율</th></tr></thead>
-            <tbody>{testByProject.map((r: any) => <tr key={r.p.id}><td style={{ fontWeight: 650 }}>{r.p.name}</td><td>{r.exec}/{r.total}</td><td><span className="pill p-green">{r.pass}</span></td><td><span className="pill p-red">{r.fail}</span></td><td style={{ fontWeight: 800, color: r.rate == null ? 'var(--text-4)' : r.rate >= 80 ? '#2f8f5b' : r.rate >= 50 ? '#d98a16' : '#c0414f' }}>{r.rate == null ? '—' : r.rate + '%'}</td></tr>)}
+            <tbody>{testByProject.map((r: any) => <tr key={r.p.id}><td style={{ fontWeight: 650 }}>{r.p.name}</td><td>{r.exec}/{r.total}</td><td><span className="pill p-green">{r.pass}</span></td><td><span className="pill p-red">{r.fail}</span></td><td style={{ minWidth: 140 }}>{r.rate == null ? <span style={{ color: 'var(--text-4)', fontWeight: 800 }}>—</span> : (() => { const rc = r.rate >= 80 ? '#2f8f5b' : r.rate >= 50 ? '#d98a16' : '#c0414f'; return <div className="row" style={{ gap: 8 }}><div className="pbar" style={{ flex: 1 }}><i style={{ width: `${Math.min(100, r.rate)}%`, background: rc }} /></div><span style={{ fontWeight: 800, fontSize: 12, minWidth: 34, textAlign: 'right', color: rc }}>{r.rate}%</span></div>; })()}</td></tr>)}
               {testByProject.length === 0 && <tr><td colSpan={5}><div className="empty">실행된 테스트 없음</div></td></tr>}</tbody></table></div>
         </div>
       </div>
