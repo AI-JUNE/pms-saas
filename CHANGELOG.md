@@ -3,6 +3,16 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-07-10 (배치 44 — 배포 대기, SI 도메인 다건 보강)
+- ⑦ SI 실무 도메인 5종에 핵심 필드를 한 번에 보강(모두 config+migrate 기반, 중앙 ResourceView 미접촉·저위험):
+  - **요구사항**: `acceptanceCriteria`(인수기준·완료조건, textarea) — 요구사항 검수 기준 명세.
+  - **조달**: `poNumber`(발주번호)·`deliveryDate`(납기일)·`receiptDate`(입고일) + 목록 '납기' 컬럼 — 발주~입고 흐름 관리.
+  - **회의**: `actionItems`(후속조치 Action Item, textarea)·`nextDate`(차기 회의일) + 목록 '차기' 컬럼 — 회의록 실행력 강화.
+  - **이슈**: `related`(관계 이슈, 쉼표 코드) — 연관·중복·차단 이슈 연결 기록.
+  - **방화벽**: `approver`(승인자)·`expireDate`(만료일) + 목록 '만료' 컬럼 — 정책 승인·만료 관리.
+- 신규 컬럼 13개는 migrate.ts `ALTER TABLE … ADD COLUMN IF NOT EXISTS`로 배포 시 자동 반영. — src/db/schema.ts, src/lib/migrate.ts, src/lib/configs.ts, src/app/requirements|procurement|meetings|issues|firewall/page.tsx
+- 검증: `tsc --noEmit` 통과(에러 0). 작업 전 src 백업. 마운트 무결성(깨진문자 0) 확인.
+
 ## 2026-07-10 (배치 43 — 배포 대기, 다건)
 - ⑦ **개인 To-Do → 내 작업(/mywork) 연계** — 개인 할 일(미완료)을 '내 작업' 화면 최상단에 섹션으로 노출(제목·우선순위·상태·기한). /api/todos를 클라이언트에서 함께 조회해 배정 업무·이슈·리스크와 한 화면에 모아 봄. (배치42 To-Do 도메인의 주간/내작업 연계 완결.) — src/app/mywork/page.tsx
 - ★ **이슈 시간기록(공수)** — 이슈에 `estimateHours`(예상)·`spentHours`(실제) 공수 필드 추가. 이슈 폼에 입력란, 목록에 '공수(h)' 컬럼 노출. 업무(WBS)의 계획/실제 공수처럼 이슈 단위 공수 추적 가능. (⑦ '이슈 …시간기록(공수)' 하위기능 충족.) — src/db/schema.ts, src/lib/migrate.ts, src/lib/configs.ts, src/app/issues/page.tsx

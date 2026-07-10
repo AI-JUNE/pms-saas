@@ -68,7 +68,7 @@ export const requirements = pgTable('requirements', {
   id: serial('id').primaryKey(), orgId: integer('org_id').notNull(),
   projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
   code: text('code'), title: text('title').notNull(), description: text('description'), category: text('category'),
-  priority: text('priority').default('medium').notNull(), status: text('status').default('draft').notNull(), assignee: text('assignee'),
+  priority: text('priority').default('medium').notNull(), status: text('status').default('draft').notNull(), assignee: text('assignee'), acceptanceCriteria: text('acceptance_criteria'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({ projIdx: index('req_project_idx').on(t.orgId, t.projectId) }));
 export const issues = pgTable('issues', {
@@ -77,7 +77,7 @@ export const issues = pgTable('issues', {
   code: text('code'), reqCode: text('req_code'), cycle: text('cycle'), title: text('title').notNull(), description: text('description'),
   type: text('type').default('bug').notNull(), priority: text('priority').default('medium').notNull(),
   status: text('status').default('open').notNull(), assignee: text('assignee'), dueDate: text('due_date'), labels: text('labels'),
-  storyPoints: integer('story_points').default(0).notNull(), sprintId: integer('sprint_id'), epic: text('epic'),
+  storyPoints: integer('story_points').default(0).notNull(), sprintId: integer('sprint_id'), epic: text('epic'), related: text('related'),
   estimateHours: integer('estimate_hours').default(0).notNull(), spentHours: integer('spent_hours').default(0).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({ projIdx: index('issues_project_idx').on(t.orgId, t.projectId), asgIdx: index('issues_assignee_idx').on(t.orgId, t.assignee) }));
@@ -122,7 +122,7 @@ export const meetings = pgTable('meetings', {
   id: serial('id').primaryKey(), orgId: integer('org_id').notNull(),
   projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
   code: text('code'), title: text('title').notNull(), meetingDate: text('meeting_date'), location: text('location'),
-  attendees: text('attendees'), agenda: text('agenda'), decisions: text('decisions'),
+  attendees: text('attendees'), agenda: text('agenda'), decisions: text('decisions'), actionItems: text('action_items'), nextDate: text('next_date'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({ projIdx: index('meetings_project_idx').on(t.orgId, t.projectId) }));
 export const notifications = pgTable('notifications', {
@@ -161,14 +161,14 @@ export const firewallRequests = pgTable('firewall_requests', {
   id: serial('id').primaryKey(), orgId: integer('org_id').notNull(),
   projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
   code: text('code'), title: text('title').notNull(), srcIp: text('src_ip'), dstIp: text('dst_ip'),
-  port: text('port'), protocol: text('protocol'), reason: text('reason'), status: text('status').default('requested').notNull(),
+  port: text('port'), protocol: text('protocol'), reason: text('reason'), approver: text('approver'), expireDate: text('expire_date'), status: text('status').default('requested').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({ i: index('fw_proj_idx').on(t.orgId, t.projectId) }));
 export const procurementItems = pgTable('procurement_items', {
   id: serial('id').primaryKey(), orgId: integer('org_id').notNull(),
   projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
   code: text('code'), item: text('item').notNull(), category: text('category'), qty: integer('qty').default(1).notNull(),
-  unitPrice: integer('unit_price').default(0).notNull(), vendor: text('vendor'), status: text('status').default('requested').notNull(),
+  unitPrice: integer('unit_price').default(0).notNull(), vendor: text('vendor'), poNumber: text('po_number'), deliveryDate: text('delivery_date'), receiptDate: text('receipt_date'), status: text('status').default('requested').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({ i: index('proc_proj_idx').on(t.orgId, t.projectId) }));
 export const boards = pgTable('boards', {

@@ -67,6 +67,17 @@ export const MIGRATION_DDL: string[] = [
   `ALTER TABLE IF EXISTS infra_assets ADD COLUMN IF NOT EXISTS memory text`,
   `ALTER TABLE IF EXISTS infra_assets ADD COLUMN IF NOT EXISTS rack text`,
   `ALTER TABLE IF EXISTS infra_assets ADD COLUMN IF NOT EXISTS serial_no text`,
+  // SI 도메인 필드 보강
+  `ALTER TABLE IF EXISTS requirements ADD COLUMN IF NOT EXISTS acceptance_criteria text`,
+  `ALTER TABLE IF EXISTS meetings ADD COLUMN IF NOT EXISTS action_items text`,
+  `ALTER TABLE IF EXISTS meetings ADD COLUMN IF NOT EXISTS next_date text`,
+  `ALTER TABLE IF EXISTS procurement_items ADD COLUMN IF NOT EXISTS po_number text`,
+  `ALTER TABLE IF EXISTS procurement_items ADD COLUMN IF NOT EXISTS delivery_date text`,
+  `ALTER TABLE IF EXISTS procurement_items ADD COLUMN IF NOT EXISTS receipt_date text`,
+  `ALTER TABLE IF EXISTS issues ADD COLUMN IF NOT EXISTS related text`,
+  // 방화벽 승인자·만료
+  `ALTER TABLE IF EXISTS firewall_requests ADD COLUMN IF NOT EXISTS approver text`,
+  `ALTER TABLE IF EXISTS firewall_requests ADD COLUMN IF NOT EXISTS expire_date text`,
 ];
 
 export async function runMigrations(): Promise<{ applied: number; failed: { stmt: string; error: string }[] }> {
