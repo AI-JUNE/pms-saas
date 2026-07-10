@@ -183,6 +183,13 @@ export const testCycles = pgTable('test_cycles', {
   status: text('status').default('planned').notNull(), startDate: text('start_date'), endDate: text('end_date'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({ i: index('test_cycles_project_idx').on(t.orgId, t.projectId) }));
+// 개인 To-Do — 사용자별 할 일(본인만 조회)
+export const todos = pgTable('todos', {
+  id: serial('id').primaryKey(), orgId: integer('org_id').notNull(), userId: integer('user_id').notNull(),
+  code: text('code'), title: text('title').notNull(), note: text('note'),
+  priority: text('priority').default('medium').notNull(), status: text('status').default('todo').notNull(), dueDate: text('due_date'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({ i: index('todos_user_idx').on(t.orgId, t.userId) }));
 
 // 이슈 이력(journal) — 변경 추적(누가 언제 무엇을)
 export const issueJournals = pgTable('issue_journals', {

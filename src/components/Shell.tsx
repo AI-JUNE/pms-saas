@@ -6,7 +6,7 @@ import {
   LayoutDashboard, FolderKanban, Layers3, ListTodo, FileCheck2, ClipboardList,
   Bug, ShieldAlert, CalendarClock, Users, Bell, Search, LogOut, ChevronDown, Check, ClipboardCheck, CalendarDays,
   BarChart3, Activity, Settings, ShieldCheck, Command, User, GitBranch, Type, Circle, Menu,
-  Share2, Server, Flame, ShoppingCart, MessageSquare, UserCheck, CalendarRange, Network, Gauge,
+  Share2, Server, Flame, ShoppingCart, MessageSquare, UserCheck, CalendarRange, Network, Gauge, ListChecks,
 } from 'lucide-react';
 import { Logo } from './Logo';
 import { GowonMark } from './GowonMark';
@@ -15,6 +15,7 @@ const NAV = [
   { group: '현황', items: [
     { href: '/dashboard', label: '대시보드', icon: LayoutDashboard },
     { href: '/mywork', label: '내 작업', icon: UserCheck },
+    { href: '/todos', label: '내 To-Do', icon: ListChecks },
     { href: '/projects', label: '프로젝트', icon: FolderKanban },
     { href: '/phases', label: '단계', icon: Layers3 },
     { href: '/reports', label: '리포트', icon: BarChart3 },

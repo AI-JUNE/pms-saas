@@ -1,4 +1,4 @@
-import { projects, phases, members, requirements, issues, tests, risks, tasks, documents, meetings, sprints, interfaces, infraAssets, firewallRequests, procurementItems, boards, testCycles } from '@/db/schema';
+import { projects, phases, members, requirements, issues, tests, risks, tasks, documents, meetings, sprints, interfaces, infraAssets, firewallRequests, procurementItems, boards, testCycles, todos } from '@/db/schema';
 import { RISK_TRANSFORM, DOCUMENTS_TRANSFORM, GUARD_TASK_CHILDREN, GUARD_PHASE_IN_USE, type CrudConfig } from './crud';
 export const CONFIGS: Record<string, CrudConfig> = {
   projects: { table: projects, resource: 'project', scope: 'org', codePrefix: 'PRJ', fields: ['name','client','startDate','endDate','status','pmUserId'], required: ['name'] },
@@ -13,6 +13,7 @@ export const CONFIGS: Record<string, CrudConfig> = {
   meetings: { table: meetings, resource: 'meeting', scope: 'project', codePrefix: 'MTG', fields: ['title','meetingDate','location','attendees','agenda','decisions'], required: ['title'] },
   sprints: { table: sprints, resource: 'sprint', scope: 'project', codePrefix: 'SPR', fields: ['name','goal','status','startDate','endDate'], required: ['name'] },
   testCycles: { table: testCycles, resource: 'testCycle', scope: 'project', codePrefix: 'CYC', fields: ['name','goal','status','startDate','endDate'], required: ['name'] },
+  todos: { table: todos, resource: 'todo', scope: 'user', codePrefix: 'TD', fields: ['title','note','priority','status','dueDate'], required: ['title'] },
   interfaces: { table: interfaces, resource: 'interface', scope: 'project', codePrefix: 'IF', fields: ['name','srcSystem','dstSystem','protocol','format','cycle','status'], required: ['name'] },
   infra: { table: infraAssets, resource: 'infra', scope: 'project', codePrefix: 'AST', fields: ['name','category','model','location','ipAddress','owner','status'], required: ['name'] },
   firewall: { table: firewallRequests, resource: 'firewall', scope: 'project', codePrefix: 'FW', fields: ['title','srcIp','dstIp','port','protocol','reason','status'], required: ['title'] },
