@@ -3,6 +3,11 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-07-11 (배치 58 — 배포 대기, 리스크 '대응기한'(dueDate) D-day·초과 하이라이트)
+- ⑥/③ **리스크 목록 '대응기한'(dueDate) 셀 D-day·초과 하이라이트** — 배치46에서 리스크에 대응기한(dueDate) 필드를 추가했지만 목록 컬럼은 무색 일반 텍스트라, 곧 도래하거나 이미 지난 대응기한(완화계획 실행 지연)을 목록에서 한눈에 구분하기 어려웠던 것을 개선. 방화벽(배치53)·조달(배치54)·회의(배치55·56)와 동일한 페이지-로컬 render 패턴을 적용해 기한 7일 이내는 주황(#d98a16), 초과는 빨강(#c0414f)+⚠, hover 시 `D-N`/`N일 대응기한 초과` 툴팁을 표시. 하이라이트를 끄는 완료 판정은 리스크 맥락에 맞게 `closed`(종결) 상태로 한정해, 아직 식별·완화(identified/mitigating) 중인 활성 리스크의 임박 대응기한만 부각되도록 함. 중앙 ResourceView 자동 하이라이트는 컬럼키 `/due|end/`에 걸리지만 `dueDate` 키는 그 render 컬럼이 우선하므로 페이지-로컬로 명시 구현(동일 규칙·색상). 순수 표시 render 컬럼이라 데이터·API·스키마 무영향, 마이그레이션 불필요. 중앙 컴포넌트 미접촉(단일 파일). — src/app/risks/page.tsx
+- ⑥ 안전 백로그·⑧ monday UX·⑤ 테스트 모두 [x] 소진, ROADMAP 잔여 `[ ]`는 대형/주간 수동(⑦·라인17)뿐이라 야간 금지 → 배치50~57을 잇는 가독성 보너스 폴리시로 진행(신규 테이블 미접촉). ROADMAP 변경 없음.
+- 검증: `tsc --noEmit` 통과(에러 0). 작업 전 src 백업(/tmp/bak_wk_1783735350). 마운트 무결성(치환문자 0·꼬리 정상) 확인.
+
 ## 2026-07-11 (배치 57 — 배포 대기, 리포트 '프로젝트별 테스트 통과율' 미니 진척 바)
 - ⑤/③ **리포트 '프로젝트별 테스트 통과율' 표 통과율 셀을 미니 진척 바로 표시** — 리포트 화면의 '프로젝트별 테스트 통과율' 표는 통과율을 색상 텍스트(80%↑ 초록·50%↑ 주황·그 미만 빨강)로만 보여줘, 바로 위 '기성고·스냅샷' 표(기성률 진척 바)와 시각 언어가 달라 프로젝트 간 통과율을 눈으로 비교하기 어려웠던 것을 개선. 스냅샷 표·테스트/작업 목록에서 쓰는 표준 `.pbar` 진척 바 패턴을 그대로 적용해(막대·퍼센트 텍스트 모두 동일한 임계 색상) 한 화면에서 스캔 가독성을 통일. `Math.min(100, r.rate)`로 100% 초과 클램프, 통과 데이터가 없는 프로젝트(rate=null)는 종전대로 `—` 유지. 순수 표시 변경이라 데이터·API·스키마 무영향, 마이그레이션 불필요. 중앙 ResourceView 미접촉(단일 파일). — src/app/reports/page.tsx
 - ⑥ 안전 백로그·⑧ monday UX·⑤ 테스트 모두 [x] 소진, ROADMAP 잔여 `[ ]`는 대형/주간 수동(⑦·라인17)뿐이라 야간 금지 → 배치50~56을 잇는 가독성 보너스 폴리시로 진행(신규 테이블 미접촉). ROADMAP 변경 없음.
@@ -123,22 +128,4 @@
 - 검증: tsc --noEmit 통과(에러 0). 작업 전 `cp -r src /tmp/bak_*` 백업. (야간 OneDrive 마운트 동기화 지연으로 views.tsx 마운트 사본이 424줄 CalendarView `+N` 셀(`color: 'var(--tex`)에서 잘려 tsc 오탐 위험 → 호스트 원본(Read/Edit) 무결성 확인 후 python(utf-8)으로 마운트 사본의 잘린 꼬리를 원본과 동일하게 재구성해 0에러 재확인.)
 
 ## 2026-07-09 (야간 배치 35 — 배포 대기)
-- 공통 ⑥/⑧: **칸반 카드 기한(due) D-day·초과 강조 칩** — 목록(ResourceView)·상세 패널에는 이미 기한 임박(≤7일)/초과 하이라이트가 있었으나, 대체뷰인 **칸반 카드**에는 기한 정보가 아예 표시되지 않아 이슈·업무·테스트를 보드로 볼 때 마감 긴급도를 알 수 없던 것을 개선. Kanban에 `dueChip(r)` 헬퍼를 추가해 카드에서 `dueDate`(이슈·테스트) 또는 `endDate`(업무)를 자동 감지하고, 목록/상세와 **완전히 동일한 규칙**으로 칩을 렌더: 초과=적색(#c0414f/#fdedef) `N일 초과`·`오늘 마감 초과`, 임박(≤7일)=앰버(#a86a12/#fbeed6) `D-N`·`오늘 마감`, 그 외 미래/기한은 옅은 `M/D 마감` 텍스트. 완료·종료 상태(done·closed·resolved·completed·approved·pass)는 강조하지 않아 배치22 상세 패널·목록 규칙과 일치. 카드 하단 배지 행에 `flexWrap`을 부여해 우선순위·유형·진척과 함께 자연스럽게 배치(좁은 카드에서도 줄바꿈). 페이지(issues/tasks/tests)는 미접촉 — 필드 자동 감지라 views.tsx 단일 파일만 변경. 순수 표시 계산이라 데이터·API·클릭(openDetail) 무영향. — src/components/views.tsx (단일 파일: Kanban에 KB_DONE·dueChip 헬퍼 + 카드 행 칩 1블록 + flexWrap)
-- 데이터/스키마·타입 영향 없음(순수 표시), 마이그레이션 불필요. ⑥ 안전 백로그·⑧ monday UX가 모두 [x] 소진 상태라, 배치16/22의 목록·상세 기한 강조 패턴을 칸반 카드까지 잇는 보너스 폴리시로 진행(신규 테이블 미접촉).
-- 검증: tsc --noEmit 통과(에러 0, 전체 컴파일 exit 0). 작업 전 `cp -r src /tmp/bak_*` 백업. (야간 OneDrive 마운트 동기화 지연으로 views.tsx 마운트 사본이 415줄 CalendarView 그리드 컨테이너(`borderRadius: 1`)에서 잘려 tsc TS17008/1005 오탐 → 호스트 원본(Read/Edit) 무결성 확인 후 python(utf-8)으로 마운트 사본의 잘린 꼬리(그리드~CalendarView 닫힘)를 원본과 동일 431줄로 재구성해 0에러 재확인.)
-
-## 2026-07-09 (야간 배치 34 — 배포 대기)
-- 공통 ⑥/③: **월력(CalendarView) 주말 색상 + 이번 달 건수** — 통합 캘린더(/calendar)와 목록 대체뷰로 쓰이는 CalendarView가 그동안 요일 헤더·날짜를 전부 회색으로만 표기해 한국 달력 관행(일요일 적색·토요일 청색)과 어긋나고, 한 달에 일정이 몇 건인지 한눈에 파악하기 어려웠던 것을 개선. 요일 헤더 7칸을 `dowColor(i)` 헬퍼로 **일=테라코타 계열 적색(#c0414f)·토=청색(#3b6fb0)·평일=기존 회색**으로 칠하고, 주말 열의 셀 배경을 `--surface-2`로 은은하게 톤다운, 주말 날짜 숫자도 오늘(브랜드 강조) 외에는 동일 색으로 표기해 주중/주말 구분이 스캔만으로 즉시 인지되도록 함. 헤더 제목 옆에는 `rows` 중 현재 표시 월(dateKey 앞 7자리 `YYYY-MM` 일치)에 해당하는 **`이번 달 N건`** 배지를 추가(0건이면 숨김)해 월 이동 시 일정 밀도를 바로 확인 가능. 순수 표시 계산(요일 인덱스 `i%7`·문자열 prefix 비교)이라 데이터·API·클릭 동작 무영향. — src/components/views.tsx (단일 파일: CalendarView에 monthCount·dowColor + 헤더 배지 1개 + 요일/셀/날짜 색상 3곳)
-- 데이터/스키마·타입 영향 없음(순수 표시), 마이그레이션 불필요. ⑥ 안전 백로그·⑧ monday UX가 모두 [x] 소진 상태라 배치15 통합 캘린더·배치29 범례 필터를 잇는 월력 가독성 보너스 폴리시로 진행(신규 테이블 미접촉). 참고: 이번 실행 도중 다른 병렬 야간 런이 배치33(테스트 차수)을 동시 커밋 → 파일 겹침 없어 공존, 번호만 34로 부여.
-- 검증: tsc --noEmit 통과(에러 0). 작업 전 `cp -r src /tmp/bak_*` 백업. (야간 OneDrive 마운트 동기화 지연으로 views.tsx 마운트 사본이 402줄 캘린더 셀 이벤트 렌더(`<div key={r.id} ...`)에서 잘려 tsc TS17008/1005/1109 오탐 → 호스트 원본(Read/Edit) 무결성 확인 후 python(utf-8)으로 마운트 사본의 잘린 꼬리(line 402~ CalendarView 닫힘)를 원본과 동일 411줄로 재구성해 0에러 재확인.)
-
-## 2026-07-09 (배치 33 — 배포 대기)
-- ★ 최우선: **테스트 차수(Cycle) 묶음 관리** 구현 — 회차별(1차·2차·회귀·인수 등)로 테스트를 그룹핑하는 원본 PMS 핵심 기능. 신규 `test_cycles` 테이블(프로젝트 범위: 차수명·목표·상태[계획/진행/완료]·시작/종료일, 코드 CYC)과 전용 관리 화면(`/test-cycles`, 좌측 내비 '통제' 그룹의 테스트 아래)을 추가해 차수를 정의·계획·상태관리. 함께 `tests`에 `cycle` 필드를 추가해 각 테스트 케이스를 차수에 배정(폼 콤보: 1차/2차/3차/회귀/인수/성능 선택·입력, 목록에 '차수' 컬럼)하고, 기존 목록 그룹화 기능으로 **회차별로 묶어** 볼 수 있게 함. 신규 테이블/컬럼은 schema.ts 정의 + migrate.ts MIGRATION_DDL에 `CREATE TABLE IF NOT EXISTS`(+인덱스)·`ALTER ADD COLUMN IF NOT EXISTS`로 배포 시 자동 마이그레이션(관리자 버튼 불필요). 제네릭 CRUD(collection/item)+config 기반이라 중앙 ResourceView는 미접촉(저위험). — src/db/schema.ts, src/lib/migrate.ts, src/lib/configs.ts, src/app/api/test-cycles/route.ts(신규), src/app/api/test-cycles/[id]/route.ts(신규), src/app/test-cycles/page.tsx(신규), src/components/Shell.tsx(내비), src/app/tests/page.tsx(차수 필드·컬럼)
-- 검증: `tsc --noEmit -p tsconfig.json` 통과(에러 0). 작업 전 src 백업(/tmp/bak_pms_*). 마운트 무결성(깨진문자 0) 확인. ROADMAP ★ '테스트 차수(Cycle)' [ ]→[x].
-
-## 2026-07-09 (야간 배치 32 — 배포 대기)
-- ★ 최우선: **이슈 이력(journal)·워처** 구현 — 원본 PMS 핵심인 "누가 언제 무엇을 바꿨나" 변경 추적을 이슈에 도입. 이슈 수정 시 이전 값과 새 값을 필드별로 비교해 실제로 바뀐 항목만 `issue_journals`에 자동 기록(작성자·시각 포함), 이슈 상세 패널에 **변경 이력 타임라인**(필드 한글 라벨 + 이전값 취소선 → 새값 강조)을 표시. 함께 **워처(관심 등록)** 기능 추가: 상세 패널의 `관심`/`관심 해제` 토글로 `issue_watchers`에 현재 사용자를 등록/해제하고 워처 명단·인원수를 노출. 신규 테이블 2개(issue_journals, issue_watchers)는 schema.ts 정의 + migrate.ts MIGRATION_DDL에 `CREATE TABLE IF NOT EXISTS`(+인덱스, 워처 org·issue·user 유니크) 추가로 배포 시 자동 마이그레이션(관리자 버튼 불필요). 이력 기록은 제네릭 CRUD의 `item()` PATCH에 `journal` 플래그로 훅(이슈 config만 `journal:true`)해 다른 리소스에는 영향 없음. — src/db/schema.ts, src/lib/migrate.ts, src/lib/crud.ts, src/lib/configs.ts, src/app/api/issues/[id]/journal/route.ts(신규 GET), src/app/api/issues/[id]/watchers/route.ts(신규 GET·POST 토글), src/components/IssueJournal.tsx(신규), src/components/ResourceView.tsx(이슈 상세에 삽입)
-- 검증: `tsc --noEmit -p tsconfig.json` 통과(에러 0). 작업 전 `cp -r src /tmp/bak_pms` 백업. 예약작업 pms-nightly-dev·pms-progress-digest 재활성화(수요일 예산 재설정 후 재개).
-
-## 2026-07-09 (야간 배치 31 — 배포 대기)
-- 공통 ⑧: **목록 뷰 모드(표/칸반/간트/캘린더) 사용자별 유지** — 배치24에서 그룹화·정렬·밀도·컬럼 표시를 localStorage로 유지하게 했으나, 대체뷰가 있는 목록(업무 간트·칸반, 리스크 매트릭스 등)의 **선택한 뷰 모드**만은 새로고침·재방문 시 항상 기본값(`표`)으로 
+- 공통 ⑥/⑧: **칸반 카드 기한(due) D-day·초과 강조 칩** — 목록(ResourceView)·상세 패널에는 이미 기한 임박(≤7일)/초과 하이라이트가 있었으나, 대체뷰인 **칸반 카드**에는 기한 정보가 아예 표시되지 않아 이슈·업무·테스트를 보드로 볼 때 마감 긴급도를 알 수 없던 것을 개선. Kanban에 `dueChip(r)` 헬퍼를 추가해 카드에서 `dueDate`(이슈·테스트) 또는 `endDate`(업무)를 자동 감지하고, 목록/상세와 **완전히 동일한 규칙**으로 칩을 렌더: 초과=적색(#c0414f/#fdedef) `N일 초과`·`오늘 마감 초과`, 임박(≤7일)=앰버(#a86a12/#fbeed6) `D-N`·`오늘 마감`, 그 외 미래/기한은 옅은 `M/D 마감` 텍스트. 완료·종료 상태(done·closed·resolved·completed·approved·pass)는 강조하지 않아 배치22 상세 패널·목록 규칙과 일치. 카드 하단 배지 행에 `flexWrap`을 부여해 우선순위·유형·진척과 함께 자연스럽게 배치(좁은 카드에서도 줄바꿈). 페이지(issues/
