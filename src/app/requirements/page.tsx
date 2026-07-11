@@ -1,4 +1,5 @@
 'use client';
+import { useEffect, useState } from 'react';
 import { ResourceView } from '@/components/ResourceView';
 import { LABEL } from '@/lib/ui';
 
@@ -42,9 +43,85 @@ function ReqAnalysis({ rows }: { rows: any[] }) {
   );
 }
 
+// 요구사항 코드(code) 기준 연계 집계 — RTM(/rtm)과 동일한 매칭·커버리지 규칙
+type Link = { tasks: number; tasksDone: number; issues: number; issuesOpen: number; tests: number; testsPass: number; testsFail: number };
+
 export default function Page() {
+  const [links, setLinks] = useState<Record<string, Link>>({});
+  useEffect(() => {
+    const p = Number(localStorage.getItem('pms.project')) || null;
+    if (!p) return;
+    Promise.all([
+      fetch(`/api/tasks?projectId=${p}`).then((r) => (r.ok ? r.json() : [])),
+      fetch(`/api/issues?projectId=${p}`).then((r) => (r.ok ? r.json() : [])),
+      fetch(`/api/tests?projectId=${p}`).then((r) => (r.ok ? r.json() : [])),
+    ]).then(([tk, is, ts]) => {
+      const m: Record<string, Link> = {};
+      const get = (c: string) => (m[c] ||= { tasks: 0, tasksDone: 0, issues: 0, issuesOpen: 0, tests: 0, testsPass: 0, testsFail: 0 });
+      for (const t of Array.isArray(tk) ? tk : []) {
+        const c = String(t?.reqCode || '').trim(); if (!c) continue;
+        const l = get(c); l.tasks++; if (String(t?.status) === 'done') l.tasksDone++;
+      }
+      for (const i of Array.isArray(is) ? is : []) {
+        const c = String(i?.reqCode || '').trim(); if (!c) continue;
+        const l = get(c); l.issues++;
+        const st = String(i?.status || '');
+        if (st !== 'resolved' && st !== 'closed') l.issuesOpen++;
+      }
+      for (const t of Array.isArray(ts) ? ts : []) {
+        const c = String(t?.reqCode || '').trim(); if (!c) continue;
+        const l = get(c); l.tests++;
+        if (String(t?.result) === 'pass') l.testsPass++;
+        else if (String(t?.result) === 'fail') l.testsFail++;
+      }
+      setLinks(m);
+    }).catch(() => {});
+  }, []);
+
+  const linkOf = (row: any): Link | undefined => links[String(row?.code || '').trim()];
+
+  // RTM과 동일: 미연계 → (열린 이슈/테스트 실패)면 위험 → 업무 전부 완료 & 테스트 전부 통과면 충족 → 그 외 진행중
+  const coverage = (l?: Link) => {
+    if (!l || (!l.tasks && !l.issues && !l.tests)) return { t: '미연계', c: '#94a3b8' };
+    if (l.testsFail > 0) return { t: '테스트 실패', c: '#c0414f' };
+    if (l.issuesOpen > 0) return { t: '이슈 있음', c: '#c0414f' };
+    const tasksOk = l.tasks === 0 || l.tasksDone === l.tasks;
+    const testsOk = l.tests === 0 || l.testsPass === l.tests;
+    if (tasksOk && testsOk) return { t: '충족', c: '#2f8f5b' };
+    return { t: '진행중', c: '#be5535' };
+  };
+
   return <ResourceView title="요구사항" subtitle="요구사항을 추적합니다." endpoint="/api/requirements" entity="requirements" projectScoped
     altViews={[{ key: 'analysis', label: '분석', render: (rows: any[]) => <ReqAnalysis rows={rows} /> }]}
-    columns={[{key:'code',label:'코드'},{key:'title',label:'제목',strong:true},{key:'category',label:'분류'},{key:'priority',label:'우선순위',badge:true},{key:'status',label:'상태',badge:true},{key:'assignee',label:'담당'}]}
+    columns={[
+      {key:'code',label:'코드'},
+      {key:'title',label:'제목',strong:true},
+      {key:'category',label:'분류'},
+      {key:'priority',label:'우선순위',badge:true},
+      {key:'status',label:'상태',badge:true},
+      {key:'reqLinks',label:'연계',render:(_v,row)=>{
+        const l = linkOf(row);
+        if (!l || (!l.tasks && !l.issues && !l.tests)) return <span className="muted" style={{fontSize:11.5}}>—</span>;
+        const chip = (n: number, label: string, bg: string, fg: string, tip: string) => n > 0
+          ? <span key={label} title={tip} style={{fontSize:10.5,fontWeight:700,background:bg,color:fg,padding:'1px 6px',borderRadius:5}}>{label} {n}</span>
+          : null;
+        return <span style={{display:'flex',flexWrap:'wrap',gap:4}}>
+          {chip(l.tasks,'업무','var(--surface-3)','var(--text-2)',`연계 업무 ${l.tasks}건 · 완료 ${l.tasksDone}건`)}
+          {chip(l.issues,'이슈', l.issuesOpen > 0 ? '#fdf3e7' : 'var(--surface-3)', l.issuesOpen > 0 ? '#b5730f' : 'var(--text-2)', `연계 이슈 ${l.issues}건 · 미해결 ${l.issuesOpen}건`)}
+          {chip(l.tests,'테스트', l.testsFail > 0 ? '#fdedef' : l.tests > 0 && l.testsPass === l.tests ? '#e6f4ec' : 'var(--surface-3)', l.testsFail > 0 ? '#c0414f' : l.tests > 0 && l.testsPass === l.tests ? '#2f8f5b' : 'var(--text-2)', `연계 테스트 ${l.tests}건 · 통과 ${l.testsPass}건 · 실패 ${l.testsFail}건`)}
+        </span>;
+      }},
+      {key:'coverage',label:'커버리지',render:(_v,row)=>{
+        const l = linkOf(row);
+        const cv = coverage(l);
+        const tip = !l || (!l.tasks && !l.issues && !l.tests)
+          ? '연계된 업무·이슈·테스트가 없습니다. 업무/이슈/테스트의 “연계 요구사항”에 이 요구사항 코드를 입력하면 연결됩니다.'
+          : `업무 ${l.tasksDone}/${l.tasks} 완료 · 이슈 미해결 ${l.issuesOpen}건 · 테스트 ${l.testsPass}/${l.tests} 통과`;
+        return <span title={tip} style={{display:'inline-flex',alignItems:'center',gap:5,fontWeight:700,fontSize:11.5,color:cv.c}}>
+          <i style={{width:7,height:7,borderRadius:99,background:cv.c,display:'inline-block'}}/>{cv.t}
+        </span>;
+      }},
+      {key:'assignee',label:'담당'},
+    ]}
     fields={[{key:'title',label:'제목',required:true},{key:'description',label:'설명',type:'textarea'},{key:'category',label:'분류',type:'combo',half:true,options:['기능','비기능','성능','보안','사용성','호환성','데이터','인터페이스','기타']},{key:'assignee',label:'담당자',half:true},{key:'priority',label:'우선순위',type:'select',options:['high','medium','low'],half:true},{key:'status',label:'상태',type:'select',options:['draft','review','approved','rejected'],half:true},{key:'acceptanceCriteria',label:'인수기준(완료조건)',type:'textarea'}]} />;
 }
