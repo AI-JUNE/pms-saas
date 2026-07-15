@@ -99,6 +99,20 @@ export default function Page() {
       {key:'category',label:'분류'},
       {key:'priority',label:'우선순위',badge:true},
       {key:'status',label:'상태',badge:true},
+      {key:'accept',label:'완료조건',render:(_v,row)=>{
+        const parse=(x:any)=>String(x||'').split(/\r?\n/).map((l:string)=>l.replace(/^\s*[-*·•]\s*|^\s*\d+[.)]\s*/,'').trim()).filter(Boolean);
+        const ac=parse(row?.acceptanceCriteria); const de=parse(row?.description);
+        const st=String(row?.status||''); const gated=st==='review'||st==='approved';
+        if(ac.length===0){
+          if(gated) return <span title="결재 단계(검토·승인)에 올랐는데 완료조건(인수기준)이 비어 있습니다 — 검증 기준 없는 요구사항은 감리·검수 지적 대상입니다" style={{color:'#c0414f',fontWeight:700,fontSize:11.5,cursor:'help'}}>⚠ 완료조건 미작성</span>;
+          return <span className="muted" style={{fontSize:11.5,cursor:'help'}} title={de.length?`설명 ${de.length}줄 · 완료조건 미작성`:'설명·완료조건 미작성'}>{de.length?`설명 ${de.length}줄`:'미작성'}</span>;
+        }
+        const tip=[`완료조건 ${ac.length}건`,...ac.slice(0,6).map((l:string,i:number)=>`${i+1}. ${l}`),de.length?`\n설명 ${de.length}줄: ${de[0]}`:''].filter(Boolean).join('\n');
+        return <span style={{display:'inline-flex',alignItems:'center',gap:6,cursor:'help'}} title={tip}>
+          <span style={{fontSize:10.5,fontWeight:700,background:'#e6f4ec',color:'#2f8f5b',padding:'1px 6px',borderRadius:5}}>조건 {ac.length}</span>
+          {de.length>0 && <span style={{fontSize:11,color:'var(--text-2)',maxWidth:150,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{de[0]}</span>}
+        </span>;
+      }},
       {key:'reqLinks',label:'연계',render:(_v,row)=>{
         const l = linkOf(row);
         if (!l || (!l.tasks && !l.issues && !l.tests)) return <span className="muted" style={{fontSize:11.5}}>—</span>;
@@ -123,5 +137,5 @@ export default function Page() {
       }},
       {key:'assignee',label:'담당'},
     ]}
-    fields={[{key:'title',label:'제목',required:true},{key:'description',label:'설명',type:'textarea'},{key:'category',label:'분류',type:'combo',half:true,options:['기능','비기능','성능','보안','사용성','호환성','데이터','인터페이스','기타']},{key:'assignee',label:'담당자',half:true},{key:'priority',label:'우선순위',type:'select',options:['high','medium','low'],half:true},{key:'status',label:'상태',type:'select',options:['draft','review','approved','rejected'],half:true},{key:'acceptanceCriteria',label:'인수기준(완료조건)',type:'textarea'}]} />;
+    fields={[{key:'title',label:'제목',required:true},{key:'description',label:'설명',type:'textarea'},{key:'category',label:'분류',type:'combo',half:true,options:['기능','비기능','성능','보안','사용성','호환성','데이터','인터페이스','기타']},{key:'assignee',label:'담당자',type:'combo',optionsFrom:'members',half:true},{key:'priority',label:'우선순위',type:'select',options:['high','medium','low'],half:true},{key:'status',label:'상태',type:'select',options:['draft','review','approved','rejected'],half:true},{key:'acceptanceCriteria',label:'인수기준(완료조건)',type:'textarea',hint:'한 줄에 완료조건 하나씩 — 검증 가능한 형태로 작성(승인 전 필수)'}]} />;
 }
