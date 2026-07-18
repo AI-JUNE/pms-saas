@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Play, CheckCircle2, Flag, Layers } from 'lucide-react';
+import { Plus, Play, CheckCircle2, Flag, Layers, ListChecks, Inbox, Rocket, Hash, AlertTriangle } from 'lucide-react';
 import { Shell } from '@/components/Shell';
 import { Pill, LABEL } from '@/lib/ui';
 
@@ -27,6 +27,11 @@ export default function Backlog() {
   useEffect(() => { const p = Number(localStorage.getItem('pms.project')) || null; setPid(p); load(p); }, []);
 
   const pts = (list: any[]) => list.reduce((s, i) => s + (Number(i.storyPoints) || 0), 0);
+  // 미추정 — 미완료인데 스토리포인트가 없는(0) 이슈. 속도(velocity)·번다운·포인트 기준 진척이 왜곡되는 원인.
+  const unest = (list: any[]) => list.filter((i) => !isDone(i.status) && !(Number(i.storyPoints) > 0)).length;
+  const UnestChip = ({ n }: { n: number }) => n > 0
+    ? <span className="pill p-amber" style={{ fontSize: 10.5 }} title={`스토리포인트가 없는 미완료 이슈 ${n}건 — 스프린트 속도·번다운·포인트 기준 진척 집계에서 빠집니다. 아래에서 포인트를 입력하세요.`}><AlertTriangle style={{ width: 10, marginRight: 3, verticalAlign: -1 }} />미추정 {n}</span>
+    : null;
   async function newSprint() {
     const name = prompt('스프린트 이름', `Sprint ${sprints.length + 1}`); if (!name || !pid) return;
     await fetch('/api/sprints', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, projectId: pid, status: 'planned' }) });
@@ -64,7 +69,8 @@ export default function Backlog() {
         {i.epic && <span className="label-chip"><Flag style={{ width: 10, marginRight: 3, verticalAlign: -1 }} />{i.epic}</span>}
         {i.priority && <Pill v={i.priority} />}
         <Pill v={i.status} />
-        <input className="in" style={{ width: 52, padding: '4px 6px', textAlign: 'center' }} title="스토리 포인트"
+        <input className="in" title={!done && !(Number(i.storyPoints) > 0) ? '스토리 포인트 미추정 — 속도·번다운 집계에서 제외됩니다' : '스토리 포인트'}
+          style={{ width: 52, padding: '4px 6px', textAlign: 'center', ...(!done && !(Number(i.storyPoints) > 0) ? { borderColor: '#d98a16', color: '#d98a16', fontWeight: 700 } : {}) }}
           defaultValue={i.storyPoints || 0} onBlur={(e) => setPoints(i.id, Number(e.target.value) || 0)} />
         <select className="sel" style={{ minWidth: 130 }} value={i.sprintId ?? ''} onChange={(e) => moveIssue(i.id, e.target.value ? Number(e.target.value) : null)}>
           <option value="">백로그</option>
@@ -81,6 +87,25 @@ export default function Backlog() {
       {!pid ? <div className="empty">상단에서 프로젝트를 먼저 선택하세요.</div>
         : loading ? <div className="empty">불러오는 중…</div> : (
         <>
+          {(() => {
+            const backlogList = issues.filter((i) => !i.sprintId);
+            const activeN = sprints.filter((s) => s.status === 'active').length;
+            const totalUnest = unest(issues);
+            return (
+              <div className="kpis" style={{ marginBottom: 16 }}>
+                <div className="kpi k0"><div className="kpi-ic" style={{ background: 'rgba(190,85,53,.12)' }}><ListChecks style={{ width: 18, color: 'var(--brand)' }} /></div>
+                  <div className="kpi-label">전체 이슈</div><div className="kpi-value">{issues.length}</div><div className="kpi-sub">{pts(issues)} pts</div></div>
+                <div className="kpi k2" title="스프린트에 배정되지 않은 대기 이슈"><div className="kpi-ic" style={{ background: 'rgba(217,138,22,.12)' }}><Inbox style={{ width: 18, color: '#d98a16' }} /></div>
+                  <div className="kpi-label">백로그 대기</div><div className="kpi-value">{backlogList.length}</div><div className="kpi-sub">{pts(backlogList)} pts 미계획</div></div>
+                <div className="kpi k1" title="전체 스프린트 수(진행 중 포함)"><div className="kpi-ic" style={{ background: 'rgba(47,143,91,.12)' }}><Rocket style={{ width: 18, color: '#2f8f5b' }} /></div>
+                  <div className="kpi-label">스프린트</div><div className="kpi-value">{sprints.length}</div><div className="kpi-sub">진행 중 {activeN}개</div></div>
+                <div className="kpi k5" title="미완료 이슈의 스토리포인트 합계"><div className="kpi-ic" style={{ background: 'rgba(14,155,184,.12)' }}><Hash style={{ width: 18, color: '#0e9bb8' }} /></div>
+                  <div className="kpi-label">잔여 포인트</div><div className="kpi-value">{pts(issues.filter((i) => !isDone(i.status)))}</div><div className="kpi-sub">미완료 이슈 기준</div></div>
+                <div className="kpi k3" title="스토리포인트가 없는 미완료 이슈 — 속도·번다운·포인트 진척 집계에서 빠집니다"><div className="kpi-ic" style={{ background: 'rgba(192,65,79,.12)' }}><AlertTriangle style={{ width: 18, color: '#c0414f' }} /></div>
+                  <div className="kpi-label">미추정</div><div className="kpi-value" style={totalUnest > 0 ? { color: '#c0414f' } : undefined}>{totalUnest}</div><div className="kpi-sub">포인트 미입력 이슈</div></div>
+              </div>
+            );
+          })()}
           {sprints.map((s) => { const list = issues.filter((i) => i.sprintId === s.id); return (
             <div className="card" key={s.id} style={{ marginBottom: 14, overflow: 'hidden' }}>
               <div className="row" style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', gap: 10, background: 'var(--surface-2)' }}>
@@ -88,6 +113,7 @@ export default function Backlog() {
                 <span style={{ fontWeight: 750 }}>{s.name}</span>
                 <span className={`pill ${sprintBadge(s.status)}`}>{LABEL[String(s.status)] || s.status}</span>
                 <span className="muted">{list.length}건 · {pts(list)} pts</span>
+                <UnestChip n={unest(list)} />
                 <SprintProgress list={list} />
                 {s.goal && <span className="muted" style={{ fontStyle: 'italic' }}>“{s.goal}”</span>}
                 <div className="sp" />
@@ -102,6 +128,7 @@ export default function Backlog() {
             <div className="row" style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', gap: 10 }}>
               <span style={{ fontWeight: 750 }}>백로그</span>
               <span className="muted">{issues.filter((i) => !i.sprintId).length}건 · {pts(issues.filter((i) => !i.sprintId))} pts</span>
+              <UnestChip n={unest(issues.filter((i) => !i.sprintId))} />
             </div>
             {issues.filter((i) => !i.sprintId).length === 0 ? <div className="empty"><Layers /><div>백로그가 비었습니다. 이슈 메뉴에서 이슈를 추가하세요.</div></div>
               : issues.filter((i) => !i.sprintId).map((i) => <IssueRow key={i.id} i={i} />)}
