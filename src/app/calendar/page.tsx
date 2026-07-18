@@ -6,6 +6,9 @@ import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
 
 type Ev = { date: string; label: string; kind: string; color: string; href: string };
 
+// 회의는 '지남'일 뿐 기한 초과 대상이 아님 — 마감/기한 성격의 이벤트만 초과 판정
+const isDeadlineKind = (k: string) => k === '업무마감' || k === '테스트기한' || k === '이슈기한';
+
 export default function Page() {
   const router = useRouter();
   const [pid, setPid] = useState<number | null>(null);
@@ -43,6 +46,8 @@ export default function Page() {
   for (let d = 1; d <= days; d++) cells.push(d);
   while (cells.length % 7) cells.push(null);
   const todayStr = new Date().toISOString().slice(0, 10);
+  // 표시 중(숨김 제외)인 마감/기한 이벤트 중 오늘 이전에 걸린 미완료 건 = 기한 초과 (월 이동과 무관하게 전체 집계)
+  const overdueCount = evs.filter((e) => isDeadlineKind(e.kind) && !hidden.has(e.kind) && e.date.slice(0, 10) < todayStr).length;
   const dkey = (d: number) => `${cur.y}-${String(cur.m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
   const move = (delta: number) => { let y = cur.y, m = cur.m + delta; if (m < 0) { m = 11; y--; } if (m > 11) { m = 0; y++; } setCur({ y, m }); };
 
@@ -51,7 +56,8 @@ export default function Page() {
   return (
     <Shell title="캘린더">
       <div className="row" style={{ marginBottom: 14 }}>
-        <div><h2 className="h1">캘린더 <CalendarDays style={{ width: 20, verticalAlign: -3, color: 'var(--brand)' }} /></h2>
+        <div><h2 className="h1">캘린더 <CalendarDays style={{ width: 20, verticalAlign: -3, color: 'var(--brand)' }} />
+          {overdueCount > 0 && <span title={`오늘(${todayStr}) 이전에 마감·기한이 지난 미완료 업무·테스트·이슈 ${overdueCount}건 — 달력에서 빨강 ⚠ 로 표시됩니다`} style={{ marginLeft: 8, verticalAlign: 3, display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', borderRadius: 20, fontSize: 12, fontWeight: 700, background: '#fdecec', color: '#c0392b', border: '1px solid #f0c4c4' }}>⚠ 기한 초과 {overdueCount}건</span>}</h2>
           <p className="h-sub">회의·업무 마감·테스트/이슈 기한을 한눈에 봅니다.</p></div>
         <div className="sp" />
         <div className="row" style={{ gap: 8 }}>
@@ -86,10 +92,13 @@ export default function Page() {
               <div key={i} style={{ minHeight: 92, borderRight: (i % 7 !== 6) ? '1px solid var(--border)' : 'none', borderBottom: '1px solid var(--border)', padding: 6, background: isToday ? 'var(--brand-50)' : d ? '#fff' : 'var(--surface-2)' }}>
                 {d && <div style={{ fontSize: 11.5, fontWeight: isToday ? 800 : 600, color: isToday ? 'var(--brand)' : 'var(--text-3)', marginBottom: 4 }}>{d}</div>}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                  {list.slice(0, 3).map((e, j) => (
-                    <div key={j} onClick={() => router.push(e.href)} title={`${e.kind} · ${e.label}`} style={{ cursor: 'pointer', fontSize: 10.5, padding: '1px 5px', borderRadius: 4, background: `${e.color}1a`, color: e.color, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.label}</div>
-                  ))}
-                  {list.length > 3 && <div className="muted" style={{ fontSize: 10 }}>+{list.length - 3}</div>}
+                  {list.slice(0, 3).map((e, j) => {
+                    const od = isDeadlineKind(e.kind) && k < todayStr;
+                    return (
+                      <div key={j} onClick={() => router.push(e.href)} title={`${e.kind} · ${e.label}${od ? ' · ⚠ 기한 초과' : ''}`} style={{ cursor: 'pointer', fontSize: 10.5, padding: '1px 5px', borderRadius: 4, background: od ? '#fdecec' : `${e.color}1a`, color: od ? '#c0392b' : e.color, fontWeight: od ? 700 : 600, boxShadow: od ? 'inset 2px 0 0 #d64545' : 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{od ? '⚠ ' : ''}{e.label}</div>
+                    );
+                  })}
+                  {list.length > 3 && <div className="muted" title={list.slice(3).map((e) => `${e.kind} · ${e.label}`).join('\n')} style={{ fontSize: 10, cursor: 'default' }}>+{list.length - 3}</div>}
                 </div>
               </div>
             );
