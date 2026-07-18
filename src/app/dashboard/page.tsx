@@ -149,12 +149,20 @@ export default function Dashboard() {
           <div className="sect" style={{ marginBottom: 12 }}>마감 임박 · 결재 대기</div>
           {(() => {
             const now = new Date(); const t0 = new Date(now); t0.setHours(0,0,0,0); const in7 = new Date(t0.getTime() + 7 * 86400000);
-            const overdue = tasks.filter((t: any) => t.status !== 'done' && t.endDate && new Date(t.endDate) < t0);
-            const soon = tasks.filter((t: any) => t.status !== 'done' && t.endDate && new Date(t.endDate) >= t0 && new Date(t.endDate) <= in7);
+            const vd = (s: any) => !!s && Number.isFinite(new Date(s).getTime()); // 잘못된 날짜 문자열 방어
+            const dday = (s: any) => Math.max(0, Math.round((new Date(s).getTime() - t0.getTime()) / 86400000));
+            const openIssue = (i: any) => !['resolved','closed'].includes(i.status); // 이슈도 기한 관리 대상(미해결 건만)
+            const overdue = tasks.filter((t: any) => t.status !== 'done' && vd(t.endDate) && new Date(t.endDate) < t0);
+            const soon = tasks.filter((t: any) => t.status !== 'done' && vd(t.endDate) && new Date(t.endDate) >= t0 && new Date(t.endDate) <= in7);
+            const overdueIssues = issues.filter((i: any) => openIssue(i) && vd(i.dueDate) && new Date(i.dueDate) < t0);
+            const soonIssues = issues.filter((i: any) => openIssue(i) && vd(i.dueDate) && new Date(i.dueDate) >= t0 && new Date(i.dueDate) <= in7);
             const pending = docs.filter((x: any) => x.status === 'review');
+            // 초과 → 임박 → 결재 대기 순으로 노출(업무·이슈 함께). 이슈 기한도 대시보드 긴급 위젯에 반영.
             const rows: any[] = [
               ...overdue.map((t: any) => ({ k: 't'+t.id, label: t.name, code: t.code, tag: '마감초과', col: '#c0414f', sub: t.endDate, href: '/tasks' })),
-              ...soon.map((t: any) => ({ k: 's'+t.id, label: t.name, code: t.code, tag: 'D-'+Math.max(0, Math.round((new Date(t.endDate).getTime()-t0.getTime())/86400000)), col: '#d98a16', sub: t.endDate, href: '/tasks' })),
+              ...overdueIssues.map((i: any) => ({ k: 'oi'+i.id, label: i.title, code: i.code, tag: '마감초과', col: '#c0414f', sub: i.dueDate, href: '/issues' })),
+              ...soon.map((t: any) => ({ k: 's'+t.id, label: t.name, code: t.code, tag: 'D-'+dday(t.endDate), col: '#d98a16', sub: t.endDate, href: '/tasks' })),
+              ...soonIssues.map((i: any) => ({ k: 'si'+i.id, label: i.title, code: i.code, tag: 'D-'+dday(i.dueDate), col: '#d98a16', sub: i.dueDate, href: '/issues' })),
               ...pending.map((x: any) => ({ k: 'd'+x.id, label: x.title, code: x.code, tag: '결재대기', col: '#0e9bb8', sub: x.approver||'', href: '/documents' })),
             ];
             if (rows.length === 0) return <p className="muted" style={{ fontSize: 13 }}>마감 임박·결재 대기 항목이 없습니다.</p>;
