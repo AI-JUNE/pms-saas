@@ -5,6 +5,20 @@ import { BarChart3, TrendingDown, Users, Gauge, Printer, Download } from 'lucide
 import { Shell } from '@/components/Shell';
 import { Pill } from '@/lib/ui';
 const cnt = (a: any[], k: string, v: string) => a.filter((x) => x[k] === v).length; // reports
+// 일정 경과율(계획 진척 근사, EVM PV 개념) — /projects(배치79)와 동일 규칙 재사용
+const DAY = 86400000;
+const d0 = (s: any) => { if (!s) return null; const d = new Date(s); if (isNaN(d.getTime())) return null; d.setHours(0, 0, 0, 0); return d; };
+const md = (d: Date) => `${d.getMonth() + 1}.${d.getDate()}`;
+const elapsedOf = (start: any, end: any): { pct: number; left: number; over: number; days: number } | null => {
+  const s = d0(start); const e = d0(end);
+  if (!s || !e || e.getTime() < s.getTime()) return null;
+  const now = new Date(); now.setHours(0, 0, 0, 0);
+  const days = Math.max(1, Math.round((e.getTime() - s.getTime()) / DAY));
+  const gone = Math.round((now.getTime() - s.getTime()) / DAY);
+  const pct = Math.max(0, Math.min(100, Math.round((gone / days) * 100)));
+  const diff = Math.round((e.getTime() - now.getTime()) / DAY);
+  return { pct, left: diff > 0 ? diff : 0, over: diff < 0 ? -diff : 0, days };
+};
 
 // --- Excel(다중 시트) 내보내기: 외부 의존성 없이 SpreadsheetML(엑셀 XML)로 워크북 생성 ---
 const xmlEsc = (v: any) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -133,6 +147,18 @@ export default function Page() {
   const byAssignee = assignees.map((a: any) => ({ a, total: issues.filter((i: any) => i.assignee === a).length, open: issues.filter((i: any) => i.assignee === a && i.status === 'open').length, prog: issues.filter((i: any) => i.assignee === a && i.status === 'in_progress').length, done: issues.filter((i: any) => i.assignee === a && ['resolved','closed'].includes(i.status)).length }));
   const avgProg = tasks.length ? Math.round(tasks.reduce((s: number, t: any) => s + (t.progress || 0), 0) / tasks.length) : 0;
   const velocity = sprints.map((s: any) => ({ s, pts: issues.filter((i: any) => i.sprintId === s.id).reduce((x: number, i: any) => x + (Number(i.storyPoints) || 0), 0), cnt: issues.filter((i: any) => i.sprintId === s.id).length }));
+  // 프로젝트별 현황: 업무 진척·일정 경과율·일정 대비 지연(SV) — /projects 목록(배치79)과 동일 임계값(±10%p)
+  const doneSet2 = ['done', 'closed', 'resolved', 'completed', 'approved'];
+  const projStats = projects.map((p: any) => {
+    const pts = tasks.filter((t: any) => t.projectId === p.id);
+    const total = pts.length;
+    const doneCnt = pts.filter((t: any) => doneSet2.includes(t.status)).length;
+    const prog = total ? Math.round(pts.reduce((x: number, t: any) => x + (t.progress || 0), 0) / total) : null;
+    const active = String(p.status || '') === 'active';
+    const el = elapsedOf(p.startDate, p.endDate);
+    const sv = el && active && prog !== null ? Math.round((prog - el.pct) * 10) / 10 : null;
+    return { p, total, doneCnt, prog, active, el, sv };
+  });
   const exportExcel = () => {
     const sheets = [
       xlsSheet('프로젝트', ['코드', '프로젝트', '고객', '상태', '시작일', '종료일'], projects.map((p: any) => [p.code || '', p.name || '', p.client || '', p.status || '', p.startDate || '', p.endDate || ''])),
@@ -207,9 +233,27 @@ export default function Page() {
       <div style={{ height: 16 }} />
       <div className="card dash-card" style={{ overflow: 'hidden' }}>
         <div className="card-pad" style={{ paddingBottom: 0 }}><div className="sect">프로젝트별 현황</div></div>
-        <div className="tbl-wrap" style={{ marginTop: 8 }}><table className="tbl"><thead><tr><th>코드</th><th>프로젝트</th><th>고객</th><th>상태</th><th>기간</th></tr></thead>
-          <tbody>{projects.map((p: any) => <tr key={p.id}><td className="mono">{p.code}</td><td style={{ fontWeight: 650 }}>{p.name}</td><td>{p.client || '—'}</td><td><Pill v={p.status} /></td><td className="muted">{p.startDate || '—'} ~ {p.endDate || '—'}</td></tr>)}
-            {projects.length === 0 && <tr><td colSpan={5}><div className="empty">프로젝트 없음</div></td></tr>}</tbody></table></div>
+        <div className="tbl-wrap" style={{ marginTop: 8 }}><table className="tbl"><thead><tr><th>코드</th><th>프로젝트</th><th>고객</th><th>상태</th><th>업무</th><th style={{ minWidth: 150 }}>진척</th><th style={{ minWidth: 180 }}>기간</th></tr></thead>
+          <tbody>{projStats.map(({ p, total, doneCnt, prog, active, el, sv }: any) => {
+            const closed = ['completed', 'archived'].includes(String(p.status || ''));
+            const left = total - doneCnt;
+            const pcol = prog == null ? 'var(--text-4)' : prog >= 80 ? '#2f8f5b' : prog >= 50 ? '#d98a16' : '#c0414f';
+            const behind = sv !== null && sv <= -10;
+            const done = String(p.status || '') !== 'active';
+            const scol = el ? (done ? '#9a9a9a' : el.over > 0 ? '#c0414f' : el.left <= 14 ? '#d98a16' : '#2f8f5b') : 'var(--text-4)';
+            const dtxt = el ? (done ? `${el.days}일` : el.over > 0 ? `${el.over}일 초과` : el.left === 0 ? '오늘 마감' : `D-${el.left}`) : '';
+            const s0 = d0(p.startDate); const e0 = d0(p.endDate);
+            return <tr key={p.id}>
+              <td className="mono">{p.code}</td>
+              <td style={{ fontWeight: 650 }}>{p.name}</td>
+              <td>{p.client || '—'}</td>
+              <td><Pill v={p.status} /></td>
+              <td>{total ? <span title={`총 ${total}건 · 완료 ${doneCnt}건 · 미완료 ${left}건`} style={{ fontSize: 12, cursor: 'help' }}><b>{doneCnt}</b><span className="muted">/{total}</span>{closed && left > 0 && <span title={`프로젝트가 종료 상태인데 미완료 업무가 ${left}건 남아 있습니다 — 완료 처리하거나 이관하세요`} style={{ marginLeft: 6, color: '#c0414f', fontWeight: 700, fontSize: 11 }}>⚠ 잔여 {left}</span>}</span> : <span className="muted" style={{ fontSize: 11.5 }} title="이 프로젝트에 등록된 업무(WBS)가 없습니다">—</span>}</td>
+              <td>{prog == null ? <span className="muted" style={{ fontSize: 11.5 }}>업무 없음</span> : <div className="row" style={{ gap: 8, alignItems: 'center' }} title={`업무 ${total}건 평균 진척 ${prog}%` + (el && active ? `\n일정 경과 ${el.pct}% (계획 진척 근사)\n${sv !== null && sv < 0 ? `일정 대비 ${Math.abs(sv)}%p 지연` : sv !== null && sv > 0 ? `일정 대비 ${sv}%p 선행` : '일정대로 진행'}` : '')}><div className="pbar" style={{ flex: 1 }}><i style={{ width: `${prog}%`, background: pcol }} /></div><span style={{ fontWeight: 800, fontSize: 12, minWidth: 34, textAlign: 'right', color: pcol }}>{prog}%</span>{behind && <span style={{ fontSize: 10.5, padding: '1px 6px', borderRadius: 999, background: '#fdecee', color: '#c0414f', border: '1px solid #f3d2d7', whiteSpace: 'nowrap', fontWeight: 700 }}>지연 {Math.abs(sv)}%p</span>}</div>}</td>
+              <td>{!el || !s0 || !e0 ? <span className="muted">{p.startDate || '—'} ~ {p.endDate || '—'}</span> : <div className="row" style={{ gap: 8, alignItems: 'center' }} title={`${md(s0)} ~ ${md(e0)} · 총 ${el.days}일\n일정 경과 ${el.pct}%` + (done ? '\n종료된 프로젝트 — 잔여 기간 경보 없음' : el.over > 0 ? `\n종료일이 ${el.over}일 지났는데 상태가 '진행'입니다 — 종료 처리 또는 기간 연장이 필요합니다` : `\n잔여 ${el.left}일`)}><span style={{ fontSize: 11.5, color: 'var(--text-3)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{md(s0)}~{md(e0)}</span><div className="pbar" style={{ flex: 1, minWidth: 44 }}><i style={{ width: `${el.pct}%`, background: scol }} /></div><span style={{ fontSize: 11, color: scol, fontWeight: 700, whiteSpace: 'nowrap' }}>{dtxt}{!done && el.over > 0 ? ' ⚠' : ''}</span></div>}</td>
+            </tr>;
+          })}
+            {projects.length === 0 && <tr><td colSpan={7}><div className="empty">프로젝트 없음</div></td></tr>}</tbody></table></div>
       </div>
     </Shell>
   );
