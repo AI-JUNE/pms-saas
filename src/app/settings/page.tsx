@@ -3,6 +3,9 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Database, Check } from 'lucide-react';
 import { Shell } from '@/components/Shell';
+const ROLE_LABEL: Record<string,string> = { admin:'관리자', pmo:'PMO', pm:'PM', member:'멤버' };
+const ROLE_BADGE: Record<string,string> = { admin:'p-purple', pmo:'p-cyan', pm:'p-blue', member:'p-gray' };
+const PLAN_LABEL: Record<string,string> = { free:'무료', pro:'프로', team:'팀', business:'비즈니스', enterprise:'엔터프라이즈' };
 export default function Page() {
   const router = useRouter();
   const [d, setD] = useState<any>(null); const [name, setName] = useState(''); const [saved, setSaved] = useState(false);
@@ -20,14 +23,14 @@ export default function Page() {
       <div className="card card-pad" style={{ maxWidth: 560 }}>
         <div className="sect" style={{ marginBottom: 14 }}>조직</div>
         <div className="field"><label>조직명</label><input className="in" value={name} onChange={(e) => setName(e.target.value)} disabled={!d.isOrgAdmin} /></div>
-        <div className="row" style={{ gap: 18, fontSize: 13 }}><span className="muted">플랜</span><span className="pill p-blue np">{d.org?.plan || 'free'}</span><span className="muted">내 역할</span><span className="pill p-purple np">{d.role}</span></div>
-        {d.isOrgAdmin && <div style={{ marginTop: 16 }}><button className="btn btn-pri" onClick={save}>{saved ? '저장됨 ✓' : '저장'}</button></div>}
+        <div className="row" style={{ gap: 18, fontSize: 13 }}><span className="muted">플랜</span><span className="pill p-blue np" title={`플랜: ${d.org?.plan || 'free'}`}>{PLAN_LABEL[d.org?.plan] || d.org?.plan || '무료'}</span><span className="muted">내 역할</span><span className={`pill ${ROLE_BADGE[d.role] || 'p-purple'} np`} title={`역할: ${d.role}`}>{ROLE_LABEL[d.role] || d.role}</span></div>
+        {d.isOrgAdmin && (() => { const nn = name.trim(); const changed = !!nn && nn !== (d.org?.name || ''); return (<div style={{ marginTop: 16 }}><button className="btn btn-pri" onClick={save} disabled={!changed}>{saved ? '저장됨 ✓' : '저장'}</button>{!nn && <p className="muted" style={{ margin: '8px 0 0', fontSize: 12 }}>조직명은 비워둘 수 없습니다.</p>}{!!nn && !changed && !saved && <p className="muted" style={{ margin: '8px 0 0', fontSize: 12 }}>변경된 내용이 없습니다.</p>}</div>); })()}
       </div>
       <div className="card card-pad" style={{ maxWidth: 560, marginTop: 14 }}>
         <div className="sect" style={{ marginBottom: 14 }}>내 계정</div>
         <div className="field"><label>표시 이름</label><input className="in" value={myName} onChange={(e) => setMyName(e.target.value)} placeholder="예: PM" /></div>
         <p className="muted" style={{ margin: '2px 0 14px', fontSize: 12.5 }}>대시보드 인사말과 담당자 표시에 사용됩니다. 로그인 계정별로 개별 적용됩니다.</p>
-        <button className="btn btn-pri" onClick={saveProfile}>{mySaved ? '저장됨 ✓' : '저장'}</button>
+        <button className="btn btn-pri" onClick={saveProfile} disabled={!myName.trim()}>{mySaved ? '저장됨 ✓' : '저장'}</button>
       </div>
       {d.isOrgAdmin && (
         <div className="card card-pad" style={{ maxWidth: 560, marginTop: 14 }}>
