@@ -19,6 +19,20 @@ export default function Page({ params }: { params: { id: string } }) {
   const p = d?.project;
   const pct = d?.tasks?.avgProgress ?? 0;
 
+  // 헤더 일정 진단 — 종료일 기준 D-day/초과·경과율(읽기 전용, /projects 목록·리포트와 동일 규칙)
+  const sched = (() => {
+    if (!p?.endDate) return null;
+    const end = new Date(p.endDate); if (isNaN(+end)) return null;
+    end.setHours(0, 0, 0, 0);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const DAY = 86400000;
+    const dleft = Math.round((+end - +today) / DAY);
+    const active = String(p.status || '') === 'active';
+    let elapsed: number | null = null;
+    if (p.startDate) { const start = new Date(p.startDate); if (!isNaN(+start)) { start.setHours(0, 0, 0, 0); const span = +end - +start; if (span > 0) elapsed = Math.max(0, Math.min(100, Math.round(((+today - +start) / span) * 100))); } }
+    return { dleft, active, elapsed };
+  })();
+
   const Metric = ({ icon: Icon, label, value, sub, href }: any) => (
     <Link href={href} style={{ textDecoration: 'none' }}>
       <div style={{ background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 6, transition: 'box-shadow .15s, transform .15s' }}
@@ -44,7 +58,18 @@ export default function Page({ params }: { params: { id: string } }) {
               <Pill v={p.status} />
             </div>
             <h1 style={{ margin: '8px 0 4px', fontSize: 26, fontWeight: 800, letterSpacing: '-.02em' }}>{p.name}</h1>
-            <div style={{ fontSize: 13.5, opacity: .9 }}>{p.client || '고객 미지정'} · {p.startDate || '—'} ~ {p.endDate || '—'}</div>
+            <div style={{ fontSize: 13.5, opacity: .9 }}>{p.client || '고객 미지정'} · {p.startDate || '—'} ~ {p.endDate || '—'}
+              {sched && (() => {
+                const { dleft, active, elapsed } = sched;
+                const tip = `종료 ${p.endDate}${elapsed != null ? ` · 일정 경과 ${elapsed}%` : ''} · ${dleft < 0 ? `${-dleft}일 초과` : dleft === 0 ? '오늘 마감' : `잔여 ${dleft}일 (D-${dleft})`}`;
+                let text: string, bg: string, col: string;
+                if (dleft < 0 && active) { text = `⚠ ${-dleft}일 초과`; bg = 'rgba(255,255,255,.95)'; col = '#c0414f'; }
+                else if (!active) { text = dleft < 0 ? '종료' : dleft === 0 ? '오늘 마감' : `D-${dleft}`; bg = 'rgba(255,255,255,.16)'; col = '#fff'; }
+                else if (dleft <= 14) { text = dleft === 0 ? '오늘 마감' : `D-${dleft}`; bg = 'rgba(255,255,255,.95)'; col = '#c9741f'; }
+                else { text = `D-${dleft}`; bg = 'rgba(255,255,255,.16)'; col = '#fff'; }
+                return <span title={tip} style={{ marginLeft: 8, fontSize: 11.5, fontWeight: 700, padding: '1px 8px', borderRadius: 99, background: bg, color: col, verticalAlign: 1, whiteSpace: 'nowrap' }}>{text}</span>;
+              })()}
+            </div>
             <div style={{ marginTop: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, fontWeight: 700, marginBottom: 5 }}><span>전체 진척률</span><span>{pct}%</span></div>
               <div style={{ height: 9, background: 'rgba(255,255,255,.28)', borderRadius: 6, overflow: 'hidden' }}>
