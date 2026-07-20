@@ -20,6 +20,8 @@ const css = `
 @media(prefers-reduced-motion:reduce){.lp.anim [data-reveal]:not(.rvl){opacity:1;transform:none}.lp *{animation:none!important;transition-duration:.001s!important}}
 
 /* nav */
+/* 스티키 네비(높이 66px) 아래로 앵커 대상 섹션(#why·#features·#flow·#faq)이 파묻히지 않도록 스크롤 오프셋 확보 */
+.lp section[id]{scroll-margin-top:78px}
 .lp-nav{position:sticky;top:0;z-index:50;background:rgba(247,245,242,.82);backdrop-filter:saturate(1.5) blur(12px);border-bottom:1px solid var(--border)}
 .lp-nav .wrap{display:flex;align-items:center;height:66px;gap:16px}
 .lp-brand{display:flex;align-items:center;gap:11px}
