@@ -60,6 +60,20 @@ export default function Page() {
     rows.forEach((r) => { const k = String(r.event || '').split('_').pop() || ''; if (k in c) c[k] += 1; });
     return c;
   }, [rows]);
+  /** 영역별 변경 건수 — 필터 드롭다운에 노출(동작 필터와 동일 규칙) */
+  const entCounts = useMemo(() => {
+    const c: Record<string, number> = {};
+    rows.forEach((r) => { const e = String(r.entity || ''); if (e) c[e] = (c[e] || 0) + 1; });
+    return c;
+  }, [rows]);
+  /** 오늘(로컬 날짜) 발생한 변경 건수 — 감사 모니터링용 요약 */
+  const todayCount = useMemo(() => {
+    const today = new Date().toDateString();
+    return rows.filter((r) => {
+      const t = new Date(r.createdAt).getTime();
+      return Number.isFinite(t) && new Date(t).toDateString() === today;
+    }).length;
+  }, [rows]);
 
   const view = useMemo(() => rows.filter((r) => {
     if (act && !String(r.event || '').endsWith(`_${act}`)) return false;
@@ -92,9 +106,14 @@ export default function Page() {
         </select>
         <select className="sel" value={ent} onChange={(e) => setEnt(e.target.value)} aria-label="영역 필터">
           <option value="">전체 영역</option>
-          {ents.map((e) => <option key={e} value={e}>{entName(e)}</option>)}
+          {ents.map((e) => <option key={e} value={e}>{entName(e)} ({entCounts[e] || 0})</option>)}
         </select>
         <div className="sp" />
+        {loaded && todayCount > 0 && (
+          <span className="muted" style={{ marginRight: 4 }} title={`오늘 발생한 변경 ${todayCount}건입니다.`}>
+            오늘 <b style={{ color: 'var(--brand)' }}>{todayCount}</b>건
+          </span>
+        )}
         <span className="muted" title={filtered ? `전체 ${rows.length}건 중 필터 조건에 맞는 ${view.length}건을 표시합니다.` : `최근 ${rows.length}건 — 생성 ${counts.CREATE} · 수정 ${counts.UPDATE} · 삭제 ${counts.DELETE}`}>
           {filtered ? <><b style={{ color: 'var(--brand)' }}>{view.length}</b>/{rows.length}건</> : <>{rows.length}건</>}
         </span>
