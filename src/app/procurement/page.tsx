@@ -94,7 +94,7 @@ export default function Page() {
       {key:'vendor',label:'업체',half:true,placeholder:'공급·납품 업체명'},
       {key:'poNumber',label:'발주번호(PO)',half:true,hint:'발주 이후에는 반드시 기재 — 정산·감리 증빙'},
       {key:'qty',label:'수량',type:'number',numeric:true,half:true},
-      {key:'unitPrice',label:'단가(원)',type:'number',numeric:true,half:true,hint:'수량×단가로 금액이 자동 산출됩니다'},
+      {key:'unitPrice',label:'단가(원)',type:'number',comma:true,numeric:true,half:true,hint:'수량×단가로 금액이 자동 산출됩니다'},
       {key:'deliveryDate',label:'납기일',type:'date',half:true},
       {key:'receiptDate',label:'입고일',type:'date',half:true,hint:'입고 처리 시 상태도 ‘입고’로 함께 변경하세요'},
       {key:'status',label:'상태',type:'select',options:['requested','ordered','received','completed']},

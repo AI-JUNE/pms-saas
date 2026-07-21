@@ -21,7 +21,7 @@ const STATUS_COLOR: Record<string, string> = {
   pm: '#7c4dff',
   '미실시': '#94a3b8', '진행': '#0e9bb8', '완료': '#2f8f5b',
 };
-export type Field = { key: string; label: string; type?: 'text'|'textarea'|'number'|'date'|'select'|'combo'; options?: Opt[]; required?: boolean; half?: boolean; numeric?: boolean; hint?: string; placeholder?: string; optionsFrom?: 'members' | 'tasks' };
+export type Field = { key: string; label: string; type?: 'text'|'textarea'|'number'|'date'|'select'|'combo'; options?: Opt[]; required?: boolean; half?: boolean; numeric?: boolean; comma?: boolean; hint?: string; placeholder?: string; optionsFrom?: 'members' | 'tasks' };
 export type AltView = { key: string; label: string; icon?: any; render: (rows: any[], openDetail: (r: any) => void, save: (id: number, patch: any) => Promise<void>, create: (body: any) => Promise<boolean>) => any };
 type Props = { title: string; subtitle?: string; endpoint: string; projectScoped?: boolean; columns: Col[]; fields: Field[]; statusKey?: string; altViews?: AltView[]; entity?: string; rowHref?: (row: any) => string; emptyText?: string; treeKey?: string };
 
@@ -452,6 +452,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
                   {f.type === 'textarea' ? <textarea className="in" value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} />
                     : f.type === 'select' ? <select className="in" value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}><option value="">선택</option>{optNorm.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
                     : f.type === 'combo' ? <><input className="in" list={dlId} placeholder={f.placeholder || '선택하거나 직접 입력'} value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} /><datalist id={dlId}>{optNorm.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}</datalist></>
+                    : f.comma ? <input className="in" inputMode="numeric" style={{ textAlign: 'right' }} placeholder={f.placeholder || ''} value={(form[f.key] === '' || form[f.key] === undefined || form[f.key] === null) ? '' : Number(String(form[f.key]).replace(/[^0-9]/g, '') || '0').toLocaleString()} onChange={(e) => setForm({ ...form, [f.key]: e.target.value.replace(/[^0-9]/g, '') })} />
                     : <input className="in" type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'} placeholder={f.placeholder || ''} value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} />}
                   {f.hint && <span style={{ fontSize: 11, color: 'var(--text-4)', marginTop: 3, display: 'block' }}>{f.hint}</span>}
                 </div>

@@ -117,5 +117,5 @@ export default function Page() {
       }},
       {key:'status',label:'상태',badge:true},
     ]}
-    fields={[{key:'name',label:'프로젝트명',required:true},{key:'client',label:'고객',half:true,hint:'계약·보고 문서의 수신처로 쓰입니다'},{key:'orderer',label:'발주처',half:true},{key:'contractNo',label:'계약번호',half:true},{key:'budget',label:'계약금액(원)',type:'number',half:true,numeric:true,placeholder:'예: 850000000',hint:'원 단위로 입력 — 기성·정산 집계의 분모가 됩니다'},{key:'status',label:'상태',type:'select',options:[{value:'active',label:'진행'},{value:'completed',label:'완료'},{value:'archived',label:'보관'}],half:true},{key:'startDate',label:'시작일',type:'date',half:true,hint:'시작·종료일이 있어야 일정 경과율(계획 진척)을 계산합니다'},{key:'endDate',label:'종료일',type:'date',half:true}]} />;
+    fields={[{key:'name',label:'프로젝트명',required:true},{key:'client',label:'고객',half:true,hint:'계약·보고 문서의 수신처로 쓰입니다'},{key:'orderer',label:'발주처',half:true},{key:'contractNo',label:'계약번호',half:true},{key:'budget',label:'계약금액(원)',type:'number',comma:true,half:true,numeric:true,placeholder:'예: 850000000',hint:'원 단위로 입력 — 기성·정산 집계의 분모가 됩니다'},{key:'status',label:'상태',type:'select',options:[{value:'active',label:'진행'},{value:'completed',label:'완료'},{value:'archived',label:'보관'}],half:true},{key:'startDate',label:'시작일',type:'date',half:true,hint:'시작·종료일이 있어야 일정 경과율(계획 진척)을 계산합니다'},{key:'endDate',label:'종료일',type:'date',half:true}]} />;
 }
