@@ -19,7 +19,7 @@ export async function createSession(userId: number, userAgent?: string) {
   const token = crypto.randomBytes(32).toString('hex');
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 864e5);
   await db.insert(sessions).values({ token, userId, expiresAt, userAgent });
-  cookies().set(COOKIE, token, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', path: '/', expires: expiresAt });
+  cookies().set(COOKIE, token, { httpOnly: true, sameSite: 'lax', path: '/', expires: expiresAt });
   return token;
 }
 export async function destroySession() {
