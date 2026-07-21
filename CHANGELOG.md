@@ -3,6 +3,11 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-07-21 (배치 105 — 배포 대기, ★ 로그인 불가 긴급 수정)
+- **로그인 불가(가입/로그인 후 대시보드 진입 안 됨) 수정** — 직전 배치에서 세션 쿠키에 넣은 `secure: process.env.NODE_ENV==='production'` 플래그를 **되돌림**(기존 자동로그인 쿠키는 secure 없이 정상 동작했는데, secure 추가 후 신규 세션이 유지되지 않아 로그인→대시보드가 로그인으로 되튕기던 증상). 원래 동작하던 `{ httpOnly, sameSite:'lax', path, expires }`로 복원. — src/lib/auth.ts
+- **복구용 관리자 부팅 보장(안전장치)** — 로그인 불가 상황 대비, 서버 기동 시 `admin@demo.local`/`admin1234` 계정이 없으면 자동 생성(멱등, 이미 있으면 비번 등 절대 미변경). 배포 후 이 계정으로 무조건 로그인 가능 → 이후 설정/관리에서 정리. — src/lib/bootstrap.ts(신규), src/instrumentation.ts
+- 검증: `tsc --noEmit --incremental` 통과(에러 0). 무결성 확인.
+
 ## 2026-07-21 (배치 104 — 배포 대기, 폼 안내문 '—'→'·' 일괄 정리)
 - ④ **폼 안내문 em대시(—) 정리** — 안내문 8개 파일 11곳의 어색한 ` — `(공백+em대시)를 ` · `(가운뎃점)로 일괄 교체(hint 문자열 내부만 안전하게, 툴팁·본문 미접촉). 방화벽·인프라·인력·조달·요구사항·기성고·테스트차수·테스트 폼의 안내가 배치101 줄간격 개선과 함께 깔끔해짐. — src/app/{firewall,infra,members,procurement,requirements,snapshots,test-cycles,tests}/page.tsx
 - 검증: `tsc --noEmit --incremental` 통과(에러 0). 남은 hint em대시 0건 확인.
