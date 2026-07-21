@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { Shell } from '@/components/Shell';
 import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
 
-type Ev = { date: string; label: string; kind: string; color: string; href: string };
+type Ev = { date: string; label: string; kind: string; color: string; href: string; owner?: string };
 
 // 회의는 '지남'일 뿐 기한 초과 대상이 아님 — 마감/기한 성격의 이벤트만 초과 판정
 const isDeadlineKind = (k: string) => k === '업무마감' || k === '테스트기한' || k === '이슈기한';
@@ -17,9 +17,12 @@ export default function Page() {
   const [cur, setCur] = useState(() => { const d = new Date(); return { y: d.getFullYear(), m: d.getMonth() }; });
   const [hidden, setHidden] = useState<Set<string>>(() => new Set());
   const toggleKind = (k: string) => setHidden((prev) => { const n = new Set(prev); n.has(k) ? n.delete(k) : n.add(k); return n; });
+  const [owner, setOwner] = useState('');   // '' = 전체 담당자
+  const [me, setMe] = useState('');         // 로그인 사용자 이름('내 일정만' 기준)
 
   useEffect(() => {
     const p = Number(localStorage.getItem('pms.project')) || null; setPid(p);
+    fetch('/api/my-work').then((r) => r.ok ? r.json() : null).then((d) => setMe(d?.name || '')).catch(() => {});
     if (!p) { setLoaded(true); return; }
     Promise.all([
       fetch(`/api/meetings?projectId=${p}`).then((r) => r.ok ? r.json() : []),
@@ -29,15 +32,21 @@ export default function Page() {
     ]).then(([mt, tk, ts, is]) => {
       const out: Ev[] = [];
       (Array.isArray(mt) ? mt : []).forEach((x: any) => x.meetingDate && out.push({ date: x.meetingDate, label: x.title, kind: '회의', color: '#0e9bb8', href: '/meetings' }));
-      (Array.isArray(tk) ? tk : []).forEach((x: any) => x.endDate && x.status !== 'done' && out.push({ date: x.endDate, label: x.name, kind: '업무마감', color: '#be5535', href: '/tasks' }));
-      (Array.isArray(ts) ? ts : []).forEach((x: any) => x.dueDate && out.push({ date: x.dueDate, label: x.title, kind: '테스트기한', color: '#7c4dff', href: '/tests' }));
-      (Array.isArray(is) ? is : []).forEach((x: any) => x.dueDate && !['resolved', 'closed'].includes(x.status) && out.push({ date: x.dueDate, label: x.title, kind: '이슈기한', color: '#d98a16', href: '/issues' }));
+      (Array.isArray(tk) ? tk : []).forEach((x: any) => x.endDate && x.status !== 'done' && out.push({ date: x.endDate, label: x.name, kind: '업무마감', color: '#be5535', href: '/tasks', owner: x.assignee || '' }));
+      (Array.isArray(ts) ? ts : []).forEach((x: any) => x.dueDate && out.push({ date: x.dueDate, label: x.title, kind: '테스트기한', color: '#7c4dff', href: '/tests', owner: x.assignee || '' }));
+      (Array.isArray(is) ? is : []).forEach((x: any) => x.dueDate && !['resolved', 'closed'].includes(x.status) && out.push({ date: x.dueDate, label: x.title, kind: '이슈기한', color: '#d98a16', href: '/issues', owner: x.assignee || '' }));
       setEvs(out); setLoaded(true);
     });
   }, []);
 
-  const kindCount = useMemo(() => { const c: Record<string, number> = {}; for (const e of evs) c[e.kind] = (c[e.kind] || 0) + 1; return c; }, [evs]);
-  const byDay = useMemo(() => { const m: Record<string, Ev[]> = {}; for (const e of evs) { if (hidden.has(e.kind)) continue; const k = e.date.slice(0, 10); (m[k] ||= []).push(e); } return m; }, [evs, hidden]);
+  // 담당자 목록(이벤트에 실제 등장한 담당자만) · 회의는 담당자 개념이 없어 제외
+  const owners = useMemo(() => Array.from(new Set(evs.map((e) => e.owner || '').filter(Boolean))).sort((a, b) => a.localeCompare(b, 'ko')), [evs]);
+  const mineOn = !!owner && owner === me;
+  // 담당자 필터 적용본(회의처럼 담당자 없는 이벤트는 특정 담당자 선택 시 제외)
+  const scoped = useMemo(() => owner ? evs.filter((e) => (e.owner || '') === owner) : evs, [evs, owner]);
+
+  const kindCount = useMemo(() => { const c: Record<string, number> = {}; for (const e of scoped) c[e.kind] = (c[e.kind] || 0) + 1; return c; }, [scoped]);
+  const byDay = useMemo(() => { const m: Record<string, Ev[]> = {}; for (const e of scoped) { if (hidden.has(e.kind)) continue; const k = e.date.slice(0, 10); (m[k] ||= []).push(e); } return m; }, [scoped, hidden]);
   const first = new Date(cur.y, cur.m, 1);
   const startDow = first.getDay();
   const days = new Date(cur.y, cur.m + 1, 0).getDate();
@@ -47,7 +56,7 @@ export default function Page() {
   while (cells.length % 7) cells.push(null);
   const todayStr = new Date().toISOString().slice(0, 10);
   // 표시 중(숨김 제외)인 마감/기한 이벤트 중 오늘 이전에 걸린 미완료 건 = 기한 초과 (월 이동과 무관하게 전체 집계)
-  const overdueCount = evs.filter((e) => isDeadlineKind(e.kind) && !hidden.has(e.kind) && e.date.slice(0, 10) < todayStr).length;
+  const overdueCount = scoped.filter((e) => isDeadlineKind(e.kind) && !hidden.has(e.kind) && e.date.slice(0, 10) < todayStr).length;
   const dkey = (d: number) => `${cur.y}-${String(cur.m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
   const move = (delta: number) => { let y = cur.y, m = cur.m + delta; if (m < 0) { m = 11; y--; } if (m > 11) { m = 0; y++; } setCur({ y, m }); };
 
@@ -78,6 +87,22 @@ export default function Page() {
           );
         })}
         {hidden.size > 0 && <button type="button" className="btn btn-sm" onClick={() => setHidden(new Set())} style={{ marginLeft: 2 }}>모두 표시</button>}
+        {owners.length > 0 && (
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
+            {me && owners.includes(me) && (
+              <button type="button" onClick={() => setOwner(mineOn ? '' : me)} aria-pressed={mineOn} title={mineOn ? '전체 담당자 보기' : `${me}님에게 배정된 업무·테스트·이슈만 표시(회의 제외)`}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 20, cursor: 'pointer', fontSize: 12, fontWeight: 700, border: '1px solid var(--border)', background: mineOn ? 'var(--brand-50)' : 'var(--surface-2)', color: mineOn ? 'var(--brand)' : 'var(--text-2)' }}>
+                내 일정만
+              </button>
+            )}
+            <select value={owner} onChange={(e) => setOwner(e.target.value)} title="담당자로 필터(회의는 담당자 지정 없이 항상 제외됨)"
+              style={{ padding: '4px 8px', borderRadius: 8, fontSize: 12, border: '1px solid var(--border)', background: owner ? 'var(--brand-50)' : '#fff', color: 'var(--text-2)', fontWeight: 600 }}>
+              <option value="">전체 담당자</option>
+              {owners.map((o) => <option key={o} value={o}>{o}</option>)}
+            </select>
+            {owner && <button type="button" className="btn btn-sm" onClick={() => setOwner('')} title="담당자 필터 해제">해제</button>}
+          </div>
+        )}
       </div>
       <div className="card" style={{ overflow: 'hidden' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', borderBottom: '1px solid var(--border)' }}>
