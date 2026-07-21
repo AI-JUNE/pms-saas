@@ -194,6 +194,38 @@ export default function Dashboard() {
         })()}
       </div>
       <div style={{ height: 16 }} />
+      <div className="card card-pad dash-card" style={{ animationDelay: '350ms' }}>
+        <div className="row" style={{ marginBottom: 12 }}><div className="sect">담당자별 업무 부하 · 진척</div><div className="sp" /><Link href="/workload" className="muted" style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>모두 보기 <ArrowRight style={{ width: 14 }} /></Link></div>
+        {(() => {
+          // 대시보드 tasks 재사용 — 담당자별 진행중 업무 수·완료율·평균 진척 집계(읽기 전용, 신규 API 없음)
+          const by: Record<string, { open: number; done: number; total: number; prog: number }> = {};
+          for (const t of tasks as any[]) {
+            const who = String(t.assignee || '').trim() || '미지정';
+            const g = by[who] || (by[who] = { open: 0, done: 0, total: 0, prog: 0 });
+            g.total++; g.prog += (t.progress || 0);
+            if (t.status === 'done') g.done++; else g.open++;
+          }
+          const list = Object.entries(by).map(([name, g]) => ({ name, ...g, avg: g.total ? Math.round(g.prog / g.total) : 0 }))
+            .sort((a, b) => b.open - a.open || b.total - a.total);
+          if (list.length === 0) return <p className="muted" style={{ fontSize: 13 }}>배정된 업무가 없습니다. 업무에 담당자를 지정하면 부하가 집계됩니다.</p>;
+          const maxOpen = Math.max(1, ...list.map((r) => r.open));
+          return <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>{list.slice(0, 6).map((r) => {
+            const col = r.open >= maxOpen * 0.7 ? '#c0414f' : r.open >= maxOpen * 0.4 ? '#d98a16' : '#2f8f5b';
+            return (
+              <div key={r.name} onClick={() => router.push('/workload')} style={{ cursor: 'pointer' }}
+                title={`${r.name} · 진행중 ${r.open}건 · 완료 ${r.done}/${r.total}건 · 평균 진척 ${r.avg}%`}>
+                <div className="row" style={{ fontSize: 12.5, marginBottom: 5, gap: 8 }}>
+                  <span style={{ fontWeight: 650, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
+                  <span style={{ fontWeight: 800, color: col }}>진행 {r.open}</span>
+                  <span className="muted" style={{ fontSize: 11.5 }}>완료 {r.done}/{r.total} · 진척 {r.avg}%</span>
+                </div>
+                <div className="pbar"><i style={{ width: mounted ? `${(r.open / maxOpen) * 100}%` : '0%', background: `linear-gradient(90deg, ${shade(col, 0.14)}, ${col})` }} /></div>
+              </div>);
+          })}
+            {list.length > 6 && <div className="muted" style={{ fontSize: 12 }}>외 {list.length - 6}명</div>}</div>;
+        })()}
+      </div>
+      <div style={{ height: 16 }} />
       <div className="card card-pad dash-card" style={{ animationDelay: '360ms' }}>
         <div className="row" style={{ marginBottom: 14 }}><div className="sect">최근 프로젝트</div><div className="sp" /><Link href="/projects" className="muted" style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>전체 보기 <ArrowRight style={{ width: 14 }} /></Link></div>
         {projects.length === 0 ? <p className="muted">프로젝트가 없습니다. <Link href="/projects" style={{ color: 'var(--brand)' }}>만들기 →</Link></p>
