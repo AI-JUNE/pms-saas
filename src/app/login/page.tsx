@@ -22,6 +22,8 @@ export default function LoginPage() {
     : !pwOk ? '비밀번호는 8자 이상이어야 합니다.'
     : '';
   useEffect(() => {
+    const inv = new URLSearchParams(window.location.search).get('invite');
+    if (inv) { setMode('register'); setForm((f) => ({ ...f, inviteCode: inv.toUpperCase() })); }
     (async () => {
       const me = await fetch('/api/auth/me').then((r) => r.json()).catch(() => null);
       if (me?.authenticated) router.replace('/dashboard');

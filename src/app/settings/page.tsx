@@ -40,6 +40,7 @@ export default function Page() {
             <div className="row" style={{ gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               <code style={{ fontSize: 15, fontWeight: 800, letterSpacing: '0.1em', background: '#fff', border: '1px solid var(--border-strong)', borderRadius: 8, padding: '6px 14px' }}>{d.org.inviteCode}</code>
               <button className="btn btn-sm" onClick={() => { try { navigator.clipboard.writeText(d.org.inviteCode); } catch {} setCopied(true); setTimeout(() => setCopied(false), 1200); }}>{copied ? '복사됨 \u2713' : '복사'}</button>
+              <button className="btn btn-sm" onClick={() => { try { navigator.clipboard.writeText(location.origin + '/login?invite=' + d.org.inviteCode); } catch {} setCopied(true); setTimeout(() => setCopied(false), 1200); }}>초대 링크 복사</button>
               <button className="btn btn-sm" onClick={regenInvite}>코드 재발급</button>
             </div>
             <p className="muted" style={{ fontSize: 12, margin: '8px 0 0', lineHeight: 1.55 }}>이 코드를 팀원에게 공유하세요. 회원가입 화면의 ‘초대 코드’에 입력하면 같은 조직에 팀원으로 합류합니다.</p>
