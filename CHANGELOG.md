@@ -3,6 +3,11 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-07-21 (배치 100 — 배포 대기, ★ 비밀번호 변경(실사용 필수))
+- **비밀번호 변경 기능 신설** — 상용 오픈 필수인데 그동안 UI/API가 없었음(설정엔 "비밀번호를 변경하세요" 안내만 있고 실제 변경 불가). (1) `/api/profile` PATCH를 확장해 `{ currentPassword, newPassword }`가 오면 현재 비밀번호를 verifyPassword로 검증 → 새 비밀번호 8자↑ 확인 → hashPassword로 교체(기존 이름 변경 동작은 그대로 유지). (2) 설정 화면에 **비밀번호 변경 카드**(현재/새/새 확인 3필드 + 클라이언트 검증: 8자↑·일치 확인 + 결과 메시지) 추가. 이제 데모 계정 비번 변경·실사용자 비번 관리가 화면에서 가능. — src/app/api/profile/route.ts, src/app/settings/page.tsx
+- 검증: 두 파일 TypeScript 구문검증 통과. 작업 전 src 백업, 무결성(깨진문자 0) 확인. verifyPassword/hashPassword export 확인. 배포는 배포.ps1 tsc 게이트 재검증.
+- (참고: 조달 페이지 금액·발주/입고 검증 등 세부 폴리시는 야간 자동개발이 이미 고도화 완료.)
+
 ## 2026-07-21 (배치 99 — 배포 대기, 폼 통화 쉼표 포맷/정렬 폴리시)
 - ④ **폼 통화 입력 실시간 천단위 쉼표 + 우측정렬** — 상용 품질 디테일. ResourceView 폼 필드에 `comma` 플래그 지원 추가(HTML `type=number`는 쉼표 표시가 불가하므로 텍스트 입력+`inputMode=numeric`으로 렌더, 입력 시 숫자만 남겨 저장·표시 시 `toLocaleString()`로 `850,000,000` 형태, 우측정렬). 프로젝트 **계약금액**·조달 **단가**에 적용. (목록 컬럼은 이미 쉼표 표기.) — src/components/ResourceView.tsx(comma 브랜치+타입), src/app/projects/page.tsx, src/app/procurement/page.tsx
 - 검증: 4개 파일 TypeScript 구문검증 통과(JSX 정상). 전체 tsc는 샌드박스 시간초과로 미완주 → 배포.ps1 tsc 게이트가 최종 재검증(타입오류 시 자동 중단). 작업 전 src 백업, 무결성(깨진문자 0) 확인.

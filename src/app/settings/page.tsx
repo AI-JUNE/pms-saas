@@ -11,10 +11,19 @@ export default function Page() {
   const [d, setD] = useState<any>(null); const [name, setName] = useState(''); const [saved, setSaved] = useState(false);
   const [myName, setMyName] = useState(''); const [mySaved, setMySaved] = useState(false);
   const [busy, setBusy] = useState(false); const [done, setDone] = useState(false);
+  const [curPw, setCurPw] = useState(''); const [newPw, setNewPw] = useState(''); const [cfPw, setCfPw] = useState(''); const [pwMsg, setPwMsg] = useState('');
   useEffect(() => { fetch('/api/settings').then((r) => r.ok ? r.json() : Promise.reject()).then((x) => { setD(x); setName(x.org?.name || ''); }).catch(() => router.push('/login')); }, [router]);
   async function save() { await fetch('/api/settings', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) }); setSaved(true); setTimeout(() => setSaved(false), 1500); }
   async function saveProfile() { const r = await fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: myName.trim() }) }); if (r.ok) { setMySaved(true); setTimeout(() => setMySaved(false), 1500); } }
   async function fillDemo() { setBusy(true); const r = await fetch('/api/admin/seed-demo', { method: 'POST' }); if (r.ok) { setDone(true); setTimeout(() => router.push('/tests'), 800); } else setBusy(false); }
+  async function changePw() {
+    setPwMsg('');
+    if (newPw.length < 8) { setPwMsg('새 비밀번호는 8자 이상이어야 합니다'); return; }
+    if (newPw !== cfPw) { setPwMsg('새 비밀번호가 일치하지 않습니다'); return; }
+    const r = await fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ currentPassword: curPw, newPassword: newPw }) });
+    if (r.ok) { setPwMsg('변경되었습니다 \u2713'); setCurPw(''); setNewPw(''); setCfPw(''); }
+    else { const e = await r.json().catch(() => ({})); setPwMsg(e.message || '변경에 실패했습니다'); }
+  }
   if (!d) return <Shell title="설정"><div className="empty">불러오는 중…</div></Shell>;
   return (
     <Shell title="설정">
@@ -31,6 +40,14 @@ export default function Page() {
         <div className="field"><label>표시 이름</label><input className="in" value={myName} onChange={(e) => setMyName(e.target.value)} placeholder="예: PM" /></div>
         <p className="muted" style={{ margin: '2px 0 14px', fontSize: 12.5 }}>대시보드 인사말과 담당자 표시에 사용됩니다. 로그인 계정별로 개별 적용됩니다.</p>
         <button className="btn btn-pri" onClick={saveProfile} disabled={!myName.trim()}>{mySaved ? '저장됨 ✓' : '저장'}</button>
+      </div>
+      <div className="card card-pad" style={{ maxWidth: 560, marginTop: 14 }}>
+        <div className="sect" style={{ marginBottom: 14 }}>비밀번호 변경</div>
+        <div className="field"><label>현재 비밀번호</label><input className="in" type="password" value={curPw} onChange={(e) => setCurPw(e.target.value)} autoComplete="current-password" /></div>
+        <div className="field"><label>새 비밀번호 (8자 이상)</label><input className="in" type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} autoComplete="new-password" /></div>
+        <div className="field"><label>새 비밀번호 확인</label><input className="in" type="password" value={cfPw} onChange={(e) => setCfPw(e.target.value)} autoComplete="new-password" /></div>
+        <button className="btn btn-pri" onClick={changePw} disabled={!curPw || !newPw || !cfPw}>비밀번호 변경</button>
+        {pwMsg && <p style={{ margin: '10px 0 0', fontSize: 12.5, fontWeight: 650, color: pwMsg.indexOf('\u2713') >= 0 ? 'var(--green)' : 'var(--red)' }}>{pwMsg}</p>}
       </div>
       {d.isOrgAdmin && (
         <div className="card card-pad" style={{ maxWidth: 560, marginTop: 14 }}>
