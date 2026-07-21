@@ -3,6 +3,22 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-07-21 (배치 104 — 배포 대기, 폼 안내문 '—'→'·' 일괄 정리)
+- ④ **폼 안내문 em대시(—) 정리** — 안내문 8개 파일 11곳의 어색한 ` — `(공백+em대시)를 ` · `(가운뎃점)로 일괄 교체(hint 문자열 내부만 안전하게, 툴팁·본문 미접촉). 방화벽·인프라·인력·조달·요구사항·기성고·테스트차수·테스트 폼의 안내가 배치101 줄간격 개선과 함께 깔끔해짐. — src/app/{firewall,infra,members,procurement,requirements,snapshots,test-cycles,tests}/page.tsx
+- 검증: `tsc --noEmit --incremental` 통과(에러 0). 남은 hint em대시 0건 확인.
+
+## 2026-07-21 (배치 103 — 배포 대기, ★ 조직 멤버 관리(비번 초기화·활성 토글))
+- **관리자 멤버 관리 강화** — 실팀 운영에 필수인 두 기능을 사용자·권한(/admin) 화면에 추가. (1) **비밀번호 초기화** — 멤버가 비번을 잊었을 때(이메일 연동 없음) 관리자가 임시 비밀번호(`pms-xxxxxx`)로 초기화 → 화면에 표시되어 본인에게 전달, 이후 설정에서 변경 안내. (2) **활성/비활성 토글** — 퇴사·휴직자 계정을 비활성화(로그인·집계 제외), 본인 계정 비활성화는 차단. API(`/api/admin/users` PATCH)에 resetPassword·isActive 분기 추가(기존 역할 변경 유지, 대상 멤버십의 org 소속 검증), 화면에 '관리' 컬럼(비번 초기화·활성 토글 버튼 + 임시 비번 표시). — src/app/api/admin/users/route.ts, src/app/admin/page.tsx
+- 검증: `tsc --noEmit --incremental` 통과(에러 0). 작업 전 src 백업, 무결성(깨진문자 0) 확인.
+
+## 2026-07-21 (배치 102 — 배포 대기, ★ 팀원 초대(조직 합류))
+- **팀원 초대 기능 신설** — 그동안 회원가입은 매번 새 조직을 만들어 같은 조직에 팀원을 넣을 수 없었음(실팀 사용 불가). 조직 **초대 코드** 방식으로 해결. (1) `organizations.inviteCode` 컬럼 신설(migrate ALTER 자동반영). (2) 회원가입 API: `inviteCode`가 오면 해당 코드의 조직을 찾아 **멤버(role:member)로 합류**(없으면 '초대 코드가 올바르지 않습니다'), 없으면 기존대로 새 조직 생성(관리자) + 초대코드 자동 발급. (3) 설정 API: 조직에 코드 없으면 관리자 GET 시 자동 생성, PATCH `regenerateInvite`로 재발급. (4) 설정 화면 '조직' 카드에 **초대 코드 표시·복사·재발급** UI + 안내. (5) 로그인 회원가입 폼에 **초대 코드 필드**(선택) 추가 — 코드 입력 시 조직명 생략 가능하도록 검증 완화. 이제 관리자가 코드를 공유하면 팀원이 같은 조직에 합류해 실팀 협업 가능. — src/db/schema.ts, src/lib/migrate.ts, src/app/api/auth/register/route.ts, src/app/api/settings/route.ts, src/app/settings/page.tsx, src/app/login/page.tsx
+- 검증: `tsc --noEmit --incremental` 통과(에러 0). 작업 전 src 백업, 마운트 무결성(깨진문자 0) 확인.
+
+## 2026-07-21 (배치 101 — 배포 대기, 폼 안내문(hint) 가독성 폴리시)
+- ④ **폼 안내문(hint) 2줄 가독성 개선** — 폼 필드 아래 안내문이 2줄로 넘어갈 때 줄이 붙어 답답하던 것을, ResourceView 힌트 span에 `line-height:1.55`·여백·자간을 넣어 전 폼 공통으로 깔끔하게. 더불어 프로젝트 폼의 장황한 안내문을 간결화하고 어색한 em대시(—)를 가운뎃점(·)으로 교체: 계약금액 '원 단위 입력 · 기성·정산 집계의 기준 금액', 시작일 '시작·종료일 입력 시 계획 진척(경과율)이 계산됩니다'. — src/components/ResourceView.tsx, src/app/projects/page.tsx
+- 검증: 파일 도구(Edit) 소규모 문자열/스타일 변경. (샌드박스 디스크 풀로 이번엔 tsc 미실행 → 배포.ps1 tsc 게이트가 최종 검증.)
+
 ## 2026-07-21 (배치 100 — 배포 대기, ★ 비밀번호 변경(실사용 필수))
 - **비밀번호 변경 기능 신설** — 상용 오픈 필수인데 그동안 UI/API가 없었음(설정엔 "비밀번호를 변경하세요" 안내만 있고 실제 변경 불가). (1) `/api/profile` PATCH를 확장해 `{ currentPassword, newPassword }`가 오면 현재 비밀번호를 verifyPassword로 검증 → 새 비밀번호 8자↑ 확인 → hashPassword로 교체(기존 이름 변경 동작은 그대로 유지). (2) 설정 화면에 **비밀번호 변경 카드**(현재/새/새 확인 3필드 + 클라이언트 검증: 8자↑·일치 확인 + 결과 메시지) 추가. 이제 데모 계정 비번 변경·실사용자 비번 관리가 화면에서 가능. — src/app/api/profile/route.ts, src/app/settings/page.tsx
 - 검증: 두 파일 TypeScript 구문검증 통과. 작업 전 src 백업, 무결성(깨진문자 0) 확인. verifyPassword/hashPassword export 확인. 배포는 배포.ps1 tsc 게이트 재검증.

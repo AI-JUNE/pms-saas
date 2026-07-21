@@ -80,6 +80,6 @@ export default function Page() {
       {key:'billingPct',label:'기성률(%)',type:'number',half:true},
       {key:'plannedPct',label:'계획 진척(%)',type:'number',half:true},
       {key:'actualPct',label:'실적 진척(%)',type:'number',half:true},
-      {key:'note',label:'비고',type:'textarea',hint:'한 줄에 항목 하나씩 — 괴리·기성 판단 근거, 마일스톤 메모 등. 목록에서 미리보기·툴팁으로 확인됩니다.'},
+      {key:'note',label:'비고',type:'textarea',hint:'한 줄에 항목 하나씩 · 괴리·기성 판단 근거, 마일스톤 메모 등. 목록에서 미리보기·툴팁으로 확인됩니다.'},
     ]} />;
 }

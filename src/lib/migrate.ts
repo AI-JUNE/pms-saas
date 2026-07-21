@@ -99,6 +99,8 @@ export const MIGRATION_DDL: string[] = [
   // 커스텀 산출물 양식
   `CREATE TABLE IF NOT EXISTS form_definitions (id serial PRIMARY KEY, org_id integer NOT NULL, project_id integer NOT NULL REFERENCES projects(id) ON DELETE CASCADE, code text, name text NOT NULL, target_type text, fields text, note text, status text DEFAULT 'draft' NOT NULL, created_at timestamptz DEFAULT now() NOT NULL)`,
   `CREATE INDEX IF NOT EXISTS form_definitions_project_idx ON form_definitions (org_id, project_id)`,
+  // 조직 초대 코드(팀원 합류)
+  `ALTER TABLE IF EXISTS organizations ADD COLUMN IF NOT EXISTS invite_code text`,
 ];
 
 export async function runMigrations(): Promise<{ applied: number; failed: { stmt: string; error: string }[] }> {

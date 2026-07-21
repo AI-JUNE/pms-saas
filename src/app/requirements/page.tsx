@@ -137,5 +137,5 @@ export default function Page() {
       }},
       {key:'assignee',label:'담당'},
     ]}
-    fields={[{key:'title',label:'제목',required:true},{key:'description',label:'설명',type:'textarea'},{key:'category',label:'분류',type:'combo',half:true,options:['기능','비기능','성능','보안','사용성','호환성','데이터','인터페이스','기타']},{key:'assignee',label:'담당자',type:'combo',optionsFrom:'members',half:true},{key:'priority',label:'우선순위',type:'select',options:['high','medium','low'],half:true},{key:'status',label:'상태',type:'select',options:['draft','review','approved','rejected'],half:true},{key:'acceptanceCriteria',label:'인수기준(완료조건)',type:'textarea',hint:'한 줄에 완료조건 하나씩 — 검증 가능한 형태로 작성(승인 전 필수)'}]} />;
+    fields={[{key:'title',label:'제목',required:true},{key:'description',label:'설명',type:'textarea'},{key:'category',label:'분류',type:'combo',half:true,options:['기능','비기능','성능','보안','사용성','호환성','데이터','인터페이스','기타']},{key:'assignee',label:'담당자',type:'combo',optionsFrom:'members',half:true},{key:'priority',label:'우선순위',type:'select',options:['high','medium','low'],half:true},{key:'status',label:'상태',type:'select',options:['draft','review','approved','rejected'],half:true},{key:'acceptanceCriteria',label:'인수기준(완료조건)',type:'textarea',hint:'한 줄에 완료조건 하나씩 · 검증 가능한 형태로 작성(승인 전 필수)'}]} />;
 }

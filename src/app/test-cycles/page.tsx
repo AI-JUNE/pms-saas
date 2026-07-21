@@ -129,7 +129,7 @@ export default function Page() {
     ]}
     fields={[
       {key:'name',label:'차수명',required:true,placeholder:'예: 1차 통합테스트',hint:'테스트 화면의 \'차수\' 필드에 같은 이름을 넣으면 이 차수로 묶입니다'},
-      {key:'goal',label:'목표·범위',type:'textarea',hint:'한 줄에 항목 하나씩 — 검증 대상 기능·제외 범위·합격 기준 등'},
+      {key:'goal',label:'목표·범위',type:'textarea',hint:'한 줄에 항목 하나씩 · 검증 대상 기능·제외 범위·합격 기준 등'},
       {key:'status',label:'상태',type:'select',half:true,options:[{value:'planned',label:'계획'},{value:'active',label:'진행'},{value:'done',label:'완료'}]},
       {key:'startDate',label:'시작일',type:'date',half:true},
       {key:'endDate',label:'종료일',type:'date',half:true,hint:'종료일이 지났는데 진행 상태면 목록에 초과일수가 표시됩니다'},

@@ -5,13 +5,13 @@ import { Logo } from '@/components/Logo';
 export default function LoginPage() {
   const router = useRouter();
   const [mode, setMode] = useState<'login' | 'register'>('login');
-  const [form, setForm] = useState({ email: '', password: '', name: '', orgName: '' });
+  const [form, setForm] = useState({ email: '', password: '', name: '', orgName: '', inviteCode: '' });
   const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
   const set = (k: string) => (e: any) => setForm({ ...form, [k]: e.target.value });
   // 클라이언트 입력 검증(서버 왕복 전 빈 값·형식 오류 색출) — 순수 표시/게이트, API·스키마 무영향
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim());
   const pwOk = form.password.length >= 8;
-  const regOk = mode === 'login' || (form.name.trim().length > 0 && form.orgName.trim().length > 0);
+  const regOk = mode === 'login' || (form.name.trim().length > 0 && (form.orgName.trim().length > 0 || form.inviteCode.trim().length > 0));
   const canSubmit = emailOk && pwOk && regOk;
   const hint = !form.email && !form.password ? '' // 초기 빈 화면에서는 안내 억제
     : mode === 'register' && !form.name.trim() ? '이름을 입력하세요.'
@@ -48,7 +48,8 @@ export default function LoginPage() {
       <form onSubmit={submit}>
         {mode === 'register' && (<>
           <div className="field"><label>이름</label><input className="in" value={form.name} onChange={set('name')} placeholder="홍길동" /></div>
-          <div className="field"><label>조직명</label><input className="in" value={form.orgName} onChange={set('orgName')} placeholder="우리 회사" /></div>
+          <div className="field"><label>조직명 <span style={{fontWeight:400,color:'var(--text-3)'}}>(초대 코드로 합류 시 생략 가능)</span></label><input className="in" value={form.orgName} onChange={set('orgName')} placeholder="우리 회사" /></div>
+          <div className="field"><label>초대 코드 <span style={{fontWeight:400,color:'var(--text-3)'}}>(선택 · 팀 합류 시)</span></label><input className="in" value={form.inviteCode} onChange={set('inviteCode')} placeholder="관리자에게 받은 코드" style={{textTransform:'uppercase'}} /></div>
         </>)}
         <div className="field"><label>이메일</label><input className="in" type="email" value={form.email} onChange={set('email')} placeholder="you@company.com" /></div>
         <div className="field"><label>비밀번호</label><input className="in" type="password" value={form.password} onChange={set('password')} placeholder="8자 이상" /></div>

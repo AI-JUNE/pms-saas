@@ -92,7 +92,7 @@ export default function Page() {
       {key:'item',label:'품목명',required:true,placeholder:'예: WAS 서버(2대) / DBMS 라이선스'},
       {key:'category',label:'분류',type:'select',options:['HW','SW','네트워크','라이선스','용역'],half:true},
       {key:'vendor',label:'업체',half:true,placeholder:'공급·납품 업체명'},
-      {key:'poNumber',label:'발주번호(PO)',half:true,hint:'발주 이후에는 반드시 기재 — 정산·감리 증빙'},
+      {key:'poNumber',label:'발주번호(PO)',half:true,hint:'발주 이후에는 반드시 기재 · 정산·감리 증빙'},
       {key:'qty',label:'수량',type:'number',numeric:true,half:true},
       {key:'unitPrice',label:'단가(원)',type:'number',comma:true,numeric:true,half:true,hint:'수량×단가로 금액이 자동 산출됩니다'},
       {key:'deliveryDate',label:'납기일',type:'date',half:true},

@@ -14,7 +14,7 @@ export const sessions = pgTable('sessions', {
 }, (t) => ({ userIdx: index('sessions_user_idx').on(t.userId), tokenIdx: index('sessions_token_idx').on(t.token) }));
 export const organizations = pgTable('organizations', {
   id: serial('id').primaryKey(), slug: text('slug').notNull(), name: text('name').notNull(),
-  plan: text('plan').default('free').notNull(),
+  plan: text('plan').default('free').notNull(), inviteCode: text('invite_code'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({ slugIdx: uniqueIndex('orgs_slug_idx').on(t.slug) }));
 export const memberships = pgTable('memberships', {

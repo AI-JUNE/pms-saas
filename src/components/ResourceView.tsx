@@ -454,7 +454,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
                     : f.type === 'combo' ? <><input className="in" list={dlId} placeholder={f.placeholder || '선택하거나 직접 입력'} value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} /><datalist id={dlId}>{optNorm.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}</datalist></>
                     : f.comma ? <input className="in" inputMode="numeric" style={{ textAlign: 'right' }} placeholder={f.placeholder || ''} value={(form[f.key] === '' || form[f.key] === undefined || form[f.key] === null) ? '' : Number(String(form[f.key]).replace(/[^0-9]/g, '') || '0').toLocaleString()} onChange={(e) => setForm({ ...form, [f.key]: e.target.value.replace(/[^0-9]/g, '') })} />
                     : <input className="in" type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'} placeholder={f.placeholder || ''} value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} />}
-                  {f.hint && <span style={{ fontSize: 11, color: 'var(--text-4)', marginTop: 3, display: 'block' }}>{f.hint}</span>}
+                  {f.hint && <span style={{ fontSize: 11, color: 'var(--text-4)', marginTop: 5, display: 'block', lineHeight: 1.55, letterSpacing: '-0.01em' }}>{f.hint}</span>}
                 </div>
                 );
               })}

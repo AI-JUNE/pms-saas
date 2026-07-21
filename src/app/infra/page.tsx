@@ -89,7 +89,7 @@ export default function Page() {
       {key:'model',label:'모델',half:true},
       {key:'location',label:'위치(사이트)',half:true,placeholder:'예: 본사 IDC 2층'},
       {key:'rack',label:'랙 위치',half:true,placeholder:'예: R-12 / U20'},
-      {key:'ipAddress',label:'IP 주소',half:true,hint:'IPv4 형식(예: 10.0.1.21) — 중복 등록 시 목록에서 경고합니다'},
+      {key:'ipAddress',label:'IP 주소',half:true,hint:'IPv4 형식(예: 10.0.1.21) · 중복 등록 시 목록에서 경고합니다'},
       {key:'hostname',label:'호스트명',half:true},
       {key:'os',label:'OS',half:true,placeholder:'예: RHEL 8.6'},
       {key:'cpu',label:'CPU',half:true,placeholder:'예: 16 vCore'},

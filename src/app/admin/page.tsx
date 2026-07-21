@@ -16,9 +16,12 @@ export default function Page() {
   const router = useRouter();
   const [rows, setRows] = useState<any[]>([]); const [can, setCan] = useState(false);
   const [mig, setMig] = useState('');
+  const [pwReset, setPwReset] = useState<{ id: number; pw: string } | null>(null);
   function load() { fetch('/api/admin/users').then((r) => r.ok ? r.json() : Promise.reject()).then((d) => setRows(Array.isArray(d) ? d : [])).catch(() => router.push('/login')); }
   useEffect(() => { fetch('/api/auth/me').then((r)=>r.json()).then((m)=>setCan(m?.org?.isOrgAdmin)); load(); }, [router]);
   async function setRole(membershipId: number, role: string) { await fetch('/api/admin/users', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ membershipId, role }) }); load(); }
+  async function resetPw(membershipId: number) { if (!confirm('이 구성원의 비밀번호를 임시 비밀번호로 초기화할까요?')) return; const r = await fetch('/api/admin/users', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ membershipId, resetPassword: true }) }); if (r.ok) { const j = await r.json().catch(() => ({})); setPwReset({ id: membershipId, pw: j.tempPassword || '' }); } }
+  async function toggleActive(membershipId: number, isActive: boolean) { const r = await fetch('/api/admin/users', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ membershipId, isActive }) }); if (r.ok) load(); else { const j = await r.json().catch(() => ({})); alert(j.message || '변경 실패'); } }
   async function migrate() { setMig('실행 중…'); try { const r = await fetch('/api/admin/migrate', { method: 'POST' }); const d = await r.json().catch(() => ({})); setMig(r.ok ? `완료 · ${d.applied ?? 0}개 적용됨` : (d.message || '실패')); } catch { setMig('실패'); } }
   const total = rows.length;
   const active = rows.filter((u) => u.isActive).length;
@@ -57,13 +60,14 @@ export default function Page() {
           <button className="btn btn-pri" onClick={migrate}>스키마 업데이트 실행</button>
         </div>
       )}
-      <div className="card tbl-wrap"><table className="tbl"><thead><tr><th>이름</th><th>이메일</th><th>역할</th><th>상태</th><th>가입</th></tr></thead>
+      <div className="card tbl-wrap"><table className="tbl"><thead><tr><th>이름</th><th>이메일</th><th>역할</th><th>상태</th><th>가입</th>{can && <th>관리</th>}</tr></thead>
         <tbody>{rows.map((u) => (<tr key={u.membershipId}>
           <td style={{ fontWeight: 650 }}>{u.name}</td><td className="muted">{u.email}</td>
           <td>{can ? <select className="sel" value={u.role} onChange={(e) => setRole(u.membershipId, e.target.value)}>{ROLES.map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}</select> : <RolePill v={u.role} />}</td>
           <td>{u.isActive ? <span className="pill p-green">활성</span> : <span className="pill p-gray">비활성</span>}</td>
-          <td className="muted">{u.createdAt ? new Date(u.createdAt).toLocaleDateString('ko-KR') : '—'}</td></tr>))}
-          {rows.length === 0 && <tr><td colSpan={5}><div className="empty"><ShieldCheck /><div>구성원이 없습니다.</div></div></td></tr>}</tbody></table></div>
+          <td className="muted">{u.createdAt ? new Date(u.createdAt).toLocaleDateString('ko-KR') : '—'}</td>
+          {can && <td style={{ whiteSpace: 'nowrap' }}><div className="row" style={{ gap: 6, flexWrap: 'wrap' }}><button className="btn btn-sm" onClick={() => resetPw(u.membershipId)} title="임시 비밀번호로 초기화">비번 초기화</button><button className="btn btn-sm" onClick={() => toggleActive(u.membershipId, !u.isActive)}>{u.isActive ? '비활성화' : '활성화'}</button></div>{pwReset && pwReset.id === u.membershipId && <div style={{ marginTop: 6, fontSize: 12 }}>임시 비번: <code style={{ fontWeight: 800, background: 'var(--surface-2)', padding: '2px 8px', borderRadius: 6 }}>{pwReset.pw}</code> <span className="muted">— 전달 후 변경 안내</span></div>}</td>}</tr>))}
+          {rows.length === 0 && <tr><td colSpan={can ? 6 : 5}><div className="empty"><ShieldCheck /><div>구성원이 없습니다.</div></div></td></tr>}</tbody></table></div>
     </Shell>
   );
 }

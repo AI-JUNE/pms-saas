@@ -12,6 +12,7 @@ export default function Page() {
   const [myName, setMyName] = useState(''); const [mySaved, setMySaved] = useState(false);
   const [busy, setBusy] = useState(false); const [done, setDone] = useState(false);
   const [curPw, setCurPw] = useState(''); const [newPw, setNewPw] = useState(''); const [cfPw, setCfPw] = useState(''); const [pwMsg, setPwMsg] = useState('');
+  const [copied, setCopied] = useState(false);
   useEffect(() => { fetch('/api/settings').then((r) => r.ok ? r.json() : Promise.reject()).then((x) => { setD(x); setName(x.org?.name || ''); }).catch(() => router.push('/login')); }, [router]);
   async function save() { await fetch('/api/settings', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) }); setSaved(true); setTimeout(() => setSaved(false), 1500); }
   async function saveProfile() { const r = await fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: myName.trim() }) }); if (r.ok) { setMySaved(true); setTimeout(() => setMySaved(false), 1500); } }
@@ -24,6 +25,7 @@ export default function Page() {
     if (r.ok) { setPwMsg('변경되었습니다 \u2713'); setCurPw(''); setNewPw(''); setCfPw(''); }
     else { const e = await r.json().catch(() => ({})); setPwMsg(e.message || '변경에 실패했습니다'); }
   }
+  async function regenInvite() { const r = await fetch('/api/settings', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ regenerateInvite: true }) }); if (r.ok) { const j = await r.json().catch(() => ({})); if (j.inviteCode) setD({ ...d, org: { ...d.org, inviteCode: j.inviteCode } }); } }
   if (!d) return <Shell title="설정"><div className="empty">불러오는 중…</div></Shell>;
   return (
     <Shell title="설정">
@@ -32,6 +34,17 @@ export default function Page() {
       <div className="card card-pad" style={{ maxWidth: 560 }}>
         <div className="sect" style={{ marginBottom: 14 }}>조직</div>
         <div className="field"><label>조직명</label><input className="in" value={name} onChange={(e) => setName(e.target.value)} disabled={!d.isOrgAdmin} /></div>
+        {d.isOrgAdmin && d.org?.inviteCode && (
+          <div style={{ marginTop: 6, marginBottom: 14, padding: '12px 14px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 10 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 8 }}>팀원 초대 코드</div>
+            <div className="row" style={{ gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <code style={{ fontSize: 15, fontWeight: 800, letterSpacing: '0.1em', background: '#fff', border: '1px solid var(--border-strong)', borderRadius: 8, padding: '6px 14px' }}>{d.org.inviteCode}</code>
+              <button className="btn btn-sm" onClick={() => { try { navigator.clipboard.writeText(d.org.inviteCode); } catch {} setCopied(true); setTimeout(() => setCopied(false), 1200); }}>{copied ? '복사됨 \u2713' : '복사'}</button>
+              <button className="btn btn-sm" onClick={regenInvite}>코드 재발급</button>
+            </div>
+            <p className="muted" style={{ fontSize: 12, margin: '8px 0 0', lineHeight: 1.55 }}>이 코드를 팀원에게 공유하세요. 회원가입 화면의 ‘초대 코드’에 입력하면 같은 조직에 팀원으로 합류합니다.</p>
+          </div>
+        )}
         <div className="row" style={{ gap: 18, fontSize: 13 }}><span className="muted">플랜</span><span className="pill p-blue np" title={`플랜: ${d.org?.plan || 'free'}`}>{PLAN_LABEL[d.org?.plan] || d.org?.plan || '무료'}</span><span className="muted">내 역할</span><span className={`pill ${ROLE_BADGE[d.role] || 'p-purple'} np`} title={`역할: ${d.role}`}>{ROLE_LABEL[d.role] || d.role}</span></div>
         {d.isOrgAdmin && (() => { const nn = name.trim(); const changed = !!nn && nn !== (d.org?.name || ''); return (<div style={{ marginTop: 16 }}><button className="btn btn-pri" onClick={save} disabled={!changed}>{saved ? '저장됨 ✓' : '저장'}</button>{!nn && <p className="muted" style={{ margin: '8px 0 0', fontSize: 12 }}>조직명은 비워둘 수 없습니다.</p>}{!!nn && !changed && !saved && <p className="muted" style={{ margin: '8px 0 0', fontSize: 12 }}>변경된 내용이 없습니다.</p>}</div>); })()}
       </div>

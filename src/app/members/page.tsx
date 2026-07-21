@@ -122,5 +122,5 @@ export default function Page() {
         </span>;
       }},
     ]}
-    fields={[{key:'name',label:'이름',required:true,half:true},{key:'role',label:'역할',type:'select',options:['PM','PMO','개발PL','개발자','인프라','DBA','QA'],half:true},{key:'company',label:'소속',half:true},{key:'position',label:'직책',type:'combo',half:true,options:['사원','대리','과장','차장','부장','수석','책임','선임','전임','대표']},{key:'email',label:'이메일',half:true,hint:'통지·결재 알림 수신처 — 형식 오류·중복 시 목록에서 경고합니다'},{key:'phone',label:'연락처',half:true,placeholder:'예: 010-1234-5678'}]} />;
+    fields={[{key:'name',label:'이름',required:true,half:true},{key:'role',label:'역할',type:'select',options:['PM','PMO','개발PL','개발자','인프라','DBA','QA'],half:true},{key:'company',label:'소속',half:true},{key:'position',label:'직책',type:'combo',half:true,options:['사원','대리','과장','차장','부장','수석','책임','선임','전임','대표']},{key:'email',label:'이메일',half:true,hint:'통지·결재 알림 수신처 · 형식 오류·중복 시 목록에서 경고합니다'},{key:'phone',label:'연락처',half:true,placeholder:'예: 010-1234-5678'}]} />;
 }
