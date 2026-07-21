@@ -386,6 +386,7 @@ export default function LpClient() {
             <a href="#why">도입 이유</a>
             <a href="#features">핵심 기능</a>
             <a href="#flow">진행 방식</a>
+            <Link href="/pricing">요금제</Link>
             <a href="#faq">FAQ</a>
           </div>
           <div className="spacer" />
