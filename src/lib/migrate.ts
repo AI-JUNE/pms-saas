@@ -3,6 +3,14 @@ import { sql as dsql } from 'drizzle-orm';
 
 // 멱등 스키마 자가정합 DDL. 반복 실행 안전(모두 IF EXISTS/IF NOT EXISTS).
 export const MIGRATION_DDL: string[] = [
+  // 구독 결제(빌링) — 멱등, 실결제와 무관하게 스키마만 준비
+  `CREATE TABLE IF NOT EXISTS billing_customers (id serial PRIMARY KEY, org_id integer NOT NULL, pg_customer_key text, created_at timestamptz DEFAULT now() NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS billing_methods (id serial PRIMARY KEY, org_id integer NOT NULL, billing_key text, card_brand text, last4 text, status text DEFAULT 'active' NOT NULL, created_at timestamptz DEFAULT now() NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS subscriptions (id serial PRIMARY KEY, org_id integer NOT NULL, plan text DEFAULT 'basic' NOT NULL, seats integer DEFAULT 1 NOT NULL, status text DEFAULT 'inactive' NOT NULL, current_period_start timestamptz, current_period_end timestamptz, cancel_at_period_end boolean DEFAULT false NOT NULL, created_at timestamptz DEFAULT now() NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS invoices (id serial PRIMARY KEY, org_id integer NOT NULL, subscription_id integer, amount integer DEFAULT 0 NOT NULL, tax integer DEFAULT 0 NOT NULL, status text DEFAULT 'draft' NOT NULL, pg_tx_id text, issued_at timestamptz DEFAULT now() NOT NULL, paid_at timestamptz)`,
+  `CREATE TABLE IF NOT EXISTS billing_events (id serial PRIMARY KEY, org_id integer NOT NULL, type text NOT NULL, payload text, actor text, created_at timestamptz DEFAULT now() NOT NULL)`,
+  `CREATE INDEX IF NOT EXISTS subscriptions_org_idx ON subscriptions (org_id)`,
+  `CREATE INDEX IF NOT EXISTS invoices_org_idx ON invoices (org_id)`,
   `CREATE TABLE IF NOT EXISTS tests (id serial PRIMARY KEY, org_id integer NOT NULL, project_id integer NOT NULL REFERENCES projects(id) ON DELETE CASCADE, code text, req_code text, title text NOT NULL, type text DEFAULT '단위' NOT NULL, priority text DEFAULT 'medium' NOT NULL, steps text, expected text, assignee text, status text DEFAULT 'draft' NOT NULL, result text DEFAULT 'na' NOT NULL, executed_at timestamptz, created_at timestamptz DEFAULT now() NOT NULL)`,
   `CREATE INDEX IF NOT EXISTS tests_project_idx ON tests (org_id, project_id)`,
   // issues (agile fields added after initial release)

@@ -1,68 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { PLANS, PAYMENTS_LIVE } from '@/lib/billing';
 
 export const metadata: Metadata = {
   title: '요금제 — PMS',
   description: '팀 규모에 맞춘 3단계 요금제. 5인까지 무료로 시작하고, 성과관리(EVM)·RTM·전자결재·테스트까지 하나로.',
 };
-
-type Tier = {
-  name: string;
-  price: string;
-  unit?: string;
-  note: string;
-  desc: string;
-  features: string[];
-  cta: string;
-  href: string;
-  highlight?: boolean;
-};
-
-const TIERS: Tier[] = [
-  {
-    name: 'Basic',
-    price: '₩9,900',
-    unit: '/ 사용자 · 월',
-    note: '소규모 팀 시작용',
-    desc: '프로젝트·WBS·이슈/리스크·간트 기본으로 팀 협업을 시작하세요.',
-    features: ['프로젝트·단계·WBS', '이슈/결함·리스크', '기본 간트·칸반·캘린더', '멤버·권한(RBAC)', '5인까지 무료 체험'],
-    cta: '무료로 시작',
-    href: '/dashboard',
-  },
-  {
-    name: 'Pro',
-    price: '₩16,900',
-    unit: '/ 사용자 · 월',
-    note: '가장 많이 선택',
-    desc: '성과관리(EVM)·요구사항 추적·전자결재·테스트까지 실무 전부.',
-    features: [
-      'Basic 전체 포함',
-      'EVM 성과관리(SPI·CPI·PV·EV·AC)',
-      '요구사항 추적(RTM)·산출물 전자결재',
-      '테스트 관리·실행 리포트',
-      '인터랙티브 간트(베이스라인·임계경로·의존성)',
-      '대시보드 집계·주간보고·⌘K 전역검색',
-    ],
-    cta: '무료로 시작',
-    href: '/dashboard',
-    highlight: true,
-  },
-  {
-    name: 'Enterprise',
-    price: '견적',
-    note: '기관·대기업·공공',
-    desc: '보안·규정·전용 인프라가 필요한 조직을 위한 맞춤 도입.',
-    features: [
-      'Pro 전체 포함',
-      'SSO·상세 감사로그·데이터 접근 통제',
-      '전용 DB·전용 리전·온프레미스 옵션',
-      '전담 지원·SLA·교육',
-      '공공 조달(GS인증·CSAP) 대응',
-    ],
-    cta: '도입 문의',
-    href: '/login?manual=1',
-  },
-];
 
 export default function PricingPage() {
   return (
@@ -86,11 +29,12 @@ export default function PricingPage() {
           5인까지 무료로 시작하세요. 계획·WBS부터 성과관리(EVM)·전자결재·테스트까지 하나의 플랫폼에서.
         </p>
         <div style={{ fontSize: 12.5, color: 'var(--text-3)', marginTop: 14 }}>연간 결제 기준 · 부가세 별도 · 월간 결제는 약 20% 높음</div>
+        {!PAYMENTS_LIVE && (<div style={{ display: 'inline-block', marginTop: 12, fontSize: 12, fontWeight: 700, color: 'var(--amber)', background: 'var(--amber-50)', border: '1px solid #f0d9a8', padding: '6px 12px', borderRadius: 999 }}>결제 준비 중 · 지금은 무료 데모로 이용하세요</div>)}
       </section>
 
       {/* 요금제 3단계 */}
       <section style={{ maxWidth: 1080, margin: '0 auto', padding: '28px 22px 24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 20, alignItems: 'stretch' }}>
-        {TIERS.map((t) => (
+        {PLANS.map((t) => (
           <div
             key={t.name}
             style={{
@@ -138,6 +82,7 @@ export default function PricingPage() {
         <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '18px 20px', fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6 }}>
           <b style={{ color: 'var(--text-1)' }}>도입 안내</b> · 연간 약정 시 할인, 공공기관은 디지털서비스 전문계약(수의계약)·나라장터 조달로 도입 가능합니다.
           결제·플랜 세부는 도입 문의로 안내드리며, 지금은 <b>무료 데모</b>로 전체 기능을 바로 체험하실 수 있습니다.
+          <div style={{ marginTop: 10, fontSize: 12.5 }}><Link href="/terms" style={{ color: 'var(--brand-600)', fontWeight: 700 }}>이용약관</Link> · <Link href="/privacy" style={{ color: 'var(--brand-600)', fontWeight: 700 }}>개인정보 처리방침</Link></div>
         </div>
       </section>
     </div>
