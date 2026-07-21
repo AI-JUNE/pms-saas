@@ -22,12 +22,9 @@ export default function LoginPage() {
     : !pwOk ? '비밀번호는 8자 이상이어야 합니다.'
     : '';
   useEffect(() => {
-    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('manual')) return;
     (async () => {
       const me = await fetch('/api/auth/me').then((r) => r.json()).catch(() => null);
-      if (me?.authenticated) { router.replace('/dashboard'); return; }
-      const a = await fetch('/api/auth/auto', { method: 'POST' }).then((r) => r.json()).catch(() => null);
-      if (a?.ok) router.replace('/dashboard');
+      if (me?.authenticated) router.replace('/dashboard');
     })();
     // eslint-disable-next-line
   }, []);
@@ -58,7 +55,7 @@ export default function LoginPage() {
         {hint && <p className="muted" style={{ textAlign: 'center', margin: '2px 0 0', fontSize: 12, color: '#be5535' }}>{hint}</p>}
         <button className="btn btn-pri" style={{ width: '100%', justifyContent: 'center', marginTop: 8, padding: 11 }} disabled={busy || !canSubmit} title={!canSubmit ? (hint || '이메일·비밀번호(8자 이상)를 입력하세요') : ''}>{busy ? '처리 중…' : mode === 'login' ? '로그인' : '가입하고 시작하기'}</button>
       </form>
-      <p className="muted" style={{ textAlign: 'center', marginTop: 18 }}>데모: admin@demo.local / admin1234</p>
+      <p className="muted" style={{ textAlign: 'center', marginTop: 18 }}>처음이신가요? 상단 '회원가입'으로 관리자 계정을 만드세요.</p>
     </div></div>
   );
 }
