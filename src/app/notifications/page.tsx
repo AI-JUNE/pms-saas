@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCheck, Bell, Search, X } from 'lucide-react';
 import { Shell } from '@/components/Shell';
@@ -11,6 +11,7 @@ const KIND: Record<Kind, { label: string; cls: string; tip: string }> = {
   approval: { label: '결재 대기', cls: 'p-blue',  tip: '내 결재를 기다리는 산출물입니다.' },
   etc:      { label: '일반',      cls: 'p-gray',  tip: '일반 알림입니다.' },
 };
+const KIND_ORDER: Kind[] = ['overdue', 'due', 'approval', 'etc'];
 
 // "[자동] 마감 초과: TSK-01 설계 (2026-07-10)" -> 유형/본문 분리
 function parse(msg: string) {
@@ -44,6 +45,8 @@ export default function Page() {
   const [q, setQ] = useState('');
   const [kind, setKind] = useState('');
   const [unreadOnly, setUnreadOnly] = useState(false);
+  const [grouped, setGrouped] = useState(false);
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
   function load() {
     fetch('/api/notifications').then((r) => (r.ok ? r.json() : Promise.reject()))
@@ -75,6 +78,30 @@ export default function Page() {
   const filtered = view.length !== rows.length;
   // 내부 경로(/로 시작)만 이동 허용 — 외부 링크는 무시
   const go = (link?: string) => { if (link && link.startsWith('/')) router.push(link); };
+
+  function renderRow(n: any) {
+    const p = parse(n.message);
+    const k = KIND[p.kind];
+    const linkable = typeof n.link === 'string' && n.link.startsWith('/');
+    return (
+      <tr
+        key={n.id}
+        onClick={() => go(n.link)}
+        onKeyDown={(e) => { if (linkable && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); go(n.link); } }}
+        tabIndex={linkable ? 0 : -1}
+        style={{ cursor: linkable ? 'pointer' : 'default' }}
+        title={linkable ? `클릭하면 ${n.link} 화면으로 이동합니다.` : undefined}
+      >
+        <td><span className={`pill ${k.cls}`} title={k.tip}>{k.label}</span></td>
+        <td style={{ fontWeight: n.isRead ? 500 : 700, opacity: n.isRead ? 0.72 : 1 }}>
+          {p.text}
+          {p.auto && <span className="muted" style={{ marginLeft: 7, fontSize: 11, fontWeight: 600 }} title="시스템이 자동으로 생성한 알림입니다.">자동</span>}
+        </td>
+        <td>{n.isRead ? <span className="pill p-gray">읽음</span> : <span className="pill p-blue">새 알림</span>}</td>
+        <td className="muted" title={n.createdAt ? new Date(n.createdAt).toLocaleString('ko-KR') : undefined} style={{ cursor: 'help' }}>{relTime(n.createdAt)}</td>
+      </tr>
+    );
+  }
 
   return (
     <Shell title="알림">
@@ -114,6 +141,14 @@ export default function Page() {
         >
           안 읽음만{unread > 0 ? ` (${unread})` : ''}
         </button>
+        <button
+          className={`btn btn-sm ${grouped ? 'btn-pri' : ''}`}
+          onClick={() => setGrouped((v) => !v)}
+          aria-pressed={grouped}
+          title="알림을 종류별로 묶어 표시합니다. 그룹 헤더를 눌러 접거나 펼칠 수 있습니다."
+        >
+          종류별 그룹
+        </button>
         <div className="sp" />
         <span className="muted" title={filtered ? `전체 ${rows.length}건 중 조건에 맞는 ${view.length}건을 표시합니다.` : `마감 초과 ${counts.overdue} · 마감 임박 ${counts.due} · 결재 대기 ${counts.approval} · 일반 ${counts.etc}`}>
           {filtered ? <><b style={{ color: 'var(--brand)' }}>{view.length}</b>/{rows.length}건</> : <>{rows.length}건</>}
@@ -134,27 +169,30 @@ export default function Page() {
             {!loaded && Array.from({ length: 4 }).map((_, i) => (
               <tr key={`sk${i}`}><td colSpan={4}><div className="skel" style={{ height: 18, margin: '4px 0' }} /></td></tr>
             ))}
-            {loaded && view.map((n) => {
-              const p = parse(n.message);
-              const k = KIND[p.kind];
-              const linkable = typeof n.link === 'string' && n.link.startsWith('/');
+            {loaded && !grouped && view.map((n) => renderRow(n))}
+            {loaded && grouped && view.length > 0 && KIND_ORDER.map((gk) => {
+              const items = view.filter((n) => parse(n.message).kind === gk);
+              if (items.length === 0) return null;
+              const gInfo = KIND[gk];
+              const isCollapsed = !!collapsed[gk];
+              const gUnread = items.filter((n) => !n.isRead).length;
               return (
-                <tr
-                  key={n.id}
-                  onClick={() => go(n.link)}
-                  onKeyDown={(e) => { if (linkable && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); go(n.link); } }}
-                  tabIndex={linkable ? 0 : -1}
-                  style={{ cursor: linkable ? 'pointer' : 'default' }}
-                  title={linkable ? `클릭하면 ${n.link} 화면으로 이동합니다.` : undefined}
-                >
-                  <td><span className={`pill ${k.cls}`} title={k.tip}>{k.label}</span></td>
-                  <td style={{ fontWeight: n.isRead ? 500 : 700, opacity: n.isRead ? 0.72 : 1 }}>
-                    {p.text}
-                    {p.auto && <span className="muted" style={{ marginLeft: 7, fontSize: 11, fontWeight: 600 }} title="시스템이 자동으로 생성한 알림입니다.">자동</span>}
-                  </td>
-                  <td>{n.isRead ? <span className="pill p-gray">읽음</span> : <span className="pill p-blue">새 알림</span>}</td>
-                  <td className="muted" title={n.createdAt ? new Date(n.createdAt).toLocaleString('ko-KR') : undefined} style={{ cursor: 'help' }}>{relTime(n.createdAt)}</td>
-                </tr>
+                <Fragment key={`g-${gk}`}>
+                  <tr
+                    className="grp-hd"
+                    onClick={() => setCollapsed((c) => ({ ...c, [gk]: !c[gk] }))}
+                    style={{ cursor: 'pointer', background: 'var(--surface-2, #faf7f5)' }}
+                    title={isCollapsed ? '펼치기' : '접기'}
+                  >
+                    <td colSpan={4} style={{ fontWeight: 700 }}>
+                      <span style={{ display: 'inline-block', width: 14, color: 'var(--text-3)' }}>{isCollapsed ? '▸' : '▾'}</span>
+                      <span className={`pill ${gInfo.cls}`} title={gInfo.tip} style={{ marginRight: 8 }}>{gInfo.label}</span>
+                      <span className="muted">{items.length}건</span>
+                      {gUnread > 0 && <span style={{ color: 'var(--brand)', marginLeft: 8, fontSize: 12 }}>· 안 읽음 {gUnread}</span>}
+                    </td>
+                  </tr>
+                  {!isCollapsed && items.map((n) => renderRow(n))}
+                </Fragment>
               );
             })}
             {loaded && view.length === 0 && (
