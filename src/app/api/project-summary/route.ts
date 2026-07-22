@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 import { db } from '@/db';
-import { projects, phases, tasks, issues, risks, requirements, documents, tests } from '@/db/schema';
+import { projects, phases, tasks, issues, risks, requirements, documents, tests, procurementItems, snapshots } from '@/db/schema';
 import { requireUser } from '@/lib/auth';
 import { requireTenant } from '@/lib/tenant';
 import { handle, ok, ApiError, ERROR } from '@/lib/http';
@@ -14,7 +14,7 @@ export async function GET(req: Request) {
     const org = ctx.orgId;
     const [pj] = await db.select().from(projects).where(and(eq(projects.orgId, org), eq(projects.id, pid)));
     if (!pj) throw new ApiError(ERROR.NOT_FOUND, '프로젝트를 찾을 수 없습니다');
-    const [ph, tk, is, rk, rq, dc, ts] = await Promise.all([
+    const [ph, tk, is, rk, rq, dc, ts, pc, sn] = await Promise.all([
       db.select().from(phases).where(and(eq(phases.orgId, org), eq(phases.projectId, pid))),
       db.select().from(tasks).where(and(eq(tasks.orgId, org), eq(tasks.projectId, pid))),
       db.select().from(issues).where(and(eq(issues.orgId, org), eq(issues.projectId, pid))),
@@ -22,6 +22,8 @@ export async function GET(req: Request) {
       db.select().from(requirements).where(and(eq(requirements.orgId, org), eq(requirements.projectId, pid))),
       db.select().from(documents).where(and(eq(documents.orgId, org), eq(documents.projectId, pid))),
       db.select().from(tests).where(and(eq(tests.orgId, org), eq(tests.projectId, pid))),
+      db.select().from(procurementItems).where(and(eq(procurementItems.orgId, org), eq(procurementItems.projectId, pid))),
+      db.select().from(snapshots).where(and(eq(snapshots.orgId, org), eq(snapshots.projectId, pid))),
     ]);
     const avg = tk.length ? Math.round(tk.reduce((s, t) => s + (t.progress || 0), 0) / tk.length) : 0;
     const starts = tk.map((t) => t.startDate ? new Date(t.startDate).getTime() : null).filter((x): x is number => !!x);
@@ -49,6 +51,15 @@ export async function GET(req: Request) {
     const tPass = tResult('pass'), tFail = tResult('fail');
     const tExecuted = tPass + tFail + tResult('blocked');
     const passRate = (tPass + tFail) > 0 ? Math.round(tPass / (tPass + tFail) * 100) : null;
+    // 재무 요약 — 계약금액(budget)·조달총액(수량×단가)·기성률(최신 스냅샷) 계산 기반(신규 테이블 없음)
+    const contract = pj.budget || 0;
+    const procTotal = pc.reduce((s, p) => s + (p.qty || 0) * (p.unitPrice || 0), 0);
+    const procReceived = pc.filter((p) => p.status === 'received').reduce((s, p) => s + (p.qty || 0) * (p.unitPrice || 0), 0);
+    const snSorted = [...sn].sort((a, b) => String(b.snapshotDate || b.createdAt || '').localeCompare(String(a.snapshotDate || a.createdAt || '')));
+    const latestSnap = snSorted[0] || null;
+    const billingPct = latestSnap ? (latestSnap.billingPct || 0) : null;
+    const billingAmount = (billingPct != null && contract > 0) ? Math.round(contract * billingPct / 100) : null;
+    const procRatio = contract > 0 ? Math.round(procTotal / contract * 100) : null;
     return ok({
       project: pj,
       phases: { total: ph.length, done: ph.filter((p) => p.status === 'done').length, list: ph.map((p) => ({ id: p.id, code: p.code, name: p.name, status: p.status })) },
@@ -59,6 +70,7 @@ export async function GET(req: Request) {
       schedule: { plannedPct, actualPct: avg, spi },
       evm: { unit: evmUnit, bac, pv, ev, ac, sv, spi: evmSpi, cpi },
       documents: { total: dc.length, approved: dc.filter((d) => d.status === 'approved').length },
+      finance: { contract, procTotal, procReceived, procCount: pc.length, procRatio, billingPct, billingAmount, snapLabel: latestSnap ? latestSnap.label : null, snapDate: latestSnap ? (latestSnap.snapshotDate || null) : null },
       tests: { total: ts.length, executed: tExecuted, pass: tPass, fail: tFail, blocked: tResult('blocked'), na: tResult('na'), passRate, byStatus: { draft: tStatus('draft'), dev: tStatus('dev'), pl: tStatus('pl'), pm: tStatus('pm'), done: tStatus('done') } },
     });
   });

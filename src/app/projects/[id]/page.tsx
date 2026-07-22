@@ -4,7 +4,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Shell } from '@/components/Shell';
 import { Pill } from '@/lib/ui';
-import { ArrowLeft, ListTodo, Bug, ShieldAlert, ClipboardList, FileCheck2, Layers3, TrendingUp } from 'lucide-react';
+import { ArrowLeft, ListTodo, Bug, ShieldAlert, ClipboardList, FileCheck2, Layers3, TrendingUp, Wallet } from 'lucide-react';
+
+const won = (n: number) => '₩' + Number(n || 0).toLocaleString();
 
 export default function Page({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -87,6 +89,30 @@ export default function Page({ params }: { params: { id: string } }) {
             <Metric icon={FileCheck2} label="산출물" value={`${d.documents.approved}/${d.documents.total}`} sub="승인 / 전체" href="/documents" />
           </div>
 
+          {d.finance && (d.finance.contract > 0 || d.finance.procTotal > 0 || d.finance.billingPct != null) && (
+            <div style={{ background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 20px', marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontWeight: 750, fontSize: 14, marginBottom: 12 }}><Wallet style={{ width: 16, color: 'var(--brand)' }} />재무 요약</div>
+              <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                <div><div className="muted" style={{ fontSize: 12 }}>계약금액</div><div style={{ fontSize: 22, fontWeight: 800 }}>{d.finance.contract > 0 ? won(d.finance.contract) : '—'}</div></div>
+                <div>
+                  <div className="muted" style={{ fontSize: 12 }}>기성률{d.finance.snapDate ? ` (${d.finance.snapDate} 기준)` : ''}</div>
+                  {(() => { const v = d.finance.billingPct; const c = v == null ? 'var(--text-3)' : v >= 90 ? '#2f8f5b' : v >= 50 ? '#d98a16' : 'var(--text-1)'; return <div style={{ fontSize: 22, fontWeight: 800, color: c }}>{v == null ? '—' : v + '%'}</div>; })()}
+                  {d.finance.billingAmount != null && <div style={{ fontSize: 11.5, color: 'var(--text-4)' }}>기성금액 {won(d.finance.billingAmount)}</div>}
+                </div>
+                <div>
+                  <div className="muted" style={{ fontSize: 12 }}>조달총액{d.finance.procCount > 0 ? ` (${d.finance.procCount}건)` : ''}</div>
+                  <div style={{ fontSize: 22, fontWeight: 800 }}>{d.finance.procTotal > 0 ? won(d.finance.procTotal) : '—'}</div>
+                  {d.finance.procRatio != null && <div style={{ fontSize: 11.5, color: d.finance.procRatio > 100 ? '#c0414f' : 'var(--text-4)' }}>예산 대비 {d.finance.procRatio}%{d.finance.procReceived > 0 ? ` · 입고 ${won(d.finance.procReceived)}` : ''}</div>}
+                </div>
+              </div>
+              {d.finance.contract > 0 && d.finance.billingPct != null && (
+                <div style={{ marginTop: 14 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: 'var(--text-4)', marginBottom: 5 }}><span>기성 진행</span><span>{d.finance.billingPct}% / 100%</span></div>
+                  <div style={{ height: 8, background: 'var(--surface-3)', borderRadius: 6, overflow: 'hidden' }}><div style={{ width: `${Math.max(0, Math.min(100, d.finance.billingPct))}%`, height: '100%', background: 'var(--brand)', borderRadius: 6, transition: 'width .6s ease' }} /></div>
+                </div>
+              )}
+            </div>
+          )}
           {d.schedule && (
             <div style={{ background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 20px', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontWeight: 750, fontSize: 14, marginBottom: 12 }}><TrendingUp style={{ width: 16, color: 'var(--brand)' }} />일정 성과 (SPI)</div>
