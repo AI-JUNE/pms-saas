@@ -314,15 +314,20 @@ a.brand:focus-visible,.btn:focus-visible{outline:2px solid var(--brand);outline-
 .gowon-logo svg circle{animation:pop2 .5s both}
 @keyframes pop2{from{opacity:0;transform:scale(.3)}to{opacity:1;transform:scale(1)}}
 .kpi-value{transition:color .2s}
-/* ===== v14: print ===== */
+/* ===== v14: print (배치111 정돈) ===== */
+@page{margin:14mm}
 @media print{
-  .sidebar,.topbar,.no-print,.menu-scrim{display:none!important}
+  .sidebar,.topbar,.no-print,.menu-scrim,.mobiletabs{display:none!important}
   .app{display:block}
   .main{width:100%}
   .content{padding:0;max-width:100%}
-  .card,.kpi{box-shadow:none;border:1px solid #ddd;break-inside:avoid}
+  .card,.kpi{box-shadow:none;border:1px solid #ddd}
+  .card,.kpi,.g2,.kpis,.dash-card,table,tr,thead{break-inside:avoid}
+  .sect{break-after:avoid}
+  .tbl-wrap{overflow:visible!important}
   body{background:#fff}
-  .hero{background:#be5535!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  *{transition:none!important;animation:none!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .hero{background:#be5535!important}
 }
 
 .pbar{height:12px;background:var(--surface-3);border-radius:99px;overflow:hidden;position:relative;box-shadow:inset 0 1px 2px rgba(0,0,0,.06)}

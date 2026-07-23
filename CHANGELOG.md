@@ -3,6 +3,11 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-07-23 (배치 111 — 배포 대기, 인쇄/PDF 레이아웃 정돈)
+- ⑨ **인쇄/PDF: 리포트·프로젝트 요약 인쇄 레이아웃 정돈(no-print 정리)** — 리포트에는 `window.print()` 버튼이 있었지만 **프로젝트 상세(/projects/[id])에는 인쇄 진입점이 없었고**, 공통 print CSS도 애니메이션이 걸린 진척 바(pbar)가 인쇄 시 0%로 찍히거나 표가 스크롤 영역에 잘리고 카드가 페이지 경계에서 쪼개지는 등 정돈이 필요했음. (1) 프로젝트 상세 헤더에 **‘인쇄 / PDF’ 버튼**(no-print)을 추가하고 뒤로가기와 함께 no-print 행으로 묶어 인쇄물에서 버튼이 빠지게 함. (2) globals.css의 `@media print`를 정돈 — `@page{margin:14mm}` 여백, `.mobiletabs`(모바일 탭바) 숨김 추가, `*{transition:none!important;animation:none!important;print-color-adjust:exact}`로 진척 바·컬러 배경이 계산된 최종 상태·색으로 인쇄되게 하고, `.card/.kpi/.g2/.kpis/.dash-card/table/tr/thead`에 `break-inside:avoid`·`.sect`에 `break-after:avoid`로 카드·표가 페이지 경계에서 쪼개지지 않게, `.tbl-wrap{overflow:visible}`로 표 잘림 방지. 순수 표시·스타일이라 데이터·API·스키마 무영향, 마이그레이션 불필요. — src/app/projects/[id]/page.tsx, src/app/globals.css
+- 검증: `tsc --noEmit -p tsconfig.json` 통과(error TS 0건). 작업 전 src 백업(/tmp/bak_1784808314). 마운트(=OneDrive 실파일) 무결성 재확인 — 깨진문자(U+FFFD) 0. lucide Printer 아이콘 import 추가.
+
+
 ## 2026-07-22 (배치 110 — 배포 대기, 프로젝트 상세 재무 요약 카드)
 - ⑨ **프로젝트 상세(/projects/[id]): 계약금액·기성률·조달총액 재무 요약 카드 추가** — 상세에는 단계·업무·이슈·리스크·SPI·EVM·테스트 카드는 있었지만 **‘돈’ 관점(계약금액·기성 진행·조달 집행)을 한눈에 보는 요약이 없어**, 재무 상태 파악은 조달/기성고 화면을 각각 돌아야 했음. `/api/project-summary`에 **finance** 블록을 추가해 계약금액(projects.budget), 조달총액(procurement_items 수량×단가 합)·입고분·건수·예산대비 비율, 최신 스냅샷(snapshots) 기준 기성률·기성금액을 순수 집계로 계산(신규 테이블·쓰기 없음). 상세 화면에는 계약금액·기성률(스냅샷 기준일 표기·기성금액 부기·기성 진행 바)·조달총액(예산 대비 %·입고액, 초과 시 빨강) 3열 재무 요약 카드를 EVM 카드 위에 배치. 재무 데이터가 하나도 없으면 카드 자체를 숨김(빈 상태 안전). 읽기 전용 계산·표시라 데이터·스키마 무영향, 마이그레이션 불필요. — src/app/api/project-summary/route.ts, src/app/projects/[id]/page.tsx
 - 검증: `tsc --noEmit -p tsconfig.json` 통과(error TS 0건). 작업 전 src 백업(/tmp/bak_1784743512). 마운트(=OneDrive 실파일) 무결성 재확인 — route 77줄·page 194줄, 깨진문자(U+FFFD) 0. procurementItems·snapshots 스키마 import 추가, won() 통화 포매터 추가.

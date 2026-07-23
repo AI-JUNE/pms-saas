@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Shell } from '@/components/Shell';
 import { Pill } from '@/lib/ui';
-import { ArrowLeft, ListTodo, Bug, ShieldAlert, ClipboardList, FileCheck2, Layers3, TrendingUp, Wallet } from 'lucide-react';
+import { ArrowLeft, ListTodo, Bug, ShieldAlert, ClipboardList, FileCheck2, Layers3, TrendingUp, Wallet, Printer } from 'lucide-react';
 
 const won = (n: number) => '₩' + Number(n || 0).toLocaleString();
 
@@ -49,7 +49,11 @@ export default function Page({ params }: { params: { id: string } }) {
 
   return (
     <Shell title={p ? `${p.code} · ${p.name}` : '프로젝트'}>
-      <button className="btn btn-ghost btn-sm" onClick={() => router.push('/projects')} style={{ marginBottom: 14 }}><ArrowLeft style={{ width: 15 }} />프로젝트 목록</button>
+      <div className="row no-print" style={{ marginBottom: 14, alignItems: 'center' }}>
+        <button className="btn btn-ghost btn-sm" onClick={() => router.push('/projects')}><ArrowLeft style={{ width: 15 }} />프로젝트 목록</button>
+        <div className="sp" />
+        {p && <button className="btn btn-sm" onClick={() => window.print()} title="이 프로젝트 요약을 인쇄하거나 PDF로 저장합니다"><Printer style={{ width: 15 }} />인쇄 / PDF</button>}
+      </div>
       {err && <div className="err">{err}</div>}
       {!d && !err && <div className="card card-pad" style={{ display: 'grid', gap: 12 }}>{Array.from({ length: 5 }).map((_, i) => <div key={i} className="skel" style={{ height: i === 0 ? 26 : 18, width: i === 0 ? '34%' : '100%' }} />)}</div>}
       {p && (
