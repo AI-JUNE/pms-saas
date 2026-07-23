@@ -125,12 +125,32 @@ export default function Page() {
   const [d, setD] = useState<any>(null);
   useEffect(() => {
     fetch('/api/auth/me').then((r) => r.json()).then(async (m) => { if (!m.authenticated) { router.push('/login'); return; }
-      const [issues, tasks, risks, requirements, projects, sprints, tests, snapshots] = await Promise.all(['issues','tasks','risks','requirements','projects','sprints','tests','snapshots'].map((e) => fetch('/api/' + e).then((r) => r.ok ? r.json() : [])));
-      setD({ issues: issues||[], tasks: tasks||[], risks: risks||[], requirements: requirements||[], projects: projects||[], sprints: sprints||[], tests: tests||[], snapshots: snapshots||[] });
+      const [issues, tasks, risks, requirements, projects, sprints, tests, snapshots, procurement] = await Promise.all(['issues','tasks','risks','requirements','projects','sprints','tests','snapshots','procurement'].map((e) => fetch('/api/' + e).then((r) => r.ok ? r.json() : [])));
+      setD({ issues: issues||[], tasks: tasks||[], risks: risks||[], requirements: requirements||[], projects: projects||[], sprints: sprints||[], tests: tests||[], snapshots: snapshots||[], procurement: procurement||[] });
     });
   }, [router]);
   if (!d) return <Shell title="리포트"><div className="card card-pad" style={{ display: 'grid', gap: 12 }}>{Array.from({ length: 5 }).map((_, i) => <div key={i} className="skel" style={{ height: i === 0 ? 30 : 18, width: i === 0 ? '38%' : '100%' }} />)}</div></Shell>;
-  const { issues, tasks, risks, requirements, projects, sprints, tests, snapshots } = d;
+  const { issues, tasks, risks, requirements, projects, sprints, tests, snapshots, procurement } = d;
+  // 프로젝트별 예산/기성/조달 재무 집계 (읽기 전용 계산 — /projects[id] 재무 카드와 동일 규칙)
+  const won = (n: number) => '₩' + (Number(n) || 0).toLocaleString('ko-KR');
+  const latestSnap = (pid: number) => {
+    const ss = snapshots.filter((s: any) => s.projectId === pid);
+    if (!ss.length) return null;
+    return ss.slice().sort((a: any, b: any) => String(b.snapshotDate || '').localeCompare(String(a.snapshotDate || '')) || (b.id - a.id))[0];
+  };
+  const finance = projects.map((p: any) => {
+    const budget = Number(p.budget) || 0;
+    const snap = latestSnap(p.id);
+    const billPct = snap ? Math.max(0, Math.min(100, Number(snap.billingPct) || 0)) : null;
+    const billAmt = billPct != null ? Math.round(budget * billPct / 100) : 0;
+    const pis = procurement.filter((x: any) => x.projectId === p.id);
+    const procTotal = pis.reduce((s: number, x: any) => s + (Number(x.qty) || 0) * (Number(x.unitPrice) || 0), 0);
+    const procReceived = pis.filter((x: any) => x.receiptDate).reduce((s: number, x: any) => s + (Number(x.qty) || 0) * (Number(x.unitPrice) || 0), 0);
+    const procRatio = budget > 0 ? Math.round(procTotal / budget * 100) : null;
+    return { p, budget, snap, billPct, billAmt, procCnt: pis.length, procTotal, procReceived, procRatio };
+  }).filter((f: any) => f.budget > 0 || f.procTotal > 0 || f.snap);
+  const finTot = finance.reduce((a: any, f: any) => ({ budget: a.budget + f.budget, billAmt: a.billAmt + f.billAmt, procTotal: a.procTotal + f.procTotal, procReceived: a.procReceived + f.procReceived }), { budget: 0, billAmt: 0, procTotal: 0, procReceived: 0 });
+  const finBillRate = finTot.budget > 0 ? Math.round(finTot.billAmt / finTot.budget * 100) : null;
   // 테스트 실행 결과(통과율·실패)
   const tCnt = (r: string) => tests.filter((t: any) => t.result === r).length;
   const tPass = tCnt('pass'), tFail = tCnt('fail'), tBlocked = tCnt('blocked'), tNa = tests.length - tPass - tFail - tBlocked;
@@ -168,6 +188,7 @@ export default function Page() {
       xlsSheet('리스크', ['제목', '확률', '영향', '등급', '상태', '담당'], risks.map((r: any) => [r.title || '', r.probability || '', r.impact || '', r.level || '', r.status || '', r.owner || ''])),
       xlsSheet('요구사항', ['코드', '제목', '분류', '우선순위', '상태'], requirements.map((q: any) => [q.reqCode || q.code || '', q.title || '', q.category || '', q.priority || '', q.status || ''])),
       xlsSheet('테스트실행', ['프로젝트', '전체', '실행', '통과', '실패', '통과율(%)'], testByProject.map((r: any) => [r.p.name || '', r.total, r.exec, r.pass, r.fail, r.rate ?? ''])),
+      xlsSheet('예산기성', ['프로젝트', '계약금액', '기성률(%)', '기성금액', '조달총액', '조달입고액', '예산대비조달(%)'], finance.map((f: any) => [f.p.name || '', f.budget, f.billPct ?? '', f.billAmt, f.procTotal, f.procReceived, f.procRatio ?? ''])),
     ];
     downloadWorkbook(sheets);
   };
@@ -192,6 +213,32 @@ export default function Page() {
                 <td><div className="row" style={{ gap: 8 }}><div className="pbar" style={{ flex: 1 }}><i style={{ width: `${Math.min(100, s.billingPct||0)}%`, background: 'linear-gradient(90deg,#e6915f,#be5535)' }} /></div><span style={{ fontWeight: 800, fontSize: 12, minWidth: 34, textAlign: 'right' }}>{s.billingPct||0}%</span></div></td></tr>))}
             </tbody></table></div>)}
       </div>
+      {finance.length > 0 && <>
+        <div style={{ height: 16 }} />
+        <div className="card dash-card" style={{ overflow: 'hidden' }}>
+          <div className="card-pad" style={{ paddingBottom: 0 }}><div className="sect">프로젝트별 예산 · 기성 · 조달 집계 <span style={{ fontSize: 11, color: 'var(--text-4)', fontWeight: 600 }}>(계약금액 · 최신 스냅샷 기성률 · 조달 집행)</span></div></div>
+          <div className="tbl-wrap" style={{ marginTop: 8 }}><table className="tbl"><thead><tr><th>프로젝트</th><th style={{ textAlign: 'right' }}>계약금액</th><th style={{ minWidth: 150 }}>기성률</th><th style={{ textAlign: 'right' }}>기성금액</th><th style={{ textAlign: 'right' }}>조달총액</th><th style={{ minWidth: 120 }}>예산대비 조달</th></tr></thead>
+            <tbody>{finance.map((f: any) => {
+              const over = f.procRatio != null && f.procRatio > 100;
+              return <tr key={f.p.id}>
+                <td style={{ fontWeight: 650 }}>{f.p.name}</td>
+                <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{f.budget > 0 ? won(f.budget) : <span className="muted">—</span>}</td>
+                <td>{f.billPct == null ? <span className="muted" style={{ fontSize: 11.5 }} title="이 프로젝트에 기록된 기성고 스냅샷이 없습니다">스냅샷 없음</span> : <div className="row" style={{ gap: 8, alignItems: 'center' }} title={`최신 스냅샷 기준일 ${f.snap?.snapshotDate || '—'} · 기성률 ${f.billPct}%`}><div className="pbar" style={{ flex: 1 }}><i style={{ width: `${f.billPct}%`, background: 'linear-gradient(90deg,#e6915f,#be5535)' }} /></div><span style={{ fontWeight: 800, fontSize: 12, minWidth: 34, textAlign: 'right' }}>{f.billPct}%</span></div>}</td>
+                <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{f.billPct != null && f.budget > 0 ? won(f.billAmt) : <span className="muted">—</span>}</td>
+                <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{f.procTotal > 0 ? <span title={`조달 ${f.procCnt}건 · 입고액 ${won(f.procReceived)}`} style={{ cursor: 'help' }}>{won(f.procTotal)}</span> : <span className="muted">—</span>}</td>
+                <td>{f.procRatio == null ? <span className="muted" style={{ fontSize: 11.5 }}>—</span> : <div className="row" style={{ gap: 8, alignItems: 'center' }} title={`계약금액 대비 조달총액 ${f.procRatio}%` + (over ? ' — 예산 초과' : '')}><div className="pbar" style={{ flex: 1 }}><i style={{ width: `${Math.min(100, f.procRatio)}%`, background: over ? '#c0414f' : '#5a7fb0' }} /></div><span style={{ fontWeight: 800, fontSize: 12, minWidth: 40, textAlign: 'right', color: over ? '#c0414f' : 'var(--text-2)' }}>{f.procRatio}%</span></div>}</td>
+              </tr>;
+            })}
+              <tr style={{ borderTop: '2px solid var(--border)', fontWeight: 800 }}>
+                <td>합계 <span className="muted" style={{ fontWeight: 600, fontSize: 11 }}>({finance.length}개)</span></td>
+                <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{won(finTot.budget)}</td>
+                <td>{finBillRate == null ? <span className="muted">—</span> : <span style={{ fontWeight: 800 }}>{finBillRate}%</span>}</td>
+                <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{won(finTot.billAmt)}</td>
+                <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{won(finTot.procTotal)}</td>
+                <td className="muted" style={{ fontWeight: 600, fontSize: 11.5 }}>입고 {won(finTot.procReceived)}</td>
+              </tr></tbody></table></div>
+        </div>
+      </>}
       <div style={{ height: 16 }} />
       <div className="g2">
         <div className="card card-pad dash-card"><div className="sect" style={{ marginBottom: 8 }}>번다운 차트</div><Burndown tasks={tasks} /></div>

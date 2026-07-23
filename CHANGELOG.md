@@ -3,6 +3,11 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-07-23 (배치 112 — 배포 대기, 리포트 프로젝트별 예산·기성·조달 집계 섹션 + 엑셀 시트)
+- ⑨ **리포트: 프로젝트별 예산/기성 집계 섹션 + 엑셀 시트 1개 추가** — 리포트에는 진척·품질·팀 지표는 풍부했지만 **‘돈’ 관점의 프로젝트 횡단 집계(계약금액·기성·조달)가 전무**해, 재무 현황은 프로젝트를 하나씩 돌거나 조달/기성고 화면을 각각 봐야 했음. `/api/procurement`를 리포트 로드에 추가(기존 8종과 함께 병렬 페치)하고, 프로젝트별로 계약금액(projects.budget)·**최신 스냅샷 기성률**(snapshots를 snapshotDate 내림차순 정렬해 선택)·기성금액(계약금액×기성률)·조달총액(procurement qty×unitPrice 합)·입고액·예산대비 조달비율을 순수 클라이언트 집계. ‘프로젝트별 예산·기성·조달 집계’ 카드(기성률·예산대비 조달 바, 예산 초과 시 빨강, 스냅샷 없으면 안내, 합계행)를 스냅샷 추이 카드 아래에 배치하고, 재무 데이터(예산·조달·스냅샷)가 하나도 없는 프로젝트는 제외·전무하면 섹션 자체를 숨김. 엑셀 내보내기에도 **‘예산기성’ 시트**(프로젝트·계약금액·기성률·기성금액·조달총액·조달입고액·예산대비조달%) 1개를 추가. 읽기 전용 계산·표시라 데이터·스키마 무영향, 마이그레이션 불필요. 단일 파일. — src/app/reports/page.tsx
+- 검증: `tsc --noEmit -p tsconfig.json` 통과(error TS 0건). 작업 전 src 백업(/tmp/bak_1784829942). 마운트(=OneDrive 실파일) 무결성 재확인 — 307줄, 깨진문자(U+FFFD) 0. won() 통화 포매터·finance/finTot 집계·procurement 페치 추가.
+
+
 ## 2026-07-23 (배치 111 — 배포 대기, 인쇄/PDF 레이아웃 정돈)
 - ⑨ **인쇄/PDF: 리포트·프로젝트 요약 인쇄 레이아웃 정돈(no-print 정리)** — 리포트에는 `window.print()` 버튼이 있었지만 **프로젝트 상세(/projects/[id])에는 인쇄 진입점이 없었고**, 공통 print CSS도 애니메이션이 걸린 진척 바(pbar)가 인쇄 시 0%로 찍히거나 표가 스크롤 영역에 잘리고 카드가 페이지 경계에서 쪼개지는 등 정돈이 필요했음. (1) 프로젝트 상세 헤더에 **‘인쇄 / PDF’ 버튼**(no-print)을 추가하고 뒤로가기와 함께 no-print 행으로 묶어 인쇄물에서 버튼이 빠지게 함. (2) globals.css의 `@media print`를 정돈 — `@page{margin:14mm}` 여백, `.mobiletabs`(모바일 탭바) 숨김 추가, `*{transition:none!important;animation:none!important;print-color-adjust:exact}`로 진척 바·컬러 배경이 계산된 최종 상태·색으로 인쇄되게 하고, `.card/.kpi/.g2/.kpis/.dash-card/table/tr/thead`에 `break-inside:avoid`·`.sect`에 `break-after:avoid`로 카드·표가 페이지 경계에서 쪼개지지 않게, `.tbl-wrap{overflow:visible}`로 표 잘림 방지. 순수 표시·스타일이라 데이터·API·스키마 무영향, 마이그레이션 불필요. — src/app/projects/[id]/page.tsx, src/app/globals.css
 - 검증: `tsc --noEmit -p tsconfig.json` 통과(error TS 0건). 작업 전 src 백업(/tmp/bak_1784808314). 마운트(=OneDrive 실파일) 무결성 재확인 — 깨진문자(U+FFFD) 0. lucide Printer 아이콘 import 추가.
