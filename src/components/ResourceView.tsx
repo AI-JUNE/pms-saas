@@ -61,6 +61,11 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
   const [hiddenCols, setHiddenCols] = useState<Set<string>>(new Set());
   const [colMenu, setColMenu] = useState(false);
   const [fullTag, setFullTag] = useState(false);
+  const urlSyncRef = useRef(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+  function copyViewLink() {
+    try { navigator.clipboard?.writeText(window.location.href); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 1500); } catch {}
+  }
   useEffect(() => {
     try {
       const hc = localStorage.getItem('pms.cols.' + title);
@@ -72,8 +77,29 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
       if (s) { const [sk, sd] = JSON.parse(s); if (sk) { setSortK(sk); setSortDir(sd === 1 ? 1 : -1); } }
       const mv = localStorage.getItem('pms.mode.' + title);
       if (mv && (mv === 'table' || altViews.some((v) => v.key === mv))) setMode(mv);
+      // 공유 뷰 링크: URL 쿼리가 있으면 localStorage보다 우선해 검색·상태·정렬·그룹 복원
+      const sp = new URLSearchParams(window.location.search);
+      if (sp.has('q')) setQ(sp.get('q') || '');
+      if (sp.has('status')) setFilter(sp.get('status') || '');
+      if (sp.has('group')) setGroupBy(sp.get('group') || '');
+      const uk = sp.get('sort');
+      if (uk) { setSortK(uk); setSortDir(sp.get('dir') === 'asc' ? 1 : -1); }
     } catch {}
+    urlSyncRef.current = true;
   }, [title]);
+  // 검색·상태·정렬·그룹 변화를 URL 쿼리에 반영(내비게이션 없이 replaceState) — 링크만 공유하면 같은 뷰가 열림
+  useEffect(() => {
+    if (!urlSyncRef.current) return;
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      const put = (k: string, v: string) => { if (v) sp.set(k, v); else sp.delete(k); };
+      put('q', q); put('status', filter); put('group', groupBy);
+      if (sortK && sortK !== 'id') { sp.set('sort', sortK); sp.set('dir', sortDir === 1 ? 'asc' : 'desc'); }
+      else { sp.delete('sort'); sp.delete('dir'); }
+      const qs = sp.toString();
+      window.history.replaceState(null, '', window.location.pathname + (qs ? '?' + qs : '') + window.location.hash);
+    } catch {}
+  }, [q, filter, groupBy, sortK, sortDir]);
   function toggleCol(k: string) { setHiddenCols((p) => { const n = new Set(p); n.has(k) ? n.delete(k) : n.add(k); try { localStorage.setItem('pms.cols.' + title, JSON.stringify(Array.from(n))); } catch {} return n; }); }
   function toggleFullTag() { setFullTag((v) => { const n = !v; try { localStorage.setItem('pms.fulltag', n ? '1' : '0'); } catch {} return n; }); }
   const visibleColumns = useMemo(() => columns.filter((c) => !hiddenCols.has(c.key)), [columns, hiddenCols]);
@@ -316,6 +342,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
         </div>
         <span className="muted" title={(q || filter) ? `전체 ${rows.length}건 중 ${view.length}건 표시` : undefined}><SlidersHorizontal style={{ width: 13, verticalAlign: -2 }} /> {(q || filter) && view.length !== rows.length ? `${view.length}/${rows.length}건` : `${view.length}건`}</span>
         {(q || filter) && <button className="btn btn-sm btn-ghost" onClick={() => { setQ(''); setFilter(''); }} title="검색·상태 필터 초기화" aria-label="검색·상태 필터 초기화"><X style={{ width: 13 }} />초기화</button>}
+        {(q || filter || groupBy || (sortK && sortK !== 'id')) && <button className="btn btn-sm btn-ghost" onClick={copyViewLink} title="현재 검색·필터·정렬·그룹이 담긴 링크를 복사합니다(공유 시 같은 뷰로 열림)" aria-label="뷰 링크 복사">{linkCopied ? '복사됨' : '뷰 링크'}</button>}
       </div>
 
       {projectScoped && !pid && !loading && (

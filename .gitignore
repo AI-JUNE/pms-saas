@@ -8,3 +8,8 @@ npm-debug.log*
 *.ps1
 *.zip
 __synctest.txt
+
+# 야간 tsc 스코프 검증 임시파일(삭제 불가 마운트 — 커밋 제외)
+tsconfig.check.json
+zzz_del.json
+_tsc_check.out

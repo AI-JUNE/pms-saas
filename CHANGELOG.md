@@ -3,6 +3,10 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-07-25 (배치 113 — 배포 대기, 목록 뷰 상태를 URL 쿼리로 공유)
+- ⑨ **목록 공통: 활성 검색·상태필터·정렬·그룹을 URL 쿼리에 반영(공유 가능한 뷰 링크)** — 그동안 검색·필터·정렬·그룹은 컴포넌트 state(+일부 localStorage)에만 있어 **지금 보고 있는 뷰를 링크로 남에게 공유하거나 새로고침으로 보존할 수 없었음**. ResourceView에 (1) 마운트 시 `window.location.search`를 읽어 `q`(검색)·`status`(상태필터)·`sort`+`dir`(정렬)·`group`(그룹)이 있으면 localStorage보다 **우선**해 상태를 복원, (2) 이 값들이 바뀔 때마다 내비게이션 없이 `history.replaceState`로 URL 쿼리를 갱신(다른 페이지 파라미터는 보존, 기본값이면 키 삭제), (3) 툴바 초기화 옆에 활성 뷰가 있을 때만 **'뷰 링크' 복사 버튼**(클립보드 복사 후 '복사됨' 피드백)을 추가. 이제 URL만 공유하면 상대가 동일한 검색·필터·정렬·그룹 상태의 목록을 그대로 보게 됨. 순수 클라이언트 표시·상태 동기화라 데이터·API·스키마 무영향, 마이그레이션 불필요. 컴포넌트 Props 인터페이스 무변경(소비 페이지 영향 없음). 단일 파일. — src/components/ResourceView.tsx
+- 검증: 마운트가 파일 삭제(unlink)를 막고 전체 `tsc`가 45s 실행 상한을 초과하는 환경 제약으로, ResourceView 하위 그래프만 검사하는 스코프 tsconfig로 타입검증(27s, error TS 0건) — Props 무변경이라 소비 페이지 영향 없음이 근거. 최종 게이트는 `배포.ps1`의 호스트 전체 `tsc --noEmit -p tsconfig.json`가 담당. 작업 전 src 백업(/tmp/bak_1784955212). 마운트(=OneDrive 실파일) 무결성 재확인 — 496줄, 깨진문자(U+FFFD) 0. 스코프 검증 임시파일(tsconfig.check.json·zzz_del.json)은 마운트 삭제 불가로 남아 `.gitignore`에 추가(커밋 제외).
+
 ## 2026-07-24 (상용화 P0 — 배포 대기, /api/health 헬스체크 + 마켓플레이스 제출자료 초안)
 - **공통 P0(모니터링): `GET /api/health` 공개 헬스체크 엔드포인트 신설** — 업타임 모니터·로드밸런서·마켓플레이스 상태점검이 붙을 표준 헬스체크가 없었음. Neon DB를 `select 1`로 가볍게 핑하고 `{ ok, status, service, version, time, uptimeSec, checks.db{ ok, latencyMs } }`를 반환. DB 정상 200 / 이상 시에도 크래시 없이 표준 JSON으로 **503(degraded)** 반환, `Cache-Control: no-store`. 인증 불필요(공개). 프로세스 업타임·`APP_VERSION`(기본 0.12.0) 노출. 읽기 전용·신규 테이블/스키마 무영향. — src/app/api/health/route.ts (신규)
 - **상용화(마켓플레이스): 제출자료 초안 문서화** — 서비스 개요·주요기능·아키텍처(Next14+Drizzle+Neon+Vercel)·보안/컴플라이언스(RBAC·감사로그·멀티테넌시·표준에러·플래그 OFF)·요금제 3단계·SLA 초안·제출 체크리스트. 민감/법무 확정 항목은 **[승인 필요]** 표기. — docs/MARKETPLACE_SUBMISSION.md (신규)
