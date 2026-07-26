@@ -420,7 +420,19 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
                   const t = new Date(detail[f.key]).getTime(); const now = Date.now(); const dd = Math.ceil((t - now) / 86400000); const od = Math.floor((now - t) / 86400000);
                   if (!done && !isNaN(t)) { dueCol = t < now ? '#c0414f' : dd <= 7 ? '#d98a16' : undefined; if (dueCol) dueTip = t < now ? (od >= 1 ? `${od}일 초과` : '오늘 마감 초과') : (dd <= 0 ? '오늘 마감' : `D-${dd}`); }
                 }
-                return (<div key={f.key} style={{ display: 'contents' }}><dt>{f.label}</dt><dd>{['status','priority','level','type'].includes(f.key) ? <Pill v={detail[f.key]} /> : detail[f.key] ? (dueCol ? <span style={{ color: dueCol, fontWeight: 700 }}>{detail[f.key]} <span style={{ fontSize: 11 }}>({dueTip})</span></span> : detail[f.key]) : <span className="muted">—</span>}</dd></div>);
+                // 숫자·금액 필드는 목록/폼과 동일하게 천단위 쉼표로 표기 (일관화)
+                const rawV = detail[f.key];
+                const dispV = (rawV != null && rawV !== '' && (f.type === 'number' || f.comma) && isFinite(Number(rawV))) ? Number(rawV).toLocaleString('ko-KR') : rawV;
+                // 연계 필드(연계 요구사항·테스트 차수·관계 이슈·선행 업무)는 해당 목록으로 이동하는 링크로 표기 — 대상 목록이 URL 쿼리(q)로 값을 검색해 보여줌
+                const linkMap: Record<string, Record<string, string>> = { tests: { reqCode: '/requirements', cycle: '/test-cycles' }, issues: { reqCode: '/requirements', related: '/issues' }, tasks: { reqCode: '/requirements', predecessor: '/tasks' } };
+                const linkBase = (entity && linkMap[entity] && linkMap[entity][f.key]) || null;
+                let cell: any;
+                if (['status', 'priority', 'level', 'type'].includes(f.key)) cell = <Pill v={detail[f.key]} />;
+                else if (detail[f.key]) {
+                  const plain = dueCol ? <span style={{ color: dueCol, fontWeight: 700 }}>{dispV} <span style={{ fontSize: 11 }}>({dueTip})</span></span> : dispV;
+                  cell = linkBase ? <a href={`${linkBase}?q=${encodeURIComponent(String(rawV))}`} style={{ color: 'var(--brand-600)', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 2 }} title={`'${rawV}'(으)로 연계 목록에서 찾기`}>{dispV}</a> : plain;
+                } else cell = <span className="muted">—</span>;
+                return (<div key={f.key} style={{ display: 'contents' }}><dt>{f.label}</dt><dd>{cell}</dd></div>);
               })}
               {(() => {
                 const fieldKeys = new Set(fields.map((f) => f.key));
