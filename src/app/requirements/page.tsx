@@ -92,6 +92,7 @@ export default function Page() {
   };
 
   return <ResourceView title="요구사항" subtitle="요구사항을 추적합니다." endpoint="/api/requirements" entity="requirements" projectScoped
+    emptyText="등록된 요구사항이 없습니다. “새로 만들기”로 요구사항을 등록하고 우선순위·인수기준을 정의해 추적(RTM)하세요."
     altViews={[{ key: 'analysis', label: '분석', render: (rows: any[]) => <ReqAnalysis rows={rows} /> }]}
     columns={[
       {key:'code',label:'코드'},

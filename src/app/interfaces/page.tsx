@@ -9,6 +9,7 @@ const lines = (s: any) => String(s ?? '').split(/\r?\n/).map((x) => x.trim()).fi
 
 export default function Page() {
   return <ResourceView title="인터페이스" subtitle="시스템 간 인터페이스를 설계·관리합니다." endpoint="/api/interfaces" projectScoped entity="interfaces"
+    emptyText="등록된 인터페이스가 없습니다. “새로 만들기”로 송·수신 시스템과 연동 규격(프로토콜·포맷·주기)을 등록하세요."
     columns={[
       { key: 'code', label: '코드' },
       { key: 'name', label: '인터페이스', strong: true },

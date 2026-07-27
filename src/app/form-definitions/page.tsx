@@ -39,6 +39,7 @@ export default function Page() {
   }, []);
 
   return <ResourceView title="산출물 양식" subtitle="프로젝트 산출물의 커스텀 양식(템플릿)을 정의합니다. 항목 구성을 등록해 표준화하세요." endpoint="/api/form-definitions" entity="formDefinitions" projectScoped statusKey="targetType"
+    emptyText="등록된 산출물 양식이 없습니다. “새로 만들기”로 산출물 템플릿의 항목 구성을 정의해 표준화하세요."
     columns={[
       {key:'code',label:'코드'},
       {key:'name',label:'양식명',strong:true},

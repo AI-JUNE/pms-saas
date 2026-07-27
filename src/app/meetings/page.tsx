@@ -27,6 +27,7 @@ const chip = (text: string, color: string, bg: string) => (
 
 export default function Page() {
   return <ResourceView title="회의" subtitle="회의록과 결정사항을 기록합니다." endpoint="/api/meetings" entity="meetings" projectScoped statusKey="location"
+    emptyText="등록된 회의가 없습니다. “새로 만들기”로 회의 일정을 잡고 안건·결정사항·후속조치를 기록하세요."
     columns={[
       {key:'code',label:'코드'},
       {key:'title',label:'제목',strong:true},

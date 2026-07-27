@@ -19,6 +19,7 @@ function scaleCell(v: any, kind: string) {
 
 export default function Page() {
   return <ResourceView title="리스크" subtitle="리스크를 식별·평가합니다. 등급은 발생가능성×영향도로 자동 산정됩니다." endpoint="/api/risks" entity="risks" projectScoped
+    emptyText="식별된 리스크가 없습니다. “새로 만들기”로 리스크를 등록하고 발생가능성·영향도·대응방안을 기록하세요."
     altViews={[{ key: 'matrix', label: '매트릭스', render: (rows, openDetail) => <RiskMatrix rows={rows} openDetail={openDetail} /> }]}
     columns={[
       { key: 'code', label: '코드' },

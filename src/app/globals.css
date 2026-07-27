@@ -412,3 +412,25 @@ a.brand:focus-visible,.btn:focus-visible{outline:2px solid var(--brand);outline-
   .kpi{padding:13px 14px}
   .kpi-value{font-size:21px}
 }
+
+
+/* ===== v23: 모바일 터치 타깃 44px 보강 (mobile 44px touch targets — 목록·신규 화면) ===== */
+/* 기성고·산출물양식·테스트차수·To-Do 등 신규 화면은 모두 ResourceView 목록을 쓰므로,
+   목록의 공통 인터랙티브 요소를 모바일에서 44px 급으로 키워 손가락 탭을 쉽게 한다. (순수 CSS·모바일 한정) */
+@media (max-width:860px){
+  /* 액션 버튼·아이콘 버튼 탭 영역 확보 */
+  .btn{min-height:44px}
+  .btn-sm{min-height:40px}
+  .iconbtn{width:44px;height:44px}
+  .seg button{min-height:40px}
+  /* 목록 행 액션(수정·삭제): 터치 기기에선 항상 노출되므로 탭 영역을 넓힌다 */
+  .tbl td.row-act .btn{min-height:40px;min-width:40px;padding-left:10px;padding-right:10px}
+  /* 선택 열·컬럼 토글 체크박스: 기본 크기가 작아 탭이 어려움 → 키움 */
+  .tbl input[type=checkbox]{width:20px;height:20px}
+  /* 하단 빠른 추가 입력칸(인라인 height:30 보정) */
+  .tbl .in{min-height:40px}
+  /* 인라인 편집 드롭다운(셀 클릭 편집) */
+  .tbl select.sel{min-height:38px}
+  /* 상태·우선순위 배지 셀(인라인 편집 트리거) 탭 영역 */
+  .tbl td .pill{padding-top:6px;padding-bottom:6px}
+}
