@@ -386,7 +386,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
             {!loading && !grouped && view.map((row) => <Row key={row.id} row={row} />)}
             {!loading && grouped && grouped.map(([g, list]) => (
               <Fragment key={'g' + g}>
-                <tr onClick={() => toggleGroup(g)} style={{ cursor: 'pointer' }}><td colSpan={visibleColumns.length + 2} style={{ background: 'var(--surface-3)', fontWeight: 750, fontSize: 12.5, boxShadow: `inset 4px 0 0 ${STATUS_COLOR[g] || 'var(--brand)'}` }}><span style={{ display: 'inline-block', width: 14, transform: collapsed.has(g) ? 'none' : 'rotate(90deg)', color: 'var(--muted)' }}>▸</span>{g} <span className="muted">· {list.length}</span>{(() => {
+                <tr onClick={() => toggleGroup(g)} style={{ cursor: 'pointer' }}><td colSpan={visibleColumns.length + 2} style={{ background: 'var(--surface-3)', fontWeight: 750, fontSize: 12.5, boxShadow: `inset 4px 0 0 ${STATUS_COLOR[g] || 'var(--brand)'}` }}><span style={{ display: 'inline-block', width: 14, transform: collapsed.has(g) ? 'none' : 'rotate(90deg)', color: 'var(--muted)' }}>▸</span>{LABEL[g] || g} <span className="muted">· {list.length}</span>{(() => {
                   const DONE = ['done', 'closed', 'resolved', 'completed', 'approved', 'pass'];
                   if (!list.some((r: any) => r[statusKey])) return null;
                   const dc = list.filter((r: any) => DONE.includes(String(r[statusKey]))).length;
