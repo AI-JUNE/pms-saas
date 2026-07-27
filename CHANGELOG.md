@@ -3,6 +3,11 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-07-27 (배치 118 — 배포 대기, 목록 표 숫자·금액 컬럼 천단위 쉼표 일관화)
+- ⑨ **목록 공통: 표(리스트) 숫자·금액 컬럼에 천단위 쉼표 표기(상세·폼과 일관화)** — 배치114에서 상세 슬라이드오버의 숫자·금액 `<dd>` 값을, 입력 폼은 `comma` 필드를 이미 `toLocaleString`으로 천단위 쉼표를 찍었지만, **목록 표 셀은 커스텀 `render`가 없는 숫자(type:'number')·`comma` 컬럼을 원시 숫자 그대로 노출**(예: 계약금액 `850000000`, 단가 `1200000`)해 같은 값이 목록↔상세↔폼에서 다르게 보이는 불일치가 남아 있었음. ResourceView의 목록 셀 기본 렌더(커스텀 render·배지·mono·마감일 분기에 해당 없는 마지막 분기)에서, 해당 컬럼의 필드가 `type:'number'`이거나 `comma:true`이고 값이 유한수일 때만 `Number(v).toLocaleString('ko-KR')`로 포매팅해 표기하도록 보강(배치114의 상세 규칙과 동일 술어). WBS 번호·강조(strong) 표기, 값 없을 때 `—` 폴백은 그대로. 커스텀 `render`가 있는 컬럼은 기존 로직 유지(무영향). 순수 표시 로직이라 데이터·API·스키마 무영향, Props 인터페이스·소비 페이지 무변경, 마이그레이션 불필요. 단일 파일. — src/components/ResourceView.tsx
+- 검증: 편집 대상 ResourceView.tsx를 포함하는 스코프 tsconfig(`tsconfig.check.json`)로 타입검증 — `error TS` 0건(rc=0). 전체 `tsc`는 이 환경의 bash 실행 상한(44s)을 초과(배치113~117과 동일 제약)해 최종 게이트는 `배포.ps1`의 호스트 전체 `tsc --noEmit -p tsconfig.json`가 담당. 작업 전 src 백업(/tmp/bak_1785153880). 마운트(=OneDrive 실파일) 무결성 재확인 — 깨진문자(U+FFFD) 0, `fields.find`로 필드 조회·`toLocaleString` 삽입 확인.
+
+
 ## 2026-07-27 (배치 117 — 배포 대기, 목록 빈 상태 문구 도메인 맞춤 일관화)
 - ⑨/⑥ **목록 공통: 요구사항·리스크·회의·인터페이스·산출물양식 5개 화면의 빈 상태(empty) 문구를 도메인 맞춤으로 통일** — ⑥의 "각 목록 빈 상태 문구 도메인 맞춤 통일"은 대부분 완료됐지만, 이 5개 목록은 `emptyText` prop이 없어 ResourceView 기본 문구(`아직 등록된 {title} 항목이 없습니다. "새로 만들기"로 추가하세요.`)로 떨어져, 이슈·테스트·기성고·To-Do·조달 등 도메인 안내(무엇을 왜 등록하는지)를 주는 화면들과 톤이 어긋났음. 각 ResourceView 호출에 `emptyText` 한 줄만 추가 — 요구사항(우선순위·인수기준 정의로 RTM 추적), 리스크(발생가능성·영향도·대응방안 기록), 회의(안건·결정사항·후속조치 기록), 인터페이스(송·수신 시스템·연동 규격 등록), 산출물양식(템플릿 항목 구성 정의). 기존 도메인 문구와 동일한 "새로 만들기" 안내 톤·곡선따옴표(“ ”)로 맞춤. `emptyText`는 Props에 이미 선언된 선택 문자열 prop(`emptyText?: string`)이라 타입·컴포넌트·API·스키마 무영향, 순수 표시 문자열 추가라 마이그레이션 불필요. — src/app/{requirements,risks,meetings,interfaces,form-definitions}/page.tsx
 - 검증: 편집이 선언된 선택 문자열 prop에 문자열 리터럴만 전달하는 변경(타입 오류 발생 여지 없음)이고, 전체 `tsc`는 이 환경에서 실행 상한(45s bash 캡)을 초과(배치113~116과 동일 제약)해, 편집한 5개 페이지+ResourceView만 검사하는 스코프 tsconfig(`tsconfig.check.json`)로 타입검증 — `error TS` 0건(rc=0). 최종 게이트는 `배포.ps1`의 호스트 전체 `tsc --noEmit -p tsconfig.json`가 담당. 작업 전 src 백업(/tmp/bak_wk_1785111269). 마운트(=OneDrive 실파일) 무결성 재확인 — 5개 파일 깨진문자(U+FFFD) 0, `emptyText` 각 1건 삽입 확인. 스코프 검증 임시파일(tsconfig.check.json)은 이미 `.gitignore` 등재(커밋 제외).

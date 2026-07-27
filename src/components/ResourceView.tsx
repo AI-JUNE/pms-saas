@@ -279,7 +279,12 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
                 const tip = col ? (t < now ? (od >= 1 ? `${od}일 초과` : '오늘 마감 초과') : (dd <= 0 ? '오늘 마감' : `D-${dd}`)) : undefined;
                 return <span title={tip} style={{ color: col, fontWeight: col ? 700 : undefined, cursor: tip ? 'help' : undefined }}>{row[c.key]}{col === '#c0414f' ? ' ⚠' : ''}</span>;
               })()
-            : <span style={c.strong ? { fontWeight: 650, color: 'var(--text-1)' } : undefined}>{c.strong && row.__wbs != null && <span className="muted" style={{ marginRight: 6, paddingLeft: (row.__depth || 0) * 16, fontVariantNumeric: 'tabular-nums' }}>{row.__wbs}</span>}{row[c.key] ?? '—'}</span>}
+            : (() => {
+                const fld = fields.find((f) => f.key === c.key);
+                const raw = row[c.key];
+                const disp = (raw != null && raw !== '' && fld && (fld.type === 'number' || fld.comma) && isFinite(Number(raw))) ? Number(raw).toLocaleString('ko-KR') : (raw ?? '—');
+                return <span style={c.strong ? { fontWeight: 650, color: 'var(--text-1)' } : undefined}>{c.strong && row.__wbs != null && <span className="muted" style={{ marginRight: 6, paddingLeft: (row.__depth || 0) * 16, fontVariantNumeric: 'tabular-nums' }}>{row.__wbs}</span>}{disp}</span>;
+              })()}
         </td>
       ))}
       <td className="row-act" onClick={(e) => e.stopPropagation()} style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
