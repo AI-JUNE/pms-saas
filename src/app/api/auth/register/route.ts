@@ -4,10 +4,12 @@ import { users, organizations, memberships } from '@/db/schema';
 import { hashPassword, createSession } from '@/lib/auth';
 import { handle, ok, ApiError, ERROR } from '@/lib/http';
 import { grantDefaultRoles } from '@/lib/seedRoles';
+import { enforceRateLimit, RL } from '@/lib/ratelimit';
 export const dynamic = 'force-dynamic';
 const genCode = () => (Math.random().toString(36).slice(2, 10) + '00000000').slice(0, 8).toUpperCase();
 export async function POST(req: Request) {
   return handle(async () => {
+    enforceRateLimit(req, RL.authRegister);
     const { email, name, password, orgName, inviteCode } = await req.json();
     if (!email || !password || !name) throw new ApiError(ERROR.VALIDATION, '이메일·이름·비밀번호는 필수입니다');
     if (String(password).length < 8) throw new ApiError(ERROR.VALIDATION, '비밀번호는 8자 이상이어야 합니다');

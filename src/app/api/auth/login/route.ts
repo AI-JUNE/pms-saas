@@ -3,9 +3,11 @@ import { db } from '@/db';
 import { users, memberships } from '@/db/schema';
 import { verifyPassword, createSession } from '@/lib/auth';
 import { handle, ok, ApiError, ERROR } from '@/lib/http';
+import { enforceRateLimit, RL } from '@/lib/ratelimit';
 export const dynamic = 'force-dynamic';
 export async function POST(req: Request) {
   return handle(async () => {
+    enforceRateLimit(req, RL.authLogin);
     const { email, password } = await req.json();
     if (!email || !password) throw new ApiError(ERROR.VALIDATION, '이메일과 비밀번호를 입력하세요');
     const u = (await db.select().from(users).where(eq(users.email, email)).limit(1))[0];

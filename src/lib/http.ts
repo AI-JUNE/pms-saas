@@ -2,11 +2,17 @@ import { NextResponse } from 'next/server';
 export const ERROR = {
   VALIDATION: { status: 400, code: 'VALIDATION' }, UNAUTHORIZED: { status: 401, code: 'UNAUTHORIZED' },
   FORBIDDEN: { status: 403, code: 'FORBIDDEN' }, NOT_FOUND: { status: 404, code: 'NOT_FOUND' },
-  CONFLICT: { status: 409, code: 'CONFLICT' }, SERVER: { status: 500, code: 'SERVER' },
+  CONFLICT: { status: 409, code: 'CONFLICT' }, TOO_MANY: { status: 429, code: 'TOO_MANY' },
+  SERVER: { status: 500, code: 'SERVER' },
 } as const;
 type Err = (typeof ERROR)[keyof typeof ERROR];
 export function sendError(err: Err, message: string, extra?: Record<string, unknown>) {
-  return NextResponse.json({ ok: false, code: err.code, message, ...extra }, { status: err.status });
+  const headers: Record<string, string> = {};
+  // 429는 표준 Retry-After 헤더를 함께 반환(클라이언트 백오프 지원).
+  if (err.status === 429 && extra && typeof extra.retryAfterSec === 'number') {
+    headers['Retry-After'] = String(Math.max(1, Math.ceil(extra.retryAfterSec)));
+  }
+  return NextResponse.json({ ok: false, code: err.code, message, ...extra }, { status: err.status, headers });
 }
 export function ok(data: unknown = { ok: true }, status = 200) { return NextResponse.json(data, { status }); }
 export class ApiError extends Error {
