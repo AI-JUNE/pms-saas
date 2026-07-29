@@ -1,4 +1,6 @@
-import { NextResponse } from 'next/server';
+// 'next/server.js'로 명시(확장자 포함): Node --test ESM 해석과 Next 번들 양쪽 호환.
+import { NextResponse } from 'next/server.js';
+import { captureError } from './logger.ts';
 export const ERROR = {
   VALIDATION: { status: 400, code: 'VALIDATION' }, UNAUTHORIZED: { status: 401, code: 'UNAUTHORIZED' },
   FORBIDDEN: { status: 403, code: 'FORBIDDEN' }, NOT_FOUND: { status: 404, code: 'NOT_FOUND' },
@@ -16,7 +18,14 @@ export function sendError(err: Err, message: string, extra?: Record<string, unkn
 }
 export function ok(data: unknown = { ok: true }, status = 200) { return NextResponse.json(data, { status }); }
 export class ApiError extends Error {
-  constructor(public err: Err, message: string, public extra?: Record<string, unknown>) { super(message); }
+  // Node --test 타입스트리핑 호환을 위해 파라미터 프로퍼티 대신 명시 필드 사용(동작 동일).
+  err: Err;
+  extra?: Record<string, unknown>;
+  constructor(err: Err, message: string, extra?: Record<string, unknown>) {
+    super(message);
+    this.err = err;
+    this.extra = extra;
+  }
 }
 export async function handle(fn: () => Promise<Response>): Promise<Response> {
   try { return await fn(); }
@@ -31,7 +40,7 @@ export async function handle(fn: () => Promise<Response>): Promise<Response> {
       '23514': [ERROR.VALIDATION, '허용되지 않는 값입니다.'],
     };
     if (map[code]) return sendError(map[code][0], map[code][1]);
-    console.error(e);
+    captureError(e, { where: 'http.handle' });
     return sendError(ERROR.SERVER, '서버 오류가 발생했습니다');
   }
 }

@@ -1,4 +1,4 @@
-import { ApiError, ERROR } from './http';
+import { ApiError, ERROR } from './http.ts';
 
 // 인메모리 슬라이딩 윈도우 rate limiter.
 // 주의: 단일 인스턴스 메모리 기준. 다중 인스턴스/서버리스 환경에서는
