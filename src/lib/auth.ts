@@ -6,15 +6,7 @@ import { users, sessions } from '@/db/schema';
 import { ApiError, ERROR } from './http';
 const COOKIE = process.env.SESSION_COOKIE || 'pms_session';
 const SESSION_DAYS = 7;
-export function hashPassword(pw: string): string {
-  const salt = crypto.randomBytes(16).toString('hex');
-  return `${salt}:${crypto.scryptSync(pw, salt, 64).toString('hex')}`;
-}
-export function verifyPassword(pw: string, stored: string): boolean {
-  const [salt, hash] = stored.split(':'); if (!salt || !hash) return false;
-  const a = Buffer.from(crypto.scryptSync(pw, salt, 64).toString('hex'), 'hex'); const b = Buffer.from(hash, 'hex');
-  return a.length === b.length && crypto.timingSafeEqual(a, b);
-}
+export { hashPassword, verifyPassword } from './password.ts'; // 순수 모듈로 분리(테스트 가능), 경로 호환 재수출
 export async function createSession(userId: number, userAgent?: string) {
   const token = crypto.randomBytes(32).toString('hex');
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 864e5);
