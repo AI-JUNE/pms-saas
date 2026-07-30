@@ -3,6 +3,10 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-07-30 (배치 125 — 배포 대기, 요금제 페이지 결제 스캐폴딩 연결)
+- ③④ **요금제(/pricing) 페이지에 결제 스캐폴딩 테스트 버튼 연결** — Basic·Pro 카드에 `결제 연동 테스트 (실결제 없음)` 버튼(점선·저채도, PAYMENTS_LIVE=false일 때만 노출) 추가. 클릭 시 `POST /api/billing/checkout`(배치124)를 호출해 테스트 모드 결제 파라미터 발급 흐름을 화면에서 검증(성공: paymentId 표시, 401: 로그인 안내, 오류: 표준에러 메시지). 신규 클라이언트 컴포넌트 `CheckoutButton.tsx` 1개 + pricing/page.tsx 2줄. Enterprise는 미노출(도입 문의 경로 유지). 실PG SDK 결제창·라이브 승격은 [승인 필요].
+- 검증: 스코프 tsconfig(pricing 2파일+전이 의존성) `error TS` 0건(rc=0). 파일 끝 완전성·U+FFFD 0 확인.
+
 ## 2026-07-30 (배치 124 — 배포 대기, P0 포트원 구독 결제 스캐폴딩 + 구조화 로깅/에러캡처)
 - ③ **포트원(PortOne) 구독 결제 스캐폴딩(P0) — build now, activate on approval** — (1) `src/lib/portone.ts` 신규: 테스트키 기반 설정 단일 소스(PORTONE), 결제상태 점검 `billingStatus()`, 멱등 결제ID `newPaymentId()`, 웹훅 HMAC-SHA256 서명검증 `verifyWebhook()`(시크릿 미설정 시 우회 사실 리턴). (2) API 3종 신규: `POST /api/billing/checkout`(인증+rate limit, 테스트 모드 결제 파라미터 발급, Enterprise 직접결제 차단, **PAYMENTS_LIVE=true면 오히려 차단**하는 실결제 방지 안전장치), `GET /api/billing/plans`(공개 요금제+결제상태), `POST /api/billing/webhook`(서명검증→파싱→로깅 후 항상 ack; 실구독 반영은 [승인 필요] 주석 지점). 시크릿은 응답에 절대 미포함. 실결제·라이브 승격은 **[승인 필요]**.
 - ⑤ **구조화 로깅·에러 캡처 단일 소스** — `src/lib/logger.ts` 신규: 한 줄 JSON 로그(`formatLine` 순수함수·테스트 대상), LOG_LEVEL 임계, `captureError()`(스택 8줄 캡). Sentry 실전송은 MONITORING_ENABLED+SENTRY_DSN 시에만 훅되는 no-op 스텁(의존성 없음) — 실연동 [승인 필요]. instrumentation.ts의 console.error 2곳을 captureError로 교체. package.json에 `npm test` 스크립트 추가.

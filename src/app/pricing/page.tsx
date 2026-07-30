@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { PLANS, PAYMENTS_LIVE } from '@/lib/billing';
+import CheckoutButton from './CheckoutButton';
 
 export const metadata: Metadata = {
   title: '요금제 — PMS',
@@ -65,6 +66,7 @@ export default function PricingPage() {
             >
               {t.cta}
             </Link>
+            {!PAYMENTS_LIVE && t.id !== 'enterprise' && <CheckoutButton planId={t.id} planName={t.name} />}
             <ul style={{ listStyle: 'none', display: 'grid', gap: 9, margin: 0, padding: 0 }}>
               {t.features.map((f) => (
                 <li key={f} style={{ display: 'flex', gap: 9, fontSize: 13.3, color: 'var(--text-2)', lineHeight: 1.5 }}>
