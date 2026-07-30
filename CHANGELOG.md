@@ -3,6 +3,31 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-07-30 (배치 124 — 배포 대기, P0 포트원 구독 결제 스캐폴딩 + 구조화 로깅/에러캡처)
+- ③ **포트원(PortOne) 구독 결제 스캐폴딩(P0) — build now, activate on approval** — (1) `src/lib/portone.ts` 신규: 테스트키 기반 설정 단일 소스(PORTONE), 결제상태 점검 `billingStatus()`, 멱등 결제ID `newPaymentId()`, 웹훅 HMAC-SHA256 서명검증 `verifyWebhook()`(시크릿 미설정 시 우회 사실 리턴). (2) API 3종 신규: `POST /api/billing/checkout`(인증+rate limit, 테스트 모드 결제 파라미터 발급, Enterprise 직접결제 차단, **PAYMENTS_LIVE=true면 오히려 차단**하는 실결제 방지 안전장치), `GET /api/billing/plans`(공개 요금제+결제상태), `POST /api/billing/webhook`(서명검증→파싱→로깅 후 항상 ack; 실구독 반영은 [승인 필요] 주석 지점). 시크릿은 응답에 절대 미포함. 실결제·라이브 승격은 **[승인 필요]**.
+- ⑤ **구조화 로깅·에러 캡처 단일 소스** — `src/lib/logger.ts` 신규: 한 줄 JSON 로그(`formatLine` 순수함수·테스트 대상), LOG_LEVEL 임계, `captureError()`(스택 8줄 캡). Sentry 실전송은 MONITORING_ENABLED+SENTRY_DSN 시에만 훅되는 no-op 스텁(의존성 없음) — 실연동 [승인 필요]. instrumentation.ts의 console.error 2곳을 captureError로 교체. package.json에 `npm test` 스크립트 추가.
+- 검증: 변경 파일 스코프 tsconfig 타입검증 `error TS` 0건(rc=0) — 샌드박스 환경 45s 캡으로 전체 tsc 완주 불가(변경 15파일+전이 의존성 검증으로 대체). 단위테스트 `node --test` 20/20 통과(billing·logger·ratelimit·http). 파일 끝 완전성·깨진문자(U+FFFD) 0 확인.
+
+## 2026-07-30 (배치 123 — 배포 대기, 대시보드·리포트·워크로드·RTM·주간보고 잔여 카운트 천단위 쉼표 통일 — 전 화면 스윕 완료)
+- ⑨ **대시보드·리포트·워크로드·RTM·주간보고의 잔여 카운트 숫자를 천단위 쉼표로 통일(카운트 쉼표 스윕 마무리)** — 배치120~122가 ResourceView·대체뷰·알림·내작업의 카운트를 `toLocaleString('ko-KR')`로 맞췄지만, 전 소스 스캔 결과 5개 화면에 원시 정수 카운트가 남아 있었음: (1) 대시보드 — 내작업/마감임박/내To-Do 위젯 `외 n건`, 담당자 부하 위젯 `진행 n`·`완료 d/t`(+툴팁), (2) 워크로드 — KPI(집계 인원·과부하·여유), 툴바 `n명`·`표시/전체명`(+툴팁), 완료·부하 툴팁, (3) RTM — 커버리지 요약 칩 건수·`n건 표시 (전체 n건)`, (4) 주간보고 — 상단 KPI 6종(이번 주 완료·누적 완료·진행중·지연·미결 이슈·High 리스크, +툴팁)·섹션 `n건`·누적/신규 note, (5) 리포트 — 조달 툴팁 `조달 n건`, 재무 합계 `(n개)`, 프로젝트별 업무 `d/t`·잔여(+툴팁 3종). 각 파일 상단에 `nfmt(n)=n.toLocaleString('ko-KR')`를 두고 위 지점에 적용, 배치114·118·120~122와 동일 표기로 통일. 이로써 grep 기준 카운트 원시 정수 노출 화면 스윕 완료. 순수 표시 로직이라 데이터·API·스키마·Props 무영향, 마이그레이션 불필요. 5파일. — src/app/{dashboard,workload,rtm,weekly,reports}/page.tsx
+- 검증: 호스트 전체 `tsc --noEmit -p tsconfig.json`(43s 캡) **완주** — `error TS` 0건(rc=0). 작업 전 src 백업(/tmp/bak_1785348312). 마운트(=OneDrive 실파일) 무결성 재확인 — 5파일 깨진문자(U+FFFD) 0, nfmt 적용 9·15·3·17·10건 확인.
+
+
+## 2026-07-29 (배치 122 — 배포 대기, 대체뷰·알림·내작업 카운트 숫자 천단위 쉼표 통일)
+- ⑨ **대체뷰(칸반·리스크매트릭스·간트·캘린더)·알림·내작업의 카운트 숫자를 천단위 쉼표로 통일** — 배치120·121이 ResourceView(목록 툴바·그룹 헤더·선택 바·상세 인디케이터)의 카운트를 `toLocaleString('ko-KR')`로 맞췄지만, 같은 규칙이 적용돼야 할 나머지 화면은 여전히 원시 정수였음: (1) views.tsx — 칸반 컬럼 건수·지연 배지(+툴팁), 리스크매트릭스 `총 n건`·`미표시 n건`·심각도 범례 건수(+툴팁), 간트 `주경로 n개`·`지연 n` 배지(+툴팁), 캘린더 `이번 달 n건`, (2) 알림(/notifications) — `n건 읽지 않음`·모두읽음 툴팁·유형 필터 4종 건수·툴바 `표시/전체건`(+툴팁)·그룹 헤더 `n건`·`안 읽음 n`, (3) 내 작업(/mywork) — 섹션 `n건`·`지연 n건` 배지(+툴팁). 각 파일 상단에 카운트 포매터 `nfmt(n)=n.toLocaleString('ko-KR')`를 두고 위 지점에 적용해 배치114·118·120·121과 동일한 천단위 표기로 통일(매트릭스 셀 내부 숫자·정적 문구는 제외). 순수 표시 로직이라 데이터·API·스키마·Props 무영향, 마이그레이션 불필요. 3파일. — src/components/views.tsx, src/app/notifications/page.tsx, src/app/mywork/page.tsx
+- 검증: 호스트 전체 `tsc --noEmit -p tsconfig.json`(43s 캡) **완주** — `error TS` 0건(rc=0, 출력 0줄). 작업 전 src 백업(/tmp/bak_1785326722). 마운트(=OneDrive 실파일) 무결성 재확인 — 3파일 깨진문자(U+FFFD) 0, `nfmt` 적용 12·17·3건 삽입 확인.
+
+
+## 2026-07-29 (배치 121 — 배포 대기, 나머지 카운트 숫자 천단위 쉼표 통일)
+- ⑨ **목록/상세: 배치120에서 놓친 카운트 숫자들을 천단위 쉼표로 통일** — 배치120이 툴바 항목 카운트(`n건`·`표시/전체건`)를 `toLocaleString('ko-KR')`로 포매팅했지만, 같은 화면의 나머지 카운트 숫자는 여전히 원시 정수로 노출돼 있었음: (1) 다중선택 바 `n건 선택`·일괄삭제 확인창 `n건을 삭제`, (2) 그룹화 헤더 항목수 `· n`, (3) 그룹 완료율 툴팁 `완료 dc / 전체 n (pct%)`, (4) 상세 슬라이드오버 위치 인디케이터 `i/n`. 모듈 상단에 카운트 전용 포매터 `nfmt(n)=n.toLocaleString('ko-KR')`를 한 줄 추가하고 이 4개 지점에 적용해, 툴바 카운트·목록/상세 숫자(배치114·118·120)와 동일한 천단위 표기로 맞춤. 순수 표시 로직이라 데이터·API·스키마·Props 무영향, 마이그레이션 불필요. 단일 파일. — src/components/ResourceView.tsx
+- 검증: 스코프 tsconfig(`tsconfig.check.json`) 타입검증 `error TS` 0건(rc=0), 호스트 전체 `tsc --noEmit -p tsconfig.json`(44s 캡)도 `error TS` 0건(rc=0) 완주. 작업 전 src 백업(/tmp/bak_1785261902). 마운트(=OneDrive 실파일) 무결성 재확인 — 깨진문자(U+FFFD) 0, `nfmt` 6줄(정의 1 + 적용 5) 삽입 확인.
+
+
+## 2026-07-28 (배치 120 — 배포 대기, 검색·필터 무결과 빈 상태 안내 분리 + 항목 카운트 천단위 쉼표)
+- ⑨ **목록 공통: (1) 검색·필터로 결과가 0건일 때의 빈 상태 문구를 도메인 안내(emptyText)와 분리, (2) 툴바 항목 카운트 천단위 쉼표 일관화** — (1) 배치117에서 요구사항·리스크·회의 등 5개 화면에 `emptyText`(도메인 등록 안내)를 붙였는데, ResourceView 빈 상태 렌더가 `emptyText || (검색/필터 문구)` 순서라 **검색·필터 결과가 0건이어도 emptyText가 우선**해, 사용자가 "xyz"로 검색해 매칭이 없을 때 "요구사항을 등록해 RTM 추적…" 같은 등록 안내가 떠 마치 목록이 비어 있는 듯 오인시켰음. 렌더 조건을 `(q||filter) ? '조건에 맞는 … 없습니다. 검색어나 필터를 조정해 보세요.' : (emptyText || 기본 등록 안내)`로 뒤집어, 진짜 빈 목록에만 도메인 emptyText를 보여주고 필터 무결과에는 조정 안내를 표시하도록 통일(배치117 emptyText 의도 보존). (2) 툴바 카운트 배지(`n건`·`표시/전체건`·hover 툴팁)의 숫자를 `toLocaleString('ko-KR')`로 감싸 배치114·118의 천단위 쉼표 표기와 일관화. 순수 표시 로직이라 데이터·API·스키마·Props 무영향, 마이그레이션 불필요. 단일 파일. — src/components/ResourceView.tsx
+- 검증: 편집 대상 ResourceView.tsx를 포함하는 스코프 tsconfig(`tsconfig.check.json`)로 타입검증 — `error TS` 0건(rc=0, 8s 완주). 절차상 호스트 전체 `tsc --noEmit -p tsconfig.json`(44s 캡)도 실행 — `error TS` 0건. 작업 전 src 백업(/tmp/bak_1785240303). 마운트(=OneDrive 실파일) 무결성 재확인 — 깨진문자(U+FFFD) 0, `toLocaleString('ko-KR')` 8건·`검색어나 필터를 조정` 삽입 확인.
+
+
 ## 2026-07-28 (배치 119 — 배포 대기, 그룹화 헤더 상태·우선순위·유형 값 한글 라벨화)
 - ⑨ **목록 공통: 그룹화 헤더의 상태·우선순위·유형 값을 한글 라벨로 표기(배지·상태필터와 일관화)** — 목록을 상태/우선순위/유형 등으로 그룹화하면 배지 셀·상태 필터 드롭다운(배치18)·일괄작업 바는 모두 LABEL(한글)로 표시되는데, **그룹 헤더 텍스트만 원시 영문 코드**(예: `open`·`in_progress`·`high`·`bug`)를 그대로 노출해 같은 값이 화면 안에서 영문↔한글로 어긋나 보였음. ResourceView 그룹 헤더 렌더에서 표시 텍스트를 `{g}`→`{LABEL[g] || g}`로 바꿔, 코드값이 LABEL에 있으면 한글(열림·진행중·높음·결함 등)로, 담당자·에픽·분류 등 자유입력 값은 그대로 폴백 표기하도록 보강. 그룹 좌측 색상 바(STATUS_COLOR[g])·접기/펼치기·완료율 집계는 **원시 코드값(g)을 그대로 키로 사용**하므로 무영향(표시 텍스트만 변경). LABEL은 이미 import돼 있어 추가 import·Props·API·스키마 변경 없음, 순수 표시 로직이라 마이그레이션 불필요. 단일 파일. — src/components/ResourceView.tsx
 - 검증: `tsc --noEmit -p tsconfig.json`(호스트 전체) 통과 — `error TS` 0건(exit 0, 이번 실행은 44s 캡 내 완주). 스코프 tsconfig(`tsconfig.check.json`)도 error 0건 교차확인. 작업 전 src 백업(/tmp/bak_1785175579). 마운트(=OneDrive 실파일) 무결성 재확인 — 깨진문자(U+FFFD) 0, `LABEL[g] || g` 1건 삽입 확인.

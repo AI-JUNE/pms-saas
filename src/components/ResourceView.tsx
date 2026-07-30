@@ -28,6 +28,8 @@ type Props = { title: string; subtitle?: string; endpoint: string; projectScoped
 const GROUPABLE = ['status','priority','type','assignee','epic','level','category','role'];
 // 문자열 옵션은 목록 배지와 동일하게 LABEL(한글)로 표시하되 value는 원본 코드를 유지
 const normOpt = (o: any) => (typeof o === 'string' ? { value: o, label: LABEL[o] || o } : o);
+// 카운트 숫자 천단위 쉼표 표기(툴바 카운트·목록/상세 표시와 일관화)
+const nfmt = (n: number) => n.toLocaleString('ko-KR');
 
 export function ResourceView({ title, subtitle, endpoint, projectScoped, columns, fields, statusKey = 'status', altViews = [], entity, rowHref, emptyText, treeKey }: Props) {
   const router = useRouter();
@@ -220,7 +222,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
     setSel(new Set()); load(pid);
   }
   async function bulkDelete() {
-    if (!confirm(`${sel.size}건을 삭제하시겠습니까?`)) return;
+    if (!confirm(`${nfmt(sel.size)}건을 삭제하시겠습니까?`)) return;
     await Promise.all(Array.from(sel).map((id) => fetch(`${endpoint}/${id}`, { method: 'DELETE' })));
     setSel(new Set()); load(pid);
   }
@@ -345,7 +347,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
             </div>
           </>)}
         </div>
-        <span className="muted" title={(q || filter) ? `전체 ${rows.length}건 중 ${view.length}건 표시` : undefined}><SlidersHorizontal style={{ width: 13, verticalAlign: -2 }} /> {(q || filter) && view.length !== rows.length ? `${view.length}/${rows.length}건` : `${view.length}건`}</span>
+        <span className="muted" title={(q || filter) ? `전체 ${rows.length.toLocaleString('ko-KR')}건 중 ${view.length.toLocaleString('ko-KR')}건 표시` : undefined}><SlidersHorizontal style={{ width: 13, verticalAlign: -2 }} /> {(q || filter) && view.length !== rows.length ? `${view.length.toLocaleString('ko-KR')}/${rows.length.toLocaleString('ko-KR')}건` : `${view.length.toLocaleString('ko-KR')}건`}</span>
         {(q || filter) && <button className="btn btn-sm btn-ghost" onClick={() => { setQ(''); setFilter(''); }} title="검색·상태 필터 초기화" aria-label="검색·상태 필터 초기화"><X style={{ width: 13 }} />초기화</button>}
         {(q || filter || groupBy || (sortK && sortK !== 'id')) && <button className="btn btn-sm btn-ghost" onClick={copyViewLink} title="현재 검색·필터·정렬·그룹이 담긴 링크를 복사합니다(공유 시 같은 뷰로 열림)" aria-label="뷰 링크 복사">{linkCopied ? '복사됨' : '뷰 링크'}</button>}
       </div>
@@ -367,7 +369,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
         const sf = fields.find((f) => f.key === statusKey && f.type === 'select');
         const opts = (sf?.options || []).map(normOpt);
         return (<div className="card" style={{ padding: '8px 12px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', background: 'var(--brand-50)', border: '1px solid var(--brand-100)' }}>
-          <b style={{ fontSize: 13 }}>{sel.size}건 선택</b>
+          <b style={{ fontSize: 13 }}>{nfmt(sel.size)}건 선택</b>
           {opts.length > 0 && <span className="muted" style={{ fontSize: 12 }}>상태 →</span>}
           {opts.map((o: any) => <button key={o.value} className="btn btn-sm" onClick={() => bulkStatus(o.value)}>{o.label}</button>)}
           <button className="btn btn-sm btn-danger" onClick={bulkDelete}>삭제</button>
@@ -386,17 +388,17 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
             {!loading && !grouped && view.map((row) => <Row key={row.id} row={row} />)}
             {!loading && grouped && grouped.map(([g, list]) => (
               <Fragment key={'g' + g}>
-                <tr onClick={() => toggleGroup(g)} style={{ cursor: 'pointer' }}><td colSpan={visibleColumns.length + 2} style={{ background: 'var(--surface-3)', fontWeight: 750, fontSize: 12.5, boxShadow: `inset 4px 0 0 ${STATUS_COLOR[g] || 'var(--brand)'}` }}><span style={{ display: 'inline-block', width: 14, transform: collapsed.has(g) ? 'none' : 'rotate(90deg)', color: 'var(--muted)' }}>▸</span>{LABEL[g] || g} <span className="muted">· {list.length}</span>{(() => {
+                <tr onClick={() => toggleGroup(g)} style={{ cursor: 'pointer' }}><td colSpan={visibleColumns.length + 2} style={{ background: 'var(--surface-3)', fontWeight: 750, fontSize: 12.5, boxShadow: `inset 4px 0 0 ${STATUS_COLOR[g] || 'var(--brand)'}` }}><span style={{ display: 'inline-block', width: 14, transform: collapsed.has(g) ? 'none' : 'rotate(90deg)', color: 'var(--muted)' }}>▸</span>{LABEL[g] || g} <span className="muted">· {nfmt(list.length)}</span>{(() => {
                   const DONE = ['done', 'closed', 'resolved', 'completed', 'approved', 'pass'];
                   if (!list.some((r: any) => r[statusKey])) return null;
                   const dc = list.filter((r: any) => DONE.includes(String(r[statusKey]))).length;
                   const pct = list.length ? Math.round((dc / list.length) * 100) : 0;
-                  return <span className="muted" style={{ marginLeft: 10, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }} title={`완료 ${dc} / 전체 ${list.length} (${pct}%)`}><span style={{ display: 'inline-block', width: 56, height: 5, borderRadius: 3, background: 'var(--border)', verticalAlign: 'middle', overflow: 'hidden', marginRight: 6 }}><span style={{ display: 'block', width: pct + '%', height: '100%', background: '#2f8f5b' }} /></span>{pct}%</span>;
+                  return <span className="muted" style={{ marginLeft: 10, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }} title={`완료 ${nfmt(dc)} / 전체 ${nfmt(list.length)} (${pct}%)`}><span style={{ display: 'inline-block', width: 56, height: 5, borderRadius: 3, background: 'var(--border)', verticalAlign: 'middle', overflow: 'hidden', marginRight: 6 }}><span style={{ display: 'block', width: pct + '%', height: '100%', background: '#2f8f5b' }} /></span>{pct}%</span>;
                 })()}</td></tr>
                 {!collapsed.has(g) && list.map((row) => <Row key={row.id} row={row} />)}
               </Fragment>
             ))}
-            {!loading && view.length === 0 && (<tr><td colSpan={visibleColumns.length + 2}><div className="empty"><Inbox /><div>{emptyText || (q || filter ? `조건에 맞는 ${title} 항목이 없습니다.` : `아직 등록된 ${title} 항목이 없습니다. “새로 만들기”로 추가하세요.`)}</div></div></td></tr>)}
+            {!loading && view.length === 0 && (<tr><td colSpan={visibleColumns.length + 2}><div className="empty"><Inbox /><div>{(q || filter) ? `조건에 맞는 ${title} 항목이 없습니다. 검색어나 필터를 조정해 보세요.` : (emptyText || `아직 등록된 ${title} 항목이 없습니다. “새로 만들기”로 추가하세요.`)}</div></div></td></tr>)}
             {!loading && primaryField && (
               <tr><td colSpan={visibleColumns.length + 2} style={{ padding: '6px 12px', background: 'var(--surface-2)' }}>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -413,7 +415,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
         <div className="scrim" onClick={() => setDetail(null)} />
         <aside className="over" onTouchStart={onOverTouchStart} onTouchMove={onOverTouchMove} onTouchEnd={onOverTouchEnd} style={swipeY > 0 ? { transform: `translateY(${swipeY}px)`, transition: 'none' } : undefined}>
           <div className="over-grip" aria-hidden />
-          <div className="over-h"><span className="mono" style={{ fontSize: 13 }}>{detail.code || `#${detail.id}`}</span><div className="sp" />{(() => { const i = view.findIndex((r) => r.id === detail.id); if (i < 0 || view.length < 2) return null; return (<><span className="muted" style={{ fontSize: 11.5, marginRight: 4, fontVariantNumeric: 'tabular-nums' }} title="현재 목록에서의 위치">{i + 1}/{view.length}</span><button className="iconbtn" aria-label="이전 항목" title="이전 항목 (↑)" disabled={i <= 0} style={i <= 0 ? { opacity: .4, cursor: 'default' } : undefined} onClick={() => i > 0 && setDetail(view[i - 1])}><ChevronUp /></button><button className="iconbtn" aria-label="다음 항목" title="다음 항목 (↓)" disabled={i >= view.length - 1} style={i >= view.length - 1 ? { opacity: .4, cursor: 'default' } : undefined} onClick={() => i < view.length - 1 && setDetail(view[i + 1])}><ChevronDown /></button></>); })()}<button className="iconbtn" aria-label="닫기" onClick={() => setDetail(null)}><X /></button></div>
+          <div className="over-h"><span className="mono" style={{ fontSize: 13 }}>{detail.code || `#${detail.id}`}</span><div className="sp" />{(() => { const i = view.findIndex((r) => r.id === detail.id); if (i < 0 || view.length < 2) return null; return (<><span className="muted" style={{ fontSize: 11.5, marginRight: 4, fontVariantNumeric: 'tabular-nums' }} title="현재 목록에서의 위치">{nfmt(i + 1)}/{nfmt(view.length)}</span><button className="iconbtn" aria-label="이전 항목" title="이전 항목 (↑)" disabled={i <= 0} style={i <= 0 ? { opacity: .4, cursor: 'default' } : undefined} onClick={() => i > 0 && setDetail(view[i - 1])}><ChevronUp /></button><button className="iconbtn" aria-label="다음 항목" title="다음 항목 (↓)" disabled={i >= view.length - 1} style={i >= view.length - 1 ? { opacity: .4, cursor: 'default' } : undefined} onClick={() => i < view.length - 1 && setDetail(view[i + 1])}><ChevronDown /></button></>); })()}<button className="iconbtn" aria-label="닫기" onClick={() => setDetail(null)}><X /></button></div>
           <div className="over-b">
             <h3 style={{ margin: '0 0 16px', fontSize: 19, fontWeight: 800, letterSpacing: '-.02em' }}>{detail.title || detail.name || detail.code}</h3>
             <dl className="dl">

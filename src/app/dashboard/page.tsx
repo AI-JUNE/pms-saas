@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { FolderKanban, ClipboardList, Bug, ShieldAlert, ListTodo, TrendingUp, ArrowRight } from 'lucide-react';
 import { Shell } from '@/components/Shell';
 import { Pill } from '@/lib/ui';
+const nfmt = (n: number) => n.toLocaleString('ko-KR'); // 카운트 천단위 쉼표(배치114·118·120~122와 일관)
 
 function useCountUp(target: number, ms = 900) {
   const [v, setV] = useState(0);
@@ -142,7 +143,7 @@ export default function Dashboard() {
                 <span style={{ flex: 1, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.name || it.title}</span>
                 <Pill v={it.status} />
               </div>))}
-              {items.length > 6 && <div className="muted" style={{ fontSize: 12 }}>외 {items.length - 6}건</div>}</div>;
+              {items.length > 6 && <div className="muted" style={{ fontSize: 12 }}>외 {nfmt(items.length - 6)}건</div>}</div>;
           })()}
         </div>
         <div className="card card-pad dash-card" style={{ animationDelay: '320ms' }}>
@@ -173,7 +174,7 @@ export default function Dashboard() {
                 <span style={{ flex: 1, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.label}</span>
                 <span className="muted" style={{ fontSize: 11 }}>{r.sub}</span>
               </div>))}
-              {rows.length > 7 && <div className="muted" style={{ fontSize: 12 }}>외 {rows.length - 7}건</div>}</div>;
+              {rows.length > 7 && <div className="muted" style={{ fontSize: 12 }}>외 {nfmt(rows.length - 7)}건</div>}</div>;
           })()}
         </div>
       </div>
@@ -190,7 +191,7 @@ export default function Dashboard() {
               <span className="muted" style={{ fontSize: 11 }}>{t.dueDate || ''}</span>
               <Pill v={t.status} />
             </div>))}
-            {open.length > 6 && <div className="muted" style={{ fontSize: 12 }}>외 {open.length - 6}건</div>}</div>;
+            {open.length > 6 && <div className="muted" style={{ fontSize: 12 }}>외 {nfmt(open.length - 6)}건</div>}</div>;
         })()}
       </div>
       <div style={{ height: 16 }} />
@@ -213,11 +214,11 @@ export default function Dashboard() {
             const col = r.open >= maxOpen * 0.7 ? '#c0414f' : r.open >= maxOpen * 0.4 ? '#d98a16' : '#2f8f5b';
             return (
               <div key={r.name} onClick={() => router.push('/workload')} style={{ cursor: 'pointer' }}
-                title={`${r.name} · 진행중 ${r.open}건 · 완료 ${r.done}/${r.total}건 · 평균 진척 ${r.avg}%`}>
+                title={`${r.name} · 진행중 ${nfmt(r.open)}건 · 완료 ${nfmt(r.done)}/${nfmt(r.total)}건 · 평균 진척 ${r.avg}%`}>
                 <div className="row" style={{ fontSize: 12.5, marginBottom: 5, gap: 8 }}>
                   <span style={{ fontWeight: 650, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
-                  <span style={{ fontWeight: 800, color: col }}>진행 {r.open}</span>
-                  <span className="muted" style={{ fontSize: 11.5 }}>완료 {r.done}/{r.total} · 진척 {r.avg}%</span>
+                  <span style={{ fontWeight: 800, color: col }}>진행 {nfmt(r.open)}</span>
+                  <span className="muted" style={{ fontSize: 11.5 }}>완료 {nfmt(r.done)}/{nfmt(r.total)} · 진척 {r.avg}%</span>
                 </div>
                 <div className="pbar"><i style={{ width: mounted ? `${(r.open / maxOpen) * 100}%` : '0%', background: `linear-gradient(90deg, ${shade(col, 0.14)}, ${col})` }} /></div>
               </div>);

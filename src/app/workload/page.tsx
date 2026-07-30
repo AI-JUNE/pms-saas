@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Shell } from '@/components/Shell';
 import { Gauge, ListTodo, Bug, CheckCircle2, Search, Users, Flame, Coffee } from 'lucide-react';
+const nfmt = (n: number) => n.toLocaleString('ko-KR'); // 카운트 천단위 쉼표(배치114·118·120~122와 일관)
 
 type Row = { name: string; taskOpen: number; taskDone: number; issueOpen: number };
 
@@ -34,11 +35,11 @@ export default function Page() {
 
       <div className="kpis" style={{ marginBottom: 16 }}>
         <div className="kpi k0"><div className="kpi-ic" style={{ background: 'rgba(190,85,53,.12)' }}><Users style={{ width: 18, color: 'var(--brand)' }} /></div>
-          <div className="kpi-label">집계 인원</div><div className="kpi-value">{rows ? summary.total : '–'}</div><div className="kpi-sub">배정 이력이 있는 담당자</div></div>
+          <div className="kpi-label">집계 인원</div><div className="kpi-value">{rows ? nfmt(summary.total) : '–'}</div><div className="kpi-sub">배정 이력이 있는 담당자</div></div>
         <div className="kpi k3" title="부하(진행 업무+미결 이슈)가 최다 담당자의 70% 이상인 인원"><div className="kpi-ic" style={{ background: 'rgba(192,65,79,.12)' }}><Flame style={{ width: 18, color: '#c0414f' }} /></div>
-          <div className="kpi-label">과부하</div><div className="kpi-value">{rows ? summary.over : '–'}</div><div className="kpi-sub">최다 대비 70%↑ 부하</div></div>
+          <div className="kpi-label">과부하</div><div className="kpi-value">{rows ? nfmt(summary.over) : '–'}</div><div className="kpi-sub">최다 대비 70%↑ 부하</div></div>
         <div className="kpi k1" title="진행중 업무·미결 이슈가 없는 담당자"><div className="kpi-ic" style={{ background: 'rgba(47,143,91,.12)' }}><Coffee style={{ width: 18, color: '#2f8f5b' }} /></div>
-          <div className="kpi-label">여유</div><div className="kpi-value">{rows ? summary.idle : '–'}</div><div className="kpi-sub">미결 부하 0건</div></div>
+          <div className="kpi-label">여유</div><div className="kpi-value">{rows ? nfmt(summary.idle) : '–'}</div><div className="kpi-sub">미결 부하 0건</div></div>
         <div className="kpi k2" title="1인당 평균 부하(진행 업무+미결 이슈)"><div className="kpi-ic" style={{ background: 'rgba(217,138,22,.12)' }}><Gauge style={{ width: 18, color: '#d98a16' }} /></div>
           <div className="kpi-label">평균 부하</div><div className="kpi-value">{rows ? summary.avg : '–'}</div><div className="kpi-sub">1인당 미결 건수</div></div>
       </div>
@@ -47,8 +48,8 @@ export default function Page() {
         <div className="search"><Search style={{ width: 15 }} /><input placeholder="담당자 이름 검색" value={q} onChange={(e) => setQ(e.target.value)} /></div>
         {rows && (
           <span className="muted" style={{ fontSize: 12.5 }}
-            title={filtering ? `전체 ${all.length}명 중 '${q.trim()}' 검색 결과 ${shown.length}명` : `집계 대상 ${all.length}명`}>
-            {filtering ? <><b style={{ color: 'var(--brand)' }}>{shown.length}</b>/{all.length}명</> : <>{all.length}명</>}
+            title={filtering ? `전체 ${nfmt(all.length)}명 중 '${q.trim()}' 검색 결과 ${nfmt(shown.length)}명` : `집계 대상 ${nfmt(all.length)}명`}>
+            {filtering ? <><b style={{ color: 'var(--brand)' }}>{nfmt(shown.length)}</b>/{nfmt(all.length)}명</> : <>{nfmt(all.length)}명</>}
           </span>
         )}
       </div>
@@ -73,12 +74,12 @@ export default function Page() {
                 <td style={{ fontWeight: 650 }}>{r.name}</td>
                 <td><span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><ListTodo style={{ width: 13, color: 'var(--text-3)' }} />{r.taskOpen}</span></td>
                 <td><span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Bug style={{ width: 13, color: 'var(--text-3)' }} />{r.issueOpen}</span></td>
-                <td className="muted" title={taskTotal ? `업무 ${taskTotal}건 중 ${r.taskDone}건 완료 (${donePct}%)` : '배정된 업무 없음'}>
+                <td className="muted" title={taskTotal ? `업무 ${nfmt(taskTotal)}건 중 ${nfmt(r.taskDone)}건 완료 (${donePct}%)` : '배정된 업무 없음'}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><CheckCircle2 style={{ width: 13, color: '#2f8f5b' }} />{r.taskDone}
                     {taskTotal > 0 && <span style={{ fontSize: 11, color: 'var(--text-3)' }}>({donePct}%)</span>}</span></td>
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}
-                    title={`진행 업무 ${r.taskOpen} · 미결 이슈 ${r.issueOpen} · 완료 ${r.taskDone} — 부하 ${load}건`}>
+                    title={`진행 업무 ${nfmt(r.taskOpen)} · 미결 이슈 ${nfmt(r.issueOpen)} · 완료 ${nfmt(r.taskDone)} — 부하 ${nfmt(load)}건`}>
                     <div className="pbar" style={{ flex: 1, maxWidth: 220 }}><i style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${col}cc, ${col})` }} /></div>
                     <span style={{ fontWeight: 800, fontSize: 12.5, minWidth: 20 }}>{load}</span>
                     {tag && <span style={{ fontSize: 10.5, fontWeight: 700, color: tagCol }}>{tag}</span>}

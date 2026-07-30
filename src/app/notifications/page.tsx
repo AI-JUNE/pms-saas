@@ -3,6 +3,8 @@ import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCheck, Bell, Search, X } from 'lucide-react';
 import { Shell } from '@/components/Shell';
+// 카운트 숫자 천단위 쉼표 포매터 — 목록/상세(ResourceView 배치121)와 동일 표기
+const nfmt = (n: number) => n.toLocaleString('ko-KR');
 
 type Kind = 'overdue' | 'due' | 'approval' | 'etc';
 const KIND: Record<Kind, { label: string; cls: string; tip: string }> = {
@@ -110,11 +112,11 @@ export default function Page() {
           <h2 className="h1">알림</h2>
           <p className="h-sub">
             내게 온 알림입니다. (최근 50건)
-            {unread > 0 && <> · <b style={{ color: 'var(--brand)' }}>{unread}건 읽지 않음</b></>}
+            {unread > 0 && <> · <b style={{ color: 'var(--brand)' }}>{nfmt(unread)}건 읽지 않음</b></>}
           </p>
         </div>
         <div className="sp" />
-        <button className="btn" onClick={markAll} disabled={unread === 0} title={unread === 0 ? '읽지 않은 알림이 없습니다.' : `읽지 않은 ${unread}건을 모두 읽음 처리합니다.`}>
+        <button className="btn" onClick={markAll} disabled={unread === 0} title={unread === 0 ? '읽지 않은 알림이 없습니다.' : `읽지 않은 ${nfmt(unread)}건을 모두 읽음 처리합니다.`}>
           <CheckCheck style={{ width: 16 }} />모두 읽음
         </button>
       </div>
@@ -128,10 +130,10 @@ export default function Page() {
         </div>
         <select className="sel" value={kind} onChange={(e) => setKind(e.target.value)} aria-label="알림 유형 필터">
           <option value="">전체 유형</option>
-          <option value="overdue">마감 초과 ({counts.overdue})</option>
-          <option value="due">마감 임박 ({counts.due})</option>
-          <option value="approval">결재 대기 ({counts.approval})</option>
-          <option value="etc">일반 ({counts.etc})</option>
+          <option value="overdue">마감 초과 ({nfmt(counts.overdue)})</option>
+          <option value="due">마감 임박 ({nfmt(counts.due)})</option>
+          <option value="approval">결재 대기 ({nfmt(counts.approval)})</option>
+          <option value="etc">일반 ({nfmt(counts.etc)})</option>
         </select>
         <button
           className={`btn btn-sm ${unreadOnly ? 'btn-pri' : ''}`}
@@ -150,8 +152,8 @@ export default function Page() {
           종류별 그룹
         </button>
         <div className="sp" />
-        <span className="muted" title={filtered ? `전체 ${rows.length}건 중 조건에 맞는 ${view.length}건을 표시합니다.` : `마감 초과 ${counts.overdue} · 마감 임박 ${counts.due} · 결재 대기 ${counts.approval} · 일반 ${counts.etc}`}>
-          {filtered ? <><b style={{ color: 'var(--brand)' }}>{view.length}</b>/{rows.length}건</> : <>{rows.length}건</>}
+        <span className="muted" title={filtered ? `전체 ${nfmt(rows.length)}건 중 조건에 맞는 ${nfmt(view.length)}건을 표시합니다.` : `마감 초과 ${nfmt(counts.overdue)} · 마감 임박 ${nfmt(counts.due)} · 결재 대기 ${nfmt(counts.approval)} · 일반 ${nfmt(counts.etc)}`}>
+          {filtered ? <><b style={{ color: 'var(--brand)' }}>{nfmt(view.length)}</b>/{nfmt(rows.length)}건</> : <>{nfmt(rows.length)}건</>}
         </span>
       </div>
 
@@ -187,8 +189,8 @@ export default function Page() {
                     <td colSpan={4} style={{ fontWeight: 700 }}>
                       <span style={{ display: 'inline-block', width: 14, color: 'var(--text-3)' }}>{isCollapsed ? '▸' : '▾'}</span>
                       <span className={`pill ${gInfo.cls}`} title={gInfo.tip} style={{ marginRight: 8 }}>{gInfo.label}</span>
-                      <span className="muted">{items.length}건</span>
-                      {gUnread > 0 && <span style={{ color: 'var(--brand)', marginLeft: 8, fontSize: 12 }}>· 안 읽음 {gUnread}</span>}
+                      <span className="muted">{nfmt(items.length)}건</span>
+                      {gUnread > 0 && <span style={{ color: 'var(--brand)', marginLeft: 8, fontSize: 12 }}>· 안 읽음 {nfmt(gUnread)}</span>}
                     </td>
                   </tr>
                   {!isCollapsed && items.map((n) => renderRow(n))}

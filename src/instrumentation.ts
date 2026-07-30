@@ -2,8 +2,8 @@
 export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     try { const { ensureSchema } = await import('@/lib/migrate'); await ensureSchema(); }
-    catch (e) { console.error('[instrumentation] ensureSchema 실패', e); }
+    catch (e) { const { captureError } = await import('@/lib/logger'); captureError(e, { where: 'instrumentation.ensureSchema' }); }
     try { const { ensureRecoveryAdmin } = await import('@/lib/bootstrap'); await ensureRecoveryAdmin(); }
-    catch (e) { console.error('[instrumentation] ensureRecoveryAdmin 실패', e); }
+    catch (e) { const { captureError } = await import('@/lib/logger'); captureError(e, { where: 'instrumentation.ensureRecoveryAdmin' }); }
   }
 }

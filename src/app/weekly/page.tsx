@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Shell } from '@/components/Shell';
 import { Pill } from '@/lib/ui';
 import { Printer, CheckCircle2, Clock, AlertTriangle, Bug, ShieldAlert, CalendarRange } from 'lucide-react';
+const nfmt = (n: number) => n.toLocaleString('ko-KR'); // 카운트 천단위 쉼표(배치114·118·120~122와 일관)
 
 function weekRange() {
   const now = new Date(); const day = (now.getDay() + 6) % 7; // Mon=0
@@ -62,7 +63,7 @@ export default function Page() {
     <div className="card" style={{ overflow: 'hidden', marginBottom: 16 }}>
       <div className="row" style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 750, fontSize: 13.5 }}><Icon style={{ width: 15, color }} />{title}</div>
-        <span className="muted" style={{ marginLeft: 8, fontSize: 12 }}>{items.length}건</span>
+        <span className="muted" style={{ marginLeft: 8, fontSize: 12 }}>{nfmt(items.length)}건</span>
         <div className="sp" />
         {note && <span className="muted" style={{ fontSize: 11.5 }}>{note}</span>}
       </div>
@@ -83,19 +84,19 @@ export default function Page() {
       <div style={{ background: 'linear-gradient(135deg, var(--brand), #d97757)', borderRadius: 16, padding: '18px 22px', color: '#fff', marginBottom: 18 }}>
         <div style={{ display: 'flex', gap: 26, flexWrap: 'wrap' }}>
           <div><div style={{ fontSize: 12, opacity: .85 }}>전체 진척률</div><div style={{ fontSize: 26, fontWeight: 800 }}>{pct}%</div></div>
-          <div title={`이번 주(${ymd(mon)} ~ ${ymd(sun)}) 마감 기준 완료 ${doneWeek.length}건`}><div style={{ fontSize: 12, opacity: .85 }}>이번 주 완료</div><div style={{ fontSize: 26, fontWeight: 800 }}>{doneWeek.length}</div></div>
-          <div title={`전체 업무 ${tasks.length}건 중 누적 완료 ${doneAll.length}건`}><div style={{ fontSize: 12, opacity: .85 }}>누적 완료</div><div style={{ fontSize: 26, fontWeight: 800 }}>{doneAll.length}<span style={{ fontSize: 15, opacity: .8 }}>/{tasks.length}</span></div></div>
-          <div><div style={{ fontSize: 12, opacity: .85 }}>진행중</div><div style={{ fontSize: 26, fontWeight: 800 }}>{doing.length}</div></div>
-          <div title={overdue.length ? `마감이 지난 미완료 업무 ${overdue.length}건` : '지연 업무 없음'}><div style={{ fontSize: 12, opacity: .85 }}>지연 업무</div><div style={{ fontSize: 26, fontWeight: 800, color: overdue.length ? '#ffe08a' : undefined }}>{overdue.length}</div></div>
-          <div title={weekIssues.length ? `미결 이슈 ${openIssues.length}건 (이번 주 신규 ${weekIssues.length}건)` : `미결 이슈 ${openIssues.length}건`}><div style={{ fontSize: 12, opacity: .85 }}>미결 이슈</div><div style={{ fontSize: 26, fontWeight: 800 }}>{openIssues.length}</div></div>
-          <div><div style={{ fontSize: 12, opacity: .85 }}>High 리스크</div><div style={{ fontSize: 26, fontWeight: 800 }}>{highRisks.length}</div></div>
+          <div title={`이번 주(${ymd(mon)} ~ ${ymd(sun)}) 마감 기준 완료 ${nfmt(doneWeek.length)}건`}><div style={{ fontSize: 12, opacity: .85 }}>이번 주 완료</div><div style={{ fontSize: 26, fontWeight: 800 }}>{nfmt(doneWeek.length)}</div></div>
+          <div title={`전체 업무 ${nfmt(tasks.length)}건 중 누적 완료 ${nfmt(doneAll.length)}건`}><div style={{ fontSize: 12, opacity: .85 }}>누적 완료</div><div style={{ fontSize: 26, fontWeight: 800 }}>{nfmt(doneAll.length)}<span style={{ fontSize: 15, opacity: .8 }}>/{nfmt(tasks.length)}</span></div></div>
+          <div><div style={{ fontSize: 12, opacity: .85 }}>진행중</div><div style={{ fontSize: 26, fontWeight: 800 }}>{nfmt(doing.length)}</div></div>
+          <div title={overdue.length ? `마감이 지난 미완료 업무 ${nfmt(overdue.length)}건` : '지연 업무 없음'}><div style={{ fontSize: 12, opacity: .85 }}>지연 업무</div><div style={{ fontSize: 26, fontWeight: 800, color: overdue.length ? '#ffe08a' : undefined }}>{nfmt(overdue.length)}</div></div>
+          <div title={weekIssues.length ? `미결 이슈 ${nfmt(openIssues.length)}건 (이번 주 신규 ${nfmt(weekIssues.length)}건)` : `미결 이슈 ${nfmt(openIssues.length)}건`}><div style={{ fontSize: 12, opacity: .85 }}>미결 이슈</div><div style={{ fontSize: 26, fontWeight: 800 }}>{nfmt(openIssues.length)}</div></div>
+          <div><div style={{ fontSize: 12, opacity: .85 }}>High 리스크</div><div style={{ fontSize: 26, fontWeight: 800 }}>{nfmt(highRisks.length)}</div></div>
         </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16 }}>
         <div>
           <Block icon={CheckCircle2} title="이번 주 완료" color="#2f8f5b" items={doneWeek}
-            note={`${md(mon)} ~ ${md(sun)} · 누적 ${doneAll.length}건`}
+            note={`${md(mon)} ~ ${md(sun)} · 누적 ${nfmt(doneAll.length)}건`}
             empty="이번 주 마감·완료된 업무가 없습니다. (누적 완료는 상단 KPI 참조)"
             render={(r: any) => (<><span className="mono" style={{ fontSize: 11.5, color: 'var(--text-3)', minWidth: 66 }}>{r.code}</span><span style={{ flex: 1, fontSize: 13 }}>{r.name}</span><span className="muted" style={{ fontSize: 11 }}>{r.endDate || ''}</span><span className="muted" style={{ fontSize: 11.5 }}>{r.assignee || ''}</span></>)} />
           <Block icon={Clock} title="진행중" color="#be5535" items={doing} empty="진행중인 업무가 없습니다."
@@ -109,7 +110,7 @@ export default function Page() {
           <Block icon={AlertTriangle} title="지연 업무 (마감 초과)" color="#c0414f" items={overdue} empty="지연된 업무가 없습니다."
             render={(r: any) => (<><span className="mono" style={{ fontSize: 11.5, color: 'var(--text-3)', minWidth: 66 }}>{r.code}</span><span style={{ flex: 1, fontSize: 13 }}>{r.name}</span><span style={{ fontSize: 11, color: '#c0414f', fontWeight: 700 }}>{r.endDate}</span></>)} />
           <Block icon={Bug} title="미결 이슈" color="#d98a16" items={openIssues}
-            note={weekIssues.length ? `이번 주 신규 ${weekIssues.length}건` : undefined}
+            note={weekIssues.length ? `이번 주 신규 ${nfmt(weekIssues.length)}건` : undefined}
             empty="미결 이슈가 없습니다."
             render={(r: any) => (<><span className="mono" style={{ fontSize: 11.5, color: 'var(--text-3)', minWidth: 66 }}>{r.code}</span><span style={{ flex: 1, fontSize: 13 }}>{r.title}</span>{inWeek(r.createdAt) && <span className="pill p-blue" style={{ fontSize: 10.5 }} title="이번 주 등록된 이슈">신규</span>}<Pill v={r.priority} /></>)} />
           <Block icon={ShieldAlert} title="주요 리스크 (High)" color="#c0414f" items={highRisks} empty="High 등급 리스크가 없습니다."

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Shell } from '@/components/Shell';
 import { Pill } from '@/lib/ui';
 import { Network, CheckCircle2, CircleDashed, AlertTriangle } from 'lucide-react';
+const nfmt = (n: number) => n.toLocaleString('ko-KR'); // 카운트 천단위 쉼표(배치114·118·120~122와 일관)
 
 export default function Page() {
   const [pid, setPid] = useState<number | null>(null);
@@ -79,11 +80,11 @@ export default function Page() {
                   color: on ? '#fff' : c.color, fontWeight: 700, fontSize: 12, transition: 'all .12s' }}>
                 <span>{c.label}</span>
                 <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 800, padding: '0 6px', borderRadius: 999,
-                  background: on ? 'rgba(255,255,255,.22)' : 'var(--surface-3)', color: on ? '#fff' : c.color }}>{c.n}</span>
+                  background: on ? 'rgba(255,255,255,.22)' : 'var(--surface-3)', color: on ? '#fff' : c.color }}>{nfmt(c.n)}</span>
               </button>
             );
           })}
-          {filter !== 'all' && <span className="muted" style={{ fontSize: 12 }}>· {visibleRows.length}건 표시 (전체 {rows.length}건)</span>}
+          {filter !== 'all' && <span className="muted" style={{ fontSize: 12 }}>· {nfmt(visibleRows.length)}건 표시 (전체 {nfmt(rows.length)}건)</span>}
         </div>
       )}
       <div className="card" style={{ overflow: 'hidden' }}>

@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation';
 import { Shell } from '@/components/Shell';
 import { Pill } from '@/lib/ui';
 import { ListTodo, ListChecks, Bug, ShieldAlert, Inbox } from 'lucide-react';
+// 카운트 숫자 천단위 쉼표 포매터 — 목록/상세(ResourceView 배치121)와 동일 표기
+const nfmt = (n: number) => n.toLocaleString('ko-KR');
 
 const DAY = 86400000;
 const DONE = ['done', 'resolved', 'closed'];
@@ -56,10 +58,10 @@ export default function Page() {
       <div className="card" style={{ overflow: 'hidden', marginBottom: 18 }}>
         <div className="row" style={{ padding: '13px 16px', borderBottom: '1px solid var(--border)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 750, fontSize: 14 }}><Icon style={{ width: 16, color: 'var(--brand)' }} />{title}</div>
-          <span className="muted" style={{ marginLeft: 8, fontSize: 12 }}>{rows.length}건</span>
+          <span className="muted" style={{ marginLeft: 8, fontSize: 12 }}>{nfmt(rows.length)}건</span>
           {late > 0 && (
-            <span title={`기한이 지난 항목 ${late}건 — 목록 맨 위에 표시됩니다`} style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: '#fdecee', color: '#c0414f', border: '1px solid #f3d2d7', cursor: 'help' }}>
-              지연 {late}건
+            <span title={`기한이 지난 항목 ${nfmt(late)}건 — 목록 맨 위에 표시됩니다`} style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: '#fdecee', color: '#c0414f', border: '1px solid #f3d2d7', cursor: 'help' }}>
+              지연 {nfmt(late)}건
             </span>
           )}
         </div>

@@ -2,6 +2,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { Pill } from '@/lib/ui';
 
+// 카운트 숫자 천단위 쉼표 포매터 — 목록/상세(ResourceView 배치121)와 동일 표기
+const nfmt = (n: number) => n.toLocaleString('ko-KR');
+
 // ---- Kanban board (issues / tasks) ----
 export function Kanban({ rows, openDetail, columns, titleKey = 'title' }:
   { rows: any[]; openDetail: (r: any) => void; columns: { key: string; label: string; color: string }[]; titleKey?: string }) {
@@ -34,7 +37,7 @@ export function Kanban({ rows, openDetail, columns, titleKey = 'title' }:
         }).length;
         return (
           <div className="kb-col" key={col.key}>
-            <div className="kb-h"><span style={{ width: 9, height: 9, borderRadius: 9, background: col.color }} />{col.label}<span className="cnt">{items.length}</span>{overdue > 0 && <span title={`기한 초과 ${overdue}건`} style={{ fontSize: 10.5, fontWeight: 700, color: '#c0414f', background: '#fdedef', borderRadius: 5, padding: '1px 6px', marginLeft: 4 }}>지연 {overdue}</span>}</div>
+            <div className="kb-h"><span style={{ width: 9, height: 9, borderRadius: 9, background: col.color }} />{col.label}<span className="cnt">{nfmt(items.length)}</span>{overdue > 0 && <span title={`기한 초과 ${nfmt(overdue)}건`} style={{ fontSize: 10.5, fontWeight: 700, color: '#c0414f', background: '#fdedef', borderRadius: 5, padding: '1px 6px', marginLeft: 4 }}>지연 {nfmt(overdue)}</span>}</div>
             {items.map((r) => (
               <div className="kb-card" key={r.id} onClick={() => openDetail(r)}>
                 <div className="mono" style={{ fontSize: 11, marginBottom: 4 }}>{r.code}</div>
@@ -73,7 +76,7 @@ export function RiskMatrix({ rows, openDetail }: { rows: any[]; openDetail: (r: 
     <div className="card card-pad" style={{ display: 'inline-block' }}>
       <div className="row" style={{ marginBottom: 12, gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
         <div className="sect" style={{ margin: 0 }}>리스크 매트릭스 (발생가능성 × 영향도)</div>
-        <span className="muted" style={{ fontSize: 11.5, fontWeight: 600 }} title="전체 리스크 건수 · 발생가능성/영향도 값이 없거나 1~5 범위 밖이라 매트릭스에 표시되지 않은 건수">총 {rows.length}건{unplotted > 0 && <span style={{ color: '#a86a12' }}> · 미표시 {unplotted}건</span>}</span>
+        <span className="muted" style={{ fontSize: 11.5, fontWeight: 600 }} title="전체 리스크 건수 · 발생가능성/영향도 값이 없거나 1~5 범위 밖이라 매트릭스에 표시되지 않은 건수">총 {nfmt(rows.length)}건{unplotted > 0 && <span style={{ color: '#a86a12' }}> · 미표시 {nfmt(unplotted)}건</span>}</span>
       </div>
       <table className="heat">
         <tbody>
@@ -99,9 +102,9 @@ export function RiskMatrix({ rows, openDetail }: { rows: any[]; openDetail: (r: 
       </table>
       <div className="row" style={{ gap: 10, marginTop: 12, flexWrap: 'wrap', fontSize: 11.5 }}>
         {([['심각', '#e0394b', '15+', sev.s], ['높음', '#f2772e', '10–14', sev.h], ['중간', '#e0a800', '5–9', sev.m], ['낮음', '#15a34a', '1–4', sev.l]] as const).map(([lb, c, rg, cnt]) => (
-          <span key={lb} className="row" style={{ gap: 5, alignItems: 'center' }} title={`${lb} 리스크 ${cnt}건`}>
+          <span key={lb} className="row" style={{ gap: 5, alignItems: 'center' }} title={`${lb} 리스크 ${nfmt(cnt)}건`}>
             <span style={{ width: 11, height: 11, borderRadius: 3, background: c, display: 'inline-block' }} />
-            <span className="muted">{lb} <span style={{ opacity: .7 }}>({rg})</span>{cnt > 0 && <strong style={{ marginLeft: 4, color: c }}>{cnt}</strong>}</span>
+            <span className="muted">{lb} <span style={{ opacity: .7 }}>({rg})</span>{cnt > 0 && <strong style={{ marginLeft: 4, color: c }}>{nfmt(cnt)}</strong>}</span>
           </span>
         ))}
       </div>
@@ -310,8 +313,8 @@ export function Gantt({ rows, openDetail, save, create }: { rows: any[]; openDet
         <div className="sect" style={{ margin: 0 }}>간트차트 · 일정 계획</div>
         <div style={{ display: 'flex', gap: 4, marginLeft: 8 }}><Zb z="day" l="일" /><Zb z="week" l="주" /><Zb z="month" l="월" /></div>
         {groupOrder.length > 1 && <button className={`btn btn-sm ${grouped ? 'btn-pri' : ''}`} onClick={() => setGrouped((g) => !g)} style={{ padding: '3px 10px' }} title="단계(phase)별로 작업을 묶어 스윔레인으로 표시하고 접기/펼치기">단계 묶기</button>}
-        {critical.size > 1 && (<span title="선행관계 기반 임계경로(여유 0일) 작업 수" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 700, color: '#c0414f', background: '#fdedef', border: '1px solid #f3c7cd', borderRadius: 20, padding: '2px 10px' }}><span style={{ width: 8, height: 8, borderRadius: 8, background: '#c0414f' }} />주경로 {critical.size}개{critOverdue > 0 ? ` · 지연 ${critOverdue}` : ''}</span>)}
-        {overdueCount > 0 && (<span title={`기한(마감)이 지난 미완료 작업 ${overdueCount}건 (완료 제외)`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 700, color: '#a86a12', background: '#fbeed6', border: '1px solid #f2e0b8', borderRadius: 20, padding: '2px 10px' }}><span style={{ width: 8, height: 8, borderRadius: 8, background: '#a86a12' }} />지연 {overdueCount}</span>)}
+        {critical.size > 1 && (<span title="선행관계 기반 임계경로(여유 0일) 작업 수" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 700, color: '#c0414f', background: '#fdedef', border: '1px solid #f3c7cd', borderRadius: 20, padding: '2px 10px' }}><span style={{ width: 8, height: 8, borderRadius: 8, background: '#c0414f' }} />주경로 {nfmt(critical.size)}개{critOverdue > 0 ? ` · 지연 ${nfmt(critOverdue)}` : ''}</span>)}
+        {overdueCount > 0 && (<span title={`기한(마감)이 지난 미완료 작업 ${nfmt(overdueCount)}건 (완료 제외)`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 700, color: '#a86a12', background: '#fbeed6', border: '1px solid #f2e0b8', borderRadius: 20, padding: '2px 10px' }}><span style={{ width: 8, height: 8, borderRadius: 8, background: '#a86a12' }} />지연 {nfmt(overdueCount)}</span>)}
         <div className="sp" />
         <span className="muted" style={{ fontSize: 11 }}>막대=이동 · 양끝=기간 · 아래손잡이=진척 · <span style={{ color: 'var(--brand)', fontWeight: 700 }}>우측●=선행연결</span> · 하단행=새 작업 · 자동저장 · <span style={{ color: '#c0414f', fontWeight: 700 }}>▭ 주경로</span> · <span style={{ color: 'var(--text-3)', fontWeight: 700 }}>▬ 기준선(계획)</span></span>
       </div>
@@ -433,7 +436,7 @@ export function CalendarView({ rows, dateKey, openDetail }: { rows: any[]; dateK
     <div className="card card-pad">
       <div className="row" style={{ marginBottom: 12 }}>
         <div className="sect">{cur.y}년 {cur.m + 1}월</div>
-        {monthCount > 0 && <span className="muted" style={{ fontSize: 11.5, fontWeight: 600, marginLeft: 8 }} title="이번 달 표시 일정 건수">이번 달 {monthCount}건</span>}
+        {monthCount > 0 && <span className="muted" style={{ fontSize: 11.5, fontWeight: 600, marginLeft: 8 }} title="이번 달 표시 일정 건수">이번 달 {nfmt(monthCount)}건</span>}
         <div className="sp" />
         <button className="btn btn-sm" onClick={() => move(-1)}>‹</button>
         <button className="btn btn-sm" onClick={() => setCur({ y: today.getFullYear(), m: today.getMonth() })}>오늘</button>
