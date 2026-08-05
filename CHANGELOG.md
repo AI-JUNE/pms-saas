@@ -3,6 +3,60 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-08-06 (배치 137 — 배포 대기, 관리자 화면 2종 카운트 천단위 쉼표 — 배치123 스윕 admin 누락분)
+- ⑨ **사용자·권한(/admin)·보안 이벤트(/admin/security) 카운트 천단위 쉼표 통일** — 배치123~136 스윕이 일반 화면을 모두 커버했지만 재스캔 결과 admin 하위 2개 화면이 누락돼 있었음. /admin: KPI 4종(전체 구성원·활성·비활성·관리자)·`활성 n명` 부제·역할 구성 칩 `역할 n`(+툴팁 `n명`)·스키마 업데이트 결과 `완료 · n개 적용됨`이 원시 정수였음. /admin/security: 로그 화면이라 건수가 커질 수 있는데 `표시 n건 · 로그인 실패 n건`이 원시 정수였음 — nfmt 적용 + 불러온 범위 안내 hover 툴팁 신설(`현재까지 불러온 이벤트 n건 — 더 보기로 추가 로드 / (전부 불러옴)`, 배치120 툴팁 패턴). 각 파일에 `nfmt(n)=n.toLocaleString('ko-KR')` 추가, 배치121~136과 동일 표기. 순수 표시 로직 — 데이터·API·스키마·Props 무영향, 마이그레이션 불필요. 2파일. — src/app/admin/page.tsx, src/app/admin/security/page.tsx
+- 검증: 전체 `tsc --noEmit -p tsconfig.json`(43s 캡) **완주** — rc=0·`error TS` 0건. 작업 전 src 백업(/tmp/bak_1785953119). 마운트(=OneDrive 실파일) 무결성 확인 — 2파일 깨진문자(U+FFFD) 0, 75·82줄·파일 끝 완전성 정상, nfmt 9·5건(정의 포함) 확인.
+
+## 2026-08-05 (배치 136 — 배포 대기, 리포트·워크로드 표 셀 카운트 천단위 쉼표 — 배치123 스윕 잔여)
+- ⑨ **리포트(/reports)·워크로드(/workload) 잔여 원시 정수 카운트 천단위 쉼표 통일** — 배치123이 두 화면의 툴팁·부제·합계를 nfmt로 맞췄지만 재스캔 결과 표 셀·차트 라벨이 남아 있었음. 리포트: 번다운 SVG `완료 n/n` 라벨, KPI Stat 3종(열린 이슈·리스크·참여 인원), Bars 차트 값 배지(이슈 우선순위·테스트 결과 분포 공용), 담당자별 이슈 표 셀 4종, 벨로시티 `이슈·pts`, 테스트 `실행 n/n`(+실행 기준 툴팁 신설), 프로젝트별 테스트 `실행/전체·통과·실패` 셀. 워크로드: 표 셀 4종(진행 업무·미결 이슈·완료·부하 — 툴팁만 nfmt이고 셀은 원시 정수였음). 덤으로 리포트 KPI `High 리스크` 라벨을 `LABEL.high`(높음) 기반으로 교체(배치127 대시보드 한글화의 잔여 지점). 순수 표시 로직 — 데이터·API·스키마·Props 무영향, 마이그레이션 불필요. 2파일. — src/app/reports/page.tsx, src/app/workload/page.tsx
+- 검증: 전체 `tsc --noEmit -p tsconfig.json`(43s 캡) **완주** — rc=0·`error TS` 0건. 작업 전 src 백업(/tmp/bak_1785931528). 마운트(=OneDrive 실파일) 무결성 확인 — 2파일 깨진문자(U+FFFD) 0, 309·95줄·파일 끝 완전성 정상, nfmt 32·19건(정의 포함) 확인.
+
+## 2026-08-05 (배치 135 — 배포 대기, 알림 그룹 헤더 키보드 접근성 — 배치131 패턴 마지막 누락 지점)
+- ⑨ **알림(/notifications) 그룹 헤더 키보드 접기/펼치기** — 배치131이 ResourceView 그룹 헤더를, 배치133이 대시보드·내작업·통합캘린더를 커버한 뒤 전 소스 재스캔 결과, 알림의 종류별 그룹 헤더 `<tr onClick>`만 마우스 전용으로 남아 있었음(알림 행 자체는 기존 처리됨). `tabIndex={0}`+Enter/Space→setCollapsed(preventDefault)+`aria-expanded`+`aria-label`(그룹명·동작)+툴팁 동작 안내, 접기 화살표(▸/▾)는 `aria-hidden` — 배치131과 동일 패턴. 덤으로 '안 읽음만' 버튼 카운트 `(${unread})`가 원시 정수였던 것을 기존 `nfmt`로 쉼표 통일(같은 파일 markAll 툴팁은 이미 nfmt 사용 중이라 표기 일치). 순수 마크업/표시 로직 — 데이터·API·스키마·Props 무영향, 마이그레이션 불필요. 단일 파일. — src/app/notifications/page.tsx
+- 참고: 이로써 전 소스 grep 기준 마우스 전용 클릭 요소는 로그인(/login) 탭 div 2개만 남음 — 인증 화면이라 야간 금지 규칙에 따라 미수정, ROADMAP에 주간 수동 메모.
+- 검증: 전체 `tsc --noEmit -p tsconfig.json`(43s 캡) **완주** — `error TS` 0건(rc=0). 작업 전 src 백업(/tmp/bak_1785866710). 마운트(=OneDrive 실파일) 무결성 확인 — 깨진문자(U+FFFD) 0, 220줄·파일 끝 완전성 정상, aria-expanded 1건·nfmt(unread) 적용 확인.
+
+## 2026-08-03 (배치 134 — 배포 대기, RTM 연계 칩 클릭 이동 링크 + 툴팁 한글 라벨화)
+- ⑨ **RTM(/rtm) 연계 칩(업무·이슈·테스트)을 클릭 이동 링크로 + 툴팁 원시 영문 라벨 제거** — 상세 슬라이드오버는 배치115부터 연계 값이 `?q=` 검색 복원 링크인데, RTM 매트릭스의 연계 칩은 여전히 정적 `<span>`이라 코드를 눈으로 외워 이동해야 했고, 테스트 칩 툴팁은 전 소스에서 유일하게 원시 영문 결과값(`· pass`/`· fail`)을 노출했음(배치126·127 라벨 스윕 잔여). 세 칩을 `<a href="/{tasks|issues|tests}?q=<code>">`로 교체(URL 쿼리 검색 복원=배치113·115 패턴, `<a>`라 키보드 포커스 기본 제공) — 기존 칩 색상 유지(+textDecoration:none). 툴팁은 `이름 · 상태/결과 한글(LABEL 폴백)` + 클릭 안내로 보강(테스트 결과 없음은 '미실행'). LABEL import 1건 추가. 순수 표시 로직 — 데이터·API·스키마·Props 무영향, 마이그레이션 불필요. 단일 파일. — src/app/rtm/page.tsx
+- 검증: 전체 `tsc --noEmit -p tsconfig.json`(43s 캡) **완주** — rc=0·`error TS` 0건. 작업 전 src 백업(/tmp/bak_1785758694). 마운트(=OneDrive 실파일) 무결성 확인 — 깨진문자(U+FFFD) 0, 113줄·파일 끝 완전성 정상, 링크 3건·LABEL 적용 3건 삽입 확인.
+
+## 2026-08-03 (배치 133 — 배포 대기, 대시보드·내작업·통합캘린더 클릭 요소 키보드 접근성 — 잔여 스윕)
+- ⑨ **대시보드·내작업·통합캘린더 키보드 접근성 보강 — 배치130~132가 ResourceView(목록)·대체뷰(views.tsx)를 커버한 뒤 전 소스 스캔 결과, 마우스 전용 클릭 요소가 3개 화면에 남아 있었음**(알림 행은 기존에 이미 처리됨을 확인·제외). (1) **대시보드** 5곳: 내 작업 항목·마감임박/결재대기 행·내 To-Do 행·담당자 부하 행(div onClick)에 `role="button"`+`tabIndex={0}`+Enter/Space→router.push+`aria-label`(식별자+이동 대상), 최근 프로젝트 `<tr onClick>`에 tabIndex+onKeyDown+aria-label(+cursor:pointer). (2) **내 작업(/mywork)** 섹션 행 `<tr onClick>`: 동일 패턴(code/name/title 폴백 식별자). (3) **통합 캘린더(/calendar)** 일정 칩(div onClick): role="button"+tabIndex+Enter/Space+aria-label(종류·기한초과 여부 포함) — views.tsx CalendarView는 배치132에서 처리됐으나 /calendar 페이지 자체 칩은 별도 구현이라 누락돼 있었음. 각 파일에 공통 헬퍼 `onKeyAct`(Enter/Space·preventDefault) 추가 — 전역 `[tabindex]:focus-visible` 링 자동 적용. 순수 마크업/핸들러 추가라 데이터·API·스키마·Props 무영향, 마이그레이션 불필요. 3파일. — src/app/dashboard/page.tsx, src/app/mywork/page.tsx, src/app/calendar/page.tsx
+- 검증: 전체 `tsc --noEmit -p tsconfig.json`(44s 캡) **완주** — `error TS` 0건(rc=0). 작업 전 src 백업(/tmp/bak_wk_1785717094). 마운트(=OneDrive 실파일) 무결성 확인 — 3파일 깨진문자(U+FFFD) 0, 파일 끝 완전성 정상(240·114·141줄), onKeyAct 6·2·2건(정의+적용) 삽입 확인.
+
+## 2026-08-03 (배치 132 — 배포 대기, 대체뷰 키보드 접근성 — 칸반·리스크매트릭스·간트·캘린더)
+- ⑨ **대체뷰(views.tsx) 키보드 접근성 보강 — 배치130·131이 ResourceView(목록)의 정렬 헤더·그룹 헤더·다이얼로그를 키보드 접근 가능하게 만든 반면, 대체뷰 4종은 aria 속성 0건·마우스 전용이었음** — (1) **칸반 카드**(`.kb-card` div onClick): `role="button"`+`tabIndex={0}`+Enter/Space→openDetail+`aria-label`(`{code} {title} 상세 열기`). (2) **리스크매트릭스 셀**(td onClick): 리스크가 배치된 셀에만 조건부 스프레드로 role/tabIndex/onKeyDown/`aria-label`(발생가능성×영향도·건수) 부여 — 빈 셀은 포커스 대상에서 제외. (3) **간트 단계 스윔레인 헤더**(접기/펼치기 div): tabIndex+Enter/Space toggle+`aria-expanded`+aria-label, 회전 화살표(▾)는 `aria-hidden`. (4) **간트 작업 라벨**·(5) **캘린더 일정 칩**: role="button"+tabIndex+Enter/Space→openDetail+aria-label. 공통 헬퍼 `onKeyAct`(Enter/Space·preventDefault) 1개 추가 — 전역 `[tabindex]:focus-visible` 링(v20)이 자동 적용. 순수 마크업/핸들러 추가라 데이터·API·스키마·Props 무영향, 마이그레이션 불필요. 단일 파일. — src/components/views.tsx
+- 검증: 전체 `tsc --noEmit -p tsconfig.json`(43s 캡) **완주** — `error TS` 0건(rc=0). 작업 전 src 백업(/tmp/bak_1785715418). 마운트(=OneDrive 실파일) 무결성 확인 — 깨진문자(U+FFFD) 0, 472줄·파일 끝 완전성 정상, onKeyAct 6건(정의1+적용5)·role="button" 5건·aria-label 5건 삽입 확인.
+
+## 2026-08-02 (배치 131 — 배포 대기, 목록 접근성 잔여 보강 — 그룹 헤더 키보드·체크박스 라벨·다이얼로그 시맨틱)
+- ⑨ **목록 공통: 배치130(정렬 헤더) 이후 남은 접근성 사각지대 4곳 보강** — (1) **그룹화 헤더 행**이 마우스 전용(`<tr onClick>`)이라 키보드로 접기/펼치기 불가·펼침 상태 미노출이었음 → `tabIndex={0}`(전역 focus-visible 링 자동 적용)+Enter/Space `toggleGroup` 호출(스크롤 방지 preventDefault)+`aria-expanded`+동작 안내 hover 툴팁 추가, 회전 화살표(▸)는 `aria-hidden`으로 중복 낭독 제거 — 배치130 정렬 헤더와 동일 패턴. (2) **행 선택 체크박스**가 레이블 없는 컨트롤(스크린리더에 "체크박스"로만 낭독) → `aria-label`에 행 식별자(code/title/name/#id)+"선택" 부여(전체 선택 체크박스는 기존 라벨 유지). (3) **상세 슬라이드오버**(`aside.over`)와 (4) **수정/생성 모달**(`form.modal`)에 다이얼로그 시맨틱이 없어 보조기술이 오버레이 진입을 인지 못 했음 → `role="dialog"`+`aria-modal="true"`+`aria-label`(`{title} 상세` / `{title} 수정·새로 만들기`) 부여. 정렬·그룹·선택·저장 로직 무변경, 순수 마크업/핸들러 추가라 데이터·API·스키마·Props 무영향, 마이그레이션 불필요. 단일 파일. — src/components/ResourceView.tsx
+- 검증: 전체 `tsc --noEmit -p tsconfig.json`(43s 캡) **완주** — `error TS` 0건(rc=0). 스코프 tsconfig(`tsconfig.check.json`)도 0건 교차확인. 작업 전 src 백업(/tmp/bak_1785632328). 마운트(=OneDrive 실파일) 무결성 확인 — 깨진문자(U+FFFD) 0, 518줄·파일 끝 완전성 정상, aria-expanded·role="dialog"·aria-modal 각 삽입 확인.
+
+## 2026-08-01 (배치 130 — 배포 대기, 목록 정렬 헤더 키보드 접근성)
+- ⑨ **목록 공통: 정렬 컬럼 헤더 키보드 접근성 보강** — ④의 접근성 하드닝(전역 focus-visible 링·aria-label)이 버튼·입력에는 적용됐지만, 전 목록이 공유하는 ResourceView의 **정렬 헤더(`<th onClick>`)는 마우스 전용**이었음: Tab 포커스 불가, Enter/Space로 정렬 불가, 현재 정렬 상태(`aria-sort`)·헤더 역할(`scope`) 미노출이라 키보드·스크린리더 사용자는 정렬 기능 자체를 쓸 수 없었음. 헤더에 `scope="col"`+`tabIndex={0}`(전역 `[tabindex]:focus-visible` 링이 자동 적용)+`onKeyDown`(Enter/Space→기존 `sort(c.key)` 호출·스크롤 방지 preventDefault)+`aria-sort`(ascending/descending/none)+정렬 안내 hover 툴팁을 추가하고, 정렬 화살표(▲/▼)는 `aria-hidden`으로 중복 낭독 제거. 체크박스·행 작업 열 `<th>`에도 `scope="col"` 부여. 정렬 로직·상태 저장(localStorage)·URL 쿼리(배치113) 등 기존 동작 무변경, 순수 마크업/핸들러 추가라 데이터·API·스키마·Props 무영향, 마이그레이션 불필요. 단일 파일. — src/components/ResourceView.tsx
+- 검증: 전체 `tsc --noEmit -p tsconfig.json`(43s 캡) **완주** — `error TS` 0건(rc=0). 작업 전 src 백업(/tmp/bak_wk_1785575446). 마운트(=OneDrive 실파일) 무결성 확인 — 깨진문자(U+FFFD) 0, 파일 끝 완전성 정상(517줄), aria-sort·Enter/Space 핸들러 삽입 확인.
+
+## 2026-08-01 (배치 129 — 배포 대기, 백로그·감사로그 카운트 천단위 쉼표 — 스윕 잔여 2개 화면)
+- ⑨ **백로그(/backlog)·감사로그(/audit) 카운트 숫자 천단위 쉼표 통일** — 배치123이 "카운트 쉼표 전 화면 스윕 완료"로 기록했지만 전 소스 재스캔 결과 두 화면이 누락돼 있었음. 백로그: KPI 5종(전체 이슈·백로그 대기·스프린트·잔여 포인트·미추정)과 pts 부제, 스프린트/백로그 헤더 `n건 · n pts`, 미추정 칩·진척 툴팁(`총/완료/남은`·`dp/tp pts`)이 원시 정수였음(19지점). 감사로그: 동작·영역 필터 옵션 건수, `오늘 n건`, 툴바 `표시/전체건`·툴팁이 원시 정수였음(15지점). 각 파일 상단에 `nfmt(n)=n.toLocaleString('ko-KR')`를 두고 적용 — 배치120~128과 동일 표기. 순수 표시 로직 — 데이터·API·스키마·Props 무영향, 마이그레이션 불필요. 2파일. — src/app/backlog/page.tsx, src/app/audit/page.tsx
+- 검증: 전체 `tsc --noEmit -p tsconfig.json`(43s 캡) **완주** — `error TS` 0건(rc=0). 작업 전 src 백업(/tmp/bak_1785521132). 마운트(=OneDrive 실파일) 무결성 확인 — 2파일 깨진문자(U+FFFD) 0, 파일 끝 완전성 정상, nfmt 19·15건 삽입 확인.
+- 참고: 게시판(boards)·기성고(snapshots)의 다중행 `n줄` 배지는 항상 한 자리 수준이라 이번 스윕에서 제외(의도적).
+
+## 2026-07-31 (배치 128 — 배포 대기, 통합 캘린더 카운트 쉼표·빈 상태 + 대체뷰 전체 빈 상태 문구)
+- ⑨ **통합 캘린더(/calendar) 카운트 쉼표 + 일정 전무 빈 상태** — 배치123이 "카운트 쉼표 전 화면 스윕 완료"로 기록했지만 /calendar 페이지가 스윕 목록에서 누락돼 있었음: 기한 초과 배지 `⚠ 기한 초과 n건`(+툴팁), 종류 필터 칩 건수(회의·업무마감·테스트기한·이슈기한), 셀 넘침 `+n`이 원시 정수였음. `nfmt(n)=n.toLocaleString('ko-KR')`를 두고 4개 지점에 적용(배치121~123과 동일 표기). 또한 프로젝트 선택 후 일정이 0건이면 빈 월력 격자만 보였음 — `등록된 일정이 없습니다. 회의·업무 마감·테스트/이슈 기한을 입력하면 월별 캘린더에 표시됩니다.` 빈 상태 카드 추가(기존 '프로젝트 미선택' 안내와 동일 톤).
+- ⑨ **대체뷰(칸반·리스크매트릭스·CalendarView) 전체 빈 상태 문구** — views.tsx에서 간트만 0건 빈 상태 안내가 있고, 칸반은 빈 컬럼마다 '없음'만 나열, 리스크매트릭스는 0건 격자, CalendarView는 빈 월력을 그대로 렌더했음. 세 컴포넌트에 간트와 동일 톤의 `rows.length === 0` 빈 상태 카드를 추가(칸반: 새로 만들기→카드 안내 / 리스크: 발생가능성·영향도 입력→매트릭스 배치 안내 / 캘린더: 날짜 입력 항목 표시 안내). CalendarView는 useState 훅 뒤에 배치해 훅 규칙 준수(칸반·매트릭스는 훅 없음). 순수 표시 로직 — 데이터·API·스키마·Props 무영향, 마이그레이션 불필요. 2파일. — src/app/calendar/page.tsx, src/components/views.tsx
+- 검증: 전체 `tsc --noEmit -p tsconfig.json`(43s 캡) **완주** — `error TS` 0건(rc=0). 작업 전 src 백업(/tmp/bak_1785499520). 마운트(=OneDrive 실파일) 무결성 확인 — 2파일 깨진문자(U+FFFD) 0, 파일 끝 완전성 정상, nfmt 4건·빈 상태 return 4건(views.tsx) 삽입 확인.
+
+## 2026-07-31 (배치 127 — 배포 대기, 대시보드·리포트 분포 막대 라벨 한글화 + 대시보드 KPI 부제 카운트 쉼표)
+- ⑨ **대시보드·리포트 분포 막대 라벨 한글화(배치126 잔여 스윕)** — 배치126이 프로젝트 상세의 Bar 라벨을 `LABEL`로 한글화했지만, 전 소스 스캔 결과 같은 영문 리터럴 하드코딩이 2곳 남아 있었음: 대시보드 리스크 등급 분포('High'·'Medium'·'Low')와 리포트 이슈 우선순위 분포('Critical'·'High'·'Medium'·'Low'). 두 파일에 `LABEL` import 추가 후 7개 라벨을 `LABEL.high`(높음) 등으로 교체 — 배지·필터·그룹헤더(배치119)·프로젝트 상세(배치126)와 표기 일치. 집계 키(cnt의 원시 코드값)는 유지, 표시만 변경.
+- ⑨ **대시보드 KPI 카드 부제 카운트 쉼표 + 'High' 한글화** — KPI 카드 부제(`진행 n`·`승인 n`·`전체 n`·`High n`·`완료 n`)가 원시 정수·영문 혼용이었음. 기존 `nfmt`로 천단위 쉼표 적용(배치123 스윕 누락분), `High`→`LABEL.high`(높음). 순수 표시 로직 — 데이터·API·스키마·Props 무영향, 마이그레이션 불필요. 2파일. — src/app/dashboard/page.tsx, src/app/reports/page.tsx
+- 검증: 전체 `tsc --noEmit -p tsconfig.json`(43s 캡) **완주** — `error TS` 0건(rc=0, 출력 0줄). 작업 전 src 백업(/tmp/bak_1785434709). 마운트(=OneDrive 실파일) 무결성 확인 — 2파일 깨진문자(U+FFFD) 0, 파일 끝 완전성 정상, LABEL 적용 삽입 확인.
+- 참고: `src/src/` 하위에 구버전 소스 사본이 남아 있어 tsc 검사 범위에 포함되고 있음(현재 에러 0이라 무해). 주간에 의도 확인 후 삭제 권장(야간 삭제는 보류).
+
+## 2026-07-30 (배치 126 — 배포 대기, 프로젝트 상세 분포 라벨 한글화 + 대체뷰 잔여 카운트 쉼표·툴팁)
+- ⑨ **프로젝트 상세(/projects/[id]) 이슈·리스크 분포 막대 라벨 한글화** — 요구사항 분포 분석(requirements)은 `LABEL.high` 등 한글(긴급·높음·보통·낮음)로 표기하는데, 프로젝트 상세의 같은 Bar 컴포넌트만 영문 리터럴('Critical'·'High'·'Medium'·'Low')을 하드코딩해 배지·필터·그룹헤더(배치119)와 어긋났음. `LABEL` import 추가 후 7개 라벨을 `LABEL.critical` 등으로 교체(집계 키는 원시 코드값 유지, 표시만 변경).
+- ⑨ **대체뷰 잔여 카운트 쉼표·툴팁 보강(배치122 스윕 누락분)** — views.tsx에서 간트 단계 스윔레인 헤더의 작업 수 `{gr.length}`와 캘린더 셀 넘침 표시 `+n`이 원시 정수였음. 기존 `nfmt`로 천단위 쉼표 적용 + hover 툴팁(단계 작업 건수 / 미표시 일정 안내) 추가. 순수 표시 로직 — 데이터·API·스키마·Props 무영향, 마이그레이션 불필요. 2파일. — src/app/projects/[id]/page.tsx, src/components/views.tsx
+- 검증: 호스트 전체 `tsc --noEmit -p tsconfig.json`(43s 캡) **완주** — `error TS` 0건(rc=0). 작업 전 src 백업(/tmp/bak_1785413108). 마운트(=OneDrive 실파일) 무결성 확인 — 2파일 깨진문자(U+FFFD) 0, LABEL.critical 1건·nfmt(gr.length) 2건 삽입 확인.
+
 ## 2026-07-30 (배치 125 — 배포 대기, 요금제 페이지 결제 스캐폴딩 연결)
 - ③④ **요금제(/pricing) 페이지에 결제 스캐폴딩 테스트 버튼 연결** — Basic·Pro 카드에 `결제 연동 테스트 (실결제 없음)` 버튼(점선·저채도, PAYMENTS_LIVE=false일 때만 노출) 추가. 클릭 시 `POST /api/billing/checkout`(배치124)를 호출해 테스트 모드 결제 파라미터 발급 흐름을 화면에서 검증(성공: paymentId 표시, 401: 로그인 안내, 오류: 표준에러 메시지). 신규 클라이언트 컴포넌트 `CheckoutButton.tsx` 1개 + pricing/page.tsx 2줄. Enterprise는 미노출(도입 문의 경로 유지). 실PG SDK 결제창·라이브 승격은 [승인 필요].
 - 검증: 스코프 tsconfig(pricing 2파일+전이 의존성) `error TS` 0건(rc=0). 파일 끝 완전성·U+FFFD 0 확인.

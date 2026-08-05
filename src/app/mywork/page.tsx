@@ -6,6 +6,8 @@ import { Pill } from '@/lib/ui';
 import { ListTodo, ListChecks, Bug, ShieldAlert, Inbox } from 'lucide-react';
 // 카운트 숫자 천단위 쉼표 포매터 — 목록/상세(ResourceView 배치121)와 동일 표기
 const nfmt = (n: number) => n.toLocaleString('ko-KR');
+// 키보드 접근성 — 클릭 행에 Enter/Space 활성화(목록·대체뷰 배치130~132와 동일 패턴)
+const onKeyAct = (fn: () => void) => (e: { key: string; preventDefault: () => void }) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(); } };
 
 const DAY = 86400000;
 const DONE = ['done', 'resolved', 'closed'];
@@ -68,7 +70,7 @@ export default function Page() {
         {rows.length === 0 ? <div className="empty" style={{ padding: 24 }}><Inbox /><div>{empty || '배정된 항목이 없습니다.'}</div></div> : (
           <table className="tbl"><thead><tr>{cols.map((c: any) => <th key={c.key}>{c.label}</th>)}<th style={{ width: 90 }}>프로젝트</th></tr></thead>
             <tbody>{sorted.map((r: any) => (
-              <tr key={r.id} style={{ cursor: 'pointer', opacity: DONE.includes(String(r?.status || '')) ? 0.62 : 1 }} onClick={() => router.push(href)}>
+              <tr key={r.id} style={{ cursor: 'pointer', opacity: DONE.includes(String(r?.status || '')) ? 0.62 : 1 }} onClick={() => router.push(href)} tabIndex={0} onKeyDown={onKeyAct(() => router.push(href))} aria-label={`${r.code || r.name || r.title || '#' + r.id} — ${title} 목록으로 이동`}>
                 {cols.map((c: any) => <td key={c.key}>{c.render ? c.render(r[c.key], r) : (c.badge ? <Pill v={r[c.key]} /> : (c.mono ? <span className="mono">{r[c.key] || '—'}</span> : (r[c.key] ?? '—')))}</td>)}
                 <td><span className="mono" style={{ fontSize: 11.5, color: 'var(--text-3)' }}>{r.projectCode}</span></td>
               </tr>))}</tbody></table>

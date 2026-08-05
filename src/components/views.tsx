@@ -5,9 +5,16 @@ import { Pill } from '@/lib/ui';
 // 카운트 숫자 천단위 쉼표 포매터 — 목록/상세(ResourceView 배치121)와 동일 표기
 const nfmt = (n: number) => n.toLocaleString('ko-KR');
 
+// 키보드 활성화(Enter/Space) 핸들러 — ResourceView 정렬 헤더·그룹 헤더(배치130·131)와 동일 패턴
+const onKeyAct = (fn: () => void) => (e: React.KeyboardEvent) => {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(); }
+};
+
 // ---- Kanban board (issues / tasks) ----
 export function Kanban({ rows, openDetail, columns, titleKey = 'title' }:
   { rows: any[]; openDetail: (r: any) => void; columns: { key: string; label: string; color: string }[]; titleKey?: string }) {
+  // 전체 빈 상태 — 간트와 동일 톤(빈 컬럼만 나열되는 화면 방지)
+  if (rows.length === 0) return <div className="card card-pad muted">표시할 항목이 없습니다. “새로 만들기”로 추가하면 상태별 칸반 보드에 카드로 나타납니다.</div>;
   // 카드 기한(dueDate/endDate) D-day·초과 강조 — 목록/상세와 동일 규칙(완료·종료 상태 제외)
   const KB_DONE = new Set(['done', 'closed', 'resolved', 'completed', 'approved', 'pass']);
   const dueChip = (r: any): { label: string; fg?: string; bg?: string; muted?: boolean } | null => {
@@ -39,7 +46,7 @@ export function Kanban({ rows, openDetail, columns, titleKey = 'title' }:
           <div className="kb-col" key={col.key}>
             <div className="kb-h"><span style={{ width: 9, height: 9, borderRadius: 9, background: col.color }} />{col.label}<span className="cnt">{nfmt(items.length)}</span>{overdue > 0 && <span title={`기한 초과 ${nfmt(overdue)}건`} style={{ fontSize: 10.5, fontWeight: 700, color: '#c0414f', background: '#fdedef', borderRadius: 5, padding: '1px 6px', marginLeft: 4 }}>지연 {nfmt(overdue)}</span>}</div>
             {items.map((r) => (
-              <div className="kb-card" key={r.id} onClick={() => openDetail(r)}>
+              <div className="kb-card" key={r.id} onClick={() => openDetail(r)} role="button" tabIndex={0} onKeyDown={onKeyAct(() => openDetail(r))} aria-label={`${r.code ? r.code + ' ' : ''}${r[titleKey] || ''} 상세 열기`}>
                 <div className="mono" style={{ fontSize: 11, marginBottom: 4 }}>{r.code}</div>
                 <div style={{ fontWeight: 650, fontSize: 13.5, marginBottom: 8 }}>{r[titleKey]}</div>
                 <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
@@ -65,6 +72,8 @@ export function Kanban({ rows, openDetail, columns, titleKey = 'title' }:
 // ---- Risk heatmap (5x5) ----
 const heatColor = (s: number) => s >= 15 ? '#e0394b' : s >= 10 ? '#f2772e' : s >= 5 ? '#e0a800' : '#15a34a';
 export function RiskMatrix({ rows, openDetail }: { rows: any[]; openDetail: (r: any) => void }) {
+  // 전체 빈 상태 — 0건 매트릭스 격자만 보이는 화면 방지(간트와 동일 톤)
+  if (rows.length === 0) return <div className="card card-pad muted">등록된 리스크가 없습니다. “새로 만들기”로 발생가능성·영향도를 입력하면 매트릭스에 배치됩니다.</div>;
   // 매트릭스에 실제로 배치되는 건수(발생가능성·영향도 1~5) vs 미표시(값 누락/범위 밖)
   const inCell = (v: any) => { const n = Number(v); return n >= 1 && n <= 5; };
   const plotted = rows.filter((r) => inCell(r.impact) && inCell(r.probability)).length;
@@ -89,7 +98,8 @@ export function RiskMatrix({ rows, openDetail }: { rows: any[]; openDetail: (r: 
                 return (
                   <td key={prob} style={{ background: heatColor(score), opacity: here.length ? 1 : 0.32, cursor: here.length ? 'pointer' : 'default' }}
                     title={here.map((r) => r.code + ' ' + r.title).join('\n')}
-                    onClick={() => here[0] && openDetail(here[0])}>
+                    onClick={() => here[0] && openDetail(here[0])}
+                    {...(here.length ? { role: 'button' as const, tabIndex: 0, onKeyDown: onKeyAct(() => openDetail(here[0])), 'aria-label': `발생가능성 ${prob} × 영향도 ${impact} — 리스크 ${nfmt(here.length)}건 상세 열기` } : {})}>
                     {here.length || ''}
                   </td>
                 );
@@ -341,11 +351,11 @@ export function Gantt({ rows, openDetail, save, create }: { rows: any[]; openDet
                 const isCol = !!collapsed[d.key];
                 return (
                   <div key={'g_' + d.key} style={{ display: 'flex', height: rowH, borderBottom: '1px solid var(--border)', background: 'var(--surface-2)' }} className="gt-grp">
-                    <div onClick={() => setCollapsed((c) => ({ ...c, [d.key]: !c[d.key] }))} title={isCol ? '펼치기' : '접기'} style={{ width: LBL, flexShrink: 0, borderRight: '1px solid var(--border)', padding: '0 12px', display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', fontWeight: 750, fontSize: 12.5 }}>
-                      <span style={{ display: 'inline-block', width: 12, textAlign: 'center', transition: 'transform .15s', transform: isCol ? 'rotate(-90deg)' : 'none', color: 'var(--text-3)' }}>▾</span>
+                    <div onClick={() => setCollapsed((c) => ({ ...c, [d.key]: !c[d.key] }))} role="button" tabIndex={0} onKeyDown={onKeyAct(() => setCollapsed((c) => ({ ...c, [d.key]: !c[d.key] })))} aria-expanded={!isCol} aria-label={`${gLabel(d.key)} 단계 ${isCol ? '펼치기' : '접기'}`} title={isCol ? '펼치기' : '접기'} style={{ width: LBL, flexShrink: 0, borderRight: '1px solid var(--border)', padding: '0 12px', display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', fontWeight: 750, fontSize: 12.5 }}>
+                      <span aria-hidden="true" style={{ display: 'inline-block', width: 12, textAlign: 'center', transition: 'transform .15s', transform: isCol ? 'rotate(-90deg)' : 'none', color: 'var(--text-3)' }}>▾</span>
                       <span style={{ width: 9, height: 9, borderRadius: 9, background: gColor(d.key), flexShrink: 0 }} />
                       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{gLabel(d.key)}</span>
-                      <span className="muted" style={{ fontWeight: 600, fontSize: 11 }}>{gr.length}</span>
+                      <span className="muted" style={{ fontWeight: 600, fontSize: 11 }} title={`이 단계의 작업 ${nfmt(gr.length)}건`}>{nfmt(gr.length)}</span>
                     </div>
                     <div style={{ position: 'relative', width: W }}>
                       <div title={`${fmt(gs)} ~ ${fmt(ge)}`} style={{ position: 'absolute', left: gLeft, width: gW, top: rowH / 2 - 4, height: 8, borderRadius: 6, background: gColor(d.key), opacity: 0.28 }} />
@@ -369,7 +379,7 @@ export function Gantt({ rows, openDetail, save, create }: { rows: any[]; openDet
               const slipDays = hasBase ? Math.round((x.e - (be as number)) / DAY) : 0;
               return (
                 <div key={r.id} style={{ display: 'flex', height: rowH, borderBottom: '1px solid var(--border)' }} className="gt-row">
-                  <div onClick={() => openDetail(r)} style={{ width: LBL, flexShrink: 0, borderRight: '1px solid var(--border)', padding: '0 14px', display: 'flex', flexDirection: 'column', justifyContent: 'center', cursor: 'pointer' }}>
+                  <div onClick={() => openDetail(r)} role="button" tabIndex={0} onKeyDown={onKeyAct(() => openDetail(r))} aria-label={`${r.name || r.title || r.code || ''} 상세 열기`} style={{ width: LBL, flexShrink: 0, borderRight: '1px solid var(--border)', padding: '0 14px', display: 'flex', flexDirection: 'column', justifyContent: 'center', cursor: 'pointer' }}>
                     <div style={{ fontSize: 12.5, fontWeight: 650, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name || r.title}{r.predecessor && <span className="muted" style={{ fontWeight: 500, fontSize: 10.5 }}> ← {r.predecessor}</span>}</div>
                     <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>{r.assignee || '—'} · {r.code}</div>
                   </div>
@@ -417,6 +427,8 @@ export function Gantt({ rows, openDetail, save, create }: { rows: any[]; openDet
 
 export function CalendarView({ rows, dateKey, openDetail }: { rows: any[]; dateKey: string; openDetail: (r: any) => void }) {
   const [cur, setCur] = useState(() => { const d = new Date(); return { y: d.getFullYear(), m: d.getMonth() }; });
+  // 전체 빈 상태 — 빈 월력 격자만 보이는 화면 방지(간트와 동일 톤, 훅 뒤에 배치)
+  if (rows.length === 0) return <div className="card card-pad muted">표시할 일정이 없습니다. 날짜가 입력된 항목이 월별 캘린더에 표시됩니다.</div>;
   const first = new Date(cur.y, cur.m, 1);
   const startDow = first.getDay();
   const days = new Date(cur.y, cur.m + 1, 0).getDate();
@@ -448,9 +460,9 @@ export function CalendarView({ rows, dateKey, openDetail }: { rows: any[]; dateK
           <div key={i} style={{ background: (d && isToday(d)) ? 'var(--brand-50)' : (i % 7 === 0 || i % 7 === 6) ? 'var(--surface-2)' : 'var(--surface)', minHeight: 92, padding: 6, opacity: d ? 1 : 0.4, boxShadow: (d && isToday(d)) ? 'inset 0 0 0 2px var(--brand)' : undefined }}>
             {d && <div style={{ fontSize: 11.5, fontWeight: 700, color: isToday(d) ? '#fff' : (i % 7 === 0 || i % 7 === 6) ? dowColor(i % 7) : 'var(--text-2)', background: isToday(d) ? 'var(--brand)' : 'transparent', width: 20, height: 20, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{d}</div>}
             {d && itemsOn(d).slice(0, 3).map((r) => (
-              <div key={r.id} onClick={() => openDetail(r)} title={r.title || r.name} style={{ marginTop: 3, fontSize: 10.5, fontWeight: 600, background: 'var(--brand-50)', color: 'var(--brand-600)', borderRadius: 5, padding: '2px 5px', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title || r.name}</div>
+              <div key={r.id} onClick={() => openDetail(r)} role="button" tabIndex={0} onKeyDown={onKeyAct(() => openDetail(r))} aria-label={`${r.title || r.name || ''} 상세 열기`} title={r.title || r.name} style={{ marginTop: 3, fontSize: 10.5, fontWeight: 600, background: 'var(--brand-50)', color: 'var(--brand-600)', borderRadius: 5, padding: '2px 5px', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title || r.name}</div>
             ))}
-            {d && itemsOn(d).length > 3 && <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 2 }}>+{itemsOn(d).length - 3}</div>}
+            {d && itemsOn(d).length > 3 && <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 2 }} title={`표시되지 않은 일정 ${nfmt(itemsOn(d).length - 3)}건 — 항목이 많은 날은 처음 3건만 표시됩니다`}>+{nfmt(itemsOn(d).length - 3)}</div>}
           </div>
         ))}
       </div>

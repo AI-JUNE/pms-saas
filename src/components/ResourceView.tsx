@@ -260,7 +260,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
 
   const Row = ({ row }: { row: any }) => (
     <tr onClick={() => rowHref ? router.push(rowHref(row)) : setDetail(row)} style={{ boxShadow: `inset 3px 0 0 ${STATUS_COLOR[String(row[statusKey])] || 'transparent'}` }}>
-      <td onClick={(e) => e.stopPropagation()} style={{ width: 34, textAlign: 'center' }}><input type="checkbox" checked={sel.has(row.id)} onChange={() => toggleSel(row.id)} /></td>
+      <td onClick={(e) => e.stopPropagation()} style={{ width: 34, textAlign: 'center' }}><input type="checkbox" aria-label={`${row.code || row.title || row.name || '#' + row.id} 선택`} checked={sel.has(row.id)} onChange={() => toggleSel(row.id)} /></td>
       {visibleColumns.map((c) => (
         <td key={c.key} style={c.badge && fullTag ? { background: (STATUS_COLOR[String(row[c.key])] || '#94a3b8') + '1f' } : undefined}>
           {c.render ? c.render(row[c.key], row)
@@ -379,16 +379,18 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
       {(mode === 'table' || loading) && <div className={`card tbl-wrap${density === 'compact' ? ' compact' : ''}`}>
         <table className="tbl">
           <thead><tr>
-            <th style={{ width: 34, textAlign: 'center' }}><input type="checkbox" aria-label="전체 선택" checked={view.length > 0 && view.every((r) => sel.has(r.id))} onChange={(e) => setSel(e.target.checked ? new Set(view.map((r) => r.id)) : new Set())} /></th>
-            {visibleColumns.map((c) => <th key={c.key} onClick={() => sort(c.key)}>{c.label}{sortK === c.key && <span className="arr">{sortDir === 1 ? '▲' : '▼'}</span>}</th>)}
-            <th className="no-sort" style={{ width: 90 }}></th>
+            <th scope="col" style={{ width: 34, textAlign: 'center' }}><input type="checkbox" aria-label="전체 선택" checked={view.length > 0 && view.every((r) => sel.has(r.id))} onChange={(e) => setSel(e.target.checked ? new Set(view.map((r) => r.id)) : new Set())} /></th>
+            {/* 정렬 헤더 키보드 접근성 — tabIndex(전역 focus-visible 링 적용)·Enter/Space 정렬·aria-sort로 현재 정렬 상태를 스크린리더에 노출 */}
+            {visibleColumns.map((c) => <th key={c.key} scope="col" tabIndex={0} aria-sort={sortK === c.key ? (sortDir === 1 ? 'ascending' : 'descending') : 'none'} title={`${c.label} 기준 정렬 — 클릭 또는 Enter로 오름차순/내림차순 전환`} onClick={() => sort(c.key)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); sort(c.key); } }}>{c.label}{sortK === c.key && <span className="arr" aria-hidden>{sortDir === 1 ? '▲' : '▼'}</span>}</th>)}
+            <th scope="col" className="no-sort" style={{ width: 90 }} aria-label="행 작업"></th>
           </tr></thead>
           <tbody>
             {loading && Array.from({ length: 5 }).map((_, i) => (<tr key={i}><td></td>{visibleColumns.map((c) => <td key={c.key}><div className="skel" style={{ height: 14, width: '70%' }} /></td>)}<td></td></tr>))}
             {!loading && !grouped && view.map((row) => <Row key={row.id} row={row} />)}
             {!loading && grouped && grouped.map(([g, list]) => (
               <Fragment key={'g' + g}>
-                <tr onClick={() => toggleGroup(g)} style={{ cursor: 'pointer' }}><td colSpan={visibleColumns.length + 2} style={{ background: 'var(--surface-3)', fontWeight: 750, fontSize: 12.5, boxShadow: `inset 4px 0 0 ${STATUS_COLOR[g] || 'var(--brand)'}` }}><span style={{ display: 'inline-block', width: 14, transform: collapsed.has(g) ? 'none' : 'rotate(90deg)', color: 'var(--muted)' }}>▸</span>{LABEL[g] || g} <span className="muted">· {nfmt(list.length)}</span>{(() => {
+                {/* 그룹 헤더 키보드 접근성 — tabIndex(전역 focus-visible 링 적용)·Enter/Space 접기/펼치기·aria-expanded로 상태를 스크린리더에 노출 (정렬 헤더 배치130과 동일 패턴) */}
+                <tr onClick={() => toggleGroup(g)} tabIndex={0} aria-expanded={!collapsed.has(g)} title={`${LABEL[g] || g} 그룹 ${collapsed.has(g) ? '펼치기' : '접기'} — 클릭 또는 Enter`} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleGroup(g); } }} style={{ cursor: 'pointer' }}><td colSpan={visibleColumns.length + 2} style={{ background: 'var(--surface-3)', fontWeight: 750, fontSize: 12.5, boxShadow: `inset 4px 0 0 ${STATUS_COLOR[g] || 'var(--brand)'}` }}><span aria-hidden style={{ display: 'inline-block', width: 14, transform: collapsed.has(g) ? 'none' : 'rotate(90deg)', color: 'var(--muted)' }}>▸</span>{LABEL[g] || g} <span className="muted">· {nfmt(list.length)}</span>{(() => {
                   const DONE = ['done', 'closed', 'resolved', 'completed', 'approved', 'pass'];
                   if (!list.some((r: any) => r[statusKey])) return null;
                   const dc = list.filter((r: any) => DONE.includes(String(r[statusKey]))).length;
@@ -413,7 +415,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
 
       {detail && (<>
         <div className="scrim" onClick={() => setDetail(null)} />
-        <aside className="over" onTouchStart={onOverTouchStart} onTouchMove={onOverTouchMove} onTouchEnd={onOverTouchEnd} style={swipeY > 0 ? { transform: `translateY(${swipeY}px)`, transition: 'none' } : undefined}>
+        <aside className="over" role="dialog" aria-modal="true" aria-label={`${title} 상세`} onTouchStart={onOverTouchStart} onTouchMove={onOverTouchMove} onTouchEnd={onOverTouchEnd} style={swipeY > 0 ? { transform: `translateY(${swipeY}px)`, transition: 'none' } : undefined}>
           <div className="over-grip" aria-hidden />
           <div className="over-h"><span className="mono" style={{ fontSize: 13 }}>{detail.code || `#${detail.id}`}</span><div className="sp" />{(() => { const i = view.findIndex((r) => r.id === detail.id); if (i < 0 || view.length < 2) return null; return (<><span className="muted" style={{ fontSize: 11.5, marginRight: 4, fontVariantNumeric: 'tabular-nums' }} title="현재 목록에서의 위치">{nfmt(i + 1)}/{nfmt(view.length)}</span><button className="iconbtn" aria-label="이전 항목" title="이전 항목 (↑)" disabled={i <= 0} style={i <= 0 ? { opacity: .4, cursor: 'default' } : undefined} onClick={() => i > 0 && setDetail(view[i - 1])}><ChevronUp /></button><button className="iconbtn" aria-label="다음 항목" title="다음 항목 (↓)" disabled={i >= view.length - 1} style={i >= view.length - 1 ? { opacity: .4, cursor: 'default' } : undefined} onClick={() => i < view.length - 1 && setDetail(view[i + 1])}><ChevronDown /></button></>); })()}<button className="iconbtn" aria-label="닫기" onClick={() => setDetail(null)}><X /></button></div>
           <div className="over-b">
@@ -484,7 +486,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
 
       {open && (
         <div className="mscrim" onClick={() => setOpen(false)}>
-          <form className="modal" onClick={(e) => e.stopPropagation()} onSubmit={save}>
+          <form className="modal" role="dialog" aria-modal="true" aria-label={editing ? `${title} 수정` : `${title} 새로 만들기`} onClick={(e) => e.stopPropagation()} onSubmit={save}>
             <div className="modal-h"><h3 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>{editing ? '수정' : '새로 만들기'}</h3><div className="sp" /><button type="button" className="iconbtn" aria-label="닫기" onClick={() => setOpen(false)}><X /></button></div>
             {err && <div className="err">{err}</div>}
             <div className="modal-b"><div className="grid2">

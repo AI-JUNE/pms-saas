@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FolderKanban, ClipboardList, Bug, ShieldAlert, ListTodo, TrendingUp, ArrowRight } from 'lucide-react';
 import { Shell } from '@/components/Shell';
-import { Pill } from '@/lib/ui';
+import { Pill, LABEL } from '@/lib/ui';
 const nfmt = (n: number) => n.toLocaleString('ko-KR'); // 카운트 천단위 쉼표(배치114·118·120~122와 일관)
+// 키보드 접근성 — 클릭 행/카드에 Enter/Space 활성화(목록·대체뷰 배치130~132와 동일 패턴)
+const onKeyAct = (fn: () => void) => (e: { key: string; preventDefault: () => void }) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(); } };
 
 function useCountUp(target: number, ms = 900) {
   const [v, setV] = useState(0);
@@ -86,11 +88,11 @@ export default function Dashboard() {
   const openIssues = issues.filter((x: any) => !['resolved','closed'].includes(x.status));
   const avgProg = tasks.length ? Math.round(tasks.reduce((s: number, t: any) => s + (t.progress || 0), 0) / tasks.length) : 0;
   const kpis = [
-    { label: '프로젝트', n: projects.length, sub: `진행 ${cnt(projects,'status','active')}`, icon: FolderKanban, c: '#be5535', bg: '#fbeeea' },
-    { label: '요구사항', n: requirements.length, sub: `승인 ${cnt(requirements,'status','approved')}`, icon: ClipboardList, c: '#0e9bb8', bg: '#e6f7fb' },
-    { label: '열린 이슈', n: openIssues.length, sub: `전체 ${issues.length}`, icon: Bug, c: '#d98a16', bg: '#fdf3e3' },
-    { label: '리스크', n: risks.length, sub: `High ${risks.filter((x:any)=>x.level==='high').length}`, icon: ShieldAlert, c: '#c0414f', bg: '#fdedef' },
-    { label: '업무', n: tasks.length, sub: `완료 ${cnt(tasks,'status','done')}`, icon: ListTodo, c: '#7c4dff', bg: '#f1ecff' },
+    { label: '프로젝트', n: projects.length, sub: `진행 ${nfmt(cnt(projects,'status','active'))}`, icon: FolderKanban, c: '#be5535', bg: '#fbeeea' },
+    { label: '요구사항', n: requirements.length, sub: `승인 ${nfmt(cnt(requirements,'status','approved'))}`, icon: ClipboardList, c: '#0e9bb8', bg: '#e6f7fb' },
+    { label: '열린 이슈', n: openIssues.length, sub: `전체 ${nfmt(issues.length)}`, icon: Bug, c: '#d98a16', bg: '#fdf3e3' },
+    { label: '리스크', n: risks.length, sub: `${LABEL.high} ${nfmt(risks.filter((x:any)=>x.level==='high').length)}`, icon: ShieldAlert, c: '#c0414f', bg: '#fdedef' },
+    { label: '업무', n: tasks.length, sub: `완료 ${nfmt(cnt(tasks,'status','done'))}`, icon: ListTodo, c: '#7c4dff', bg: '#f1ecff' },
     { label: '평균 진척', n: avgProg, suffix: '%', sub: 'WBS', icon: TrendingUp, c: '#2f8f5b', bg: '#e9faf0' },
   ];
   return (
@@ -124,7 +126,7 @@ export default function Dashboard() {
         <div className="card card-pad dash-card" style={{ animationDelay: '180ms' }}><div className="sect" style={{ marginBottom: 16 }}>업무 진척</div>
           <Bars mounted={mounted} data={[{ label: '할 일', value: cnt(tasks,'status','todo'), color: '#94a3b8' },{ label: '진행중', value: cnt(tasks,'status','doing'), color: '#be5535' },{ label: '완료', value: cnt(tasks,'status','done'), color: '#2f8f5b' }]} /></div>
         <div className="card card-pad dash-card" style={{ animationDelay: '240ms' }}><div className="sect" style={{ marginBottom: 16 }}>리스크 등급</div>
-          <Bars mounted={mounted} data={[{ label: 'High', value: cnt(risks,'level','high'), color: '#c0414f' },{ label: 'Medium', value: cnt(risks,'level','medium'), color: '#d98a16' },{ label: 'Low', value: cnt(risks,'level','low'), color: '#2f8f5b' }]} /></div>
+          <Bars mounted={mounted} data={[{ label: LABEL.high, value: cnt(risks,'level','high'), color: '#c0414f' },{ label: LABEL.medium, value: cnt(risks,'level','medium'), color: '#d98a16' },{ label: LABEL.low, value: cnt(risks,'level','low'), color: '#2f8f5b' }]} /></div>
         <div className="card card-pad dash-card" style={{ animationDelay: '300ms' }}><div className="sect" style={{ marginBottom: 16 }}>이슈 유형(트래커)</div>
           <Bars mounted={mounted} data={[{ label: '결함', value: cnt(issues,'type','bug'), color: '#c0414f' },{ label: '기능개선', value: cnt(issues,'type','improvement'), color: '#0e9bb8' },{ label: '태스크', value: cnt(issues,'type','task'), color: '#7c4dff' },{ label: '지원', value: cnt(issues,'type','support'), color: '#d98a16' },{ label: '변경요청', value: cnt(issues,'type','change'), color: '#8b5cf6' }]} /></div>
       </div>
@@ -138,7 +140,7 @@ export default function Dashboard() {
             const items = [...myOpenTasks.map((t: any) => ({ ...t, _t: 'task' })), ...myOpenIssues.map((i: any) => ({ ...i, _t: 'issue' }))];
             if (items.length === 0) return <p className="muted" style={{ fontSize: 13 }}>나에게 배정된 미완료 항목이 없습니다.</p>;
             return <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{items.slice(0, 6).map((it: any) => (
-              <div key={it._t + it.id} onClick={() => router.push(it._t === 'task' ? '/tasks' : '/issues')} style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer' }}>
+              <div key={it._t + it.id} onClick={() => router.push(it._t === 'task' ? '/tasks' : '/issues')} role="button" tabIndex={0} onKeyDown={onKeyAct(() => router.push(it._t === 'task' ? '/tasks' : '/issues'))} aria-label={`${it.code || ''} ${it.name || it.title || ''} — ${it._t === 'task' ? '업무' : '이슈'} 목록으로 이동`.trim()} style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer' }}>
                 <span className="mono" style={{ fontSize: 11, color: 'var(--text-3)', minWidth: 64 }}>{it.code}</span>
                 <span style={{ flex: 1, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.name || it.title}</span>
                 <Pill v={it.status} />
@@ -168,7 +170,7 @@ export default function Dashboard() {
             ];
             if (rows.length === 0) return <p className="muted" style={{ fontSize: 13 }}>마감 임박·결재 대기 항목이 없습니다.</p>;
             return <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{rows.slice(0, 7).map((r: any) => (
-              <div key={r.k} onClick={() => router.push(r.href)} style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer' }}>
+              <div key={r.k} onClick={() => router.push(r.href)} role="button" tabIndex={0} onKeyDown={onKeyAct(() => router.push(r.href))} aria-label={`${r.tag} ${r.code || ''} ${r.label || ''} — 해당 목록으로 이동`.trim()} style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer' }}>
                 <span style={{ fontSize: 10.5, fontWeight: 800, color: '#fff', background: r.col, padding: '1px 7px', borderRadius: 20, minWidth: 52, textAlign: 'center' }}>{r.tag}</span>
                 <span className="mono" style={{ fontSize: 11, color: 'var(--text-3)', minWidth: 64 }}>{r.code}</span>
                 <span style={{ flex: 1, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.label}</span>
@@ -185,7 +187,7 @@ export default function Dashboard() {
           const open = todos.filter((t: any) => t.status !== 'done');
           if (open.length === 0) return <p className="muted" style={{ fontSize: 13 }}>미완료 개인 할 일이 없습니다.</p>;
           return <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{open.slice(0, 6).map((t: any) => (
-            <div key={t.id} onClick={() => router.push('/todos')} style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer' }}>
+            <div key={t.id} onClick={() => router.push('/todos')} role="button" tabIndex={0} onKeyDown={onKeyAct(() => router.push('/todos'))} aria-label={`${t.title || ''} — 개인 To-Do 목록으로 이동`.trim()} style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer' }}>
               <Pill v={t.priority} />
               <span style={{ flex: 1, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
               <span className="muted" style={{ fontSize: 11 }}>{t.dueDate || ''}</span>
@@ -213,7 +215,7 @@ export default function Dashboard() {
           return <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>{list.slice(0, 6).map((r) => {
             const col = r.open >= maxOpen * 0.7 ? '#c0414f' : r.open >= maxOpen * 0.4 ? '#d98a16' : '#2f8f5b';
             return (
-              <div key={r.name} onClick={() => router.push('/workload')} style={{ cursor: 'pointer' }}
+              <div key={r.name} onClick={() => router.push('/workload')} role="button" tabIndex={0} onKeyDown={onKeyAct(() => router.push('/workload'))} aria-label={`${r.name} 업무 부하 — 워크로드 화면으로 이동`} style={{ cursor: 'pointer' }}
                 title={`${r.name} · 진행중 ${nfmt(r.open)}건 · 완료 ${nfmt(r.done)}/${nfmt(r.total)}건 · 평균 진척 ${r.avg}%`}>
                 <div className="row" style={{ fontSize: 12.5, marginBottom: 5, gap: 8 }}>
                   <span style={{ fontWeight: 650, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
@@ -231,7 +233,7 @@ export default function Dashboard() {
         <div className="row" style={{ marginBottom: 14 }}><div className="sect">최근 프로젝트</div><div className="sp" /><Link href="/projects" className="muted" style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>전체 보기 <ArrowRight style={{ width: 14 }} /></Link></div>
         {projects.length === 0 ? <p className="muted">프로젝트가 없습니다. <Link href="/projects" style={{ color: 'var(--brand)' }}>만들기 →</Link></p>
           : <div className="tbl-wrap"><table className="tbl"><thead><tr><th>코드</th><th>이름</th><th>고객</th><th>기간</th><th>상태</th></tr></thead>
-            <tbody>{projects.slice(0, 6).map((p: any) => <tr key={p.id} onClick={() => router.push('/projects')}><td className="mono">{p.code}</td><td style={{ fontWeight: 650 }}>{p.name}</td><td>{p.client || '—'}</td><td className="muted">{p.startDate || '—'} ~ {p.endDate || '—'}</td><td><Pill v={p.status} /></td></tr>)}</tbody></table></div>}
+            <tbody>{projects.slice(0, 6).map((p: any) => <tr key={p.id} onClick={() => router.push('/projects')} tabIndex={0} onKeyDown={onKeyAct(() => router.push('/projects'))} aria-label={`${p.code} ${p.name} — 프로젝트 목록으로 이동`} style={{ cursor: 'pointer' }}><td className="mono">{p.code}</td><td style={{ fontWeight: 650 }}>{p.name}</td><td>{p.client || '—'}</td><td className="muted">{p.startDate || '—'} ~ {p.endDate || '—'}</td><td><Pill v={p.status} /></td></tr>)}</tbody></table></div>}
       </div>
     </Shell>
   );

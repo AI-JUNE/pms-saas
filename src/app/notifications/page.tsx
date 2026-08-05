@@ -141,7 +141,7 @@ export default function Page() {
           aria-pressed={unreadOnly}
           title="읽지 않은 알림만 표시합니다."
         >
-          안 읽음만{unread > 0 ? ` (${unread})` : ''}
+          안 읽음만{unread > 0 ? ` (${nfmt(unread)})` : ''}
         </button>
         <button
           className={`btn btn-sm ${grouped ? 'btn-pri' : ''}`}
@@ -183,11 +183,15 @@ export default function Page() {
                   <tr
                     className="grp-hd"
                     onClick={() => setCollapsed((c) => ({ ...c, [gk]: !c[gk] }))}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setCollapsed((c) => ({ ...c, [gk]: !c[gk] })); } }}
+                    tabIndex={0}
+                    aria-expanded={!isCollapsed}
+                    aria-label={`${gInfo.label} 그룹 ${isCollapsed ? '펼치기' : '접기'}`}
                     style={{ cursor: 'pointer', background: 'var(--surface-2, #faf7f5)' }}
-                    title={isCollapsed ? '펼치기' : '접기'}
+                    title={isCollapsed ? '펼치기 (Enter/Space)' : '접기 (Enter/Space)'}
                   >
                     <td colSpan={4} style={{ fontWeight: 700 }}>
-                      <span style={{ display: 'inline-block', width: 14, color: 'var(--text-3)' }}>{isCollapsed ? '▸' : '▾'}</span>
+                      <span aria-hidden="true" style={{ display: 'inline-block', width: 14, color: 'var(--text-3)' }}>{isCollapsed ? '▸' : '▾'}</span>
                       <span className={`pill ${gInfo.cls}`} title={gInfo.tip} style={{ marginRight: 8 }}>{gInfo.label}</span>
                       <span className="muted">{nfmt(items.length)}건</span>
                       {gUnread > 0 && <span style={{ color: 'var(--brand)', marginLeft: 8, fontSize: 12 }}>· 안 읽음 {nfmt(gUnread)}</span>}

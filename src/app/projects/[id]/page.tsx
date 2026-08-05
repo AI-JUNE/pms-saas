@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Shell } from '@/components/Shell';
-import { Pill } from '@/lib/ui';
+import { Pill, LABEL } from '@/lib/ui';
 import { ArrowLeft, ListTodo, Bug, ShieldAlert, ClipboardList, FileCheck2, Layers3, TrendingUp, Wallet, Printer } from 'lucide-react';
 
 const won = (n: number) => '₩' + Number(n || 0).toLocaleString();
@@ -170,8 +170,8 @@ export default function Page({ params }: { params: { id: string } }) {
                     </div>); };
                   const bp = d.issues.byPriority, bl = d.risks.byLevel || { high: 0, medium: 0, low: 0 };
                   return <>
-                    <Bar title="이슈 우선순위" items={[{ l: 'Critical', v: bp.critical, c: '#c0414f' }, { l: 'High', v: bp.high, c: '#f2772e' }, { l: 'Medium', v: bp.medium, c: '#d98a16' }, { l: 'Low', v: bp.low, c: '#2f8f5b' }]} />
-                    <Bar title="리스크 등급" items={[{ l: 'High', v: bl.high, c: '#c0414f' }, { l: 'Medium', v: bl.medium, c: '#d98a16' }, { l: 'Low', v: bl.low, c: '#2f8f5b' }]} />
+                    <Bar title="이슈 우선순위" items={[{ l: LABEL.critical, v: bp.critical, c: '#c0414f' }, { l: LABEL.high, v: bp.high, c: '#f2772e' }, { l: LABEL.medium, v: bp.medium, c: '#d98a16' }, { l: LABEL.low, v: bp.low, c: '#2f8f5b' }]} />
+                    <Bar title="리스크 등급" items={[{ l: LABEL.high, v: bl.high, c: '#c0414f' }, { l: LABEL.medium, v: bl.medium, c: '#d98a16' }, { l: LABEL.low, v: bl.low, c: '#2f8f5b' }]} />
                   </>;
                 })()}
               </div>

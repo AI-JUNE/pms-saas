@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { BarChart3, TrendingDown, Users, Gauge, Printer, Download } from 'lucide-react';
 import { Shell } from '@/components/Shell';
-import { Pill } from '@/lib/ui';
+import { Pill, LABEL } from '@/lib/ui';
 const cnt = (a: any[], k: string, v: string) => a.filter((x) => x[k] === v).length; // reports
 const nfmt = (n: number) => n.toLocaleString('ko-KR'); // 카운트 천단위 쉼표(배치114·118·120~122와 일관)
 // 일정 경과율(계획 진척 근사, EVM PV 개념) — /projects(배치79)와 동일 규칙 재사용
@@ -70,7 +70,7 @@ function Burndown({ tasks }: { tasks: any[] }) {
         <line x1="0" y1="0" x2="18" y2="0" stroke="var(--text-4)" strokeWidth="1.8" strokeDasharray="5 5" /><text x="23" y="3.5" fontSize="10" fill="var(--text-3)">이상선</text>
         <line x1="70" y1="0" x2="88" y2="0" stroke="var(--brand)" strokeWidth="3" strokeLinecap="round" /><text x="93" y="3.5" fontSize="10" fill="var(--text-3)">실제 잔여</text>
       </g>
-      <text x={W-pad} y={pad-8} textAnchor="end" fontSize="10.5" fontWeight="700" fill="var(--text-2)">완료 {done}/{tasks.length}</text>
+      <text x={W-pad} y={pad-8} textAnchor="end" fontSize="10.5" fontWeight="700" fill="var(--text-2)">완료 {nfmt(done)}/{nfmt(tasks.length)}</text>
     </svg>
   );
 }
@@ -114,7 +114,7 @@ function Bars({ data }: { data: { label: string; value: number; color: string }[
   const max = Math.max(1, ...data.map((d) => d.value));
   return (<div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>{data.map((d, i) => (
     <div key={i}><div className="row" style={{ fontSize: 12.5, marginBottom: 6 }}><span style={{ fontWeight: 600, color: 'var(--text-2)' }}>{d.label}</span>
-      <span style={{ marginLeft: 'auto', fontWeight: 800, background: `${d.color}18`, color: shade(d.color, -0.15), padding: '1px 9px', borderRadius: 20, fontSize: 11.5 }}>{d.value}</span></div>
+      <span style={{ marginLeft: 'auto', fontWeight: 800, background: `${d.color}18`, color: shade(d.color, -0.15), padding: '1px 9px', borderRadius: 20, fontSize: 11.5 }}>{nfmt(d.value)}</span></div>
       <div className="pbar"><i className="pbar-anim" style={{ width: `${(d.value / max) * 100}%`, background: `linear-gradient(90deg, ${shade(d.color, 0.14)}, ${d.color})`, animationDelay: `${i * 110}ms` }} /></div></div>))}</div>);
 }
 function Stat({ icon: Icon, label, value, c, bg }: any) {
@@ -199,9 +199,9 @@ export default function Page() {
       <div style={{ height: 16 }} />
       <div className="kpis">
         <Stat icon={Gauge} label="평균 진척" value={avgProg + '%'} c="#2f8f5b" bg="#e9faf0" />
-        <Stat icon={TrendingDown} label="열린 이슈" value={issues.filter((i:any)=>!['resolved','closed'].includes(i.status)).length} c="#d98a16" bg="#fdf3e3" />
-        <Stat icon={BarChart3} label="High 리스크" value={risks.filter((r:any)=>r.level==='high').length} c="#c0414f" bg="#fdedef" />
-        <Stat icon={Users} label="참여 인원" value={assignees.length} c="#be5535" bg="#fbeeea" />
+        <Stat icon={TrendingDown} label="열린 이슈" value={nfmt(issues.filter((i:any)=>!['resolved','closed'].includes(i.status)).length)} c="#d98a16" bg="#fdf3e3" />
+        <Stat icon={BarChart3} label={`${LABEL.high || 'High'} 리스크`} value={nfmt(risks.filter((r:any)=>r.level==='high').length)} c="#c0414f" bg="#fdedef" />
+        <Stat icon={Users} label="참여 인원" value={nfmt(assignees.length)} c="#be5535" bg="#fbeeea" />
       </div>
       <div style={{ height: 16 }} />
       <div className="card card-pad dash-card"><div className="sect" style={{ marginBottom: 8 }}>주간 진척 추이 <span style={{ fontSize: 11, color: 'var(--text-4)', fontWeight: 600 }}>(최근 10주 · 기한 도래 대비 완료 누적)</span></div><WeeklyTrend tasks={tasks} /></div>
@@ -244,20 +244,20 @@ export default function Page() {
       <div className="g2">
         <div className="card card-pad dash-card"><div className="sect" style={{ marginBottom: 8 }}>번다운 차트</div><Burndown tasks={tasks} /></div>
         <div className="card card-pad dash-card"><div className="sect" style={{ marginBottom: 16 }}>이슈 우선순위</div>
-          <Bars data={[{ label: 'Critical', value: cnt(issues,'priority','critical'), color: '#c0414f' },{ label: 'High', value: cnt(issues,'priority','high'), color: '#f2772e' },{ label: 'Medium', value: cnt(issues,'priority','medium'), color: '#d98a16' },{ label: 'Low', value: cnt(issues,'priority','low'), color: '#2f8f5b' }]} /></div>
+          <Bars data={[{ label: LABEL.critical, value: cnt(issues,'priority','critical'), color: '#c0414f' },{ label: LABEL.high, value: cnt(issues,'priority','high'), color: '#f2772e' },{ label: LABEL.medium, value: cnt(issues,'priority','medium'), color: '#d98a16' },{ label: LABEL.low, value: cnt(issues,'priority','low'), color: '#2f8f5b' }]} /></div>
       </div>
       <div style={{ height: 16 }} />
       <div className="g2">
         <div className="card dash-card" style={{ overflow: 'hidden' }}>
           <div className="card-pad" style={{ paddingBottom: 0 }}><div className="sect">담당자별 이슈 현황</div></div>
           <div className="tbl-wrap" style={{ marginTop: 8 }}><table className="tbl"><thead><tr><th>담당자</th><th>전체</th><th>열림</th><th>진행</th><th>완료</th></tr></thead>
-            <tbody>{byAssignee.map((r: any) => <tr key={r.a}><td style={{ fontWeight: 650 }}>{r.a}</td><td>{r.total}</td><td><span className="pill p-blue">{r.open}</span></td><td><span className="pill p-amber">{r.prog}</span></td><td><span className="pill p-green">{r.done}</span></td></tr>)}
+            <tbody>{byAssignee.map((r: any) => <tr key={r.a}><td style={{ fontWeight: 650 }}>{r.a}</td><td>{nfmt(r.total)}</td><td><span className="pill p-blue">{nfmt(r.open)}</span></td><td><span className="pill p-amber">{nfmt(r.prog)}</span></td><td><span className="pill p-green">{nfmt(r.done)}</span></td></tr>)}
               {byAssignee.length === 0 && <tr><td colSpan={5}><div className="empty">데이터 없음</div></td></tr>}</tbody></table></div>
         </div>
         <div className="card dash-card" style={{ overflow: 'hidden' }}>
           <div className="card-pad" style={{ paddingBottom: 0 }}><div className="sect">스프린트 벨로시티</div></div>
           <div className="tbl-wrap" style={{ marginTop: 8 }}><table className="tbl"><thead><tr><th>스프린트</th><th>상태</th><th>이슈</th><th>포인트</th></tr></thead>
-            <tbody>{velocity.map((v: any) => <tr key={v.s.id}><td style={{ fontWeight: 650 }}>{v.s.name}</td><td><Pill v={v.s.status} /></td><td>{v.cnt}</td><td style={{ fontWeight: 800 }}>{v.pts} pts</td></tr>)}
+            <tbody>{velocity.map((v: any) => <tr key={v.s.id}><td style={{ fontWeight: 650 }}>{v.s.name}</td><td><Pill v={v.s.status} /></td><td>{nfmt(v.cnt)}</td><td style={{ fontWeight: 800 }}>{nfmt(v.pts)} pts</td></tr>)}
               {velocity.length === 0 && <tr><td colSpan={4}><div className="empty">스프린트 없음</div></td></tr>}</tbody></table></div>
         </div>
       </div>
@@ -267,14 +267,14 @@ export default function Page() {
           <div className="row" style={{ alignItems: 'baseline', gap: 10, marginBottom: 14 }}>
             <span style={{ fontSize: 34, fontWeight: 800, color: tPassRate == null ? 'var(--text-4)' : tPassRate >= 80 ? '#2f8f5b' : tPassRate >= 50 ? '#d98a16' : '#c0414f' }}>{tPassRate == null ? '—' : tPassRate + '%'}</span>
             <span style={{ fontSize: 12.5, color: 'var(--text-3)', fontWeight: 600 }}>통과율</span>
-            <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-3)' }}>실행 {tExecuted}/{tests.length}</span>
+            <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-3)' }} title={`전체 테스트 ${nfmt(tests.length)}건 중 ${nfmt(tExecuted)}건 실행(통과·실패·블록)`}>실행 {nfmt(tExecuted)}/{nfmt(tests.length)}</span>
           </div>
           <Bars data={[{ label: '통과', value: tPass, color: '#2f8f5b' },{ label: '실패', value: tFail, color: '#c0414f' },{ label: '블록', value: tBlocked, color: '#d98a16' },{ label: '미실행', value: tNa, color: '#8a94a6' }]} />
         </div>
         <div className="card dash-card" style={{ overflow: 'hidden' }}>
           <div className="card-pad" style={{ paddingBottom: 0 }}><div className="sect">프로젝트별 테스트 통과율</div></div>
           <div className="tbl-wrap" style={{ marginTop: 8 }}><table className="tbl"><thead><tr><th>프로젝트</th><th>실행</th><th>통과</th><th>실패</th><th>통과율</th></tr></thead>
-            <tbody>{testByProject.map((r: any) => <tr key={r.p.id}><td style={{ fontWeight: 650 }}>{r.p.name}</td><td>{r.exec}/{r.total}</td><td><span className="pill p-green">{r.pass}</span></td><td><span className="pill p-red">{r.fail}</span></td><td style={{ minWidth: 140 }}>{r.rate == null ? <span style={{ color: 'var(--text-4)', fontWeight: 800 }}>—</span> : (() => { const rc = r.rate >= 80 ? '#2f8f5b' : r.rate >= 50 ? '#d98a16' : '#c0414f'; return <div className="row" style={{ gap: 8 }}><div className="pbar" style={{ flex: 1 }}><i style={{ width: `${Math.min(100, r.rate)}%`, background: rc }} /></div><span style={{ fontWeight: 800, fontSize: 12, minWidth: 34, textAlign: 'right', color: rc }}>{r.rate}%</span></div>; })()}</td></tr>)}
+            <tbody>{testByProject.map((r: any) => <tr key={r.p.id}><td style={{ fontWeight: 650 }}>{r.p.name}</td><td title={`전체 ${nfmt(r.total)}건 중 ${nfmt(r.exec)}건 실행`}>{nfmt(r.exec)}/{nfmt(r.total)}</td><td><span className="pill p-green">{nfmt(r.pass)}</span></td><td><span className="pill p-red">{nfmt(r.fail)}</span></td><td style={{ minWidth: 140 }}>{r.rate == null ? <span style={{ color: 'var(--text-4)', fontWeight: 800 }}>—</span> : (() => { const rc = r.rate >= 80 ? '#2f8f5b' : r.rate >= 50 ? '#d98a16' : '#c0414f'; return <div className="row" style={{ gap: 8 }}><div className="pbar" style={{ flex: 1 }}><i style={{ width: `${Math.min(100, r.rate)}%`, background: rc }} /></div><span style={{ fontWeight: 800, fontSize: 12, minWidth: 34, textAlign: 'right', color: rc }}>{r.rate}%</span></div>; })()}</td></tr>)}
               {testByProject.length === 0 && <tr><td colSpan={5}><div className="empty">실행된 테스트 없음</div></td></tr>}</tbody></table></div>
         </div>
       </div>

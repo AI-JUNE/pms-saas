@@ -23,6 +23,8 @@ const actOf = (e: string) => {
   return ACT[key] || { label: String(e || '—'), cls: 'p-gray' };
 };
 const entName = (e?: string) => (e ? ENT[e] || e : '—');
+/** 카운트 천단위 쉼표 — 배치120~128과 동일 표기 */
+const nfmt = (n: number) => n.toLocaleString('ko-KR');
 
 /** 상대 시각(방금 전 / N분 전 / N시간 전 / N일 전) — 절대 시각은 툴팁으로 */
 function relTime(iso: string) {
@@ -100,22 +102,22 @@ export default function Page() {
         </div>
         <select className="sel" value={act} onChange={(e) => setAct(e.target.value)} aria-label="동작 필터">
           <option value="">전체 동작</option>
-          <option value="CREATE">생성 ({counts.CREATE})</option>
-          <option value="UPDATE">수정 ({counts.UPDATE})</option>
-          <option value="DELETE">삭제 ({counts.DELETE})</option>
+          <option value="CREATE">생성 ({nfmt(counts.CREATE)})</option>
+          <option value="UPDATE">수정 ({nfmt(counts.UPDATE)})</option>
+          <option value="DELETE">삭제 ({nfmt(counts.DELETE)})</option>
         </select>
         <select className="sel" value={ent} onChange={(e) => setEnt(e.target.value)} aria-label="영역 필터">
           <option value="">전체 영역</option>
-          {ents.map((e) => <option key={e} value={e}>{entName(e)} ({entCounts[e] || 0})</option>)}
+          {ents.map((e) => <option key={e} value={e}>{entName(e)} ({nfmt(entCounts[e] || 0)})</option>)}
         </select>
         <div className="sp" />
         {loaded && todayCount > 0 && (
-          <span className="muted" style={{ marginRight: 4 }} title={`오늘 발생한 변경 ${todayCount}건입니다.`}>
-            오늘 <b style={{ color: 'var(--brand)' }}>{todayCount}</b>건
+          <span className="muted" style={{ marginRight: 4 }} title={`오늘 발생한 변경 ${nfmt(todayCount)}건입니다.`}>
+            오늘 <b style={{ color: 'var(--brand)' }}>{nfmt(todayCount)}</b>건
           </span>
         )}
-        <span className="muted" title={filtered ? `전체 ${rows.length}건 중 필터 조건에 맞는 ${view.length}건을 표시합니다.` : `최근 ${rows.length}건 — 생성 ${counts.CREATE} · 수정 ${counts.UPDATE} · 삭제 ${counts.DELETE}`}>
-          {filtered ? <><b style={{ color: 'var(--brand)' }}>{view.length}</b>/{rows.length}건</> : <>{rows.length}건</>}
+        <span className="muted" title={filtered ? `전체 ${nfmt(rows.length)}건 중 필터 조건에 맞는 ${nfmt(view.length)}건을 표시합니다.` : `최근 ${nfmt(rows.length)}건 — 생성 ${nfmt(counts.CREATE)} · 수정 ${nfmt(counts.UPDATE)} · 삭제 ${nfmt(counts.DELETE)}`}>
+          {filtered ? <><b style={{ color: 'var(--brand)' }}>{nfmt(view.length)}</b>/{nfmt(rows.length)}건</> : <>{nfmt(rows.length)}건</>}
         </span>
       </div>
 

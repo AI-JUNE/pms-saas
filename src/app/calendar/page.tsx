@@ -9,6 +9,11 @@ type Ev = { date: string; label: string; kind: string; color: string; href: stri
 // 회의는 '지남'일 뿐 기한 초과 대상이 아님 — 마감/기한 성격의 이벤트만 초과 판정
 const isDeadlineKind = (k: string) => k === '업무마감' || k === '테스트기한' || k === '이슈기한';
 
+// 카운트 숫자 천단위 쉼표 포매터 — 목록/상세·대체뷰(배치121~123)와 동일 표기
+const nfmt = (n: number) => n.toLocaleString('ko-KR');
+// 키보드 접근성 — 일정 칩에 Enter/Space 활성화(목록·대체뷰 배치130~132와 동일 패턴)
+const onKeyAct = (fn: () => void) => (e: { key: string; preventDefault: () => void }) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(); } };
+
 export default function Page() {
   const router = useRouter();
   const [pid, setPid] = useState<number | null>(null);
@@ -61,12 +66,13 @@ export default function Page() {
   const move = (delta: number) => { let y = cur.y, m = cur.m + delta; if (m < 0) { m = 11; y--; } if (m > 11) { m = 0; y++; } setCur({ y, m }); };
 
   if (loaded && !pid) return <Shell title="캘린더"><div className="card card-pad muted">상단에서 프로젝트를 선택하면 일정이 표시됩니다.</div></Shell>;
+  if (loaded && evs.length === 0) return <Shell title="캘린더"><div className="card card-pad muted">등록된 일정이 없습니다. 회의·업무 마감·테스트/이슈 기한을 입력하면 월별 캘린더에 표시됩니다.</div></Shell>;
 
   return (
     <Shell title="캘린더">
       <div className="row" style={{ marginBottom: 14 }}>
         <div><h2 className="h1">캘린더 <CalendarDays style={{ width: 20, verticalAlign: -3, color: 'var(--brand)' }} />
-          {overdueCount > 0 && <span title={`오늘(${todayStr}) 이전에 마감·기한이 지난 미완료 업무·테스트·이슈 ${overdueCount}건 — 달력에서 빨강 ⚠ 로 표시됩니다`} style={{ marginLeft: 8, verticalAlign: 3, display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', borderRadius: 20, fontSize: 12, fontWeight: 700, background: '#fdecec', color: '#c0392b', border: '1px solid #f0c4c4' }}>⚠ 기한 초과 {overdueCount}건</span>}</h2>
+          {overdueCount > 0 && <span title={`오늘(${todayStr}) 이전에 마감·기한이 지난 미완료 업무·테스트·이슈 ${nfmt(overdueCount)}건 — 달력에서 빨강 ⚠ 로 표시됩니다`} style={{ marginLeft: 8, verticalAlign: 3, display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', borderRadius: 20, fontSize: 12, fontWeight: 700, background: '#fdecec', color: '#c0392b', border: '1px solid #f0c4c4' }}>⚠ 기한 초과 {nfmt(overdueCount)}건</span>}</h2>
           <p className="h-sub">회의·업무 마감·테스트/이슈 기한을 한눈에 봅니다.</p></div>
         <div className="sp" />
         <div className="row" style={{ gap: 8 }}>
@@ -82,7 +88,7 @@ export default function Page() {
           return (
             <button key={l} type="button" onClick={() => toggleKind(l as string)} title={off ? `${l} 표시` : `${l} 숨기기`} aria-pressed={!off}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 20, cursor: 'pointer', fontSize: 12, fontWeight: 600, border: '1px solid var(--border)', background: off ? 'var(--surface-2)' : `${c}12`, color: off ? 'var(--text-4)' : 'var(--text-2)', opacity: off ? 0.55 : 1, textDecoration: off ? 'line-through' : 'none', transition: 'opacity .15s, background .15s' }}>
-              <span style={{ width: 9, height: 9, borderRadius: 3, background: off ? 'var(--text-4)' : c as string }} />{l}<span style={{ color: 'var(--text-4)', fontWeight: 700 }}>{kindCount[l as string] || 0}</span>
+              <span style={{ width: 9, height: 9, borderRadius: 3, background: off ? 'var(--text-4)' : c as string }} />{l}<span style={{ color: 'var(--text-4)', fontWeight: 700 }}>{nfmt(kindCount[l as string] || 0)}</span>
             </button>
           );
         })}
@@ -120,10 +126,10 @@ export default function Page() {
                   {list.slice(0, 3).map((e, j) => {
                     const od = isDeadlineKind(e.kind) && k < todayStr;
                     return (
-                      <div key={j} onClick={() => router.push(e.href)} title={`${e.kind} · ${e.label}${od ? ' · ⚠ 기한 초과' : ''}`} style={{ cursor: 'pointer', fontSize: 10.5, padding: '1px 5px', borderRadius: 4, background: od ? '#fdecec' : `${e.color}1a`, color: od ? '#c0392b' : e.color, fontWeight: od ? 700 : 600, boxShadow: od ? 'inset 2px 0 0 #d64545' : 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{od ? '⚠ ' : ''}{e.label}</div>
+                      <div key={j} onClick={() => router.push(e.href)} role="button" tabIndex={0} onKeyDown={onKeyAct(() => router.push(e.href))} aria-label={`${e.kind} ${e.label}${od ? ' — 기한 초과' : ''} — 해당 화면으로 이동`} title={`${e.kind} · ${e.label}${od ? ' · ⚠ 기한 초과' : ''}`} style={{ cursor: 'pointer', fontSize: 10.5, padding: '1px 5px', borderRadius: 4, background: od ? '#fdecec' : `${e.color}1a`, color: od ? '#c0392b' : e.color, fontWeight: od ? 700 : 600, boxShadow: od ? 'inset 2px 0 0 #d64545' : 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{od ? '⚠ ' : ''}{e.label}</div>
                     );
                   })}
-                  {list.length > 3 && <div className="muted" title={list.slice(3).map((e) => `${e.kind} · ${e.label}`).join('\n')} style={{ fontSize: 10, cursor: 'default' }}>+{list.length - 3}</div>}
+                  {list.length > 3 && <div className="muted" title={list.slice(3).map((e) => `${e.kind} · ${e.label}`).join('\n')} style={{ fontSize: 10, cursor: 'default' }}>+{nfmt(list.length - 3)}</div>}
                 </div>
               </div>
             );

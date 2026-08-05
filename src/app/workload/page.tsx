@@ -72,16 +72,16 @@ export default function Page() {
               return (
               <tr key={r.name}>
                 <td style={{ fontWeight: 650 }}>{r.name}</td>
-                <td><span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><ListTodo style={{ width: 13, color: 'var(--text-3)' }} />{r.taskOpen}</span></td>
-                <td><span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Bug style={{ width: 13, color: 'var(--text-3)' }} />{r.issueOpen}</span></td>
+                <td><span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><ListTodo style={{ width: 13, color: 'var(--text-3)' }} />{nfmt(r.taskOpen)}</span></td>
+                <td><span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Bug style={{ width: 13, color: 'var(--text-3)' }} />{nfmt(r.issueOpen)}</span></td>
                 <td className="muted" title={taskTotal ? `업무 ${nfmt(taskTotal)}건 중 ${nfmt(r.taskDone)}건 완료 (${donePct}%)` : '배정된 업무 없음'}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><CheckCircle2 style={{ width: 13, color: '#2f8f5b' }} />{r.taskDone}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><CheckCircle2 style={{ width: 13, color: '#2f8f5b' }} />{nfmt(r.taskDone)}
                     {taskTotal > 0 && <span style={{ fontSize: 11, color: 'var(--text-3)' }}>({donePct}%)</span>}</span></td>
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}
                     title={`진행 업무 ${nfmt(r.taskOpen)} · 미결 이슈 ${nfmt(r.issueOpen)} · 완료 ${nfmt(r.taskDone)} — 부하 ${nfmt(load)}건`}>
                     <div className="pbar" style={{ flex: 1, maxWidth: 220 }}><i style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${col}cc, ${col})` }} /></div>
-                    <span style={{ fontWeight: 800, fontSize: 12.5, minWidth: 20 }}>{load}</span>
+                    <span style={{ fontWeight: 800, fontSize: 12.5, minWidth: 20 }}>{nfmt(load)}</span>
                     {tag && <span style={{ fontSize: 10.5, fontWeight: 700, color: tagCol }}>{tag}</span>}
                   </div>
                 </td>

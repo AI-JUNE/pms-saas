@@ -5,6 +5,7 @@ import { hashPassword, createSession } from '@/lib/auth';
 import { handle, ok, ApiError, ERROR } from '@/lib/http';
 import { grantDefaultRoles } from '@/lib/seedRoles';
 import { enforceRateLimit, RL } from '@/lib/ratelimit';
+import { auditSecurity } from '@/lib/audit';
 export const dynamic = 'force-dynamic';
 const genCode = () => (Math.random().toString(36).slice(2, 10) + '00000000').slice(0, 8).toUpperCase();
 export async function POST(req: Request) {
@@ -23,6 +24,7 @@ export async function POST(req: Request) {
       const [u] = await db.insert(users).values({ email, name, passwordHash: hashPassword(password) }).returning();
       await db.insert(memberships).values({ orgId: org.id, userId: u.id, role: 'member', isOrgAdmin: false });
       await createSession(u.id, req.headers.get('user-agent') || undefined);
+      await auditSecurity('AUTH_REGISTER_JOIN', { userId: u.id, orgId: org.id });
       return ok({ ok: true, joined: true, user: { id: u.id, email, name }, org: { id: org.id, name: org.name } }, 201);
     }
     // 새 조직 생성(첫 계정 = 관리자) + 초대 코드 발급
@@ -32,6 +34,7 @@ export async function POST(req: Request) {
     await db.insert(memberships).values({ orgId: org.id, userId: u.id, role: 'admin', isOrgAdmin: true });
     await grantDefaultRoles(org.id);
     await createSession(u.id, req.headers.get('user-agent') || undefined);
+    await auditSecurity('AUTH_REGISTER', { userId: u.id, orgId: org.id });
     return ok({ ok: true, user: { id: u.id, email, name }, org: { id: org.id, slug, name: org.name } }, 201);
   });
 }

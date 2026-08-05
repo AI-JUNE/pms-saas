@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { Shell } from '@/components/Shell';
-import { Pill } from '@/lib/ui';
+import { Pill, LABEL } from '@/lib/ui';
 import { Network, CheckCircle2, CircleDashed, AlertTriangle } from 'lucide-react';
 const nfmt = (n: number) => n.toLocaleString('ko-KR'); // 카운트 천단위 쉼표(배치114·118·120~122와 일관)
 
@@ -98,9 +98,9 @@ export default function Page() {
               <tr key={rq.id}>
                 <td><div style={{ display: 'flex', flexDirection: 'column' }}><span style={{ fontWeight: 650 }}>{rq.title}</span><span className="mono" style={{ fontSize: 11, color: 'var(--text-3)' }}>{rq.code}</span></div></td>
                 <td><Pill v={rq.priority} /></td>
-                <td>{lt.length === 0 ? <span className="muted">—</span> : <span style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>{lt.map((t) => <span key={t.id} title={t.name} className="mono" style={{ fontSize: 10.5, background: t.status === 'done' ? '#e6f4ec' : 'var(--surface-3)', color: t.status === 'done' ? '#2f8f5b' : 'var(--text-2)', padding: '1px 6px', borderRadius: 5 }}>{t.code}</span>)}</span>}</td>
-                <td>{li.length === 0 ? <span className="muted">—</span> : <span style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>{li.map((i) => <span key={i.id} title={i.title} className="mono" style={{ fontSize: 10.5, background: '#fdf3e7', color: '#b5730f', padding: '1px 6px', borderRadius: 5 }}>{i.code}</span>)}</span>}</td>
-                <td>{ltest.length === 0 ? <span className="muted">—</span> : <span style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>{ltest.map((t: any) => { const c = t.result === 'pass' ? { bg: '#e6f4ec', fg: '#2f8f5b' } : t.result === 'fail' ? { bg: '#fdedef', fg: '#c0414f' } : { bg: 'var(--surface-3)', fg: 'var(--text-2)' }; return <span key={t.id} title={`${t.title} · ${t.result}`} className="mono" style={{ fontSize: 10.5, background: c.bg, color: c.fg, padding: '1px 6px', borderRadius: 5 }}>{t.code}</span>; })}</span>}</td>
+                <td>{lt.length === 0 ? <span className="muted">—</span> : <span style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>{lt.map((t) => <a key={t.id} href={`/tasks?q=${encodeURIComponent(t.code)}`} title={`${t.name} · ${LABEL[String(t.status)] || t.status || '—'}\n(클릭하면 업무 목록에서 검색)`} className="mono" style={{ fontSize: 10.5, background: t.status === 'done' ? '#e6f4ec' : 'var(--surface-3)', color: t.status === 'done' ? '#2f8f5b' : 'var(--text-2)', padding: '1px 6px', borderRadius: 5, textDecoration: 'none' }}>{t.code}</a>)}</span>}</td>
+                <td>{li.length === 0 ? <span className="muted">—</span> : <span style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>{li.map((i) => <a key={i.id} href={`/issues?q=${encodeURIComponent(i.code)}`} title={`${i.title} · ${LABEL[String(i.status)] || i.status || '—'}\n(클릭하면 이슈 목록에서 검색)`} className="mono" style={{ fontSize: 10.5, background: '#fdf3e7', color: '#b5730f', padding: '1px 6px', borderRadius: 5, textDecoration: 'none' }}>{i.code}</a>)}</span>}</td>
+                <td>{ltest.length === 0 ? <span className="muted">—</span> : <span style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>{ltest.map((t: any) => { const c = t.result === 'pass' ? { bg: '#e6f4ec', fg: '#2f8f5b' } : t.result === 'fail' ? { bg: '#fdedef', fg: '#c0414f' } : { bg: 'var(--surface-3)', fg: 'var(--text-2)' }; return <a key={t.id} href={`/tests?q=${encodeURIComponent(t.code)}`} title={`${t.title} · ${LABEL[String(t.result)] || t.result || '미실행'}\n(클릭하면 테스트 목록에서 검색)`} className="mono" style={{ fontSize: 10.5, background: c.bg, color: c.fg, padding: '1px 6px', borderRadius: 5, textDecoration: 'none' }}>{t.code}</a>; })}</span>}</td>
                 <td><span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontWeight: 700, fontSize: 12, color: col }}><Icon style={{ width: 14 }} />{cov}</span></td>
               </tr>
             ))}

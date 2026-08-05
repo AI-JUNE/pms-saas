@@ -8,21 +8,22 @@ const ROLES = ['admin','pmo','pm','member'];
 const ROLE_LABEL: Record<string,string> = { admin:'관리자', pmo:'PMO', pm:'PM', member:'멤버' };
 const ROLE_BADGE: Record<string,string> = { admin:'p-purple', pmo:'p-cyan', pm:'p-blue', member:'p-gray' };
 const roleLabel = (r: string) => ROLE_LABEL[r] || r;
+const nfmt = (n: number) => n.toLocaleString('ko-KR');
 function RolePill({ v }: { v: string }) {
   if (!v) return <span className="muted">—</span>;
   return <span className={`pill ${ROLE_BADGE[v] || 'p-gray'}`}>{roleLabel(v)}</span>;
 }
 export default function Page() {
   const router = useRouter();
-  const [rows, setRows] = useState<any[]>([]); const [can, setCan] = useState(false);
+  const [rows, setRows] = useState<any[]>([]); const [can, setCan] = useState(false); const [su, setSu] = useState(false);
   const [mig, setMig] = useState('');
   const [pwReset, setPwReset] = useState<{ id: number; pw: string } | null>(null);
   function load() { fetch('/api/admin/users').then((r) => r.ok ? r.json() : Promise.reject()).then((d) => setRows(Array.isArray(d) ? d : [])).catch(() => router.push('/login')); }
-  useEffect(() => { fetch('/api/auth/me').then((r)=>r.json()).then((m)=>setCan(m?.org?.isOrgAdmin)); load(); }, [router]);
+  useEffect(() => { fetch('/api/auth/me').then((r)=>r.json()).then((m)=>{ setCan(m?.org?.isOrgAdmin); setSu(!!m?.user?.isSuperadmin); }); load(); }, [router]);
   async function setRole(membershipId: number, role: string) { await fetch('/api/admin/users', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ membershipId, role }) }); load(); }
   async function resetPw(membershipId: number) { if (!confirm('이 구성원의 비밀번호를 임시 비밀번호로 초기화할까요?')) return; const r = await fetch('/api/admin/users', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ membershipId, resetPassword: true }) }); if (r.ok) { const j = await r.json().catch(() => ({})); setPwReset({ id: membershipId, pw: j.tempPassword || '' }); } }
   async function toggleActive(membershipId: number, isActive: boolean) { const r = await fetch('/api/admin/users', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ membershipId, isActive }) }); if (r.ok) load(); else { const j = await r.json().catch(() => ({})); alert(j.message || '변경 실패'); } }
-  async function migrate() { setMig('실행 중…'); try { const r = await fetch('/api/admin/migrate', { method: 'POST' }); const d = await r.json().catch(() => ({})); setMig(r.ok ? `완료 · ${d.applied ?? 0}개 적용됨` : (d.message || '실패')); } catch { setMig('실패'); } }
+  async function migrate() { setMig('실행 중…'); try { const r = await fetch('/api/admin/migrate', { method: 'POST' }); const d = await r.json().catch(() => ({})); setMig(r.ok ? `완료 · ${nfmt(Number(d.applied ?? 0))}개 적용됨` : (d.message || '실패')); } catch { setMig('실패'); } }
   const total = rows.length;
   const active = rows.filter((u) => u.isActive).length;
   const inactive = total - active;
@@ -31,16 +32,17 @@ export default function Page() {
   return (
     <Shell title="사용자·권한">
       <h2 className="h1">사용자·권한</h2><p className="h-sub">조직 구성원의 역할을 관리합니다. (읽기 &lt; 쓰기 &lt; 결재 &lt; 관리)</p>
+      {su && <p style={{ marginTop: 6 }}><a href="/admin/security" style={{ fontSize: 13, fontWeight: 650 }}>→ 보안 이벤트 열람(슈퍼관리자)</a></p>}
       <div style={{ height: 16 }} />
       {total > 0 && (
         <div className="kpis" style={{ marginBottom: 16 }}>
-          <div className="kpi"><div className="kpi-label">전체 구성원</div><div className="kpi-value">{total}</div><div className="kpi-sub">조직에 소속된 계정</div></div>
-          <div className="kpi"><div className="kpi-label">활성</div><div className="kpi-value">{active}</div><div className="kpi-sub">로그인·권한 사용 가능</div></div>
-          <div className="kpi" title="비활성 계정은 로그인·권한 대상에서 제외됩니다"><div className="kpi-label">비활성</div><div className="kpi-value" style={{ color: inactive > 0 ? 'var(--muted)' : undefined }}>{inactive}</div><div className="kpi-sub">로그인·집계 제외</div></div>
-          <div className="kpi" title="활성 관리자(admin) 수 — 0이면 역할·스키마 관리가 잠깁니다"><div className="kpi-label">관리자</div><div className="kpi-value" style={{ color: activeAdmins === 0 ? '#c0392b' : undefined }}>{byRole('admin')}</div><div className="kpi-sub" style={{ color: activeAdmins === 0 ? '#c0392b' : undefined }}>{activeAdmins === 0 ? '⚠ 활성 0명' : `활성 ${activeAdmins}명`}</div></div>
+          <div className="kpi"><div className="kpi-label">전체 구성원</div><div className="kpi-value">{nfmt(total)}</div><div className="kpi-sub">조직에 소속된 계정</div></div>
+          <div className="kpi"><div className="kpi-label">활성</div><div className="kpi-value">{nfmt(active)}</div><div className="kpi-sub">로그인·권한 사용 가능</div></div>
+          <div className="kpi" title="비활성 계정은 로그인·권한 대상에서 제외됩니다"><div className="kpi-label">비활성</div><div className="kpi-value" style={{ color: inactive > 0 ? 'var(--muted)' : undefined }}>{nfmt(inactive)}</div><div className="kpi-sub">로그인·집계 제외</div></div>
+          <div className="kpi" title="활성 관리자(admin) 수 — 0이면 역할·스키마 관리가 잠깁니다"><div className="kpi-label">관리자</div><div className="kpi-value" style={{ color: activeAdmins === 0 ? '#c0392b' : undefined }}>{nfmt(byRole('admin'))}</div><div className="kpi-sub" style={{ color: activeAdmins === 0 ? '#c0392b' : undefined }}>{activeAdmins === 0 ? '⚠ 활성 0명' : `활성 ${nfmt(activeAdmins)}명`}</div></div>
           <div className="kpi"><div className="kpi-label">역할 구성</div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
-              {ROLES.map((r) => byRole(r) > 0 ? <span key={r} className={`pill ${ROLE_BADGE[r]}`} title={`${roleLabel(r)} ${byRole(r)}명`}>{roleLabel(r)} {byRole(r)}</span> : null)}
+              {ROLES.map((r) => byRole(r) > 0 ? <span key={r} className={`pill ${ROLE_BADGE[r]}`} title={`${roleLabel(r)} ${nfmt(byRole(r))}명`}>{roleLabel(r)} {nfmt(byRole(r))}</span> : null)}
             </div>
           </div>
         </div>

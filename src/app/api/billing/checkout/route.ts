@@ -3,6 +3,7 @@ import { handle, ok, ApiError, ERROR } from '@/lib/http';
 import { enforceRateLimit } from '@/lib/ratelimit';
 import { PORTONE, findPlan, newPaymentId, billingStatus } from '@/lib/portone';
 import { log } from '@/lib/logger';
+import { auditSecurity } from '@/lib/audit';
 import type { PlanId } from '@/lib/billing';
 
 export const dynamic = 'force-dynamic';
@@ -35,6 +36,7 @@ export async function POST(req: Request) {
 
     const paymentId = newPaymentId(planId);
     log.info('billing.checkout.scaffold', { userId: u.id, planId, paymentId, mode: 'test' });
+    await auditSecurity('BILLING_CHECKOUT_SCAFFOLD', { userId: u.id, entity: 'billing', entityId: paymentId, detail: { planId, mode: 'test' } });
 
     // 프론트 결제 SDK가 사용할 파라미터. apiSecret/webhookSecret은 절대 포함하지 않는다.
     return ok({
