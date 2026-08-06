@@ -11,6 +11,8 @@ const parseItems = (v: any): string[] =>
     .map((s) => s.trim())
     .filter(Boolean);
 
+const nfmt = (n: number) => n.toLocaleString('ko-KR');
+
 export default function Page() {
   // 대상 산출물 유형(targetType) ↔ 산출물(documents.type) 매칭 집계 — 페이지-로컬 보조 fetch(읽기 전용)
   const [docs, setDocs] = useState<Record<string, DocStat>>({});
@@ -54,10 +56,10 @@ export default function Page() {
             : <span className="muted" style={{fontSize:11.5}} title="양식 항목(줄바꿈으로 구분)을 입력하면 여기에 표시됩니다">미정의</span>;
         }
         const preview = items.slice(0, 3).join(' · ');
-        const tip = `항목 ${items.length}개\n${items.map((s, i) => `${i + 1}. ${s}`).join('\n')}`;
+        const tip = `항목 ${nfmt(items.length)}개\n${items.map((s, i) => `${i + 1}. ${s}`).join('\n')}`;
         return <span title={tip} style={{display:'inline-flex',alignItems:'center',gap:6,maxWidth:280}}>
-          <b style={{fontSize:11.5,color:'var(--brand)',background:'rgba(190,85,53,.08)',borderRadius:99,padding:'1px 7px',whiteSpace:'nowrap'}}>{items.length}개</b>
-          <span className="muted" style={{fontSize:11.5,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{preview}{items.length > 3 ? ` 외 ${items.length - 3}` : ''}</span>
+          <b style={{fontSize:11.5,color:'var(--brand)',background:'rgba(190,85,53,.08)',borderRadius:99,padding:'1px 7px',whiteSpace:'nowrap'}}>{nfmt(items.length)}개</b>
+          <span className="muted" style={{fontSize:11.5,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{preview}{items.length > 3 ? ` 외 ${nfmt(items.length - 3)}` : ''}</span>
         </span>;
       }},
       // 적용 산출물: 이 양식의 대상 유형과 같은 유형(documents.type)의 산출물 건수 — 양식이 실제로 쓰이는지 확인
@@ -66,9 +68,9 @@ export default function Page() {
         const s = k ? docs[k] : undefined;
         if (!k) return <span className="muted" style={{fontSize:11.5}} title="대상 산출물 유형을 지정하면 해당 유형의 산출물 건수를 집계합니다">—</span>;
         if (!s || !s.total) return <span className="muted" style={{fontSize:11.5}} title={`'${k}' 유형의 산출물이 아직 없습니다 — 양식이 사용되지 않고 있어요`}>미사용</span>;
-        return <span title={`'${k}' 산출물 총 ${s.total}건 · 승인 ${s.approved}건 · 결재요청 ${s.review}건 · 작성중 ${s.draft}건${s.rejected ? ` · 반려 ${s.rejected}건` : ''}`} style={{fontSize:12}}>
-          <b>{s.approved}</b><span className="muted">/{s.total}건 승인</span>
-          {s.rejected > 0 && <span title={`반려 ${s.rejected}건`} style={{marginLeft:6,color:'#c0414f',fontWeight:700,fontSize:11.5}}>⚠{s.rejected}</span>}
+        return <span title={`'${k}' 산출물 총 ${nfmt(s.total)}건 · 승인 ${nfmt(s.approved)}건 · 결재요청 ${nfmt(s.review)}건 · 작성중 ${nfmt(s.draft)}건${s.rejected ? ` · 반려 ${nfmt(s.rejected)}건` : ''}`} style={{fontSize:12}}>
+          <b>{nfmt(s.approved)}</b><span className="muted">/{nfmt(s.total)}건 승인</span>
+          {s.rejected > 0 && <span title={`반려 ${nfmt(s.rejected)}건`} style={{marginLeft:6,color:'#c0414f',fontWeight:700,fontSize:11.5}}>⚠{nfmt(s.rejected)}</span>}
         </span>;
       }},
       {key:'status',label:'상태',badge:true},

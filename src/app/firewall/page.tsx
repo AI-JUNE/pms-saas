@@ -33,6 +33,7 @@ const lines = (v: any) =>
   String(v ?? '').split(/\r?\n/).map((s) => s.replace(/^\s*(?:[-*·•]|\d+[.)])\s*/, '').trim()).filter(Boolean);
 
 const RED = '#c0414f', ORANGE = '#d98a16', GREEN = '#2f8f5b';
+const nfmt = (n: number) => n.toLocaleString('ko-KR');
 
 export default function Page() {
   // 동일 프로젝트 내 '동일 정책(출발지·목적지·포트·프로토콜)' 중복 신청 탐지 — 페이지-로컬 보조 fetch(읽기 전용)
@@ -65,7 +66,7 @@ export default function Page() {
         const d = dupOf(row);
         return <span className="row" style={{gap:6}}>
           <span>{v}</span>
-          {d && d.length > 1 && <span title={`동일한 정책(출발지·목적지·포트·프로토콜)의 신청이 ${d.length}건 있습니다 — ${d.join(' · ')}\n중복 신청이면 하나로 정리하세요.`} style={{color:RED,fontWeight:700,fontSize:11,cursor:'help'}}>⚠ 중복</span>}
+          {d && d.length > 1 && <span title={`동일한 정책(출발지·목적지·포트·프로토콜)의 신청이 ${nfmt(d.length)}건 있습니다 — ${d.join(' · ')}\n중복 신청이면 하나로 정리하세요.`} style={{color:RED,fontWeight:700,fontSize:11,cursor:'help'}}>⚠ 중복</span>}
         </span>;
       }},
       // 출발지 → 목적지: 두 IP를 한 셀로 합치고 형식·전체대역(any) 검증
@@ -95,8 +96,8 @@ export default function Page() {
         const col = any ? RED : bad ? ORANGE : wide ? ORANGE : undefined;
         const tip = any ? '전체 포트(1-65535) 허용입니다 — 필요한 포트만 지정하세요'
           : bad ? '포트 형식을 확인하세요 (예: 443 · 8000-8100 · 80,443)'
-          : wide ? `허용 포트 ${portWidth(p).toLocaleString()}개 — 범위가 넓습니다. 꼭 필요한 범위인지 확인하세요`
-          : `허용 포트 ${portWidth(p)}개${proto?` · ${proto}`:''}`;
+          : wide ? `허용 포트 ${nfmt(portWidth(p))}개 — 범위가 넓습니다. 꼭 필요한 범위인지 확인하세요`
+          : `허용 포트 ${nfmt(portWidth(p))}개${proto?` · ${proto}`:''}`;
         return <span className="row" style={{gap:6,whiteSpace:'nowrap'}} title={tip}>
           <span style={{color:col,fontWeight:col?700:undefined,fontFamily:'ui-monospace,monospace',fontSize:11.5,cursor:'help'}}>{p}{any?' ⚠':''}</span>
           {proto && <span style={{fontSize:10.5,padding:'1px 5px',borderRadius:4,background:'rgba(190,85,53,.10)',color:'var(--brand)',fontWeight:600}}>{proto}</span>}

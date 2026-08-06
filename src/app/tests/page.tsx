@@ -10,6 +10,8 @@ const lines = (v: any): string[] =>
     .map((s) => s.replace(/^\s*(?:[-*·•]|\d+[.)])\s*/, '').trim())
     .filter(Boolean);
 
+const nfmt = (n: number) => n.toLocaleString('ko-KR');
+
 // 검증 단계 진행도(작성=0 → 완료=4). 반려는 별도 취급
 const STAGE_ORDER: Record<string, number> = { draft: 0, dev: 1, pl: 2, pm: 3, done: 4 };
 
@@ -45,8 +47,8 @@ export default function Page() {
         const stage = String(r?.status ?? 'draft');
         const verifying = (STAGE_ORDER[stage] ?? 0) >= 1; // 개발자 검증 이후
         const tip = [
-          st.length ? `절차 ${st.length}단계\n` + st.slice(0, 6).map((s, i) => `${i + 1}. ${s}`).join('\n') + (st.length > 6 ? `\n… 외 ${st.length - 6}단계` : '') : '절차 미작성',
-          ex.length ? `기대 결과 ${ex.length}건\n` + ex.slice(0, 3).map((s, i) => `${i + 1}. ${s}`).join('\n') + (ex.length > 3 ? `\n… 외 ${ex.length - 3}건` : '') : '기대 결과 미작성',
+          st.length ? `절차 ${nfmt(st.length)}단계\n` + st.slice(0, 6).map((s, i) => `${i + 1}. ${s}`).join('\n') + (st.length > 6 ? `\n… 외 ${nfmt(st.length - 6)}단계` : '') : '절차 미작성',
+          ex.length ? `기대 결과 ${nfmt(ex.length)}건\n` + ex.slice(0, 3).map((s, i) => `${i + 1}. ${s}`).join('\n') + (ex.length > 3 ? `\n… 외 ${nfmt(ex.length - 3)}건` : '') : '기대 결과 미작성',
         ].join('\n\n');
         if (!st.length) {
           // 절차 없이 검증 단계로 올라간 케이스 = 무엇을 어떻게 확인했는지 증빙이 없는 상태(감리 지적 대상)
@@ -54,9 +56,9 @@ export default function Page() {
           return <span title={tip} className="muted" style={{fontSize:11.5,cursor:'help'}}>미작성</span>;
         }
         return <span title={tip} style={{display:'inline-flex',alignItems:'center',gap:6,maxWidth:240,cursor:'help'}}>
-          <b style={{fontSize:11,padding:'1px 6px',borderRadius:99,background:'var(--surface-2)',color:'var(--brand)',flexShrink:0}}>절차 {st.length}</b>
+          <b style={{fontSize:11,padding:'1px 6px',borderRadius:99,background:'var(--surface-2)',color:'var(--brand)',flexShrink:0}}>절차 {nfmt(st.length)}</b>
           {ex.length
-            ? <b style={{fontSize:11,padding:'1px 6px',borderRadius:99,background:'var(--surface-2)',color:'#2f8f5b',flexShrink:0}}>기대 {ex.length}</b>
+            ? <b style={{fontSize:11,padding:'1px 6px',borderRadius:99,background:'var(--surface-2)',color:'#2f8f5b',flexShrink:0}}>기대 {nfmt(ex.length)}</b>
             : verifying
               ? <b style={{fontSize:11,color:'#d98a16',flexShrink:0}}>기대결과 없음</b>
               : <span className="muted" style={{fontSize:11,flexShrink:0}}>기대 —</span>}

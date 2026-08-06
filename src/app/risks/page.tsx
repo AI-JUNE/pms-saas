@@ -9,6 +9,7 @@ const gradeOf = (s: number) => (s >= 15 ? { label: '높음', color: '#c0414f' } 
 const num = (v: any) => { const n = Number(v); return Number.isFinite(n) && n >= 1 && n <= 5 ? Math.round(n) : 0; };
 // 텍스트영역을 줄 단위로 파싱(글머리표 제거)
 const lines = (v: any) => String(v ?? '').split(/\r?\n/).map((l) => l.replace(/^\s*(?:[-*·•]|\d+[.)])\s*/, '').trim()).filter(Boolean);
+const nfmt = (n: number) => n.toLocaleString('ko-KR');
 
 // 1~5 척도 셀: 숫자 + 한글 라벨 툴팁
 function scaleCell(v: any, kind: string) {
@@ -51,16 +52,16 @@ export default function Page() {
           return <span className="muted" title={closed ? '종료된 리스크입니다' : '대응방안(완화계획)이 아직 작성되지 않았습니다'} style={{ cursor: 'help' }}>미작성</span>;
         }
         const tip = [
-          `완화계획 ${m.length}건`,
+          `완화계획 ${nfmt(m.length)}건`,
           ...m.slice(0, 5).map((l, n) => `  ${n + 1}. ${l}`),
-          m.length > 5 ? `  … 외 ${m.length - 5}건` : '',
-          c.length ? `비상계획 ${c.length}건` : '비상계획 없음 — 발생 시 대응 절차를 작성하세요',
+          m.length > 5 ? `  … 외 ${nfmt(m.length - 5)}건` : '',
+          c.length ? `비상계획 ${nfmt(c.length)}건` : '비상계획 없음 — 발생 시 대응 절차를 작성하세요',
           ...c.slice(0, 3).map((l, n) => `  ${n + 1}. ${l}`),
         ].filter(Boolean).join('\n');
         return <span title={tip} style={{ cursor: 'help', display: 'inline-flex', alignItems: 'center', gap: 5, maxWidth: 240 }}>
-          <span className="pill p-green" style={{ flex: '0 0 auto' }}>완화 {m.length}</span>
+          <span className="pill p-green" style={{ flex: '0 0 auto' }}>완화 {nfmt(m.length)}</span>
           {c.length
-            ? <span className="pill p-gray" style={{ flex: '0 0 auto' }}>비상 {c.length}</span>
+            ? <span className="pill p-gray" style={{ flex: '0 0 auto' }}>비상 {nfmt(c.length)}</span>
             : risky && !closed ? <span style={{ flex: '0 0 auto', color: '#d98a16', fontSize: 11, fontWeight: 600 }}>비상계획 없음</span> : null}
           <span className="muted" style={{ fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m[0]}</span>
         </span>;

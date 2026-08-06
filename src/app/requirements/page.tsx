@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { ResourceView } from '@/components/ResourceView';
 import { LABEL } from '@/lib/ui';
 
+const nfmt = (n: number) => n.toLocaleString('ko-KR');
+
 function ReqAnalysis({ rows }: { rows: any[] }) {
   const count = (key: string, v: string) => rows.filter((r: any) => String(r?.[key] ?? '') === v).length;
   const Bar = ({ items, title }: any) => {
@@ -13,7 +15,7 @@ function ReqAnalysis({ rows }: { rows: any[] }) {
           <div key={i.l} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 7 }}>
             <span style={{ width: 62, fontSize: 12, color: 'var(--text-2)' }}>{i.l}</span>
             <div className="pbar" style={{ flex: 1 }}><i style={{ width: `${(i.v / mx) * 100}%`, background: i.c }} /></div>
-            <span style={{ width: 22, textAlign: 'right', fontWeight: 800, fontSize: 12.5 }}>{i.v}</span>
+            <span style={{ width: 22, textAlign: 'right', fontWeight: 800, fontSize: 12.5 }}>{nfmt(i.v)}</span>
           </div>
         ))}
       </div>
@@ -25,7 +27,7 @@ function ReqAnalysis({ rows }: { rows: any[] }) {
   return (
     <div style={{ background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px' }}>
       <div style={{ fontWeight: 750, fontSize: 14, marginBottom: 4 }}>요구사항 분포 분석</div>
-      <div className="muted" style={{ fontSize: 12, marginBottom: 14 }}>전체 {total}건 · 승인 {approved}건({approvedPct}%)</div>
+      <div className="muted" style={{ fontSize: 12, marginBottom: 14 }}>전체 {nfmt(total)}건 · 승인 {nfmt(approved)}건({approvedPct}%)</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 24 }}>
         <Bar title="우선순위" items={[
           { l: LABEL.high, v: count('priority', 'high'), c: '#c0414f' },
@@ -118,12 +120,12 @@ export default function Page() {
         const l = linkOf(row);
         if (!l || (!l.tasks && !l.issues && !l.tests)) return <span className="muted" style={{fontSize:11.5}}>—</span>;
         const chip = (n: number, label: string, bg: string, fg: string, tip: string) => n > 0
-          ? <span key={label} title={tip} style={{fontSize:10.5,fontWeight:700,background:bg,color:fg,padding:'1px 6px',borderRadius:5}}>{label} {n}</span>
+          ? <span key={label} title={tip} style={{fontSize:10.5,fontWeight:700,background:bg,color:fg,padding:'1px 6px',borderRadius:5}}>{label} {nfmt(n)}</span>
           : null;
         return <span style={{display:'flex',flexWrap:'wrap',gap:4}}>
-          {chip(l.tasks,'업무','var(--surface-3)','var(--text-2)',`연계 업무 ${l.tasks}건 · 완료 ${l.tasksDone}건`)}
-          {chip(l.issues,'이슈', l.issuesOpen > 0 ? '#fdf3e7' : 'var(--surface-3)', l.issuesOpen > 0 ? '#b5730f' : 'var(--text-2)', `연계 이슈 ${l.issues}건 · 미해결 ${l.issuesOpen}건`)}
-          {chip(l.tests,'테스트', l.testsFail > 0 ? '#fdedef' : l.tests > 0 && l.testsPass === l.tests ? '#e6f4ec' : 'var(--surface-3)', l.testsFail > 0 ? '#c0414f' : l.tests > 0 && l.testsPass === l.tests ? '#2f8f5b' : 'var(--text-2)', `연계 테스트 ${l.tests}건 · 통과 ${l.testsPass}건 · 실패 ${l.testsFail}건`)}
+          {chip(l.tasks,'업무','var(--surface-3)','var(--text-2)',`연계 업무 ${nfmt(l.tasks)}건 · 완료 ${nfmt(l.tasksDone)}건`)}
+          {chip(l.issues,'이슈', l.issuesOpen > 0 ? '#fdf3e7' : 'var(--surface-3)', l.issuesOpen > 0 ? '#b5730f' : 'var(--text-2)', `연계 이슈 ${nfmt(l.issues)}건 · 미해결 ${nfmt(l.issuesOpen)}건`)}
+          {chip(l.tests,'테스트', l.testsFail > 0 ? '#fdedef' : l.tests > 0 && l.testsPass === l.tests ? '#e6f4ec' : 'var(--surface-3)', l.testsFail > 0 ? '#c0414f' : l.tests > 0 && l.testsPass === l.tests ? '#2f8f5b' : 'var(--text-2)', `연계 테스트 ${nfmt(l.tests)}건 · 통과 ${nfmt(l.testsPass)}건 · 실패 ${nfmt(l.testsFail)}건`)}
         </span>;
       }},
       {key:'coverage',label:'커버리지',render:(_v,row)=>{
@@ -131,7 +133,7 @@ export default function Page() {
         const cv = coverage(l);
         const tip = !l || (!l.tasks && !l.issues && !l.tests)
           ? '연계된 업무·이슈·테스트가 없습니다. 업무/이슈/테스트의 “연계 요구사항”에 이 요구사항 코드를 입력하면 연결됩니다.'
-          : `업무 ${l.tasksDone}/${l.tasks} 완료 · 이슈 미해결 ${l.issuesOpen}건 · 테스트 ${l.testsPass}/${l.tests} 통과`;
+          : `업무 ${nfmt(l.tasksDone)}/${nfmt(l.tasks)} 완료 · 이슈 미해결 ${nfmt(l.issuesOpen)}건 · 테스트 ${nfmt(l.testsPass)}/${nfmt(l.tests)} 통과`;
         return <span title={tip} style={{display:'inline-flex',alignItems:'center',gap:5,fontWeight:700,fontSize:11.5,color:cv.c}}>
           <i style={{width:7,height:7,borderRadius:99,background:cv.c,display:'inline-block'}}/>{cv.t}
         </span>;

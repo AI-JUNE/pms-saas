@@ -7,6 +7,7 @@ type Stat = { total: number; done: number; doing: number; todo: number; overdue:
 const DAY = 86400000;
 const d0 = (v: any) => { const t = new Date(v); if (isNaN(t.getTime())) return null; t.setHours(0, 0, 0, 0); return t; };
 const fmt = (v: any) => { const t = d0(v); return t ? `${t.getMonth() + 1}.${t.getDate()}` : '—'; };
+const nfmt = (n: number) => n.toLocaleString('ko-KR');
 
 export default function Page() {
   const [stats, setStats] = useState<Record<number, Stat>>({});
@@ -85,10 +86,10 @@ export default function Page() {
         const closed = ['completed','archived'].includes(String(row?.status || ''));
         if (!s || !s.total) return <span className="muted" style={{fontSize:11.5}} title="이 프로젝트에 등록된 업무(WBS)가 없습니다">—</span>;
         const left = s.total - s.done;
-        return <span title={`총 ${s.total}건 · 완료 ${s.done}건 · 진행 ${s.doing}건 · 대기 ${s.todo}건`} style={{fontSize:12,cursor:'help'}}>
-          <b>{s.done}</b><span className="muted">/{s.total}</span>
-          {s.overdue > 0 && !closed && <span title={`기한 초과 ${s.overdue}건`} style={{marginLeft:6,color:'#c0414f',fontWeight:700,fontSize:11.5}}>⚠{s.overdue}</span>}
-          {closed && left > 0 && <span title={`프로젝트가 종료 상태인데 미완료 업무가 ${left}건 남아 있습니다 — 업무를 완료 처리하거나 이관하세요`} style={{marginLeft:6,color:'#c0414f',fontWeight:700,fontSize:11}}>⚠ 잔여 {left}</span>}
+        return <span title={`총 ${nfmt(s.total)}건 · 완료 ${nfmt(s.done)}건 · 진행 ${nfmt(s.doing)}건 · 대기 ${nfmt(s.todo)}건`} style={{fontSize:12,cursor:'help'}}>
+          <b>{nfmt(s.done)}</b><span className="muted">/{nfmt(s.total)}</span>
+          {s.overdue > 0 && !closed && <span title={`기한 초과 ${nfmt(s.overdue)}건`} style={{marginLeft:6,color:'#c0414f',fontWeight:700,fontSize:11.5}}>⚠{nfmt(s.overdue)}</span>}
+          {closed && left > 0 && <span title={`프로젝트가 종료 상태인데 미완료 업무가 ${nfmt(left)}건 남아 있습니다 — 업무를 완료 처리하거나 이관하세요`} style={{marginLeft:6,color:'#c0414f',fontWeight:700,fontSize:11}}>⚠ 잔여 {nfmt(left)}</span>}
         </span>;
       }},
       {key:'projProgress',label:'진척',render:(_v,row)=>{
@@ -101,7 +102,7 @@ export default function Page() {
         const active = String(row?.status || '') === 'active';
         const sv = el && active ? Math.round((pct - el.pct) * 10) / 10 : null;
         const behind = sv !== null && sv <= -10;
-        const tip = `업무 ${s.total}건 평균 진척 ${pct}%` + (el && active ? `\n일정 경과 ${el.pct}% (계획 진척 근사)\n${sv !== null && sv < 0 ? `일정 대비 ${Math.abs(sv)}%p 지연` : sv !== null && sv > 0 ? `일정 대비 ${sv}%p 선행` : '일정대로 진행'}` : '');
+        const tip = `업무 ${nfmt(s.total)}건 평균 진척 ${pct}%` + (el && active ? `\n일정 경과 ${el.pct}% (계획 진척 근사)\n${sv !== null && sv < 0 ? `일정 대비 ${Math.abs(sv)}%p 지연` : sv !== null && sv > 0 ? `일정 대비 ${sv}%p 선행` : '일정대로 진행'}` : '');
         return <div className="row" style={{gap:8,alignItems:'center'}} title={tip}>
           <div className="bar"><i style={{width:`${pct}%`,background:col}}/></div>
           <span style={{fontSize:11.5,color:col,fontWeight:700,fontVariantNumeric:'tabular-nums'}}>{pct}%</span>
