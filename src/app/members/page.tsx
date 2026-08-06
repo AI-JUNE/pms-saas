@@ -4,6 +4,8 @@ import { ResourceView } from '@/components/ResourceView';
 
 type Stat = { total: number; done: number; doing: number; todo: number; overdue: number; open: number; issues: number };
 const empty = (): Stat => ({ total: 0, done: 0, doing: 0, todo: 0, overdue: 0, open: 0, issues: 0 });
+// 카운트 천단위 쉼표(배치114·120~137과 동일 표기)
+const nfmt = (n: number) => n.toLocaleString('ko-KR');
 
 const norm = (v: any) => String(v ?? '').trim().toLowerCase();
 // 이메일 형식(간이) — 오타·공백 혼입 색출용
@@ -76,9 +78,9 @@ export default function Page() {
       {key:'memTasks',label:'업무',render:(_v,row)=>{
         const s = statOf(row);
         if (!s || !s.total) return <span className="muted" style={{fontSize:11.5}}>—</span>;
-        return <span title={`총 ${s.total}건 · 완료 ${s.done}건 · 진행 ${s.doing}건 · 대기 ${s.todo}건`} style={{fontSize:12,cursor:'help'}}>
-          <b>{s.done}</b><span className="muted">/{s.total}</span>
-          {s.overdue > 0 && <span title={`기한 초과 ${s.overdue}건`} style={{marginLeft:6,color:'#c0414f',fontWeight:700,fontSize:11.5}}>⚠{s.overdue}</span>}
+        return <span title={`총 ${nfmt(s.total)}건 · 완료 ${nfmt(s.done)}건 · 진행 ${nfmt(s.doing)}건 · 대기 ${nfmt(s.todo)}건`} style={{fontSize:12,cursor:'help'}}>
+          <b>{nfmt(s.done)}</b><span className="muted">/{nfmt(s.total)}</span>
+          {s.overdue > 0 && <span title={`기한 초과 ${nfmt(s.overdue)}건`} style={{marginLeft:6,color:'#c0414f',fontWeight:700,fontSize:11.5}}>⚠{nfmt(s.overdue)}</span>}
         </span>;
       }},
       {key:'memLoad',label:'부하',render:(_v,row)=>{
@@ -87,15 +89,15 @@ export default function Page() {
         // 절대 기준이 없으므로 조직 내 최다 미완료 담당자를 100%로 놓은 상대 부하로 표시
         const pct = maxOpen ? Math.max(6, Math.round((s.open / maxOpen) * 100)) : 0;
         const col = s.overdue > 0 ? '#c0414f' : s.open >= 5 ? '#d98a16' : '#2f8f5b';
-        return <div className="row" style={{gap:8}} title={`미완료 업무 ${s.open}건 (진행 ${s.doing} · 대기 ${s.todo})${s.overdue ? ` · 기한 초과 ${s.overdue}건` : ''} — 조직 최다 담당자 대비 ${pct}%`}>
+        return <div className="row" style={{gap:8}} title={`미완료 업무 ${nfmt(s.open)}건 (진행 ${nfmt(s.doing)} · 대기 ${nfmt(s.todo)})${s.overdue ? ` · 기한 초과 ${nfmt(s.overdue)}건` : ''} — 조직 최다 담당자 대비 ${pct}%`}>
           <div className="bar"><i style={{width:`${pct}%`,background:col}}/></div>
-          <span style={{fontSize:11.5,color:col,fontWeight:700}}>{s.open}건</span>
+          <span style={{fontSize:11.5,color:col,fontWeight:700}}>{nfmt(s.open)}건</span>
         </div>;
       }},
       {key:'memIssues',label:'미해결 이슈',render:(_v,row)=>{
         const s = statOf(row);
         if (!s || !s.issues) return <span className="muted" style={{fontSize:11.5}}>—</span>;
-        return <span title={`담당 미해결 이슈 ${s.issues}건 (해결·종료 제외)`} style={{fontSize:11.5,fontWeight:700,color:s.issues >= 3 ? '#c0414f' : '#d98a16',cursor:'help'}}>{s.issues}건</span>;
+        return <span title={`담당 미해결 이슈 ${nfmt(s.issues)}건 (해결·종료 제외)`} style={{fontSize:11.5,fontWeight:700,color:s.issues >= 3 ? '#c0414f' : '#d98a16',cursor:'help'}}>{nfmt(s.issues)}건</span>;
       }},
       // 이메일: 형식 오류·중복 등록 경고 — 알림·결재 통지의 수신처 신뢰도(잘못된 주소면 통지 유실)
       {key:'email',label:'이메일',render:(v,row)=>{

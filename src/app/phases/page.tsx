@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { ResourceView } from '@/components/ResourceView';
 
 type Stat = { total: number; done: number; doing: number; todo: number; overdue: number; progress: number };
+// 카운트 천단위 쉼표(배치114·120~137과 동일 표기)
+const nfmt = (n: number) => n.toLocaleString('ko-KR');
 
 export default function Page() {
   const [stats, setStats] = useState<Record<string, Stat>>({});
@@ -54,10 +56,10 @@ export default function Page() {
           return <span title={`상태가 ‘${st === 'done' ? '완료' : '진행'}’인데 이 단계로 묶인 업무가 0건입니다 — 업무의 ‘단계’ 필드에 단계명 “${String(row?.name || '')}”을 그대로 넣어야 매칭됩니다`} style={{color:'#c0414f',fontWeight:700,fontSize:11.5,cursor:'help'}}>⚠ 업무 없음</span>;
         }
         const rest = s.total - s.done;
-        return <span title={`총 ${s.total}건 · 완료 ${s.done}건 · 진행 ${s.doing}건 · 대기 ${s.todo}건`} style={{fontSize:12,cursor:'help',whiteSpace:'nowrap'}}>
-          <b>{s.done}</b><span className="muted">/{s.total}</span>
-          {st === 'done' && rest > 0 && <span title={`단계는 완료인데 미완료 업무가 ${rest}건 남아 있습니다 (진행 ${s.doing} · 대기 ${s.todo}) — 종료 처리만 하고 하위 업무를 정리하지 않은 상태입니다`} style={{marginLeft:6,color:'#c0414f',fontWeight:700,fontSize:11}}>⚠ 잔여 {rest}</span>}
-          {st !== 'done' && s.overdue > 0 && <span title={`기한 초과 ${s.overdue}건`} style={{marginLeft:6,color:'#c0414f',fontWeight:700,fontSize:11.5}}>⚠{s.overdue}</span>}
+        return <span title={`총 ${nfmt(s.total)}건 · 완료 ${nfmt(s.done)}건 · 진행 ${nfmt(s.doing)}건 · 대기 ${nfmt(s.todo)}건`} style={{fontSize:12,cursor:'help',whiteSpace:'nowrap'}}>
+          <b>{nfmt(s.done)}</b><span className="muted">/{nfmt(s.total)}</span>
+          {st === 'done' && rest > 0 && <span title={`단계는 완료인데 미완료 업무가 ${nfmt(rest)}건 남아 있습니다 (진행 ${nfmt(s.doing)} · 대기 ${nfmt(s.todo)}) — 종료 처리만 하고 하위 업무를 정리하지 않은 상태입니다`} style={{marginLeft:6,color:'#c0414f',fontWeight:700,fontSize:11}}>⚠ 잔여 {nfmt(rest)}</span>}
+          {st !== 'done' && s.overdue > 0 && <span title={`기한 초과 ${nfmt(s.overdue)}건`} style={{marginLeft:6,color:'#c0414f',fontWeight:700,fontSize:11.5}}>⚠{nfmt(s.overdue)}</span>}
         </span>;
       }},
       {key:'phaseProgress',label:'진척',render:(_v,row)=>{
@@ -69,7 +71,7 @@ export default function Page() {
         // 단계 상태 ↔ 하위 업무 진척 모순
         const warnDone = st === 'done' && pct < 100;
         const warnPlan = st === 'planned' && (s.doing > 0 || s.done > 0);
-        const tip = `업무 ${s.total}건 평균 진척 ${pct}%`
+        const tip = `업무 ${nfmt(s.total)}건 평균 진척 ${pct}%`
           + (warnDone ? ` — 단계는 완료인데 평균 진척이 100% 미만입니다(업무 진척률 갱신 필요)` : '')
           + (warnPlan ? ` — 단계는 ‘계획’인데 이미 착수·완료된 업무가 있습니다(단계 상태를 ‘진행’으로 바꾸세요)` : '');
         return <div className="row" style={{gap:8,whiteSpace:'nowrap',cursor:'help'}} title={tip}>

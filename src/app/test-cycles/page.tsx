@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { ResourceView } from '@/components/ResourceView';
 
 type Stat = { total: number; pass: number; fail: number; blocked: number; na: number; rate: number | null };
+// 카운트 천단위 쉼표(배치114·120~137과 동일 표기)
+const nfmt = (n: number) => n.toLocaleString('ko-KR');
 
 const lines = (v: any): string[] =>
   String(v || '')
@@ -104,25 +106,25 @@ export default function Page() {
         }
         const ran = s.pass + s.fail + s.blocked;
         const leftOver = status === 'done' && s.na > 0;
-        return <span title={`총 ${s.total}건 · 실행 ${ran}건 · 미실행 ${s.na}건${leftOver ? ' — 완료된 차수인데 미실행 케이스가 남아 있습니다' : ''}`} style={{fontSize:12,cursor:'help',whiteSpace:'nowrap'}}>
-          <b>{ran}</b><span className="muted">/{s.total}</span>
-          {leftOver && <span style={{marginLeft:6,color:'#c0414f',fontWeight:700,fontSize:11.5}}>⚠ 미실행 {s.na}</span>}
+        return <span title={`총 ${nfmt(s.total)}건 · 실행 ${nfmt(ran)}건 · 미실행 ${nfmt(s.na)}건${leftOver ? ' — 완료된 차수인데 미실행 케이스가 남아 있습니다' : ''}`} style={{fontSize:12,cursor:'help',whiteSpace:'nowrap'}}>
+          <b>{nfmt(ran)}</b><span className="muted">/{nfmt(s.total)}</span>
+          {leftOver && <span style={{marginLeft:6,color:'#c0414f',fontWeight:700,fontSize:11.5}}>⚠ 미실행 {nfmt(s.na)}</span>}
         </span>;
       }},
       {key:'passRate',label:'통과율',render:(_v,row)=>{
         const s = statOf(row);
         const status = String(row?.status || 'planned');
         if (!s || s.rate === null) {
-          if (s && s.total && status !== 'planned') return <span title={`케이스 ${s.total}건이 모두 미실행입니다 — 차수는 ${status === 'done' ? '완료' : '진행'} 상태입니다`} style={{color:'#c0414f',fontWeight:700,fontSize:11.5,cursor:'help'}}>⚠ 미실행</span>;
+          if (s && s.total && status !== 'planned') return <span title={`케이스 ${nfmt(s.total)}건이 모두 미실행입니다 — 차수는 ${status === 'done' ? '완료' : '진행'} 상태입니다`} style={{color:'#c0414f',fontWeight:700,fontSize:11.5,cursor:'help'}}>⚠ 미실행</span>;
           return <span className="muted" style={{fontSize:11.5}}>미실행</span>;
         }
         const pct = Math.min(100, s.rate);
         const col = pct >= 80 ? '#2f8f5b' : pct >= 50 ? '#d98a16' : '#c0414f';
-        return <div className="row" style={{gap:8,cursor:'help',whiteSpace:'nowrap'}} title={`통과 ${s.pass} · 실패 ${s.fail} · 블록 ${s.blocked} · 미실행 ${s.na} — 통과율은 실행된 ${s.pass + s.fail + s.blocked}건 기준`}>
+        return <div className="row" style={{gap:8,cursor:'help',whiteSpace:'nowrap'}} title={`통과 ${nfmt(s.pass)} · 실패 ${nfmt(s.fail)} · 블록 ${nfmt(s.blocked)} · 미실행 ${nfmt(s.na)} — 통과율은 실행된 ${nfmt(s.pass + s.fail + s.blocked)}건 기준`}>
           <div className="bar"><i style={{width:`${pct}%`,background:col}}/></div>
           <span style={{fontSize:11.5,color:col,fontWeight:700,fontVariantNumeric:'tabular-nums'}}>{pct}%</span>
-          {s.fail > 0 && <span title={`실패 ${s.fail}건 — 결함 조치 후 재실행이 필요합니다`} style={{color:'#c0414f',fontWeight:700,fontSize:11}}>⚠{s.fail}</span>}
-          {s.blocked > 0 && <span title={`블록 ${s.blocked}건 — 선행 조건 미충족으로 실행되지 못한 케이스`} style={{color:'#d98a16',fontWeight:700,fontSize:11}}>■{s.blocked}</span>}
+          {s.fail > 0 && <span title={`실패 ${nfmt(s.fail)}건 — 결함 조치 후 재실행이 필요합니다`} style={{color:'#c0414f',fontWeight:700,fontSize:11}}>⚠{nfmt(s.fail)}</span>}
+          {s.blocked > 0 && <span title={`블록 ${nfmt(s.blocked)}건 — 선행 조건 미충족으로 실행되지 못한 케이스`} style={{color:'#d98a16',fontWeight:700,fontSize:11}}>■{nfmt(s.blocked)}</span>}
         </div>;
       }},
       {key:'status',label:'상태',badge:true},
