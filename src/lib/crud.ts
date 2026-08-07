@@ -7,6 +7,7 @@ import { requirePermission } from './rbac';
 import { nextSeq, formatCode } from './codegen';
 import { audit } from './audit';
 import { handle, ok, ApiError, ERROR } from './http';
+import { pickInsertFields, missingRequired, pickPatchFields, needsApprove, computeJournalChanges } from './crudPure.ts';
 type Scope = 'org' | 'project' | 'user';
 // approveOn: 지정 필드 값이 목록에 포함되면 'write'가 아닌 'approve' 권한을 요구(결재 경계)
 export type CrudConfig = { table: any; resource: string; scope: Scope; codePrefix?: string; fields: string[]; required?: string[]; transform?: (values: any) => any; orderAsc?: boolean; guardDelete?: (ctx: TenantContext, id: number) => Promise<void>; approveOn?: { field: string; values: string[] }; journal?: boolean; versionOn?: boolean; };
@@ -27,8 +28,8 @@ export function collection(cfg: CrudConfig) {
     const body = await req.json(); const t = cfg.table; const values: any = { orgId: ctx.orgId };
     if (cfg.scope === 'project') { const pid = Number(body.projectId); if (!pid) throw new ApiError(ERROR.VALIDATION, '프로젝트를 선택하세요'); await assertProject(ctx.orgId, pid); values.projectId = pid; }
     if (cfg.scope === 'user') values.userId = ctx.user.id;
-    for (const f of cfg.fields) if (body[f] !== undefined && body[f] !== '') values[f] = body[f];
-    for (const r of cfg.required ?? []) if (values[r] === undefined || values[r] === '') throw new ApiError(ERROR.VALIDATION, `필수 항목을 입력하세요`);
+    Object.assign(values, pickInsertFields(cfg.fields, body));
+    if (missingRequired(cfg.required, values).length) throw new ApiError(ERROR.VALIDATION, `필수 항목을 입력하세요`);
     if (cfg.transform) Object.assign(values, cfg.transform(values));
     if (cfg.codePrefix) { const key = cfg.scope === 'project' ? `${cfg.codePrefix}:${values.projectId}` : cfg.codePrefix; values.code = formatCode(cfg.codePrefix, await nextSeq(ctx.orgId, key)); }
     const ins: any = await db.insert(t).values(values).returning(); const row = ins[0];
@@ -42,15 +43,14 @@ export function item(cfg: CrudConfig) {
     const ctx = await ctxOf(); if (cfg.scope !== 'user') await requirePermission(ctx, cfg.resource, 'write');
     const t = cfg.table; const body = await req.json(); const patch: any = {};
     // 결재(승인/반려) 경계: 상태를 결재 확정값으로 바꾸는 경우 'approve' 권한 추가 요구
-    if (cfg.approveOn && cfg.approveOn.values.includes(body[cfg.approveOn.field])) await requirePermission(ctx, cfg.resource, 'approve');
+    if (needsApprove(cfg.approveOn, body)) await requirePermission(ctx, cfg.resource, 'approve');
     const before: any = (cfg.journal || cfg.versionOn) ? (await db.select().from(t).where(and(eq(t.id, Number(c.params.id)), eq(t.orgId, ctx.orgId))).limit(1))[0] : null;
-    for (const f of cfg.fields) if (body[f] !== undefined && body[f] !== null && body[f] !== '') patch[f] = body[f];
+    Object.assign(patch, pickPatchFields(cfg.fields, body));
     if (cfg.transform) Object.assign(patch, cfg.transform({ ...body, ...patch }));
     const uw: any[] = [eq(t.id, Number(c.params.id)), eq(t.orgId, ctx.orgId)]; if (cfg.scope === 'user') uw.push(eq(t.userId, ctx.user.id)); const upd: any = await db.update(t).set(patch).where(and(...uw)).returning(); const row = upd[0];
     if (!row) throw new ApiError(ERROR.NOT_FOUND, '대상을 찾을 수 없습니다');
     if (cfg.journal && before) {
-      const changes: { field: string; from: any; to: any }[] = [];
-      for (const f of cfg.fields) { if (patch[f] !== undefined && String(before[f] ?? '') !== String(row[f] ?? '')) changes.push({ field: f, from: before[f] ?? null, to: row[f] ?? null }); }
+      const changes = computeJournalChanges(cfg.fields, patch, before, row);
       if (changes.length) { try { await db.insert(issueJournals).values({ orgId: ctx.orgId, issueId: row.id, userId: ctx.user.id, authorName: ctx.user.name, changes: JSON.stringify(changes) }); } catch (e) { console.error('[journal] insert 실패', e); } }
     }
     if (cfg.versionOn && before && String(before.version ?? '') !== String(row.version ?? '')) {
@@ -67,15 +67,8 @@ export function item(cfg: CrudConfig) {
   });
   return { PATCH, DELETE };
 }
-export const RISK_TRANSFORM = (v: any) => {
-  const p = Number(v.probability) || 3, i = Number(v.impact) || 3; const s = p * i;
-  return { probability: p, impact: i, level: s >= 15 ? 'high' : s >= 8 ? 'medium' : 'low' };
-};
-export const DOCUMENTS_TRANSFORM = (v: any) => {
-  if (v.status === 'approved') return { approvedAt: new Date() };
-  if (v.status === 'rejected' || v.status === 'draft' || v.status === 'review') return { approvedAt: null };
-  return {};
-};
+// RISK_TRANSFORM·DOCUMENTS_TRANSFORM 은 순수모듈로 이동(동작 동일) — 기존 import 경로 호환을 위해 재수출
+export { RISK_TRANSFORM, DOCUMENTS_TRANSFORM } from './crudPure.ts';
 // ---- 삭제 정합성 가드 (관련 데이터가 남아있으면 삭제 차단) ----
 // 상위 작업 삭제 시 하위 작업 고아 방지: parentId가 이 작업을 가리키는 하위 작업이 있으면 차단
 export const GUARD_TASK_CHILDREN = async (ctx: TenantContext, id: number) => {
