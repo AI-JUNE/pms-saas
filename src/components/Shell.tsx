@@ -55,6 +55,7 @@ const NAV = [
   ]},
 ];
 const ALL = NAV.flatMap((g) => g.items);
+const nfmt = (n: number) => n.toLocaleString('ko-KR');
 let SHELL_CACHE: { me?: any; projects?: any[]; notifs?: any[] } = {};
 
 export function Shell({ children, title }: { children: React.ReactNode; title: string }) {
@@ -72,6 +73,7 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
   const [big, setBig] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   useEffect(() => { const b = localStorage.getItem('pms.big') === '1'; setBig(b); document.documentElement.classList.toggle('big', b); }, []);
+  useEffect(() => { document.title = title ? `${title} — PMS` : 'PMS — Project Management System'; }, [title]);
   function toggleBig() { const b = !big; setBig(b); localStorage.setItem('pms.big', b ? '1' : '0'); document.documentElement.classList.toggle('big', b); }
 
   useEffect(() => {
@@ -116,7 +118,7 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
           <div key={g.group}>
             <div className="nav-group">{g.group}</div>
             {g.items.map((n) => { const Icon = n.icon; const active = path === n.href || (n.href !== '/dashboard' && path.startsWith(n.href));
-              return (<Link key={n.href} href={n.href} prefetch onClick={() => setMenuOpen(false)} className={`nav-item ${active ? 'active' : ''}`}><Icon /><span>{n.label}</span>{n.href === '/notifications' && unread > 0 && <span className="nav-badge">{unread}</span>}</Link>); })}
+              return (<Link key={n.href} href={n.href} prefetch onClick={() => setMenuOpen(false)} className={`nav-item ${active ? 'active' : ''}`} aria-current={active ? 'page' : undefined}><Icon /><span>{n.label}</span>{n.href === '/notifications' && unread > 0 && <span className="nav-badge" title={`안 읽은 알림 ${nfmt(unread)}건`}>{nfmt(unread)}</span>}</Link>); })}
           </div>
         ))}
         <div style={{ flex: 1 }} />
@@ -155,10 +157,10 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
             <Search style={{ width: 16, height: 16 }} /><span style={{ flex: 1, textAlign: 'left' }}>검색 / 이동…</span><span className="kbd">⌘K</span>
           </button>
           <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
-            <button className="iconbtn" aria-label="알림" onClick={() => setOpenMenu(openMenu === 'notif' ? null : 'notif')}><Bell style={{ width: 19 }} />{unread > 0 && <span className="dot" />}</button>
+            <button className="iconbtn" aria-label={unread > 0 ? `알림 (안 읽음 ${nfmt(unread)}건)` : '알림'} onClick={() => setOpenMenu(openMenu === 'notif' ? null : 'notif')}><Bell style={{ width: 19 }} />{unread > 0 && <span className="dot" />}</button>
             {openMenu === 'notif' && (
               <div className="menu" style={{ minWidth: 300 }}>
-                <div style={{ padding: '6px 10px', fontWeight: 750, fontSize: 13 }}>알림 {unread > 0 ? `(${unread})` : ''}</div><div className="menu-sep" />
+                <div style={{ padding: '6px 10px', fontWeight: 750, fontSize: 13 }}>알림 {unread > 0 ? `(${nfmt(unread)})` : ''}</div><div className="menu-sep" />
                 {notifs.slice(0, 6).map((n) => (<div key={n.id} className="menu-item" style={{ alignItems: 'flex-start', cursor: 'default' }}><span style={{ width: 7, height: 7, borderRadius: 9, background: n.isRead ? 'var(--text-4)' : 'var(--brand)', marginTop: 6 }} /><span style={{ fontWeight: n.isRead ? 500 : 700 }}>{n.message}</span></div>))}
                 {notifs.length === 0 && <div className="muted" style={{ padding: 10 }}>알림이 없습니다.</div>}
                 <div className="menu-sep" /><Link href="/notifications" className="menu-item">모두 보기</Link>
@@ -175,7 +177,7 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
                 </div>
                 <div className="menu-sep" />
                 <Link href="/mywork" className="menu-item" onClick={() => setOpenMenu(null)}><UserCheck style={{ width: 16 }} />내 작업</Link>
-                <Link href="/notifications" className="menu-item" onClick={() => setOpenMenu(null)}><Bell style={{ width: 16 }} />알림{unread > 0 && <span className="nav-badge" style={{ marginLeft: 'auto' }}>{unread}</span>}</Link>
+                <Link href="/notifications" className="menu-item" onClick={() => setOpenMenu(null)}><Bell style={{ width: 16 }} />알림{unread > 0 && <span className="nav-badge" style={{ marginLeft: 'auto' }} title={`안 읽은 알림 ${nfmt(unread)}건`}>{nfmt(unread)}</span>}</Link>
                 <Link href="/settings" className="menu-item" onClick={() => setOpenMenu(null)}><Settings style={{ width: 16 }} />내 계정·설정</Link>
                 <Link href="/audit" className="menu-item" onClick={() => setOpenMenu(null)}><Activity style={{ width: 16 }} />감사 로그</Link>
                 <div className="menu-sep" />
@@ -197,7 +199,7 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
             return (
               <Link key={t.href} href={t.href} prefetch className={`mobiletab ${active ? 'active' : ''}`} aria-current={active ? 'page' : undefined}>
                 <Icon />
-                {t.href === '/notifications' && unread > 0 && <span className="mt-badge">{unread}</span>}
+                {t.href === '/notifications' && unread > 0 && <span className="mt-badge">{nfmt(unread)}</span>}
                 <span>{t.label}</span>
               </Link>
             );
