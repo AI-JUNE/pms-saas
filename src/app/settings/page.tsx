@@ -46,7 +46,7 @@ export default function Page() {
             <p className="muted" style={{ fontSize: 12, margin: '8px 0 0', lineHeight: 1.55 }}>이 코드를 팀원에게 공유하세요. 회원가입 화면의 ‘초대 코드’에 입력하면 같은 조직에 팀원으로 합류합니다.</p>
           </div>
         )}
-        <div className="row" style={{ gap: 18, fontSize: 13 }}><span className="muted">플랜</span><span className="pill p-blue np" title={`플랜: ${d.org?.plan || 'free'}`}>{PLAN_LABEL[d.org?.plan] || d.org?.plan || '무료'}</span><span className="muted">내 역할</span><span className={`pill ${ROLE_BADGE[d.role] || 'p-purple'} np`} title={`역할: ${d.role}`}>{ROLE_LABEL[d.role] || d.role}</span></div>
+        <div className="row" style={{ gap: 18, fontSize: 13 }}><span className="muted">플랜</span><span className="pill p-blue np" title={`플랜: ${d.org?.plan || 'free'}`}>{PLAN_LABEL[d.org?.plan] || d.org?.plan || '무료'}</span><a className="btn btn-sm" href="/settings/billing" title="요금제·결제 상태 관리(테스트 모드)">구독 관리</a><span className="muted">내 역할</span><span className={`pill ${ROLE_BADGE[d.role] || 'p-purple'} np`} title={`역할: ${d.role}`}>{ROLE_LABEL[d.role] || d.role}</span></div>
         {d.isOrgAdmin && (() => { const nn = name.trim(); const changed = !!nn && nn !== (d.org?.name || ''); return (<div style={{ marginTop: 16 }}><button className="btn btn-pri" onClick={save} disabled={!changed}>{saved ? '저장됨 ✓' : '저장'}</button>{!nn && <p className="muted" style={{ margin: '8px 0 0', fontSize: 12 }}>조직명은 비워둘 수 없습니다.</p>}{!!nn && !changed && !saved && <p className="muted" style={{ margin: '8px 0 0', fontSize: 12 }}>변경된 내용이 없습니다.</p>}</div>); })()}
       </div>
       <div className="card card-pad" style={{ maxWidth: 560, marginTop: 14 }}>
