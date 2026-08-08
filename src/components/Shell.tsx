@@ -112,6 +112,7 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
 
   return (
     <div className="app" onClick={() => setOpenMenu(null)}>
+      <a href="#main-content" className="skip-link">본문으로 건너뛰기</a>
       <aside className={`sidebar ${menuOpen ? 'open' : ''}`}>
         <Logo />
         {NAV.map((g) => (
@@ -186,7 +187,7 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
             )}
           </div>
         </header>
-        <div className="content">{children}</div>
+        <main id="main-content" tabIndex={-1} className="content">{children}</main>
         <nav className="mobiletabs" aria-label="모바일 탐색">
           {[
             { href: '/dashboard', label: '대시보드', icon: LayoutDashboard },

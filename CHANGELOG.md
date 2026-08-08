@@ -3,6 +3,10 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-08-08 (배치 142 — 배포 대기, 본문 바로가기 skip link + main 랜드마크)
+- ⑨ **전 화면 공통: '본문으로 건너뛰기'(skip to content) 링크 + `<main>` 랜드마크** — 배치130~135·141 접근성 스윕이 정렬·그룹·다이얼로그·대체뷰·클릭 요소를 커버했지만, 키보드 사용자는 매 화면 진입 시 사이드바 링크 약 29개+상단바를 전부 Tab으로 지나야 본문에 도달했고(WCAG 2.4.1 Bypass Blocks 미충족), 본문 영역이 `div.content`라 `<main>` 랜드마크도 부재였음. Shell 최상단에 `<a href="#main-content" class="skip-link">본문으로 건너뛰기</a>` 추가 — 평소 화면 밖(top:-52px) 절대배치라 시각 사용자에게 무영향, Tab 첫 포커스 시 브랜드색 배너로 노출(`:focus`→top:0, 배치130 계열과 동일한 순수 마크업 접근). 본문은 `div.content`→`<main id="main-content" tabIndex={-1} class="content">`로 교체해 앵커 이동 시 포커스 착지+보조기술 main 랜드마크 제공(globals.css 셀렉터가 전부 `.content` 클래스 기반이라 스타일 무영향 확인). `.app`은 flex지만 skip-link는 absolute라 레이아웃 무영향. Shell 공통이라 22개 화면+전 목록 일괄 커버. 순수 마크업/CSS — 데이터·API·스키마·Props 무영향, 마이그레이션 불필요. 2파일. — src/components/Shell.tsx, src/app/globals.css
+- 검증: 전체 `tsc --noEmit -p tsconfig.json`(50s 캡) **완주** — rc=0·`error TS` 0건·출력 0줄. 작업 전 src 백업(/tmp/bak_wk_1786154541). 마운트(=OneDrive 실파일) 무결성 확인 — 2파일 깨진문자(U+FFFD) 0, 228·439줄·파일 끝 완전성 정상, skip-link 2건(마크업+CSS)·#main-content 3건 확인.
+
 ## 2026-08-08 (배치 141 — 배포 대기, Shell 공통 알림 카운트 쉼표 + 사이드바 aria-current)
 - ⑨ **Shell 공통: 알림 unread 카운트 천단위 쉼표 + 사이드바 현재 화면 aria-current** — 배치123~139 카운트 쉼표 스윕이 화면(page) 단위였던 탓에 전 화면이 공유하는 Shell.tsx 자체가 누락돼 있었음: 사이드바 nav-badge·알림 드롭다운 헤더 `(n)`·사용자 메뉴 알림 배지·모바일 탭 mt-badge 4지점이 원시 정수. 컴포넌트 밖 `nfmt(n)=n.toLocaleString('ko-KR')` 추가 후 일괄 적용(배치114~139와 동일 표기) + 사이드바·사용자 메뉴 배지에 `안 읽은 알림 n건` hover 툴팁, 상단 벨 버튼 aria-label에 안읽음 건수 포함(`알림 (안 읽음 n건)`). 또한 모바일 탭바는 `aria-current="page"`를 노출하는데 사이드바 nav-item은 미노출이라 스크린리더가 현재 화면을 인지 못 했음 — 동일 패턴으로 부여(active 계산식 재사용, 표시 무변경). 순수 표시/마크업 — 데이터·API·스키마·Props 무영향, 마이그레이션 불필요. 단일 파일. — src/components/Shell.tsx
 - 검증: 전체 `tsc --noEmit -p tsconfig.json`(50s 캡) **완주** — rc=0·`error TS` 0건·출력 0줄. 작업 전 src 백업(/tmp/bak_1786125900). 마운트(=OneDrive 실파일) 무결성 확인 — 깨진문자(U+FFFD) 0, 227줄·파일 끝 완전성 정상, nfmt 7건(정의 포함)·aria-current 2건 확인.
