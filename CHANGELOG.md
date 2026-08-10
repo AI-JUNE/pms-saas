@@ -3,6 +3,10 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-08-08 (배치 143 — 배포 대기, 폼 라벨-입력 연결 + 툴바 레이블 없는 컨트롤 aria-label)
+- ⑨ **목록 공통: 수정/생성 모달 폼 라벨-입력 연결(htmlFor/id) + 툴바 레이블 없는 컨트롤 스윕** — 배치130~142 접근성 스윕이 정렬·그룹·다이얼로그·클릭 요소·skip link를 커버했지만, 정작 폼 내부는 `<label>{f.label}</label>`이 입력과 미연결이라 스크린리더가 모든 입력을 "편집 가능"으로만 낭독했고 라벨 클릭 포커스도 불가였음. 각 필드에 `id='ff-'+f.key` 부여 + `htmlFor` 연결(textarea·select·combo·comma·기본 input 5개 분기 전부), 필수 필드(`f.required`)는 `aria-required`로 노출(네이티브 required는 기존 검증 흐름 변경 우려로 미사용), 저장 오류 배너에 `role="alert"`(오류 발생 즉시 낭독). 툴바도 레이블 없는 컨트롤 4종을 보강: 검색 입력 `aria-label={title} 검색`·검색어 지우기 버튼(aria-label+title)·상태 필터/그룹화 select aria-label·하단 빠른 추가 입력 aria-label. 순수 마크업 — 데이터·API·스키마·Props 무영향, 마이그레이션 불필요. 단일 파일. — src/components/ResourceView.tsx
+- 검증: 전체 `tsc --noEmit -p tsconfig.json`(55s 캡) **완주** — rc=0·`error TS` 0건·출력 0줄. 작업 전 src 백업(/tmp/bak_wk_1786168944). 마운트(=OneDrive 실파일) 무결성 확인 — 깨진문자(U+FFFD) 0, 521줄·파일 끝 완전성 정상, htmlFor 1건·id/aria-required 각 5건·role="alert" 1건·aria-label 신규 5건 확인.
+
 ## 2026-08-08 (배치 142 — 배포 대기, 본문 바로가기 skip link + main 랜드마크)
 - ⑨ **전 화면 공통: '본문으로 건너뛰기'(skip to content) 링크 + `<main>` 랜드마크** — 배치130~135·141 접근성 스윕이 정렬·그룹·다이얼로그·대체뷰·클릭 요소를 커버했지만, 키보드 사용자는 매 화면 진입 시 사이드바 링크 약 29개+상단바를 전부 Tab으로 지나야 본문에 도달했고(WCAG 2.4.1 Bypass Blocks 미충족), 본문 영역이 `div.content`라 `<main>` 랜드마크도 부재였음. Shell 최상단에 `<a href="#main-content" class="skip-link">본문으로 건너뛰기</a>` 추가 — 평소 화면 밖(top:-52px) 절대배치라 시각 사용자에게 무영향, Tab 첫 포커스 시 브랜드색 배너로 노출(`:focus`→top:0, 배치130 계열과 동일한 순수 마크업 접근). 본문은 `div.content`→`<main id="main-content" tabIndex={-1} class="content">`로 교체해 앵커 이동 시 포커스 착지+보조기술 main 랜드마크 제공(globals.css 셀렉터가 전부 `.content` 클래스 기반이라 스타일 무영향 확인). `.app`은 flex지만 skip-link는 absolute라 레이아웃 무영향. Shell 공통이라 22개 화면+전 목록 일괄 커버. 순수 마크업/CSS — 데이터·API·스키마·Props 무영향, 마이그레이션 불필요. 2파일. — src/components/Shell.tsx, src/app/globals.css
 - 검증: 전체 `tsc --noEmit -p tsconfig.json`(50s 캡) **완주** — rc=0·`error TS` 0건·출력 0줄. 작업 전 src 백업(/tmp/bak_wk_1786154541). 마운트(=OneDrive 실파일) 무결성 확인 — 2파일 깨진문자(U+FFFD) 0, 228·439줄·파일 끝 완전성 정상, skip-link 2건(마크업+CSS)·#main-content 3건 확인.

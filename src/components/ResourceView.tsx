@@ -307,17 +307,17 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
       <div className="toolbar">
         <div className="search" style={{ minWidth: 200 }}>
           <Search style={{ width: 16, height: 16 }} />
-          <input placeholder="검색…" value={q} onChange={(e) => setQ(e.target.value)} />
-          {q && <button onClick={() => setQ('')} style={{ color: 'var(--text-3)' }}><X style={{ width: 15 }} /></button>}
+          <input placeholder="검색…" aria-label={`${title} 검색`} value={q} onChange={(e) => setQ(e.target.value)} />
+          {q && <button onClick={() => setQ('')} aria-label="검색어 지우기" title="검색어 지우기" style={{ color: 'var(--text-3)' }}><X style={{ width: 15 }} /></button>}
         </div>
         {statuses.length > 0 && (
-          <select className="sel" value={filter} onChange={(e) => setFilter(e.target.value)}>
+          <select className="sel" aria-label="상태 필터" title="상태 필터" value={filter} onChange={(e) => setFilter(e.target.value)}>
             <option value="">전체 상태</option>
             {statuses.map((s) => <option key={String(s)} value={String(s)}>{LABEL[String(s)] || String(s)}</option>)}
           </select>
         )}
         {groupCols.length > 0 && (
-          <select className="sel" value={groupBy} onChange={(e) => { setGroupBy(e.target.value); try { localStorage.setItem('pms.group.' + title, e.target.value); } catch {} }} title="그룹화">
+          <select className="sel" value={groupBy} onChange={(e) => { setGroupBy(e.target.value); try { localStorage.setItem('pms.group.' + title, e.target.value); } catch {} }} title="그룹화" aria-label="그룹화 기준">
             <option value="">그룹화 없음</option>
             {groupCols.map((k) => <option key={k} value={k}>그룹: {columns.find((c) => c.key === k)?.label}</option>)}
           </select>
@@ -405,7 +405,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
               <tr><td colSpan={visibleColumns.length + 2} style={{ padding: '6px 12px', background: 'var(--surface-2)' }}>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <span style={{ color: 'var(--brand)', fontWeight: 800 }}>+</span>
-                  <input className="in" style={{ maxWidth: 300, height: 30 }} placeholder={(Boolean(projectScoped) && !pid) ? '먼저 프로젝트를 선택하세요' : '여기에 입력 후 Enter로 빠른 추가'} value={quickText} onChange={(e) => setQuickText(e.target.value)} disabled={Boolean(projectScoped) && !pid} onKeyDown={async (e) => { if (e.key === 'Enter' && quickText.trim()) { const okc = await quickCreate({ [primaryField]: quickText.trim() }); if (okc !== false) setQuickText(''); } }} />
+                  <input className="in" aria-label={`${title} 빠른 추가 — 입력 후 Enter`} style={{ maxWidth: 300, height: 30 }} placeholder={(Boolean(projectScoped) && !pid) ? '먼저 프로젝트를 선택하세요' : '여기에 입력 후 Enter로 빠른 추가'} value={quickText} onChange={(e) => setQuickText(e.target.value)} disabled={Boolean(projectScoped) && !pid} onKeyDown={async (e) => { if (e.key === 'Enter' && quickText.trim()) { const okc = await quickCreate({ [primaryField]: quickText.trim() }); if (okc !== false) setQuickText(''); } }} />
                 </div>
               </td></tr>
             )}
@@ -488,20 +488,23 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
         <div className="mscrim" onClick={() => setOpen(false)}>
           <form className="modal" role="dialog" aria-modal="true" aria-label={editing ? `${title} 수정` : `${title} 새로 만들기`} onClick={(e) => e.stopPropagation()} onSubmit={save}>
             <div className="modal-h"><h3 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>{editing ? '수정' : '새로 만들기'}</h3><div className="sp" /><button type="button" className="iconbtn" aria-label="닫기" onClick={() => setOpen(false)}><X /></button></div>
-            {err && <div className="err">{err}</div>}
+            {err && <div className="err" role="alert">{err}</div>}
             <div className="modal-b"><div className="grid2">
               {fields.map((f) => {
                 const srcOpts = f.optionsFrom === 'members' ? memberOpts : f.optionsFrom === 'tasks' ? taskOpts.filter((o: any) => o.value !== String(editing?.id)) : (f.options || []);
                 const optNorm = (srcOpts as any[]).map(normOpt);
                 const dlId = 'dl-' + f.key;
+                // 라벨-입력 연결(htmlFor/id) — 스크린리더가 필드명을 낭독하고, 라벨 클릭 시 입력에 포커스 (필수 필드는 aria-required)
+                const inId = 'ff-' + f.key;
+                const req = f.required ? true : undefined;
                 return (
                 <div className="field" key={f.key} style={{ gridColumn: f.half ? 'auto' : '1 / -1' }}>
-                  <label>{f.label}{f.required && ' *'}</label>
-                  {f.type === 'textarea' ? <textarea className="in" value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} />
-                    : f.type === 'select' ? <select className="in" value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}><option value="">선택</option>{optNorm.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
-                    : f.type === 'combo' ? <><input className="in" list={dlId} placeholder={f.placeholder || '선택하거나 직접 입력'} value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} /><datalist id={dlId}>{optNorm.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}</datalist></>
-                    : f.comma ? <input className="in" inputMode="numeric" style={{ textAlign: 'right' }} placeholder={f.placeholder || ''} value={(form[f.key] === '' || form[f.key] === undefined || form[f.key] === null) ? '' : Number(String(form[f.key]).replace(/[^0-9]/g, '') || '0').toLocaleString()} onChange={(e) => setForm({ ...form, [f.key]: e.target.value.replace(/[^0-9]/g, '') })} />
-                    : <input className="in" type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'} placeholder={f.placeholder || ''} value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} />}
+                  <label htmlFor={inId}>{f.label}{f.required && ' *'}</label>
+                  {f.type === 'textarea' ? <textarea id={inId} aria-required={req} className="in" value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} />
+                    : f.type === 'select' ? <select id={inId} aria-required={req} className="in" value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}><option value="">선택</option>{optNorm.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
+                    : f.type === 'combo' ? <><input id={inId} aria-required={req} className="in" list={dlId} placeholder={f.placeholder || '선택하거나 직접 입력'} value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} /><datalist id={dlId}>{optNorm.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}</datalist></>
+                    : f.comma ? <input id={inId} aria-required={req} className="in" inputMode="numeric" style={{ textAlign: 'right' }} placeholder={f.placeholder || ''} value={(form[f.key] === '' || form[f.key] === undefined || form[f.key] === null) ? '' : Number(String(form[f.key]).replace(/[^0-9]/g, '') || '0').toLocaleString()} onChange={(e) => setForm({ ...form, [f.key]: e.target.value.replace(/[^0-9]/g, '') })} />
+                    : <input id={inId} aria-required={req} className="in" type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'} placeholder={f.placeholder || ''} value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} />}
                   {f.hint && <span style={{ fontSize: 11, color: 'var(--text-4)', marginTop: 5, display: 'block', lineHeight: 1.55, letterSpacing: '-0.01em' }}>{f.hint}</span>}
                 </div>
                 );
