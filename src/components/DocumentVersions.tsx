@@ -4,6 +4,7 @@ import { History } from 'lucide-react';
 
 const STATUS_LABEL: Record<string, string> = { draft: '작성중', review: '결재요청', approved: '승인', rejected: '반려' };
 
+const nfmt = (n: number) => n.toLocaleString('ko-KR');
 export function DocumentVersions({ documentId }: { documentId: number }) {
   const [rows, setRows] = useState<any[]>([]);
   useEffect(() => {
@@ -11,11 +12,11 @@ export function DocumentVersions({ documentId }: { documentId: number }) {
   }, [documentId]);
   return (
     <div style={{ marginTop: 22 }}>
-      <div className="sect" style={{ marginBottom: 8 }}><History style={{ width: 14, verticalAlign: '-2px', marginRight: 4 }} />버전 이력 {rows.length > 0 && `(${rows.length})`}</div>
+      <div className="sect" style={{ marginBottom: 8 }} title={rows.length > 0 ? `기록된 버전 ${nfmt(rows.length)}건` : '기록된 버전이 없습니다'}><History style={{ width: 14, verticalAlign: '-2px', marginRight: 4 }} aria-hidden="true" />버전 이력 {rows.length > 0 && `(${nfmt(rows.length)})`}</div>
       <div>
         {rows.map((v) => (
           <div className="cmt" key={v.id}>
-            <div className="av">{String(v.version || 'v').replace(/^v/i, '').slice(0, 3) || 'v'}</div>
+            <div className="av" aria-hidden="true">{String(v.version || 'v').replace(/^v/i, '').slice(0, 3) || 'v'}</div>
             <div className="bd">
               <div className="nm">{v.version || '—'} <span className="muted" style={{ fontWeight: 500 }}>· {STATUS_LABEL[v.status] || v.status || ''}</span></div>
               <div className="tx" style={{ fontSize: 12.5 }}>{v.note || ''}{v.author ? ` · ${v.author}` : ''}</div>

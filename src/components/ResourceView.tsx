@@ -136,6 +136,45 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
     window.addEventListener('keydown', onEsc);
     return () => window.removeEventListener('keydown', onEsc);
   }, []);
+
+  // 다이얼로그 포커스 관리(배치144) — 열릴 때 내부 첫 요소로 포커스 이동, Tab 순환 가둠, 닫힐 때 직전 요소로 복귀
+  const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+  const modalRef = useRef<HTMLFormElement | null>(null);
+  const overRef = useRef<HTMLElement | null>(null);
+  const lastFocusRef = useRef<HTMLElement | null>(null);
+  function focusables(host: HTMLElement | null) {
+    if (!host) return [] as HTMLElement[];
+    return Array.from(host.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((n) => n.offsetParent !== null || n === document.activeElement);
+  }
+  function trapTab(e: React.KeyboardEvent) {
+    if (e.key !== 'Tab') return;
+    const host = e.currentTarget as HTMLElement;
+    const nodes = focusables(host);
+    if (nodes.length === 0) return;
+    const first = nodes[0], last = nodes[nodes.length - 1];
+    const cur = document.activeElement as HTMLElement | null;
+    if (e.shiftKey) { if (!cur || cur === first || !host.contains(cur)) { e.preventDefault(); last.focus(); } }
+    else if (!cur || cur === last || !host.contains(cur)) { e.preventDefault(); first.focus(); }
+  }
+  const detailOpen = Boolean(detail);
+  useEffect(() => {
+    if (!open && !detailOpen) return;
+    lastFocusRef.current = (document.activeElement as HTMLElement) || null;
+    const t = window.setTimeout(() => {
+      const host: HTMLElement | null = open ? modalRef.current : overRef.current;
+      const nodes = focusables(host);
+      if (nodes.length === 0) return;
+      // 모달(입력 폼)은 첫 입력 컨트롤, 상세 패널은 첫 포커스 가능 요소
+      const target = open ? (nodes.find((n) => /^(INPUT|TEXTAREA|SELECT)$/.test(n.tagName)) || nodes[0]) : nodes[0];
+      try { target.focus(); } catch {}
+    }, 0);
+    return () => {
+      window.clearTimeout(t);
+      const prev = lastFocusRef.current;
+      if (prev && document.body.contains(prev)) { try { prev.focus(); } catch {} }
+    };
+    // eslint-disable-next-line
+  }, [open, detailOpen]);
   useEffect(() => {
     if (fields.some((f) => f.optionsFrom === 'members')) {
       fetch('/api/members').then((r) => r.ok ? r.json() : []).then((d) => setMemberOpts((Array.isArray(d) ? d : []).map((m: any) => m.name).filter(Boolean)));
@@ -415,7 +454,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
 
       {detail && (<>
         <div className="scrim" onClick={() => setDetail(null)} />
-        <aside className="over" role="dialog" aria-modal="true" aria-label={`${title} 상세`} onTouchStart={onOverTouchStart} onTouchMove={onOverTouchMove} onTouchEnd={onOverTouchEnd} style={swipeY > 0 ? { transform: `translateY(${swipeY}px)`, transition: 'none' } : undefined}>
+        <aside ref={overRef} onKeyDown={trapTab} className="over" role="dialog" aria-modal="true" aria-label={`${title} 상세`} onTouchStart={onOverTouchStart} onTouchMove={onOverTouchMove} onTouchEnd={onOverTouchEnd} style={swipeY > 0 ? { transform: `translateY(${swipeY}px)`, transition: 'none' } : undefined}>
           <div className="over-grip" aria-hidden />
           <div className="over-h"><span className="mono" style={{ fontSize: 13 }}>{detail.code || `#${detail.id}`}</span><div className="sp" />{(() => { const i = view.findIndex((r) => r.id === detail.id); if (i < 0 || view.length < 2) return null; return (<><span className="muted" style={{ fontSize: 11.5, marginRight: 4, fontVariantNumeric: 'tabular-nums' }} title="현재 목록에서의 위치">{nfmt(i + 1)}/{nfmt(view.length)}</span><button className="iconbtn" aria-label="이전 항목" title="이전 항목 (↑)" disabled={i <= 0} style={i <= 0 ? { opacity: .4, cursor: 'default' } : undefined} onClick={() => i > 0 && setDetail(view[i - 1])}><ChevronUp /></button><button className="iconbtn" aria-label="다음 항목" title="다음 항목 (↓)" disabled={i >= view.length - 1} style={i >= view.length - 1 ? { opacity: .4, cursor: 'default' } : undefined} onClick={() => i < view.length - 1 && setDetail(view[i + 1])}><ChevronDown /></button></>); })()}<button className="iconbtn" aria-label="닫기" onClick={() => setDetail(null)}><X /></button></div>
           <div className="over-b">
@@ -486,7 +525,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
 
       {open && (
         <div className="mscrim" onClick={() => setOpen(false)}>
-          <form className="modal" role="dialog" aria-modal="true" aria-label={editing ? `${title} 수정` : `${title} 새로 만들기`} onClick={(e) => e.stopPropagation()} onSubmit={save}>
+          <form ref={modalRef} onKeyDown={trapTab} className="modal" role="dialog" aria-modal="true" aria-label={editing ? `${title} 수정` : `${title} 새로 만들기`} onClick={(e) => e.stopPropagation()} onSubmit={save}>
             <div className="modal-h"><h3 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>{editing ? '수정' : '새로 만들기'}</h3><div className="sp" /><button type="button" className="iconbtn" aria-label="닫기" onClick={() => setOpen(false)}><X /></button></div>
             {err && <div className="err" role="alert">{err}</div>}
             <div className="modal-b"><div className="grid2">
