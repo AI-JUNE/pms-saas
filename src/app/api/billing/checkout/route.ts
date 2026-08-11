@@ -1,4 +1,6 @@
 import { requireUser } from '@/lib/auth';
+import { requireTenant } from '@/lib/tenant';
+import { buildCustomData } from '@/lib/billingWebhook';
 import { handle, ok, ApiError, ERROR } from '@/lib/http';
 import { enforceRateLimit } from '@/lib/ratelimit';
 import { PORTONE, findPlan, newPaymentId, billingStatus } from '@/lib/portone';
@@ -17,6 +19,7 @@ export async function POST(req: Request) {
   return handle(async () => {
     enforceRateLimit(req, { key: 'billing:checkout', limit: 10, windowMs: 60_000 });
     const u = await requireUser();
+    const ctx = await requireTenant(u); // 웹훅 반영 대상 조직 바인딩(customData)용
 
     let body: any = {};
     try { body = await req.json(); } catch { /* empty body allowed */ }
@@ -47,6 +50,8 @@ export async function POST(req: Request) {
       channelKey: PORTONE.channelKey,
       plan: { id: plan.id, name: plan.name, price: plan.price, unit: plan.unit ?? '' },
       customer: { id: String(u.id), email: u.email, name: u.name },
+      // PG가 웹훅으로 echo → 서버가 조직·플랜을 재검증해 반영(반영 자체는 기본 OFF, [승인 필요]).
+      customData: buildCustomData({ orgId: ctx.orgId, userId: u.id, planId: plan.id }),
       redirectUrl: '/pricing?checkout=scaffold',
       billing: billingStatus(),
       note: '테스트 스캐폴딩 응답입니다. 실결제는 발생하지 않습니다. [승인 필요]',

@@ -1,5 +1,10 @@
+import { eq } from 'drizzle-orm';
+import { db } from '@/db';
+import { organizations } from '@/db/schema';
 import { handle, ok, sendError, ERROR } from '@/lib/http';
 import { verifyWebhook, PORTONE } from '@/lib/portone';
+import { BILLING_APPLY_LIVE, decideWebhookAction } from '@/lib/billingWebhook';
+import { auditSecurity } from '@/lib/audit';
 import { log } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
@@ -29,9 +34,29 @@ export async function POST(req: Request) {
       type, paymentId, verified: v.verified, live: PORTONE.live,
     });
 
-    // [승인 필요] 실구독 반영: PAYMENTS_LIVE 승격 후 아래 지점에서 org.plan 업데이트.
-    // 예: Paid → organizations.plan = planId, 감사로그 기록.
+    // 플랜 반영 판정(순수모듈). 기본 OFF(BILLING_APPLY_LIVE=false) → 항상 ignore 사유만 로깅.
+    // 실반영 활성화(BILLING_APPLY_LIVE=true + PAYMENTS_LIVE=true)는 [승인 필요].
+    const decision = decideWebhookAction({
+      type, paymentId,
+      customData: event?.data?.customData ?? event?.customData,
+      verified: v.verified, live: PORTONE.live, applyEnabled: BILLING_APPLY_LIVE,
+    });
 
-    return ok({ ok: true, received: true, type, verified: v.verified });
+    if (decision.action === 'apply') {
+      // 여기 도달 = 서명 검증 + 두 플래그 모두 ON(승인 완료 상태)일 때만.
+      await db.update(organizations)
+        .set({ plan: decision.planId })
+        .where(eq(organizations.id, decision.orgId));
+      await auditSecurity('BILLING_PLAN_APPLIED', {
+        userId: decision.userId, orgId: decision.orgId,
+        entity: 'billing', entityId: String(paymentId ?? ''),
+        detail: { planId: decision.planId, type },
+      });
+      log.info('billing.webhook.applied', { orgId: decision.orgId, planId: decision.planId });
+      return ok({ ok: true, received: true, type, verified: v.verified, applied: true });
+    }
+
+    log.info('billing.webhook.ignored', { reason: decision.reason });
+    return ok({ ok: true, received: true, type, verified: v.verified, applied: false, reason: decision.reason });
   });
 }
