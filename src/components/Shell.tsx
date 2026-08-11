@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -72,6 +72,7 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
   const [recs, setRecs] = useState<any[]>([]);
   const [big, setBig] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const trigRef = useRef<HTMLElement | null>(null); // 마지막으로 드롭다운을 연 트리거 버튼 — Escape 닫기 시 포커스 복귀용
   useEffect(() => { const b = localStorage.getItem('pms.big') === '1'; setBig(b); document.documentElement.classList.toggle('big', b); }, []);
   useEffect(() => { document.title = title ? `${title} — PMS` : 'PMS — Project Management System'; }, [title]);
   function toggleBig() { const b = !big; setBig(b); localStorage.setItem('pms.big', b ? '1' : '0'); document.documentElement.classList.toggle('big', b); }
@@ -85,8 +86,16 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
 
   const onKey = useCallback((e: KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setCmd((v) => !v); setCq(''); setCi(0); }
-    if (e.key === 'Escape') setCmd(false);
-  }, []);
+    if (e.key === 'Escape') {
+      setCmd(false);
+      if (openMenu) {
+        setOpenMenu(null);
+        const t = trigRef.current;
+        if (t && document.contains(t)) setTimeout(() => t.focus(), 0); // 메뉴 항목에 포커스가 있던 경우 트리거로 복귀
+      }
+      setMenuOpen(false);
+    }
+  }, [openMenu]);
   useEffect(() => { window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey); }, [onKey]);
 
   useEffect(() => {
@@ -137,11 +146,11 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
       {menuOpen && <div className="menu-scrim" onClick={() => setMenuOpen(false)} />}
       <div className="main">
         <header className="topbar">
-          <button className="iconbtn menu-btn" onClick={() => setMenuOpen(true)} aria-label="메뉴"><Menu style={{ width: 20 }} /></button>
+          <button className="iconbtn menu-btn" onClick={() => setMenuOpen(true)} aria-label="메뉴" aria-expanded={menuOpen}><Menu style={{ width: 20 }} /></button>
           <div className="tb-title">{title}</div>
           {projects.length > 0 && (
             <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
-              <button className="btn btn-sm" onClick={() => setOpenMenu(openMenu === 'proj' ? null : 'proj')}>
+              <button className="btn btn-sm" aria-haspopup="menu" aria-expanded={openMenu === 'proj'} onClick={(e) => { trigRef.current = e.currentTarget; setOpenMenu(openMenu === 'proj' ? null : 'proj'); }}>
                 <FolderKanban style={{ color: 'var(--brand)' }} />
                 <span className="proj-btn-text" style={{ maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{curProj ? `${curProj.code} · ${curProj.name}` : '프로젝트 선택'}</span>
                 <ChevronDown style={{ width: 14, color: 'var(--text-3)' }} />
@@ -158,7 +167,7 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
             <Search style={{ width: 16, height: 16 }} /><span style={{ flex: 1, textAlign: 'left' }}>검색 / 이동…</span><span className="kbd">⌘K</span>
           </button>
           <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
-            <button className="iconbtn" aria-label={unread > 0 ? `알림 (안 읽음 ${nfmt(unread)}건)` : '알림'} onClick={() => setOpenMenu(openMenu === 'notif' ? null : 'notif')}><Bell style={{ width: 19 }} />{unread > 0 && <span className="dot" />}</button>
+            <button className="iconbtn" aria-label={unread > 0 ? `알림 (안 읽음 ${nfmt(unread)}건)` : '알림'} aria-haspopup="menu" aria-expanded={openMenu === 'notif'} onClick={(e) => { trigRef.current = e.currentTarget; setOpenMenu(openMenu === 'notif' ? null : 'notif'); }}><Bell style={{ width: 19 }} />{unread > 0 && <span className="dot" />}</button>
             {openMenu === 'notif' && (
               <div className="menu" style={{ minWidth: 300 }}>
                 <div style={{ padding: '6px 10px', fontWeight: 750, fontSize: 13 }}>알림 {unread > 0 ? `(${nfmt(unread)})` : ''}</div><div className="menu-sep" />
@@ -169,7 +178,7 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
             )}
           </div>
           <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
-            <button className="avatar" onClick={() => setOpenMenu(openMenu === 'user' ? null : 'user')} aria-label="내 메뉴"><User style={{ width: 18, height: 18 }} /></button>
+            <button className="avatar" aria-label="내 메뉴" aria-haspopup="menu" aria-expanded={openMenu === 'user'} onClick={(e) => { trigRef.current = e.currentTarget; setOpenMenu(openMenu === 'user' ? null : 'user'); }}><User style={{ width: 18, height: 18 }} /></button>
             {openMenu === 'user' && (
               <div className="menu" style={{ minWidth: 236 }}>
                 <div style={{ padding: '11px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -210,7 +219,7 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
 
       {cmd && (
         <div className="cmdk-scrim" onClick={() => setCmd(false)}>
-          <div className="cmdk" onClick={(e) => e.stopPropagation()}>
+          <div className="cmdk" role="dialog" aria-modal="true" aria-label="검색 / 이동" onClick={(e) => e.stopPropagation()}>
             <div className="cmdk-in"><Command style={{ width: 18, color: 'var(--text-3)' }} />
               <input autoFocus placeholder="화면·데이터 검색 / 이동…" value={cq}
                 onChange={(e) => { setCq(e.target.value); setCi(0); }}
