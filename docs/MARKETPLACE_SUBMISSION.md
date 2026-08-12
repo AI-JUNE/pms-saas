@@ -35,6 +35,44 @@
 
 가용성 점검: **`GET /api/health`** 공개 엔드포인트가 DB 핑·버전·업타임을 반환합니다(정상 200, DB 이상 시 503). 업타임 모니터·로드밸런서·마켓플레이스 상태점검 연동에 사용합니다.
 
+### 3-1. 아키텍처 다이어그램 (Mermaid 초안)
+
+> 제출용 이미지는 아래 Mermaid 소스를 렌더링해 생성합니다(mermaid.live 또는 `mmdc`). 이미지 확정은 **[승인 필요]**.
+
+```mermaid
+flowchart LR
+  subgraph Client["클라이언트"]
+    B["브라우저 (데스크톱·모바일)"]
+  end
+
+  subgraph Vercel["Vercel — Next.js 14 (App Router)"]
+    MW["middleware<br/>페이지 인증 게이트"]
+    SSR["SSR 페이지"]
+    subgraph API["API Routes"]
+      H["handle() 표준 에러 포맷<br/>+ rate limit + 입력검증"]
+      AUTH["requireUser → requireTenant<br/>(세션 토큰 · orgId 스코프)"]
+      CRUD["CRUD 엔진 (configs 기반)<br/>RBAC · 결재경계 · 삭제가드"]
+      BILL["billing (포트원 스캐폴딩)<br/>checkout · plans · webhook<br/>※ 실결제 OFF [승인 필요]"]
+      HEALTH["/api/health<br/>DB 핑 · 버전 · 업타임"]
+    end
+  end
+
+  subgraph Data["데이터"]
+    DRZ["Drizzle ORM<br/>멱등 마이그레이션"]
+    NEON[("Neon Serverless Postgres<br/>멀티테넌시 orgId 격리")]
+    AUD[("감사 로그 audit<br/>CRUD + 보안 이벤트")]
+  end
+
+  PG["포트원 PG (테스트 채널)"] -. "웹훅(서명검증)" .-> BILL
+  MON["업타임 모니터 · 마켓플레이스 상태점검"] --> HEALTH
+
+  B --> MW --> SSR
+  B --> H --> AUTH --> CRUD --> DRZ --> NEON
+  CRUD --> AUD
+  BILL --> DRZ
+  HEALTH --> NEON
+```
+
 ## 4. 보안 및 컴플라이언스
 
 접근 통제는 RBAC(역할→권한, `requirePermission write/approve`)와 결재 경계(approveOn)로 구현되며, 모든 쓰기·승인 작업은 **감사 로그(audit)**에 기록됩니다(누가·언제·무엇을). 멀티테넌시는 전 리소스 `orgId` 스코프로 조직 간 데이터를 격리합니다.
@@ -69,5 +107,5 @@
 - [ ] **[승인 필요]** 개인정보 처리방침 법무 확정·책임자 지정
 - [ ] **[승인 필요]** 보안 명세(암호화·접근통제 정책) 문서 첨부
 - [ ] **[승인 필요]** SLA·지원정책 확정
-- [ ] **[승인 필요]** 아키텍처 다이어그램 이미지(별도 첨부)
+- [~] 아키텍처 다이어그램 — Mermaid 소스 초안 완료(§3-1, 2026-08-12) · **[승인 필요]** 이미지 렌더링·최종본 첨부
 - [ ] **[승인 필요]** 실결제/실인증 플래그 활성화 결정
