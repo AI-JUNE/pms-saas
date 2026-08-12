@@ -3,6 +3,10 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-08-12 (배치 147 — 배포 대기, 목록 스크린리더 라이브 안내 — role="status"·aria-busy·스켈레톤 숨김)
+- ⑨ **목록 공통: 로딩·검색/필터 결과 변화 스크린리더 라이브 안내** — 배치130~146 접근성 스윕이 정렬·그룹·다이얼로그·포커스·Shell까지 커버했지만, 전 소스에 `aria-live`/`role="status"`/`aria-busy`가 0건이라(결제 버튼 1곳 제외) 목록 로딩 완료나 검색·필터로 결과 건수가 바뀌어도 보조기술에 아무 알림이 없었음(시각 사용자만 스켈레톤·카운트로 인지). 세 가지 보강 — (1) 툴바에 시각적 숨김 `role="status"` 라이브 리전: 로딩 중 `{목록명} 목록을 불러오는 중`, 완료 시 `{목록명} n건 표시(전체 n건 중)`(nfmt 쉼표, 기존 카운트 span과 동일 정보) — 검색어 입력·필터 변경 시 결과 건수가 polite로 낭독됨. (2) 표 래퍼에 `aria-busy={loading}`. (3) 스켈레톤 행 5개는 장식이므로 `aria-hidden`(빈 행 낭독 제거). globals.css에 표준 클립 패턴 `.sr-only` 유틸 신설(전 화면 재사용 가능). 순수 마크업/표시 — 데이터·API·스키마·Props 무영향, 마이그레이션 불필요. 2파일. — src/components/ResourceView.tsx, src/app/globals.css
+- 검증: 전체 `tsc --noEmit -p tsconfig.json` **완주** — rc=0·`error TS` 0건·출력 0줄. 작업 전 src 백업(/tmp/bak_1786536302). 마운트(=OneDrive 실파일) 무결성 확인 — 2파일 깨진문자(U+FFFD) 0, 562·443줄·파일 끝 완전성 정상, sr-only 1+1건·aria-busy 1건·role="status" 삽입 확인.
+
 ## 2026-08-12 (배치 146 — 배포 대기, Shell 드롭다운 접근성 — aria-expanded·Escape 닫기·포커스 복귀)
 - ⑨ **Shell 공통: 상단바 드롭다운 3종(프로젝트 선택·알림·사용자 메뉴) 접근성 보강** — 배치131·145가 ResourceView의 오버레이를, 배치135까지가 페이지들을 커버했지만 전 화면이 공유하는 Shell 자체의 드롭다운은 미처리였음: 트리거 버튼에 `aria-haspopup`/`aria-expanded`가 없어 보조기술이 메뉴 열림을 인지 못 했고, Escape는 ⌘K 팔레트만 닫혀 드롭다운은 바깥 클릭 외 키보드 닫기 수단이 없었음. 세 트리거에 `aria-haspopup="menu"`+`aria-expanded` 부여, 전역 Escape 핸들러 확장(열린 드롭다운·모바일 사이드바 닫기) + 닫을 때 트리거 버튼으로 포커스 복귀(trigRef, 배치145 복귀 패턴 — 메뉴 항목에 포커스가 있던 경우 포커스 유실 방지). 모바일 메뉴 버튼에도 `aria-expanded={menuOpen}`. 덤으로 ⌘K 팔레트 컨테이너에 `role="dialog"`+`aria-modal`+`aria-label`(배치131 다이얼로그 시맨틱의 Shell 누락분). 순수 마크업/핸들러 — 데이터·API·스키마·Props 무영향, 마이그레이션 불필요. 단일 파일. — src/components/Shell.tsx
 - 검증: 전체 `tsc --noEmit -p tsconfig.json` **완주** — rc=0·`error TS` 0건·출력 0줄. 작업 전 src 백업(/tmp/bak_1786471506). 마운트(=OneDrive 실파일) 무결성 확인 — 깨진문자(U+FFFD) 0, 237줄·파일 끝 완전성 정상, trigRef 5건·aria-expanded 4건·aria-haspopup 3건·role="dialog" 1건 확인.

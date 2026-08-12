@@ -387,6 +387,8 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
           </>)}
         </div>
         <span className="muted" title={(q || filter) ? `전체 ${rows.length.toLocaleString('ko-KR')}건 중 ${view.length.toLocaleString('ko-KR')}건 표시` : undefined}><SlidersHorizontal style={{ width: 13, verticalAlign: -2 }} /> {(q || filter) && view.length !== rows.length ? `${view.length.toLocaleString('ko-KR')}/${rows.length.toLocaleString('ko-KR')}건` : `${view.length.toLocaleString('ko-KR')}건`}</span>
+        {/* 스크린리더 라이브 안내 — 로딩·검색/필터 결과 건수 변화를 보조기술에 알림(시각적 숨김) */}
+        <span className="sr-only" role="status">{loading ? `${title} 목록을 불러오는 중` : `${title} ${nfmt(view.length)}건 표시${(q || filter) && view.length !== rows.length ? ` (전체 ${nfmt(rows.length)}건 중)` : ''}`}</span>
         {(q || filter) && <button className="btn btn-sm btn-ghost" onClick={() => { setQ(''); setFilter(''); }} title="검색·상태 필터 초기화" aria-label="검색·상태 필터 초기화"><X style={{ width: 13 }} />초기화</button>}
         {(q || filter || groupBy || (sortK && sortK !== 'id')) && <button className="btn btn-sm btn-ghost" onClick={copyViewLink} title="현재 검색·필터·정렬·그룹이 담긴 링크를 복사합니다(공유 시 같은 뷰로 열림)" aria-label="뷰 링크 복사">{linkCopied ? '복사됨' : '뷰 링크'}</button>}
       </div>
@@ -415,7 +417,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
           <div className="sp" /><button className="btn btn-sm btn-ghost" onClick={() => setSel(new Set())}>선택 해제</button>
         </div>);
       })()}
-      {(mode === 'table' || loading) && <div className={`card tbl-wrap${density === 'compact' ? ' compact' : ''}`}>
+      {(mode === 'table' || loading) && <div className={`card tbl-wrap${density === 'compact' ? ' compact' : ''}`} aria-busy={loading}>
         <table className="tbl">
           <thead><tr>
             <th scope="col" style={{ width: 34, textAlign: 'center' }}><input type="checkbox" aria-label="전체 선택" checked={view.length > 0 && view.every((r) => sel.has(r.id))} onChange={(e) => setSel(e.target.checked ? new Set(view.map((r) => r.id)) : new Set())} /></th>
@@ -424,7 +426,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
             <th scope="col" className="no-sort" style={{ width: 90 }} aria-label="행 작업"></th>
           </tr></thead>
           <tbody>
-            {loading && Array.from({ length: 5 }).map((_, i) => (<tr key={i}><td></td>{visibleColumns.map((c) => <td key={c.key}><div className="skel" style={{ height: 14, width: '70%' }} /></td>)}<td></td></tr>))}
+            {loading && Array.from({ length: 5 }).map((_, i) => (<tr key={i} aria-hidden><td></td>{visibleColumns.map((c) => <td key={c.key}><div className="skel" style={{ height: 14, width: '70%' }} /></td>)}<td></td></tr>))}
             {!loading && !grouped && view.map((row) => <Row key={row.id} row={row} />)}
             {!loading && grouped && grouped.map(([g, list]) => (
               <Fragment key={'g' + g}>

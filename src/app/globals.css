@@ -437,3 +437,6 @@ a.brand:focus-visible,.btn:focus-visible{outline:2px solid var(--brand);outline-
   /* 상태·우선순위 배지 셀(인라인 편집 트리거) 탭 영역 */
   .tbl td .pill{padding-top:6px;padding-bottom:6px}
 }
+
+/* 스크린리더 전용(시각적 숨김) — 목록 로딩·검색 결과 건수 라이브 안내 등 */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
