@@ -111,6 +111,8 @@ export default function Page() {
           {ents.map((e) => <option key={e} value={e}>{entName(e)} ({nfmt(entCounts[e] || 0)})</option>)}
         </select>
         <div className="sp" />
+        {/* 스크린리더 라이브 안내 — 로딩·검색/필터 결과 변화 낭독 (ResourceView 배치147 패턴) */}
+        <span className="sr-only" role="status">{!loaded ? '감사 로그 목록을 불러오는 중' : `감사 로그 ${nfmt(view.length)}건 표시${filtered ? ` (전체 ${nfmt(rows.length)}건 중)` : ''}`}</span>
         {loaded && todayCount > 0 && (
           <span className="muted" style={{ marginRight: 4 }} title={`오늘 발생한 변경 ${nfmt(todayCount)}건입니다.`}>
             오늘 <b style={{ color: 'var(--brand)' }}>{nfmt(todayCount)}</b>건
@@ -121,12 +123,12 @@ export default function Page() {
         </span>
       </div>
 
-      <div className="card tbl-wrap">
+      <div className="card tbl-wrap" aria-busy={!loaded}>
         <table className="tbl">
           <thead><tr><th style={{ width: 90 }}>동작</th><th style={{ width: 150 }}>영역</th><th>대상</th><th style={{ width: 140 }}>사용자</th><th style={{ width: 170 }}>시각</th></tr></thead>
           <tbody>
             {!loaded && Array.from({ length: 5 }).map((_, i) => (
-              <tr key={`sk${i}`}><td colSpan={5}><div className="skel" style={{ height: 18, margin: '4px 0' }} /></td></tr>
+              <tr key={`sk${i}`} aria-hidden="true"><td colSpan={5}><div className="skel" style={{ height: 18, margin: '4px 0' }} /></td></tr>
             ))}
             {loaded && view.map((a) => {
               const ac = actOf(a.event);

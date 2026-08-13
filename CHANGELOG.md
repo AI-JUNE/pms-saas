@@ -3,6 +3,10 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-08-13 (배치 148 — 배포 대기, 알림·감사로그 스크린리더 라이브 안내 — 배치147 패턴 확장)
+- ⑨ **알림(/notifications)·감사로그(/audit) 목록 스크린리더 라이브 안내** — 배치147이 ResourceView 공용 목록에 라이브 리전을 넣었지만, 자체 표를 렌더하는 두 화면(ResourceView 미사용)은 여전히 `role="status"`/`aria-busy` 0건이라 로딩 완료·검색/필터 결과 변화가 보조기술에 안내되지 않았음. 배치147과 동일한 3종 보강 — (1) 툴바에 sr-only `role="status"` 라이브 리전: 로딩 중 `{화면명} 목록을 불러오는 중`, 완료 시 `{화면명} n건 표시(전체 n건 중)`(nfmt 쉼표, 기존 카운트 span과 동일 정보). (2) 표 래퍼 `aria-busy={!loaded}`. (3) 스켈레톤 행 `aria-hidden`. globals.css `.sr-only` 유틸(배치147 신설) 재사용. 순수 마크업 — 데이터·API·스키마·Props 무영향, 마이그레이션 불필요. 2파일. — src/app/notifications/page.tsx, src/app/audit/page.tsx
+- 검증: 전체 `tsc --noEmit -p tsconfig.json` **완주** — rc=0·`error TS` 0건·출력 0줄. 작업 전 src 백업(/tmp/bak_1786579478). 마운트(=OneDrive 실파일) 무결성 확인 — 2파일 깨진문자(U+FFFD) 0, 221·155줄·파일 끝 완전성 정상, sr-only·aria-busy·스켈레톤 aria-hidden 각 1건씩 삽입 확인.
+
 ## 2026-08-12 (배치 147 — 배포 대기, 목록 스크린리더 라이브 안내 — role="status"·aria-busy·스켈레톤 숨김)
 - ⑨ **목록 공통: 로딩·검색/필터 결과 변화 스크린리더 라이브 안내** — 배치130~146 접근성 스윕이 정렬·그룹·다이얼로그·포커스·Shell까지 커버했지만, 전 소스에 `aria-live`/`role="status"`/`aria-busy`가 0건이라(결제 버튼 1곳 제외) 목록 로딩 완료나 검색·필터로 결과 건수가 바뀌어도 보조기술에 아무 알림이 없었음(시각 사용자만 스켈레톤·카운트로 인지). 세 가지 보강 — (1) 툴바에 시각적 숨김 `role="status"` 라이브 리전: 로딩 중 `{목록명} 목록을 불러오는 중`, 완료 시 `{목록명} n건 표시(전체 n건 중)`(nfmt 쉼표, 기존 카운트 span과 동일 정보) — 검색어 입력·필터 변경 시 결과 건수가 polite로 낭독됨. (2) 표 래퍼에 `aria-busy={loading}`. (3) 스켈레톤 행 5개는 장식이므로 `aria-hidden`(빈 행 낭독 제거). globals.css에 표준 클립 패턴 `.sr-only` 유틸 신설(전 화면 재사용 가능). 순수 마크업/표시 — 데이터·API·스키마·Props 무영향, 마이그레이션 불필요. 2파일. — src/components/ResourceView.tsx, src/app/globals.css
 - 검증: 전체 `tsc --noEmit -p tsconfig.json` **완주** — rc=0·`error TS` 0건·출력 0줄. 작업 전 src 백업(/tmp/bak_1786536302). 마운트(=OneDrive 실파일) 무결성 확인 — 2파일 깨진문자(U+FFFD) 0, 562·443줄·파일 끝 완전성 정상, sr-only 1+1건·aria-busy 1건·role="status" 삽입 확인.
