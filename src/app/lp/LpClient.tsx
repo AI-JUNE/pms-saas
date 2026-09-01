@@ -312,9 +312,9 @@ const diffs = [
 ];
 
 const voices = [
-  { av: 'a1', ini: 'PM', q: '주간회의 전에 SPI·CPI만 보면 어디가 밀리는지 바로 나와요. 엑셀 취합 작업이 통째로 사라졌습니다.', who: 'PM', ctx: 'SI 구축 프로젝트' },
-  { av: 'a3', ini: 'PL', q: '요구사항부터 테스트까지 RTM으로 이어져서, 빠진 항목이 표에 그대로 보여요. 검증 누락 걱정이 줄었습니다.', who: 'PL', ctx: '공공 정보화 사업' },
-  { av: 'a2', ini: 'QA', q: '산출물 결재와 감사로그가 남아, 감리·품질 대응 자료를 따로 만들 필요가 없어졌어요.', who: 'PMO', ctx: '품질 · 감리' },
+  { av: 'a1', ini: 'PM', q: '주간회의 전 SPI·CPI로 지연 구간을 먼저 확인하고, 흩어진 엑셀 취합 없이 현황을 집계합니다.', who: 'PM 역할', ctx: '기대 활용 방식' },
+  { av: 'a3', ini: 'PL', q: '요구사항부터 테스트까지 RTM으로 연결되어, 누락된 항목과 검증 공백이 표에서 드러납니다.', who: 'PL 역할', ctx: '기대 활용 방식' },
+  { av: 'a2', ini: 'QA', q: '산출물 전자결재와 감사로그가 남아, 감리·품질 대응에 필요한 이력을 그대로 활용합니다.', who: 'PMO 역할', ctx: '기대 활용 방식' },
 ];
 
 const roles = [
@@ -532,26 +532,26 @@ export default function LpClient() {
           </div>
           <div className="lp-stats">
             <div className="stat" data-reveal><div className="n"><span data-count="15" data-suffix="+">15+</span></div><div className="l">통합 관리 영역</div><div className="s">프로젝트 ~ 조달까지</div></div>
-            <div className="stat" data-reveal style={{ transitionDelay: '.08s' }}><div className="n"><span data-count="130" data-suffix="ms">130ms</span></div><div className="l">Warm 평균 응답</div><div className="s">sin1 리전 · 핵심 인덱스</div></div>
+            <div className="stat" data-reveal style={{ transitionDelay: '.08s' }}><div className="n">인덱스 최적화</div><div className="l">응답 성능 관리</div><div className="s">sin1 리전 · 핵심 인덱스 설계</div></div>
             <div className="stat" data-reveal style={{ transitionDelay: '.16s' }}><div className="n">24/7</div><div className="l">무중단 자동 운영</div><div className="s">멱등 마이그레이션 · 자동배포</div></div>
-            <div className="stat" data-reveal style={{ transitionDelay: '.24s' }}><div className="n"><span data-count="100" data-suffix="%">100%</span></div><div className="l">반응형 · 모바일 대응</div><div className="s">하단탭바 · 44px 터치</div></div>
+            <div className="stat" data-reveal style={{ transitionDelay: '.24s' }}><div className="n">전 화면</div><div className="l">반응형 · 모바일 대응</div><div className="s">하단탭바 · 44px 터치</div></div>
           </div>
-          <p className="lp-note">※ 수치는 운영 환경·설정 기준의 참고값입니다.</p>
+          <p className="lp-note">※ 위 항목은 제품 기능·설계 기준의 설명이며, 특정 고객사의 운영 실적을 나타내지 않습니다.</p>
         </div>
       </section>
 
       <section className="lp-band">
         <div className="wrap">
           <div className="lp-center" data-reveal>
-            <span className="sec-tag">Voices</span>
-            <h2>현장의 목소리로,<br /><span className="hl">달라진 것</span></h2>
-            <p className="lead">프로젝트를 운영하는 사람들이 PMS로 바뀐 점을 정리했습니다.</p>
+            <span className="sec-tag">Use Cases</span>
+            <h2>역할별로,<br /><span className="hl">이렇게 쓰입니다</span></h2>
+            <p className="lead">실제 이용 후기가 아니라, 역할별 대표 활용 방식을 제품 기능 기준으로 정리한 예시입니다.</p>
           </div>
           <div className="lp-tg">
             {voices.map((v, i) => (
               <div className="tcard" key={v.who} data-reveal style={{ transitionDelay: `${i * 0.08}s` }}>
-                <div className="stars">★★★★★</div>
-                <div className="q">“{v.q}”</div>
+                <div className="stars" aria-hidden="true">예시</div>
+                <div className="q">{v.q}</div>
                 <div className="who"><span className={`lp-av ${v.av}`}>{v.ini}</span><div><b>{v.who}</b><span>{v.ctx}</span></div></div>
               </div>
             ))}
