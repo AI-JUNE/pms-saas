@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { formatLine, log, MONITORING_ENABLED, redact, newRequestId, ALERTS_ENABLED } from '../src/lib/logger.ts';
+import { formatLine, log, MONITORING_ENABLED, redact, newRequestId, ALERTS_ENABLED, parseDsn, buildEnvelope } from '../src/lib/logger.ts';
 
 test('formatLine emits valid JSON with required keys', () => {
   const obj = JSON.parse(formatLine('info', 'hello', { a: 1 }));
@@ -53,4 +53,38 @@ test('newRequestId reuses safe incoming ids and rejects unsafe ones', () => {
 test('alerting is OFF by default (build now, activate on approval)', () => {
   assert.equal(ALERTS_ENABLED, false);
   assert.equal(MONITORING_ENABLED, false);
+});
+
+test('parseDsn builds the Sentry envelope endpoint from a DSN', () => {
+  const t = parseDsn('https://abc123@o55.ingest.sentry.io/4507')!;
+  assert.equal(t.publicKey, 'abc123');
+  assert.equal(t.projectId, '4507');
+  assert.equal(t.envelopeUrl, 'https://o55.ingest.sentry.io/api/4507/envelope/');
+});
+
+test('parseDsn returns null for missing/garbage DSNs (stays no-op)', () => {
+  for (const bad of [undefined, null, '', 'not-a-url', 'https://o55.ingest.sentry.io/4507', 'https://key@host/abc']) {
+    assert.equal(parseDsn(bad as any), null, `expected null for ${String(bad)}`);
+  }
+});
+
+test('buildEnvelope emits 3 NDJSON lines with matching event_id', () => {
+  const lines = buildEnvelope(new Error('boom'), { path: '/api/x' }, 'a'.repeat(32)).split('\n');
+  assert.equal(lines.length, 3);
+  const header = JSON.parse(lines[0]);
+  const itemHeader = JSON.parse(lines[1]);
+  const event = JSON.parse(lines[2]);
+  assert.equal(header.event_id, 'a'.repeat(32));
+  assert.equal(itemHeader.type, 'event');
+  assert.equal(event.event_id, 'a'.repeat(32));
+  assert.equal(event.level, 'error');
+  assert.equal(event.exception.values[0].type, 'Error');
+  assert.equal(event.exception.values[0].value, 'boom');
+  assert.equal(event.extra.path, '/api/x');
+});
+
+test('buildEnvelope redacts PII in context before transport', () => {
+  const event = JSON.parse(buildEnvelope(new Error('x'), { email: 'a@b.com', durMs: 5 }).split('\n')[2]);
+  assert.equal(event.extra.email, '[redacted]');
+  assert.equal(event.extra.durMs, 5);
 });
