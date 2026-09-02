@@ -9,8 +9,10 @@
 - 모든 변경은 테스트·빌드 검증 통과 후 커밋한다.
 
 ## 공통 상용 필수 (전 제품)
-- [ ] **에러 모니터링** — 전역 에러 캡처 + 알림 훅. DSN은 환경변수, 미설정 시 무해하게 no-op
-- [ ] **구조화 로깅** — 요청 ID·소요시간·에러코드. PII 미기록
+- [x] **에러 모니터링** — 전역 에러 캡처 + 알림 훅. DSN은 환경변수, 미설정 시 무해하게 no-op
+      → `lib/logger.ts`(installGlobalErrorHandlers·notifyAlert), `instrumentation.ts`, `app/global-error.tsx`, `api/client-errors/route.ts` / tests/logger.test.ts 8건 통과. 기본 OFF **[활성화 승인 필요]**
+- [x] **구조화 로깅** — 요청 ID·소요시간·에러코드. PII 미기록
+      → `lib/http.ts` handle(fn, req)에 requestId·durMs·status·code 로깅 + x-request-id 헤더, `lib/logger.ts` redact()로 PII 필드 마스킹 / tests/http.test.ts 5건 통과
 - [ ] **/health 확장** — 의존성(DB·외부API) 상태와 버전·커밋 해시 노출(민감정보 제외)
 - [ ] **표준 에러 응답** 전 API 통일 + 입력검증
 - [ ] **rate limit** 공개 API 적용

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { sendError, ok, handle, ApiError, ERROR } from '../src/lib/http.ts';
+import { sendError, ok, handle, ApiError, ERROR, requestContext } from '../src/lib/http.ts';
 
 test('sendError returns standard shape { ok:false, code, message }', async () => {
   const res = sendError(ERROR.VALIDATION, 'missing field', { field: 'email' });
@@ -50,4 +50,40 @@ test('ERROR table covers all launch-required codes', () => {
   const codes = Object.values(ERROR).map((e) => e.code);
   for (const c of ['VALIDATION','UNAUTHORIZED','FORBIDDEN','NOT_FOUND','CONFLICT','TOO_MANY','SERVER'])
     assert.ok(codes.includes(c), c);
+});
+
+test('requestContext extracts method and pathname only (no query string)', () => {
+  const req = new Request('https://x.test/api/issues?q=secret@mail.com', { method: 'POST' });
+  const ctx = requestContext(req);
+  assert.equal(ctx.method, 'POST');
+  assert.equal(ctx.path, '/api/issues');
+  assert.ok(!JSON.stringify(ctx).includes('secret@mail.com'));
+  assert.ok(ctx.requestId.length > 0);
+});
+
+test('requestContext propagates a safe incoming x-request-id', () => {
+  const req = new Request('https://x.test/api/a', { headers: { 'x-request-id': 'trace-42' } });
+  assert.equal(requestContext(req).requestId, 'trace-42');
+});
+
+test('handle attaches x-request-id to successful responses', async () => {
+  const req = new Request('https://x.test/api/a', { headers: { 'x-request-id': 'trace-99' } });
+  const res = await handle(async () => ok({ ok: true }), req);
+  assert.equal(res.status, 200);
+  assert.equal(res.headers.get('x-request-id'), 'trace-99');
+});
+
+test('handle still maps ApiError and pg codes when req is passed', async () => {
+  const req = new Request('https://x.test/api/a');
+  const res = await handle(async () => { throw new ApiError(ERROR.NOT_FOUND, '없음'); }, req);
+  assert.equal(res.status, 404);
+  assert.equal((await res.json()).code, 'NOT_FOUND');
+
+  const dup = await handle(async () => { throw Object.assign(new Error('dup'), { code: '23505' }); }, req);
+  assert.equal(dup.status, 409);
+});
+
+test('handle without req keeps legacy behaviour', async () => {
+  const res = await handle(async () => ok({ ok: true }));
+  assert.equal(res.status, 200);
 });
