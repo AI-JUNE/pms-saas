@@ -1,8 +1,13 @@
+import { rateLimitResponse, RL } from '@/lib/ratelimit';
+
 export const dynamic = 'force-dynamic';
 // Fetches the official GOWON emblem from the company site (server-side, no CORS) and serves it.
 let cache: { buf: Uint8Array; type: string } | null = null;
 
-export async function GET() {
+export async function GET(req: Request) {
+  // 공개 엔드포인트 + 외부 fetch 동반 → 남용 방어(캐시 미스 시 외부 요청이 발생하므로 필요).
+  const limited = rateLimitResponse(req, RL.publicAsset);
+  if (limited) return limited;
   try {
     if (!cache) {
       const html = await fetch('https://www.gowon.co.kr/', { headers: { 'user-agent': 'Mozilla/5.0' }, cache: 'no-store' }).then((r) => r.text());

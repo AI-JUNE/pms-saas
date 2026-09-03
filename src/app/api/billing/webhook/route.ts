@@ -6,6 +6,7 @@ import { verifyWebhook, PORTONE } from '@/lib/portone';
 import { BILLING_APPLY_LIVE, decideWebhookAction } from '@/lib/billingWebhook';
 import { auditSecurity } from '@/lib/audit';
 import { log } from '@/lib/logger';
+import { enforceRateLimit, RL } from '@/lib/ratelimit';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,6 +17,7 @@ export const dynamic = 'force-dynamic';
 //    지금은 검증·로깅만 하고 항상 200으로 ack(PG 재시도 폭주 방지).
 export async function POST(req: Request) {
   return handle(async () => {
+    enforceRateLimit(req, RL.billingWebhook);
     const raw = await req.text();
     const sig = req.headers.get('x-portone-signature') || req.headers.get('webhook-signature');
     const v = verifyWebhook(raw, sig);
@@ -58,5 +60,5 @@ export async function POST(req: Request) {
 
     log.info('billing.webhook.ignored', { reason: decision.reason });
     return ok({ ok: true, received: true, type, verified: v.verified, applied: false, reason: decision.reason });
-  });
+  }, req);
 }

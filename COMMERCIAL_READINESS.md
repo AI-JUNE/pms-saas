@@ -15,8 +15,11 @@
       → `lib/http.ts` handle(fn, req)에 requestId·durMs·status·code 로깅 + x-request-id 헤더, `lib/logger.ts` redact()로 PII 필드 마스킹 / tests/http.test.ts 5건 통과
 - [x] **/health 확장** — 의존성(DB·외부API) 상태와 버전·커밋 해시 노출(민감정보 제외)
       → `lib/health.ts`(sanitizeError·buildInfo·summarize·buildHealthBody 순수 분리), `app/api/health/route.ts`가 db(필수)·billing·monitoring 체크와 version/commit(7자리)/branch/env/region 반환. 연결 문자열·키·토큰은 sanitizeError로 마스킹 / tests/health.test.ts 10건 통과
-- [ ] **표준 에러 응답** 전 API 통일 + 입력검증
-- [ ] **rate limit** 공개 API 적용
+- [x] **표준 에러 응답** 전 API 통일 + 입력검증
+      → 전 API가 `lib/http.ts` handle()/ApiError 경유(직접 NextResponse는 health만, 의도적). 신규 `lib/validate.ts`(ruleFor·validateOne·validateValues·summarizeErrors)로 필드명 규약 기반 타입·길이·범위 검증을 `lib/crud.ts` POST/PATCH에 일괄 적용, 위반 시 `{ok:false, code:'VALIDATION', message, fields:[{field,code,message}]}` 반환 / tests/validate.test.ts 12건 통과
+- [x] **rate limit** 공개 API 적용
+      → `lib/ratelimit.ts`에 공개 API 프리셋(publicHealth 120/분·publicPlans 60/분·publicAsset 60/분·billingWebhook 120/분)과 `rateLimitResponse()`(handle 미사용 라우트용 표준 429+Retry-After) 추가. `api/health`·`api/brand-logo`·`api/billing/plans`·`api/billing/webhook`에 적용(기존 auth/login·register·client-errors·billing/checkout와 합쳐 공개 엔드포인트 전건 커버) / tests/ratelimit.test.ts 통과
+      ※ 인메모리 단일 인스턴스 기준. 다중 인스턴스 공유 스토어(Upstash 등) 승격은 **[활성화 승인 필요]**
 - [ ] **접근·감사 로그** — 관리 기능 접근 이력
 - [ ] **백업·복구 절차** RUNBOOK.md 문서화 + 복구 리허설 기록
 - [ ] **약관·개인정보 처리방침 확정본 반영** (현재 초안, 문안은 사람이 확정)

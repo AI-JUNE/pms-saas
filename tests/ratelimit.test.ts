@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { rateLimit, clientIp, enforceRateLimit, RL } from '../src/lib/ratelimit.ts';
+import { rateLimit, clientIp, enforceRateLimit, rateLimitResponse, RL } from '../src/lib/ratelimit.ts';
 import { ApiError } from '../src/lib/http.ts';
 
 test('rateLimit allows up to limit then blocks within window', () => {
@@ -60,4 +60,26 @@ test('enforceRateLimit throws standard 429 ApiError with retryAfterSec', () => {
 test('presets: login/register limits are sane for brute-force defense', () => {
   assert.ok(RL.authLogin.limit <= 10 && RL.authLogin.windowMs >= 30_000);
   assert.ok(RL.authRegister.limit <= RL.authLogin.limit);
+});
+
+
+// ---- 공개 API 프리셋 · handle() 없는 라우트용 429 Response ----
+test('rateLimitResponse: 한도 내에서는 null, 초과 시 표준 429 Response', async () => {
+  const opts = { key: 't:public', limit: 2, windowMs: 60_000 };
+  const req = new Request('https://x.test/api/health', { headers: { 'x-forwarded-for': '9.9.9.9' } });
+  assert.equal(rateLimitResponse(req, opts), null);
+  assert.equal(rateLimitResponse(req, opts), null);
+  const res = rateLimitResponse(req, opts);
+  assert.ok(res, '3번째 요청은 차단되어야 한다');
+  assert.equal(res!.status, 429);
+  assert.ok(Number(res!.headers.get('Retry-After')) >= 1);
+  const body: any = await res!.json();
+  assert.equal(body.code, 'TOO_MANY');
+  assert.equal(body.ok, false);
+});
+
+test('공개 API 프리셋이 모두 정의되어 있다', () => {
+  for (const k of ['publicHealth', 'publicPlans', 'publicAsset', 'billingWebhook'] as const) {
+    assert.ok(RL[k].limit > 0 && RL[k].windowMs > 0, `${k} 프리셋 누락`);
+  }
 });

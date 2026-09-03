@@ -8,6 +8,7 @@ import { nextSeq, formatCode } from './codegen';
 import { audit } from './audit';
 import { handle, ok, ApiError, ERROR } from './http';
 import { pickInsertFields, missingRequired, pickPatchFields, needsApprove, computeJournalChanges } from './crudPure.ts';
+import { validateValues, summarizeErrors } from './validate.ts';
 type Scope = 'org' | 'project' | 'user';
 // approveOn: 지정 필드 값이 목록에 포함되면 'write'가 아닌 'approve' 권한을 요구(결재 경계)
 export type CrudConfig = { table: any; resource: string; scope: Scope; codePrefix?: string; fields: string[]; required?: string[]; transform?: (values: any) => any; orderAsc?: boolean; guardDelete?: (ctx: TenantContext, id: number) => Promise<void>; approveOn?: { field: string; values: string[] }; journal?: boolean; versionOn?: boolean; };
@@ -29,7 +30,11 @@ export function collection(cfg: CrudConfig) {
     if (cfg.scope === 'project') { const pid = Number(body.projectId); if (!pid) throw new ApiError(ERROR.VALIDATION, '프로젝트를 선택하세요'); await assertProject(ctx.orgId, pid); values.projectId = pid; }
     if (cfg.scope === 'user') values.userId = ctx.user.id;
     Object.assign(values, pickInsertFields(cfg.fields, body));
-    if (missingRequired(cfg.required, values).length) throw new ApiError(ERROR.VALIDATION, `필수 항목을 입력하세요`);
+    const miss = missingRequired(cfg.required, values);
+    if (miss.length) throw new ApiError(ERROR.VALIDATION, '필수 항목을 입력하세요', { fields: miss.map((f) => ({ field: f, code: 'REQUIRED', message: `${f}: 필수 항목입니다` })) });
+    // 공통 입력 검증(타입·길이·범위). 위반 시 표준 VALIDATION 응답 + fields[] 로 어느 필드가 문제인지 알린다.
+    const vErrs = validateValues(pickInsertFields(cfg.fields, body));
+    if (vErrs.length) throw new ApiError(ERROR.VALIDATION, summarizeErrors(vErrs), { fields: vErrs });
     if (cfg.transform) Object.assign(values, cfg.transform(values));
     if (cfg.codePrefix) { const key = cfg.scope === 'project' ? `${cfg.codePrefix}:${values.projectId}` : cfg.codePrefix; values.code = formatCode(cfg.codePrefix, await nextSeq(ctx.orgId, key)); }
     const ins: any = await db.insert(t).values(values).returning(); const row = ins[0];
@@ -46,6 +51,8 @@ export function item(cfg: CrudConfig) {
     if (needsApprove(cfg.approveOn, body)) await requirePermission(ctx, cfg.resource, 'approve');
     const before: any = (cfg.journal || cfg.versionOn) ? (await db.select().from(t).where(and(eq(t.id, Number(c.params.id)), eq(t.orgId, ctx.orgId))).limit(1))[0] : null;
     Object.assign(patch, pickPatchFields(cfg.fields, body));
+    const pErrs = validateValues(patch);
+    if (pErrs.length) throw new ApiError(ERROR.VALIDATION, summarizeErrors(pErrs), { fields: pErrs });
     if (cfg.transform) Object.assign(patch, cfg.transform({ ...body, ...patch }));
     const uw: any[] = [eq(t.id, Number(c.params.id)), eq(t.orgId, ctx.orgId)]; if (cfg.scope === 'user') uw.push(eq(t.userId, ctx.user.id)); const upd: any = await db.update(t).set(patch).where(and(...uw)).returning(); const row = upd[0];
     if (!row) throw new ApiError(ERROR.NOT_FOUND, '대상을 찾을 수 없습니다');

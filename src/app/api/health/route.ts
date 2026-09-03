@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import { db } from '@/db';
 import { billingStatus } from '@/lib/portone';
 import { buildHealthBody, sanitizeError, statusCode, type Checks } from '@/lib/health';
+import { rateLimitResponse, RL } from '@/lib/ratelimit';
 
 // ★ route.ts에서는 HTTP 메서드와 Next 설정 외 export 금지(Vercel 빌드 실패 원인).
 export const dynamic = 'force-dynamic';
@@ -12,7 +13,11 @@ const startedAt = Date.now();
 // 공개 헬스체크: 인증 불필요. 업타임 모니터·로드밸런서·마켓플레이스 상태 점검용.
 // 의존성(DB·결제 프로바이더 설정)과 배포 메타(버전·커밋·환경)를 노출하되,
 // 연결 문자열·키 등 민감정보는 lib/health의 sanitizeError로 걸러낸다.
-export async function GET() {
+export async function GET(req: Request) {
+  // 공개 엔드포인트 남용 방어. 업타임 모니터가 막히지 않도록 한도를 넉넉히 둔다.
+  const limited = rateLimitResponse(req, RL.publicHealth);
+  if (limited) return limited;
+
   const checks: Checks = {};
 
   // DB: 필수 의존성. 가벼운 select 1 핑.

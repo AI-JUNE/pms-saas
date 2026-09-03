@@ -3,6 +3,15 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-09-03 (배치 151 — 배포 대기, 상용 필수: 입력검증 + 공개 API rate limit)
+- ★ **COMMERCIAL_READINESS 상위 2건 처리** — `표준 에러 응답 전 API 통일 + 입력검증`, `rate limit 공개 API 적용`. 사전 점검 결과 API 71건 중 직접 `NextResponse.json`을 쓰는 건 health 하나뿐(의도적 스키마)이고 나머지는 전부 `handle()`/`ApiError` 경유였음 → 실제 공백은 **입력검증 부재**(지금까지 `required` 유무만 검사, 타입·길이·범위 무제한)였고 이를 메웠다.
+- ⑨ **신규 `src/lib/validate.ts`(순수 모듈)** — 필드명 규약으로 종류를 추론(`*Date`/`*Start`/`*End`→날짜, progress→0~100 퍼센트, qty·sortOrder·parentId 등→정수, budget·unitPrice·공수·storyPoints 등→숫자, description·content·steps 등→긴텍스트 20000자, email→형식+254자, 그 외→텍스트 500자). null·undefined·빈문자열은 "비움"으로 통과시켜 기존 정상 입력 호환을 유지하고, 명백한 오류(숫자 아님·날짜 아님·객체 주입·과도한 길이·범위 초과)만 차단. `configs.ts` 수정 없이 전 리소스에 일괄 적용된다.
+- ⑨ **crud.ts 연동** — collection POST·item PATCH에서 화이트리스트 통과 값에 `validateValues()` 적용, 위반 시 표준 `{ok:false, code:'VALIDATION', message, fields:[{field,code,message}]}` 반환. 기존 `필수 항목을 입력하세요`도 어느 필드가 빈지 `fields[]`로 함께 내려주도록 개선. — src/lib/validate.ts, src/lib/crud.ts
+- ⑨ **공개 API rate limit** — `lib/ratelimit.ts`에 프리셋 4종(publicHealth 120/분, publicPlans 60/분, publicAsset 60/분, billingWebhook 120/분)과 `rateLimitResponse()`(handle 래퍼가 없는 라우트용 표준 429 + `Retry-After`) 추가. `api/health`·`api/brand-logo`(외부 fetch 동반이라 남용 비용이 큼)·`api/billing/plans`·`api/billing/webhook`에 적용 → 기존 auth/login·register·client-errors·billing/checkout와 합쳐 **인증 불필요 엔드포인트 전건 커버**. 업타임 모니터·PG 재시도를 막지 않도록 한도는 넉넉히 잡았다. 네 라우트 모두 HTTP 메서드·`dynamic` 외 export 0건(Vercel 빌드 규칙 준수). — src/lib/ratelimit.ts, src/app/api/{health,brand-logo,billing/plans,billing/webhook}/route.ts
+- 검증: 전체 `tsc --noEmit -p tsconfig.json` **완주 — `error TS` 0건**. `node --test tests/*.test.ts` **113/113 통과**(신규 14건: 규약 추론, 빈값 통과, 날짜 ISO/YYYY-MM-DD 허용·쓰레기 차단, 숫자문자열 허용·정수 소수 차단, 퍼센트 0~100 경계, 텍스트/긴텍스트 길이 경계, 이메일 형식, 객체 주입 차단, 묶음 검증·요약 메시지, rateLimitResponse 429 본문·Retry-After, 프리셋 정의). 작업 전 src 백업(/tmp/bak_1788399563). 임의 KPI 수치 미기재.
+- ⚠ rate limit은 **인메모리 단일 인스턴스** 기준(서버리스 다중 인스턴스에서는 인스턴스별 카운트). 공유 스토어(Upstash Redis 등) 승격은 **[활성화 승인 필요]**.
+- ⏭ 다음: `접근·감사 로그(관리 기능 접근 이력)`, 이어서 `백업·복구 절차 RUNBOOK.md`.
+
 ## 2026-09-03 (배치 150 — 배포 대기, 상용 필수: /health 확장)
 - ★ **COMMERCIAL_READINESS 최상위 1건 처리** — `/health 확장`. 기존 라우트는 db 핑·version·uptime만 반환했고 (a)커밋 해시·배포 환경 메타 부재, (b)외부 의존성(결제 프로바이더) 상태 미노출, (c)**DB 에러 메시지를 가공 없이 공개**해 연결 문자열 유출 위험이 있었음.
 - ⑨ **판정 로직을 순수 모듈로 분리** — 신규 `src/lib/health.ts`에 `sanitizeError()`(URL·user:pass@host·32자 이상 토큰 마스킹 + 160자 절단), `shortCommit()`(7자리), `buildInfo()`(APP_VERSION / VERCEL_GIT_COMMIT_SHA·GIT_COMMIT_SHA·COMMIT_SHA·SOURCE_VERSION / 브랜치 / VERCEL_ENV·NODE_ENV / VERCEL_REGION, 없으면 null — 추측값 미기재), `summarize()`(required 실패=down·503, optional 실패만이면 degraded·200), `buildHealthBody()` 배치. 라우트는 조립만 담당.
