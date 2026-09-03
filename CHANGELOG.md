@@ -3,6 +3,13 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-09-03 (배치 150 — 배포 대기, 상용 필수: /health 확장)
+- ★ **COMMERCIAL_READINESS 최상위 1건 처리** — `/health 확장`. 기존 라우트는 db 핑·version·uptime만 반환했고 (a)커밋 해시·배포 환경 메타 부재, (b)외부 의존성(결제 프로바이더) 상태 미노출, (c)**DB 에러 메시지를 가공 없이 공개**해 연결 문자열 유출 위험이 있었음.
+- ⑨ **판정 로직을 순수 모듈로 분리** — 신규 `src/lib/health.ts`에 `sanitizeError()`(URL·user:pass@host·32자 이상 토큰 마스킹 + 160자 절단), `shortCommit()`(7자리), `buildInfo()`(APP_VERSION / VERCEL_GIT_COMMIT_SHA·GIT_COMMIT_SHA·COMMIT_SHA·SOURCE_VERSION / 브랜치 / VERCEL_ENV·NODE_ENV / VERCEL_REGION, 없으면 null — 추측값 미기재), `summarize()`(required 실패=down·503, optional 실패만이면 degraded·200), `buildHealthBody()` 배치. 라우트는 조립만 담당.
+- ⑨ **의존성 체크 3종** — `db`(select 1, **required**), `billing`(외부 API 실호출 없이 `billingStatus()` 설정 완비 여부만 확인. 테스트 모드에서는 미설정이 정상이라 live일 때만 판정, optional), `monitoring`(MONITORING_ENABLED·SENTRY_DSN·ALERT_WEBHOOK_URL의 **설정 여부 boolean만** 노출 — DSN·URL 값 자체는 미노출, optional). 공개 엔드포인트 원칙상 자격증명·내부 호스트는 어떤 경로로도 나가지 않는다. route.ts는 GET·dynamic 외 export 0건(Vercel 빌드 규칙 준수). — src/lib/health.ts, src/app/api/health/route.ts
+- 검증: 전체 `tsc --noEmit -p tsconfig.json` **완주 — `error TS` 0건**. `node --test tests/*.test.ts` **99/99 통과**(신규 10건: 연결 문자열·토큰 마스킹, 절단 길이, 빈 입력 폴백, shortCommit, buildInfo 메타 추출/미추측, summarize down·degraded 분기, statusCode 매핑, 응답 스키마, required/optional별 ok 플래그). 작업 전 src 백업(/tmp/bak_1788396348). 임의 KPI 수치 미기재.
+- ⏭ 다음: `표준 에러 응답 전 API 통일 + 입력검증`(라우트 다수 수정 예상 — 별도 배치 권장), 이어서 `rate limit 공개 API 적용`.
+
 ## 2026-09-02 (배치 149 — 배포 대기, 상용 필수: 전역 에러 캡처 + 구조화 요청 로깅)
 - ★ **COMMERCIAL_READINESS 최상위 2건 처리** — ①에러 모니터링 ②구조화 로깅. logger.ts에 이미 JSON 로깅·captureError 기반은 있었으나 (a)라우트 밖 예외를 잡는 전역 훅, (b)클라이언트 렌더 오류 수집, (c)요청 단위 상관관계·소요시간 기록이 전부 부재했음.
 - ⑨ **전역 에러 캡처 + 알림 훅** — logger.ts에 `installGlobalErrorHandlers()`(process unhandledRejection·uncaughtException → captureError, 중복등록 가드)와 `notifyAlert()`(ALERT_WEBHOOK_URL 웹훅, PII 제거 후 발신, await 안 함) 추가. instrumentation.ts register() 최상단에서 설치해 부팅 단계 오류까지 포착. 클라이언트는 `app/global-error.tsx`(루트 에러 경계, html/body 직접 렌더, 테라코타 #be5535 안내 화면 + 다시시도/홈) → `POST /api/client-errors`로 보고(허용 필드 화이트리스트·길이 제한·IP 분당 30회 rate limit·항상 202). **활성화 스위치 기본 OFF** — MONITORING_ENABLED=true 且 SENTRY_DSN/ALERT_WEBHOOK_URL 설정 시에만 외부 발신, 미설정이면 완전 no-op **[실발신 활성화는 승인 필요]**. 신규 route.ts는 POST·dynamic 외 export 없음(Vercel 빌드 규칙 준수). — src/lib/logger.ts, src/instrumentation.ts, src/app/global-error.tsx, src/app/api/client-errors/route.ts

@@ -13,7 +13,8 @@
       → `lib/logger.ts`(installGlobalErrorHandlers·notifyAlert), `instrumentation.ts`, `app/global-error.tsx`, `api/client-errors/route.ts` / tests/logger.test.ts 8건 통과. 기본 OFF **[활성화 승인 필요]**
 - [x] **구조화 로깅** — 요청 ID·소요시간·에러코드. PII 미기록
       → `lib/http.ts` handle(fn, req)에 requestId·durMs·status·code 로깅 + x-request-id 헤더, `lib/logger.ts` redact()로 PII 필드 마스킹 / tests/http.test.ts 5건 통과
-- [ ] **/health 확장** — 의존성(DB·외부API) 상태와 버전·커밋 해시 노출(민감정보 제외)
+- [x] **/health 확장** — 의존성(DB·외부API) 상태와 버전·커밋 해시 노출(민감정보 제외)
+      → `lib/health.ts`(sanitizeError·buildInfo·summarize·buildHealthBody 순수 분리), `app/api/health/route.ts`가 db(필수)·billing·monitoring 체크와 version/commit(7자리)/branch/env/region 반환. 연결 문자열·키·토큰은 sanitizeError로 마스킹 / tests/health.test.ts 10건 통과
 - [ ] **표준 에러 응답** 전 API 통일 + 입력검증
 - [ ] **rate limit** 공개 API 적용
 - [ ] **접근·감사 로그** — 관리 기능 접근 이력
