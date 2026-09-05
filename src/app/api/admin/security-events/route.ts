@@ -2,7 +2,8 @@ import { and, or, eq, lt, desc } from 'drizzle-orm';
 import { db } from '@/db';
 import { auditLog, users } from '@/db/schema';
 import { requireUser } from '@/lib/auth';
-import { SECURITY_ORG } from '@/lib/audit';
+import { SECURITY_ORG, auditSecurity } from '@/lib/audit';
+import { ADMIN_AUDIT_ENTITY, accessMeta, adminAccessEvent } from '@/lib/auditAccess';
 import { handle, ok, ApiError, ERROR } from '@/lib/http';
 export const dynamic = 'force-dynamic';
 
@@ -28,6 +29,11 @@ export async function GET(req: Request) {
       userName: users.name,
     }).from(auditLog).leftJoin(users, eq(auditLog.userId, users.id))
       .where(and(...conds)).orderBy(desc(auditLog.id)).limit(limit);
+    // 보안 이벤트 "열람"도 접근 이력으로 남긴다(조직 컨텍스트 없음 → SECURITY_ORG sentinel).
+    await auditSecurity(adminAccessEvent(url.pathname, req.method), {
+      userId: u.id, entity: ADMIN_AUDIT_ENTITY,
+      detail: { ...accessMeta(req), count: rows.length, filter: event || 'all' },
+    });
     return ok({ rows, nextCursor: rows.length === limit ? rows[rows.length - 1].id : null });
-  });
+  }, req);
 }

@@ -4,17 +4,20 @@ import { memberships, users } from '@/db/schema';
 import { requireUser, hashPassword } from '@/lib/auth';
 import { requireTenant } from '@/lib/tenant';
 import { handle, ok, ApiError, ERROR } from '@/lib/http';
+import { auditAdminAccess } from '@/lib/audit';
+import { adminChangeKind } from '@/lib/auditAccess';
 export const dynamic = 'force-dynamic';
 const genTemp = () => 'pms-' + Math.random().toString(36).slice(2, 8);
-export async function GET() {
+export async function GET(req: Request) {
   return handle(async () => {
     const ctx = await requireTenant(await requireUser());
     const rows = await db.select({
       membershipId: memberships.id, userId: users.id, name: users.name, email: users.email,
       role: memberships.role, isOrgAdmin: memberships.isOrgAdmin, isActive: users.isActive, createdAt: users.createdAt,
     }).from(memberships).innerJoin(users, eq(memberships.userId, users.id)).where(eq(memberships.orgId, ctx.orgId));
+    await auditAdminAccess(ctx, req, { detail: { count: rows.length } });
     return ok(rows);
-  });
+  }, req);
 }
 export async function PATCH(req: Request) {
   return handle(async () => {
@@ -25,6 +28,8 @@ export async function PATCH(req: Request) {
     if (!membershipId) throw new ApiError(ERROR.VALIDATION, '대상을 지정하세요');
     const m = (await db.select().from(memberships).where(and(eq(memberships.id, membershipId), eq(memberships.orgId, ctx.orgId))).limit(1))[0];
     if (!m) throw new ApiError(ERROR.NOT_FOUND, '대상을 찾을 수 없습니다');
+    // 변경 "유형"만 기록한다 — 임시 비밀번호·이메일 등 값은 남기지 않는다.
+    await auditAdminAccess(ctx, req, { entityId: membershipId, detail: { change: adminChangeKind(body), targetUserId: m.userId } });
     // 비밀번호 초기화 → 임시 비번 반환(관리자가 본인에게 전달)
     if (body.resetPassword) {
       const temp = genTemp();
@@ -44,5 +49,5 @@ export async function PATCH(req: Request) {
       return ok();
     }
     throw new ApiError(ERROR.VALIDATION, '변경할 항목이 없습니다');
-  });
+  }, req);
 }

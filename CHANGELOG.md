@@ -3,6 +3,15 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-09-05 (배치 152 — 배포 대기, 상용 필수: 관리 기능 접근 감사 + 백업·복구 RUNBOOK)
+- ★ **COMMERCIAL_READINESS 상위 2건 처리** — `접근·감사 로그(관리 기능 접근 이력)` 완료, `백업·복구 절차 RUNBOOK` 문서 부분 완료(리허설 실시는 사람 몫). 기존 감사로그는 로그인·결제 등 **쓰기 이벤트**만 남고 관리 API **열람 이력이 전무**했던 것이 실제 공백이었다.
+- ⑨ **신규 `src/lib/auditAccess.ts`(순수 모듈)** — `normalizePath`(쿼리·해시 제거, 숫자 세그먼트 `:id` 일반화), `adminAccessEvent`(GET→`.view`/POST→`.run`/PATCH→`.update`/DELETE→`.delete`, 예: `admin.users.view`), `sanitizeAccessDetail`(email·name·password·token·key·cookie 등 키를 **통째 제거**, 문자열 120자 절단, 배열은 개수만), `adminChangeKind`(변경 유형만: password_reset/activate/deactivate/role_change), `coarseIp`(IPv4 마지막 옥텟·IPv6 마지막 그룹 마스킹), `accessMeta`(ip·requestId·ua만 추출). DB·next 의존 0.
+- ⑨ **`lib/audit.ts` auditAdminAccess()** — 경로/메서드에서 이벤트명을 파생해 기존 `audit_log` 테이블에 기록(신규 테이블 없음). 기록 실패는 기존 `insertAudit`가 흡수해 본 요청을 깨뜨리지 않는다.
+- ⑨ **적용 라우트 5건** — `api/admin/users`(GET 열람 건수·PATCH 변경 유형+대상 userId), `api/admin/migrate`, `api/admin/seed-demo`, `api/audit`(감사로그 열람 자체도 기록), `api/admin/security-events`(조직 컨텍스트 없어 `auditSecurity` + SECURITY_ORG sentinel). 임시 비밀번호·이메일 등 값은 일절 미기록. 다섯 라우트 모두 HTTP 메서드·`dynamic` 외 export 0건(Vercel 빌드 규칙 준수), `handle(fn, req)`로 요청 로깅도 연결. — src/lib/auditAccess.ts, src/lib/audit.ts, src/app/api/{admin/users,admin/migrate,admin/seed-demo,audit,admin/security-events}/route.ts
+- ⑨ **신규 `RUNBOOK.md`** — 보호 대상표(DB·소스·배포·시크릿), Neon PITR 복구 7단계(**운영 DB 직접 되돌리기 금지 → 복구 브랜치 검증 후 전환**), 환경변수·시크릿 복구(값 미커밋, 복구 후 `PAYMENTS_LIVE`·`BILLING_APPLY_LIVE` OFF 재확인), 배포 롤백, 리허설 기록표·체크리스트. RTO/RPO·보존기간은 임의 수치 대신 `[확인 필요]`로 비워 두고, 리허설 표도 **미실시 상태 그대로** 두었다.
+- 검증: 전체 `tsc --noEmit -p tsconfig.json` **완주 — `error TS` 0건**. `node --test tests/*.test.ts` **123/123 통과**(신규 10건: 경로 정규화, 관리 경로 판정, 이벤트명 6종, PII 키 제거, 길이·배열·객체 처리, 비객체 입력, 변경 유형, IP 마스킹, 헤더 메타 추출). 작업 전 src 백업(/tmp/bak_1788579677). 라이브 DB 쓰기·DDL 실행 없음.
+- ⚠ 복구 리허설은 사람이 수행·기록해야 완료 처리된다 **[사람 수행 필요]**.
+
 ## 2026-09-03 (배치 151 — 배포 대기, 상용 필수: 입력검증 + 공개 API rate limit)
 - ★ **COMMERCIAL_READINESS 상위 2건 처리** — `표준 에러 응답 전 API 통일 + 입력검증`, `rate limit 공개 API 적용`. 사전 점검 결과 API 71건 중 직접 `NextResponse.json`을 쓰는 건 health 하나뿐(의도적 스키마)이고 나머지는 전부 `handle()`/`ApiError` 경유였음 → 실제 공백은 **입력검증 부재**(지금까지 `required` 유무만 검사, 타입·길이·범위 무제한)였고 이를 메웠다.
 - ⑨ **신규 `src/lib/validate.ts`(순수 모듈)** — 필드명 규약으로 종류를 추론(`*Date`/`*Start`/`*End`→날짜, progress→0~100 퍼센트, qty·sortOrder·parentId 등→정수, budget·unitPrice·공수·storyPoints 등→숫자, description·content·steps 등→긴텍스트 20000자, email→형식+254자, 그 외→텍스트 500자). null·undefined·빈문자열은 "비움"으로 통과시켜 기존 정상 입력 호환을 유지하고, 명백한 오류(숫자 아님·날짜 아님·객체 주입·과도한 길이·범위 초과)만 차단. `configs.ts` 수정 없이 전 리소스에 일괄 적용된다.

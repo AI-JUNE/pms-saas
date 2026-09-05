@@ -2,12 +2,14 @@ import { requireUser } from '@/lib/auth';
 import { requireTenant } from '@/lib/tenant';
 import { seedDemo } from '@/lib/demoSeed';
 import { handle, ok, ApiError, ERROR } from '@/lib/http';
+import { auditAdminAccess } from '@/lib/audit';
 export const dynamic = 'force-dynamic';
-export async function POST() {
+export async function POST(req: Request) {
   return handle(async () => {
     const ctx = await requireTenant(await requireUser());
     if (!ctx.isOrgAdmin && !ctx.user.isSuperadmin) throw new ApiError(ERROR.FORBIDDEN, '관리자만 실행할 수 있습니다');
+    await auditAdminAccess(ctx, req);
     await seedDemo(ctx.orgId, ctx.user.id);
     return ok();
-  });
+  }, req);
 }

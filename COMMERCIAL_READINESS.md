@@ -20,8 +20,10 @@
 - [x] **rate limit** 공개 API 적용
       → `lib/ratelimit.ts`에 공개 API 프리셋(publicHealth 120/분·publicPlans 60/분·publicAsset 60/분·billingWebhook 120/분)과 `rateLimitResponse()`(handle 미사용 라우트용 표준 429+Retry-After) 추가. `api/health`·`api/brand-logo`·`api/billing/plans`·`api/billing/webhook`에 적용(기존 auth/login·register·client-errors·billing/checkout와 합쳐 공개 엔드포인트 전건 커버) / tests/ratelimit.test.ts 통과
       ※ 인메모리 단일 인스턴스 기준. 다중 인스턴스 공유 스토어(Upstash 등) 승격은 **[활성화 승인 필요]**
-- [ ] **접근·감사 로그** — 관리 기능 접근 이력
+- [x] **접근·감사 로그** — 관리 기능 접근 이력
+      → 신규 `lib/auditAccess.ts`(순수: normalizePath·adminAccessEvent·sanitizeAccessDetail·adminChangeKind·coarseIp·accessMeta)와 `lib/audit.ts` auditAdminAccess()로 관리 API의 **열람까지** 기록. 적용: `api/admin/users`(GET/PATCH)·`api/admin/migrate`·`api/admin/seed-demo`·`api/audit`·`api/admin/security-events`. detail은 PII·비밀 키 제거, IP는 마지막 옥텟 마스킹, 변경은 유형만(값 미기록) / tests/auditAccess.test.ts 10건 통과(전체 123건 통과)
 - [ ] **백업·복구 절차** RUNBOOK.md 문서화 + 복구 리허설 기록
+      → 문서는 완료: `RUNBOOK.md`(보호 대상·Neon PITR 복구·시크릿 복구·배포 롤백·리허설 체크리스트). **복구 리허설 실시·기록은 사람 몫이라 미완** — 리허설 표는 의도적으로 비워 둠 [사람 수행 필요]
 - [ ] **약관·개인정보 처리방침 확정본 반영** (현재 초안, 문안은 사람이 확정)
 - [ ] **테스트** 핵심 로직 커버리지 확보, CI에서 실행
 
