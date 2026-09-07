@@ -25,10 +25,14 @@
 - [ ] **백업·복구 절차** RUNBOOK.md 문서화 + 복구 리허설 기록
       → 문서는 완료: `RUNBOOK.md`(보호 대상·Neon PITR 복구·시크릿 복구·배포 롤백·리허설 체크리스트). **복구 리허설 실시·기록은 사람 몫이라 미완** — 리허설 표는 의도적으로 비워 둠 [사람 수행 필요]
 - [ ] **약관·개인정보 처리방침 확정본 반영** (현재 초안, 문안은 사람이 확정)
-- [ ] **테스트** 핵심 로직 커버리지 확보, CI에서 실행
+- [x] **테스트** 핵심 로직 커버리지 확보, CI에서 실행
+      → `.github/workflows/ci.yml`(push·PR·수동, Node 22, npm ci → `npm run typecheck` → `npm run test:coverage`; 활성화 스위치 PAYMENTS_LIVE·BILLING_APPLY_LIVE 를 CI 환경에서 false 로 고정, 실DB·배포 단계 없음, permissions: contents read). `package.json` 에 `typecheck`·`test:coverage` 추가 — 커버리지는 `src/lib/**` 대상 임계값(lines 90·branches 80·funcs 85) 미달 시 **CI 실패**. 실측 96.47% lines / 88.42% branches / 93.75% funcs, 테스트 123건 전건 통과(tsc rc=0). 임계값 강제 동작은 lines=99 로 올려 rc=1 확인
+      ※ 잔여(낮은 커버리지): `logger.ts` 83.73%, 그리고 DB 의존 모듈(crud·rbac·tenant·auth)은 테스트DB 필요 — 통합테스트는 별도 항목
 
 ## PMS 전용 (준비도 ~80%, 1순위)
-- [ ] 실로그인 게이트 코드 완성 (현재 자동로그인). 활성화 스위치 분리, 기본 OFF **[승인 후 ON]**
+- [x] 실로그인 게이트 코드 완성 (현재 자동로그인). 활성화 스위치 분리, 기본 OFF **[승인 후 ON]**
+      → 코드 확인(2026-09-07): 자동로그인 `api/auth/auto/route.ts` 는 무조건 `{ok:false, disabled:true}` 반환(비활성)이고, 페이지는 `middleware.ts` 가 세션 쿠키 없으면 17개 앱 경로를 `/login` 리다이렉트, API 는 `lib/crud.ts` ctxOf → `requireUser()`(세션 없으면 UNAUTHORIZED) → `requireTenant()` 로 게이트. 로그인/가입은 rate limit + `password.ts` 해시 경유
+      ※ 게이트는 환경변수 없이 **항상 ON**(하드코딩)으로 두었다 — 자동로그인을 되살릴 수 있는 스위치를 만들지 않는 편이 안전하므로 의도적. 남은 사람 몫: 운영 실계정 발급·비밀번호 정책 확정 **[승인 필요]**
 - [ ] 구독 결제 플로우 완성 — 빌링키 등록·정기청구·해지·환불 화면과 API (테스트키 전용) **[실결제는 승인]**
 - [ ] 요금제별 기능 제한(엔타이틀먼트) 로직 — 좌석 수·기능 게이팅
 - [ ] 온보딩 흐름 — 가입 → 워크스페이스 생성 → 샘플 프로젝트

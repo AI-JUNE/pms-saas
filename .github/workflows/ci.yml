@@ -1,0 +1,44 @@
+name: CI
+
+# 상용 게이트: 타입체크 + 단위테스트 + 커버리지 임계값.
+# 실DB·실키가 필요한 작업(마이그레이션·배포)은 여기서 절대 실행하지 않는다.
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: typecheck + tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CI: 'true'
+      # 상용 활성화 스위치는 CI에서 전부 OFF 로 고정한다(실결제·실인증 차단).
+      PAYMENTS_LIVE: 'false'
+      BILLING_APPLY_LIVE: 'false'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests + coverage threshold
+        run: npm run test:coverage

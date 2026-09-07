@@ -3,6 +3,13 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-09-07 (배치 153 — 배포 대기, 상용 필수: CI 파이프라인 + 커버리지 게이트)
+- ★ **COMMERCIAL_READINESS 상위 2건 처리** — `테스트 커버리지 확보·CI 실행` 완료, `실로그인 게이트` 는 코드 실사 후 완료 확정. 지금까지 테스트는 사람이 로컬에서 돌려야만 실행됐고, 회귀를 막아 줄 자동 관문이 없었던 것이 실제 공백이었다.
+- ⑨ **신규 `.github/workflows/ci.yml`** — push(전 브랜치)·PR·수동 실행. Node 22 + `npm ci` → `npm run typecheck` → `npm run test:coverage`. `permissions: contents read`, ref 단위 concurrency 취소, 15분 타임아웃. **실DB·배포·시크릿 사용 단계 없음**이며 `PAYMENTS_LIVE`·`BILLING_APPLY_LIVE` 를 CI 환경에서 `false` 로 못박아 활성화 스위치가 켜진 채 테스트되는 일을 차단했다.
+- ⑨ **`package.json` 스크립트 2종** — `typecheck`(tsc --noEmit), `test:coverage`(node --test --experimental-test-coverage, 대상 `src/lib/**`, 임계값 lines 90 / branches 80 / funcs 85). 임계값 미달이면 프로세스가 rc≠0 으로 죽어 **CI 가 실패**한다. 실측 96.47% lines · 88.42% branches · 93.75% funcs.
+- ⑨ **로그인 게이트 실사(코드 무변경)** — `api/auth/auto` 는 무조건 `{ok:false, disabled:true}`(자동로그인 사망), 페이지는 `middleware.ts` 쿠키 검사로 17개 경로 `/login` 리다이렉트, API 는 `crud.ts` ctxOf → `requireUser`(UNAUTHORIZED) → `requireTenant`. 되살릴 수 있는 스위치를 만들지 않는 편이 안전하므로 게이트는 환경변수 없이 항상 ON 으로 유지.
+- 검증: 전체 `tsc --noEmit -p tsconfig.json` **error TS 0건**. `npm run test:coverage` **123/123 통과·rc=0**. 임계값 강제 동작 확인을 위해 lines=99 로 올려 실행 → `rc=1`(“96.47% line coverage does not meet threshold of 99%”). 작업 전 src 백업(/tmp/bak_1788758532). 라이브 DB 쓰기·DDL 없음.
+
 ## 2026-09-05 (배치 152 — 배포 대기, 상용 필수: 관리 기능 접근 감사 + 백업·복구 RUNBOOK)
 - ★ **COMMERCIAL_READINESS 상위 2건 처리** — `접근·감사 로그(관리 기능 접근 이력)` 완료, `백업·복구 절차 RUNBOOK` 문서 부분 완료(리허설 실시는 사람 몫). 기존 감사로그는 로그인·결제 등 **쓰기 이벤트**만 남고 관리 API **열람 이력이 전무**했던 것이 실제 공백이었다.
 - ⑨ **신규 `src/lib/auditAccess.ts`(순수 모듈)** — `normalizePath`(쿼리·해시 제거, 숫자 세그먼트 `:id` 일반화), `adminAccessEvent`(GET→`.view`/POST→`.run`/PATCH→`.update`/DELETE→`.delete`, 예: `admin.users.view`), `sanitizeAccessDetail`(email·name·password·token·key·cookie 등 키를 **통째 제거**, 문자열 120자 절단, 배열은 개수만), `adminChangeKind`(변경 유형만: password_reset/activate/deactivate/role_change), `coarseIp`(IPv4 마지막 옥텟·IPv6 마지막 그룹 마스킹), `accessMeta`(ip·requestId·ua만 추출). DB·next 의존 0.
