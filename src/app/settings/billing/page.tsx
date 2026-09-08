@@ -16,6 +16,11 @@ type SubData = {
   role: string; isOrgAdmin: boolean;
   plans: PlanCard[];
   billing: { live: boolean; provider: string; mode: string; note: string; configured: Record<string, boolean> };
+  entitlements?: {
+    plan: string; enforced: boolean;
+    seats: { used: number; limit: number | null; remaining: number | null; exceeded: boolean; canAddOne: boolean };
+    features: { id: string; label: string; minPlan: string; enabled: boolean }[];
+  };
 };
 
 // 구독 수명주기 조작 결과(스캐폴딩). 실행되는 것은 아무것도 없고 "무엇이 일어날지"만 보여준다.
@@ -98,6 +103,44 @@ export default function Page() {
           </p>
         )}
       </div>
+
+      {d.entitlements && (
+        <>
+          <div style={{ height: 14 }} />
+          <div className="card card-pad" style={{ maxWidth: 860 }}>
+            <div className="sect" style={{ marginBottom: 6 }}>플랜 이용 범위</div>
+            <p className="muted" style={{ fontSize: 12.5, lineHeight: 1.6, margin: '0 0 12px' }}>
+              현재 플랜에서 사용 가능한 기능과 좌석 사용량입니다.
+              {d.entitlements.enforced
+                ? ' 제한이 적용 중입니다.'
+                : ' 현재는 안내만 표시되며 실제 기능 차단은 하지 않습니다(강제 적용은 [승인 필요]).'}
+            </p>
+            <div className="row" style={{ gap: 18, fontSize: 13, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
+              <span className="muted">좌석</span>
+              <strong>
+                {d.entitlements.seats.used}
+                {d.entitlements.seats.limit === null ? ' / 무제한' : ` / ${d.entitlements.seats.limit}`}
+              </strong>
+              {d.entitlements.seats.limit !== null && (
+                <span className={`pill ${d.entitlements.seats.canAddOne ? 'p-gray' : 'p-red'} np`}>
+                  {d.entitlements.seats.exceeded ? '한도 초과' : d.entitlements.seats.canAddOne ? `잔여 ${d.entitlements.seats.remaining}석` : '한도 도달'}
+                </span>
+              )}
+            </div>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 6 }}>
+              {d.entitlements.features.map((f) => (
+                <li key={f.id} className="row" style={{ gap: 8, fontSize: 12.5, alignItems: 'center' }}>
+                  {f.enabled
+                    ? <Check size={14} aria-hidden style={{ color: 'var(--ok, #2f855a)' }} />
+                    : <XCircle size={14} aria-hidden className="muted" />}
+                  <span className={f.enabled ? '' : 'muted'}>{f.label}</span>
+                  {!f.enabled && <span className="pill p-gray np">{PLAN_LABEL[f.minPlan] || f.minPlan} 이상</span>}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </>
+      )}
 
       {d.isOrgAdmin && (
         <>

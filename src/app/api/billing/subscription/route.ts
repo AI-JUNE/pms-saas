@@ -1,10 +1,11 @@
-import { eq } from 'drizzle-orm';
+import { count, eq } from 'drizzle-orm';
 import { db } from '@/db';
-import { organizations } from '@/db/schema';
+import { memberships, organizations } from '@/db/schema';
 import { requireUser } from '@/lib/auth';
 import { requireTenant } from '@/lib/tenant';
 import { handle, ok } from '@/lib/http';
 import { PLANS } from '@/lib/billing';
+import { summarizeEntitlements } from '@/lib/entitlements';
 import { billingStatus } from '@/lib/portone';
 
 export const dynamic = 'force-dynamic';
@@ -22,6 +23,9 @@ export async function GET() {
       createdAt: organizations.createdAt,
     }).from(organizations).where(eq(organizations.id, ctx.orgId)).limit(1))[0];
 
+    // 좌석 사용량(멤버십 수) — 읽기 전용 집계.
+    const seatRow = (await db.select({ n: count() }).from(memberships).where(eq(memberships.orgId, ctx.orgId)))[0];
+
     return ok({
       org: org ?? null,
       role: ctx.role,
@@ -32,6 +36,13 @@ export async function GET() {
         note: p.note, desc: p.desc, features: p.features, highlight: !!p.highlight,
       })),
       billing: billingStatus(),
+      // 엔타이틀먼트(요금제별 기능·좌석 제한). 기본은 관측 모드 — 강제 차단은
+      // ENTITLEMENTS_ENFORCE=true 일 때만 켜진다 [활성화 승인 필요].
+      entitlements: summarizeEntitlements({
+        plan: org?.plan,
+        seatsUsed: Number(seatRow?.n ?? 0),
+        enforce: process.env.ENTITLEMENTS_ENFORCE === 'true',
+      }),
     });
   });
 }

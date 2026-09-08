@@ -3,6 +3,14 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-09-08 (배치 155 — 배포 대기, PMS 1순위: 요금제별 기능 제한(엔타이틀먼트))
+- ★ **COMMERCIAL_READINESS `요금제별 기능 제한(엔타이틀먼트)` 처리** — 플랜은 표시만 되고 좌석 수·기능 접근을 판정하는 단일 소스가 없었다.
+- ⑨ **신규 `src/lib/entitlements.ts`(순수 모듈, DB·next 의존 0)** — 기능 10종(core·evm·rtm·approval·testMgmt·ganttAdvanced·customForms·auditLog·sso·apiAccess)의 최소 플랜 매핑, 좌석 상한(basic 10·pro 100·enterprise 무제한), `resolvePlan`(미지·누락·free·trial → basic, team·business → pro), `hasFeature`/`featuresFor`/`seatUsage`/`checkFeature`/`checkSeat`/`summarizeEntitlements`. **기본은 관측 모드** — 판정 결과만 담고 `enforced=false`로 돌려주어 호출부가 차단하지 않는다.
+- ⑨ **`api/billing/subscription`** — 조직 플랜과 멤버십 수(읽기 전용 집계)로 엔타이틀먼트 요약을 함께 반환. 강제 여부는 `ENTITLEMENTS_ENFORCE=true`일 때만 true. HTTP 메서드·`dynamic` 외 export 0건.
+- ⑨ **`settings/billing/page.tsx` «플랜 이용 범위» 섹션** — 좌석 사용/잔여·한도 도달 표시와 기능별 사용 가능 여부(미해당 기능은 필요한 최소 플랜 배지). 관측 모드에서는 "안내만 표시, 실제 차단 없음"을 명시. — src/lib/entitlements.ts, src/app/api/billing/subscription/route.ts, src/app/settings/billing/page.tsx
+- 검증: 전체 `tsc --noEmit -p tsconfig.json` **error TS 0건**, `npm test` **147/147 통과**(신규 11건: 플랜 정규화·서열, 기능 매핑 무결성, 플랜별 기능 단조성, 좌석 경계(한도 정확·초과·음수·소수·NaN), 관측 모드 불차단, 상위 플랜 제안, 요약 필드 안전성). `test:coverage` entitlements.ts lines 100%·전체 97.23%. 작업 전 src 백업(/tmp/bak_1788829518). 라이브 DB 쓰기·DDL 없음.
+- ⚠ 실제 차단 배선(멤버 초대 좌석 거절·기능 라우트 게이팅)과 `ENTITLEMENTS_ENFORCE=true` 전환은 **[승인 필요]**.
+
 ## 2026-09-08 (배치 154 — 배포 대기, PMS 1순위: 구독 수명주기(빌링키·해지·환불) API + 화면)
 - ★ **COMMERCIAL_READINESS `구독 결제 플로우 완성` 처리** — 기존 결제 코드는 체크아웃 파라미터 발급과 웹훅 판정까지였고, **빌링키 등록·해지·환불·다음 청구일 계산이 전부 부재**했던 것이 실제 공백이었다.
 - ⑨ **신규 `src/lib/subscription.ts`(순수 모듈, DB·next 의존 0)** — `parsePriceKRW`/`monthlyUnitPrice`/`monthlyAmount`(좌석 수 기준, enterprise·비청구 플랜은 null), `addMonthsClamped`(말일 보정: 1/31 +1개월 → 2/28, 윤년 2/29), `nextBillingDate`·`currentPeriod`(구독 시작일 anchor 기준 주기 [start,end)), `refundQuote`(일할 환불 = 결제액 × 잔여일/주기일, 원 미만 절사·전액 초과 방지), `parseAction`(액션 화이트리스트), `gateSubscriptionAction`(조직관리자 아님·enterprise·비청구 플랜 → deny / 스위치 OFF → scaffold / 둘 다 ON → execute), `planCancellation`(기본 `period_end` = 주기 종료 시 해지·환불 없음, `immediate` = 즉시 해지·일할 환불 동반), `newBillingKeyIssueId`·`maskBillingKey`(뒤 4자리만), `summarizeSubscription`.

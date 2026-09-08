@@ -37,7 +37,9 @@
       → 신규 `lib/subscription.ts`(순수: 금액 파싱·좌석 청구액, 말일 보정 월가산·다음 청구일·현재 청구주기, 일할 환불 견적, 액션 화이트리스트·게이트, 해지 정책 period_end/immediate, 빌링키 발급 식별자·마스킹), 신규 `api/billing/manage/route.ts`(POST action=issue_billing_key·delete_billing_key·cancel·resume·refund, 조직관리자 전용·rate limit 20/분·감사로그), `settings/billing/page.tsx` 관리 UI(해지 예정일·환불 견적 표시) / tests/subscription.test.ts 13건 통과(전체 136건)
       ※ 기본은 **스캐폴딩 모드** — 외부 결제 호출·DB 변경 0. 실행 경로는 PAYMENTS_LIVE·BILLING_APPLY_LIVE 둘 다 ON일 때만 열리며 현재는 명시적으로 거절 **[활성화 승인 필요]**
       ※ 잔여: 빌링키·구독 상태 **영속화 테이블**(billing_keys·subscriptions)은 신규 DDL이라 야간 금지 규칙에 따라 미생성 — 실PG 연동 시 함께 진행
-- [ ] 요금제별 기능 제한(엔타이틀먼트) 로직 — 좌석 수·기능 게이팅
+- [x] 요금제별 기능 제한(엔타이틀먼트) 로직 — 좌석 수·기능 게이팅
+      → 신규 `lib/entitlements.ts`(순수 단일 소스: FEATURES 10종 최소플랜 매핑·SEAT_LIMIT(basic 10·pro 100·enterprise 무제한)·resolvePlan(미지/free/trial→basic, team/business→pro)·hasFeature·featuresFor·seatUsage·checkFeature·checkSeat·summarizeEntitlements), `api/billing/subscription`이 조직 플랜+멤버십 수로 요약을 반환(읽기 전용), `settings/billing` "플랜 이용 범위" 섹션에 좌석 사용량·기능 목록 표시 / tests/entitlements.test.ts 11건 통과(전체 147건, tsc rc=0, 커버리지 lines 97.23%)
+      ※ 기본은 **관측 모드** — 판정만 하고 차단하지 않는다. `ENTITLEMENTS_ENFORCE=true` 일 때만 enforced=true 로 강제 **[활성화 승인 필요]**. 실제 차단 배선(멤버 초대·기능 라우트)은 승인 후 진행
 - [ ] 온보딩 흐름 — 가입 → 워크스페이스 생성 → 샘플 프로젝트
 - [ ] 테넌트 데이터 격리 재점검 (org_id 파티션 누락 라우트 탐지)
 - [ ] 마켓플레이스 제출자료 — 서비스 개요·보안 설명·아키텍처 다이어그램
