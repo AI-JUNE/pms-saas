@@ -4,7 +4,7 @@
 // 실PG 결제창·플랜 실변경·실결제는 [승인 필요] 이후에만 활성화된다.
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, CreditCard, ShieldCheck } from 'lucide-react';
+import { Check, CreditCard, ShieldCheck, CalendarClock, Undo2, XCircle } from 'lucide-react';
 import { Shell } from '@/components/Shell';
 import CheckoutButton from '@/app/pricing/CheckoutButton';
 
@@ -18,10 +18,44 @@ type SubData = {
   billing: { live: boolean; provider: string; mode: string; note: string; configured: Record<string, boolean> };
 };
 
+// 구독 수명주기 조작 결과(스캐폴딩). 실행되는 것은 아무것도 없고 "무엇이 일어날지"만 보여준다.
+type ManageResult = {
+  action: string;
+  blocked?: string;
+  subscription?: { planName: string; seats: number; unitPrice: number | null; amount: number | null; autoBillable: boolean; nextChargeAt: string | null };
+  issueId?: string;
+  cancellation?: { mode: string; effectiveAt: string; refundExpected: boolean; note: string } | null;
+  quote?: { amount: number; periodDays: number; usedDays: number; remainDays: number; refund: number } | { error: string };
+  nextChargeAt?: string | null;
+  note?: string;
+  message?: string;
+};
+
+const won = (n: number | null | undefined) => (typeof n === 'number' ? `₩${n.toLocaleString('ko-KR')}` : '—');
+
 export default function Page() {
   const router = useRouter();
   const [d, setD] = useState<SubData | null>(null);
   const [err, setErr] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [res, setRes] = useState<ManageResult | null>(null);
+
+  async function manage(action: string, extra: Record<string, unknown> = {}) {
+    setBusy(action); setRes(null);
+    try {
+      const r = await fetch('/api/billing/manage', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ action, ...extra }),
+      });
+      setRes(await r.json());
+    } catch {
+      setRes({ action, message: '요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.' });
+    } finally {
+      setBusy(null);
+    }
+  }
+
   useEffect(() => {
     fetch('/api/billing/subscription')
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
@@ -64,6 +98,71 @@ export default function Page() {
           </p>
         )}
       </div>
+
+      {d.isOrgAdmin && (
+        <>
+          <div style={{ height: 14 }} />
+          <div className="card card-pad" style={{ maxWidth: 860 }}>
+            <div className="sect" style={{ marginBottom: 6 }}>결제수단·정기청구 관리</div>
+            <p className="muted" style={{ fontSize: 12.5, lineHeight: 1.6, margin: '0 0 12px' }}>
+              결제수단(빌링키) 등록·해제, 구독 해지, 환불 견적을 확인합니다.
+              테스트 모드에서는 <strong>실제 카드 등록·과금·해지·환불이 발생하지 않으며</strong>, 무엇이 일어날지만 계산해 보여줍니다. [승인 필요]
+            </p>
+            <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+              <button className="btn" disabled={!!busy} onClick={() => manage('issue_billing_key', { planId: curPlan })}>
+                <CreditCard size={13} style={{ verticalAlign: -2, marginRight: 5 }} />
+                {busy === 'issue_billing_key' ? '요청 중…' : '결제수단 등록'}
+              </button>
+              <button className="btn" disabled={!!busy} onClick={() => manage('delete_billing_key')}>
+                <XCircle size={13} style={{ verticalAlign: -2, marginRight: 5 }} />결제수단 해제
+              </button>
+              <button className="btn" disabled={!!busy} onClick={() => manage('cancel', { mode: 'period_end' })}>
+                <CalendarClock size={13} style={{ verticalAlign: -2, marginRight: 5 }} />주기 종료 시 해지
+              </button>
+              <button className="btn" disabled={!!busy} onClick={() => manage('cancel', { mode: 'immediate' })}>
+                즉시 해지(환불 동반)
+              </button>
+              <button className="btn" disabled={!!busy} onClick={() => manage('resume')}>
+                <Undo2 size={13} style={{ verticalAlign: -2, marginRight: 5 }} />해지 예약 취소
+              </button>
+              <button className="btn" disabled={!!busy} onClick={() => manage('refund')}>환불 견적</button>
+            </div>
+
+            {res && (
+              <div style={{ marginTop: 14, border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '12px 14px', fontSize: 12.5, lineHeight: 1.8 }}>
+                {res.message && <div style={{ color: 'var(--brand-600)' }}>{res.message}</div>}
+                {res.subscription && (
+                  <div className="row" style={{ gap: 16, flexWrap: 'wrap' }}>
+                    <span className="muted">플랜</span><strong>{res.subscription.planName}</strong>
+                    <span className="muted">좌석</span><strong>{res.subscription.seats}</strong>
+                    <span className="muted">월 청구액</span><strong>{res.subscription.autoBillable ? won(res.subscription.amount) : '자동청구 대상 아님'}</strong>
+                    <span className="muted">다음 청구일</span><strong>{res.subscription.nextChargeAt || '—'}</strong>
+                  </div>
+                )}
+                {res.issueId && <div><span className="muted">발급 요청 번호</span> <code>{res.issueId}</code></div>}
+                {res.cancellation && (
+                  <div>
+                    <span className="muted">해지 방식</span> <strong>{res.cancellation.mode === 'immediate' ? '즉시' : '주기 종료 시'}</strong>{' · '}
+                    <span className="muted">서비스 종료 예정일</span> <strong>{res.cancellation.effectiveAt}</strong>
+                    <div className="muted">{res.cancellation.note}</div>
+                  </div>
+                )}
+                {res.quote && ('error' in res.quote ? (
+                  <div className="muted">환불 견적을 계산할 수 없습니다({res.quote.error}).</div>
+                ) : (
+                  <div>
+                    <span className="muted">결제액</span> <strong>{won(res.quote.amount)}</strong>{' · '}
+                    <span className="muted">사용</span> {res.quote.usedDays}일{' / '}
+                    <span className="muted">잔여</span> {res.quote.remainDays}일{' (총 '}{res.quote.periodDays}일){' · '}
+                    <span className="muted">환불 예정액</span> <strong>{won(res.quote.refund)}</strong>
+                  </div>
+                ))}
+                {res.note && <div className="muted" style={{ marginTop: 4 }}>{res.note}</div>}
+              </div>
+            )}
+          </div>
+        </>
+      )}
 
       <div style={{ height: 14 }} />
       <div className="row" style={{ gap: 14, alignItems: 'stretch', flexWrap: 'wrap' }}>

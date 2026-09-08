@@ -33,7 +33,10 @@
 - [x] 실로그인 게이트 코드 완성 (현재 자동로그인). 활성화 스위치 분리, 기본 OFF **[승인 후 ON]**
       → 코드 확인(2026-09-07): 자동로그인 `api/auth/auto/route.ts` 는 무조건 `{ok:false, disabled:true}` 반환(비활성)이고, 페이지는 `middleware.ts` 가 세션 쿠키 없으면 17개 앱 경로를 `/login` 리다이렉트, API 는 `lib/crud.ts` ctxOf → `requireUser()`(세션 없으면 UNAUTHORIZED) → `requireTenant()` 로 게이트. 로그인/가입은 rate limit + `password.ts` 해시 경유
       ※ 게이트는 환경변수 없이 **항상 ON**(하드코딩)으로 두었다 — 자동로그인을 되살릴 수 있는 스위치를 만들지 않는 편이 안전하므로 의도적. 남은 사람 몫: 운영 실계정 발급·비밀번호 정책 확정 **[승인 필요]**
-- [ ] 구독 결제 플로우 완성 — 빌링키 등록·정기청구·해지·환불 화면과 API (테스트키 전용) **[실결제는 승인]**
+- [x] 구독 결제 플로우 완성 — 빌링키 등록·정기청구·해지·환불 화면과 API (테스트키 전용) **[실결제는 승인]**
+      → 신규 `lib/subscription.ts`(순수: 금액 파싱·좌석 청구액, 말일 보정 월가산·다음 청구일·현재 청구주기, 일할 환불 견적, 액션 화이트리스트·게이트, 해지 정책 period_end/immediate, 빌링키 발급 식별자·마스킹), 신규 `api/billing/manage/route.ts`(POST action=issue_billing_key·delete_billing_key·cancel·resume·refund, 조직관리자 전용·rate limit 20/분·감사로그), `settings/billing/page.tsx` 관리 UI(해지 예정일·환불 견적 표시) / tests/subscription.test.ts 13건 통과(전체 136건)
+      ※ 기본은 **스캐폴딩 모드** — 외부 결제 호출·DB 변경 0. 실행 경로는 PAYMENTS_LIVE·BILLING_APPLY_LIVE 둘 다 ON일 때만 열리며 현재는 명시적으로 거절 **[활성화 승인 필요]**
+      ※ 잔여: 빌링키·구독 상태 **영속화 테이블**(billing_keys·subscriptions)은 신규 DDL이라 야간 금지 규칙에 따라 미생성 — 실PG 연동 시 함께 진행
 - [ ] 요금제별 기능 제한(엔타이틀먼트) 로직 — 좌석 수·기능 게이팅
 - [ ] 온보딩 흐름 — 가입 → 워크스페이스 생성 → 샘플 프로젝트
 - [ ] 테넌트 데이터 격리 재점검 (org_id 파티션 누락 라우트 탐지)

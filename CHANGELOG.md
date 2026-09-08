@@ -3,6 +3,15 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-09-08 (배치 154 — 배포 대기, PMS 1순위: 구독 수명주기(빌링키·해지·환불) API + 화면)
+- ★ **COMMERCIAL_READINESS `구독 결제 플로우 완성` 처리** — 기존 결제 코드는 체크아웃 파라미터 발급과 웹훅 판정까지였고, **빌링키 등록·해지·환불·다음 청구일 계산이 전부 부재**했던 것이 실제 공백이었다.
+- ⑨ **신규 `src/lib/subscription.ts`(순수 모듈, DB·next 의존 0)** — `parsePriceKRW`/`monthlyUnitPrice`/`monthlyAmount`(좌석 수 기준, enterprise·비청구 플랜은 null), `addMonthsClamped`(말일 보정: 1/31 +1개월 → 2/28, 윤년 2/29), `nextBillingDate`·`currentPeriod`(구독 시작일 anchor 기준 주기 [start,end)), `refundQuote`(일할 환불 = 결제액 × 잔여일/주기일, 원 미만 절사·전액 초과 방지), `parseAction`(액션 화이트리스트), `gateSubscriptionAction`(조직관리자 아님·enterprise·비청구 플랜 → deny / 스위치 OFF → scaffold / 둘 다 ON → execute), `planCancellation`(기본 `period_end` = 주기 종료 시 해지·환불 없음, `immediate` = 즉시 해지·일할 환불 동반), `newBillingKeyIssueId`·`maskBillingKey`(뒤 4자리만), `summarizeSubscription`.
+- ⑨ **신규 `src/app/api/billing/manage/route.ts`** — POST `action` = `issue_billing_key`·`delete_billing_key`·`cancel`·`resume`·`refund`. 조직 관리자 전용, rate limit 20회/분, `auditSecurity('BILLING_MANAGE_SCAFFOLD')` 기록(금액·카드 정보 미기록). **기본 스캐폴딩 모드에서는 외부 결제 호출도 DB 변경도 하지 않고** "무엇이 일어날지"(발급 파라미터·해지 예정일·환불 견적)만 계산해 반환한다. 스위치가 둘 다 켜진 execute 경로는 실PG 연동 전까지 명시적으로 거절해 실과금을 막았다. 응답에는 apiSecret·webhookSecret·빌링키 실값이 어떤 경로로도 포함되지 않는다. HTTP 메서드·`dynamic` 외 export 0건(Vercel 빌드 규칙 준수).
+- ⑨ **`settings/billing/page.tsx` 관리 UI** — 조직 관리자에게만 노출되는 «결제수단·정기청구 관리» 카드: 결제수단 등록/해제, 주기 종료 시 해지, 즉시 해지(환불 동반), 해지 예약 취소, 환불 견적. 결과 패널에 플랜·좌석·월 청구액·다음 청구일, 해지 예정일, 사용/잔여 일수와 환불 예정액을 표시하고 실결제 미발생을 명시. — src/lib/subscription.ts, src/app/api/billing/manage/route.ts, src/app/settings/billing/page.tsx
+- 검증: 전체 `tsc --noEmit -p tsconfig.json` **error TS 0건**. `npm run test:coverage` **136/136 통과·rc=0**(신규 13건: 가격 파싱, 좌석 청구액, 말일·윤년 보정, 일수 차, 다음 청구일 경계, 주기 산출, 환불 일할·절사·경계·오입력 4종, 액션 화이트리스트, 게이트 3분기·deny 3종, 해지 정책, 식별자·마스킹, 요약). subscription.ts 커버리지 99.17% lines. 작업 전 src 백업(/tmp/bak_1788826163). 라이브 DB 쓰기·DDL 없음.
+- ⚠ 빌링키·구독 상태 **영속화 테이블은 미생성**(신규 DDL은 야간 금지) — 실PG 연동 배치에서 함께 진행. 실결제·실해지·실환불 활성화는 **[승인 필요]**.
+- ⏭ 다음: `요금제별 기능 제한(엔타이틀먼트) — 좌석 수·기능 게이팅`, 이어서 `온보딩 흐름`.
+
 ## 2026-09-07 (배치 153 — 배포 대기, 상용 필수: CI 파이프라인 + 커버리지 게이트)
 - ★ **COMMERCIAL_READINESS 상위 2건 처리** — `테스트 커버리지 확보·CI 실행` 완료, `실로그인 게이트` 는 코드 실사 후 완료 확정. 지금까지 테스트는 사람이 로컬에서 돌려야만 실행됐고, 회귀를 막아 줄 자동 관문이 없었던 것이 실제 공백이었다.
 - ⑨ **신규 `.github/workflows/ci.yml`** — push(전 브랜치)·PR·수동 실행. Node 22 + `npm ci` → `npm run typecheck` → `npm run test:coverage`. `permissions: contents read`, ref 단위 concurrency 취소, 15분 타임아웃. **실DB·배포·시크릿 사용 단계 없음**이며 `PAYMENTS_LIVE`·`BILLING_APPLY_LIVE` 를 CI 환경에서 `false` 로 못박아 활성화 스위치가 켜진 채 테스트되는 일을 차단했다.
