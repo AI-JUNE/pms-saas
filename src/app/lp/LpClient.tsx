@@ -240,7 +240,7 @@ const Mark = () => (
 
 const DashMock = () => (
   <div className="mock">
-    <div className="lp-tbar"><i /><i /><i /><span>PMS · 대시보드</span><em className="url">prism-pms · PRJ-0002 데이터 플랫폼</em></div>
+    <div className="lp-tbar"><i /><i /><i /><span>PMS · 대시보드</span><em className="url">데모 화면 · PRJ-0002 데이터 플랫폼</em></div>
     <div className="body dash">
       <div className="krow">
         <div className="lp-kpi"><div className="k">진행 프로젝트</div><div className="v"><span data-count="12">12</span></div><div className="d up">▲ 정상 9</div></div>
