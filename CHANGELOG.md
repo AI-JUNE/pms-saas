@@ -3,6 +3,15 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-09-14 (배치 156 — 배포 대기, PMS 1순위: 온보딩 흐름(가입 → 워크스페이스 → 샘플 프로젝트))
+- ★ **COMMERCIAL_READINESS `온보딩 흐름` 처리** — 가입 시 조직은 만들어졌지만 첫 화면이 텅 비어 있었고, 데모 채우기(10개 테이블 대량 시드)뿐이라 가볍게 둘러볼 경로가 없었다.
+- ⑨ **신규 `src/lib/onboarding.ts`(순수, DB·next 의존 0)** — `defaultOrgName`·`orgSlug`(비ASCII 조직명 → `org-<id>`), `parseRegisterOptions`(createSample 기본 true, 초대 합류 시 항상 false), `sampleProjectRows`(오늘 기준 상대 일정: 완료 업무는 과거·미착수는 미래, UTC 날짜로 자정 드리프트 없음), `onboardingSteps`/`summarizeOnboarding`(계정→워크스페이스→프로젝트→팀원 초대, next·canCreateSample). `src/lib/onboardingDb.ts` — `ensureSampleProject`(PRJ-SAMPLE 코드로 멱등, 단계4·업무6·요구2·이슈1·리스크1), `loadOnboardingState`.
+- ⑨ **신규 `api/onboarding/route.ts`** — GET 체크리스트 진행 상태, POST `{action:'sample'}` 샘플 프로젝트 생성(조직 관리자 전용·감사 `ONBOARDING_SAMPLE_PROJECT`). HTTP 메서드·`dynamic` 외 export 0건. **`api/auth/register`** — 새 조직 생성 시 샘플 프로젝트 기본 생성(`createSample:false` 로 생략), 생성 실패는 warn 로그만 남기고 가입은 성공. slug·기본 조직명 계산을 lib 로 이전.
+- ⑨ **`dashboard/page.tsx` «시작 가이드» 카드** — 4단계 체크리스트(n/4 완료), 프로젝트 단계에서 관리자에게 «샘플 프로젝트 만들기» 버튼, 나머지는 바로 가기 링크, «숨기기»(localStorage). 기존 «데모 데이터 채우기» 카드는 유지. — src/lib/onboarding.ts, src/lib/onboardingDb.ts, src/app/api/onboarding/route.ts, src/app/api/auth/register/route.ts, src/app/dashboard/page.tsx
+- 검증: 전체 `tsc --noEmit -p tsconfig.json` **error TS 0건**, `npm run test:coverage` **154/154 통과·rc=0**(신규 7건: 기본 조직명, slug 규칙, 옵션 파싱 4변형·합류 시 false, 샘플 행 무결성(조직 스코프·코드 유일·단계 정합·일정 순서·과거/미래 분리), 자정 타임존, 단계 순서·완료, 요약·다음 단계·샘플 가능 여부). onboarding.ts lines 100%, 전체 97.39%. 작업 전 src 백업(/tmp/bak_1789350473). 라이브 DB 쓰기·DDL 없음(샘플 생성은 사용자 가입 시점에만 실행).
+- ⚠ 참고: `src/src/`(2026-07 스냅샷 87파일)가 저장소에 남아 있음 — 빌드에는 영향 없으나 정리 여부 **[확인 필요]**.
+- ⏭ 다음: `테넌트 데이터 격리 재점검(org_id 파티션 누락 라우트 탐지)`, 이어서 `마켓플레이스 제출자료`.
+
 ## 2026-09-08 (배치 155 — 배포 대기, PMS 1순위: 요금제별 기능 제한(엔타이틀먼트))
 - ★ **COMMERCIAL_READINESS `요금제별 기능 제한(엔타이틀먼트)` 처리** — 플랜은 표시만 되고 좌석 수·기능 접근을 판정하는 단일 소스가 없었다.
 - ⑨ **신규 `src/lib/entitlements.ts`(순수 모듈, DB·next 의존 0)** — 기능 10종(core·evm·rtm·approval·testMgmt·ganttAdvanced·customForms·auditLog·sso·apiAccess)의 최소 플랜 매핑, 좌석 상한(basic 10·pro 100·enterprise 무제한), `resolvePlan`(미지·누락·free·trial → basic, team·business → pro), `hasFeature`/`featuresFor`/`seatUsage`/`checkFeature`/`checkSeat`/`summarizeEntitlements`. **기본은 관측 모드** — 판정 결과만 담고 `enforced=false`로 돌려주어 호출부가 차단하지 않는다.

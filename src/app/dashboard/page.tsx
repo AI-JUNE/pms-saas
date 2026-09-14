@@ -72,10 +72,13 @@ export default function Dashboard() {
   const [mywork, setMywork] = useState<any>({ tasks: [], issues: [], risks: [] });
   const [docs, setDocs] = useState<any[]>([]);
   const [todos, setTodos] = useState<any[]>([]);
+  const [onb, setOnb] = useState<any>(null);
+  async function makeSample() { setBusy(true); const r = await fetch('/api/onboarding', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'sample' }) }); if (r.ok) location.reload(); else setBusy(false); }
   useEffect(() => {
     fetch('/api/auth/me').then((r) => r.json()).then(async (m) => {
       if (!m.authenticated) { router.push('/login'); return; } setMe(m);
       fetch('/api/todos').then((r) => r.ok ? r.json() : []).then((tt) => setTodos(Array.isArray(tt) ? tt : [])).catch(() => {});
+      fetch('/api/onboarding').then((r) => r.ok ? r.json() : null).then((o) => { if (o && Array.isArray(o.steps) && localStorage.getItem('pms.onb.hide') !== '1') setOnb(o); }).catch(() => {});
       const a = await fetch('/api/dashboard').then((r) => r.ok ? r.json() : null);
       if (a) { setD({ projects: a.projects||[], requirements: a.requirements||[], issues: a.issues||[], risks: a.risks||[], tasks: a.tasks||[] }); setDocs(Array.isArray(a.documents) ? a.documents : []); setMywork(a.myWork || { tasks: [], issues: [] }); }
       const lg = Number(localStorage.getItem('pms.gen') || 0);
@@ -98,6 +101,29 @@ export default function Dashboard() {
   return (
     <Shell title="대시보드">
       <div className="hero"><h2>안녕하세요, {me.user?.name} 님 👋</h2><p>조직 전체 현황을 한눈에 확인하세요 · {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}</p></div>
+      {onb && !onb.completed && (
+        <div className="card card-pad dash-card" style={{ marginTop: 14 }}>
+          <div className="row" style={{ gap: 10, alignItems: 'center' }}>
+            <div style={{ fontWeight: 800, fontSize: 15 }}>시작 가이드 <span className="muted" style={{ fontWeight: 500, fontSize: 12.5 }}>{onb.doneCount}/{onb.total} 완료</span></div>
+            <div className="sp" />
+            <button className="btn" style={{ fontSize: 12 }} onClick={() => { localStorage.setItem('pms.onb.hide', '1'); setOnb(null); }}>숨기기</button>
+          </div>
+          <div style={{ display: 'grid', gap: 8, marginTop: 10, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+            {onb.steps.map((st: any) => (
+              <div key={st.key} className="row" style={{ gap: 10, alignItems: 'flex-start', padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 10, opacity: st.done ? 0.65 : 1 }}>
+                <span style={{ width: 20, height: 20, borderRadius: 999, flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: st.done ? '#fff' : 'var(--brand-700)', background: st.done ? 'var(--brand)' : 'var(--brand-50)' }}>{st.done ? '✓' : ''}</span>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 13.5, textDecoration: st.done ? 'line-through' : 'none' }}>{st.title}</div>
+                  <div className="muted" style={{ fontSize: 12 }}>{st.desc}</div>
+                  {!st.done && st.key === 'project' && onb.canCreateSample && me?.org?.isOrgAdmin
+                    ? <button className="btn btn-pri" style={{ marginTop: 6, fontSize: 12 }} onClick={makeSample} disabled={busy}>{busy ? '생성 중…' : '샘플 프로젝트 만들기'}</button>
+                    : !st.done && <a href={st.href} style={{ fontSize: 12, color: 'var(--brand-700)', fontWeight: 700 }}>바로 가기 →</a>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {projects.length === 0 && me?.org?.isOrgAdmin && (
         <div className="card card-pad dash-card" style={{ marginTop: 14, borderColor: 'var(--brand-100)', background: 'var(--brand-50)' }}>
           <div className="row" style={{ gap: 14, flexWrap: 'wrap' }}>

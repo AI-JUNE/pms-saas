@@ -40,7 +40,8 @@
 - [x] 요금제별 기능 제한(엔타이틀먼트) 로직 — 좌석 수·기능 게이팅
       → 신규 `lib/entitlements.ts`(순수 단일 소스: FEATURES 10종 최소플랜 매핑·SEAT_LIMIT(basic 10·pro 100·enterprise 무제한)·resolvePlan(미지/free/trial→basic, team/business→pro)·hasFeature·featuresFor·seatUsage·checkFeature·checkSeat·summarizeEntitlements), `api/billing/subscription`이 조직 플랜+멤버십 수로 요약을 반환(읽기 전용), `settings/billing` "플랜 이용 범위" 섹션에 좌석 사용량·기능 목록 표시 / tests/entitlements.test.ts 11건 통과(전체 147건, tsc rc=0, 커버리지 lines 97.23%)
       ※ 기본은 **관측 모드** — 판정만 하고 차단하지 않는다. `ENTITLEMENTS_ENFORCE=true` 일 때만 enforced=true 로 강제 **[활성화 승인 필요]**. 실제 차단 배선(멤버 초대·기능 라우트)은 승인 후 진행
-- [ ] 온보딩 흐름 — 가입 → 워크스페이스 생성 → 샘플 프로젝트
+- [x] 온보딩 흐름 — 가입 → 워크스페이스 생성 → 샘플 프로젝트
+      → 신규 `lib/onboarding.ts`(순수: defaultOrgName·orgSlug·parseRegisterOptions·sampleProjectRows(today 기준 상대 일정)·onboardingSteps·summarizeOnboarding), `lib/onboardingDb.ts`(ensureSampleProject 멱등·loadOnboardingState), `api/onboarding`(GET 체크리스트 상태 / POST action=sample 관리자 전용), `api/auth/register`가 새 조직 생성 시 샘플 프로젝트(PRJ-SAMPLE: 단계4·업무6·요구2·이슈1·리스크1)를 기본 생성(createSample:false 로 생략, 실패해도 가입 성공), 대시보드 «시작 가이드» 카드(계정→워크스페이스→프로젝트→팀원 초대, 숨기기 가능) / tests/onboarding.test.ts 7건 통과(전체 154건)
 - [ ] 테넌트 데이터 격리 재점검 (org_id 파티션 누락 라우트 탐지)
 - [ ] 마켓플레이스 제출자료 — 서비스 개요·보안 설명·아키텍처 다이어그램
 
