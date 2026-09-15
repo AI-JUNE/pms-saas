@@ -23,6 +23,7 @@ export async function POST(req: Request) {
     const code = String(inviteCode || '').trim().toUpperCase();
     if (code) {
       // 초대 코드로 기존 조직에 팀원으로 합류
+      // tenant-scan: allow(초대 코드로 조직을 찾는 단계 — 가입 시점이라 org 컨텍스트 없음, 코드는 유일)
       const org = (await db.select().from(organizations).where(eq(organizations.inviteCode, code)).limit(1))[0];
       if (!org) throw new ApiError(ERROR.VALIDATION, '초대 코드가 올바르지 않습니다');
       const [u] = await db.insert(users).values({ email, name, passwordHash: hashPassword(password) }).returning();

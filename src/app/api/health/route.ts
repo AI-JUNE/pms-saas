@@ -23,7 +23,7 @@ export async function GET(req: Request) {
   // DB: 필수 의존성. 가벼운 select 1 핑.
   try {
     const t0 = Date.now();
-    await db.execute(sql`select 1`);
+    await db.execute(sql`select 1`); // tenant-scan: allow(연결 확인용 상수 쿼리, 테이블 접근 없음)
     checks.db = { ok: true, required: true, latencyMs: Date.now() - t0 };
   } catch (e: unknown) {
     checks.db = { ok: false, required: true, latencyMs: null, error: sanitizeError(e) };

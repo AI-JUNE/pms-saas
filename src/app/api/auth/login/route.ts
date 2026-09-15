@@ -19,6 +19,7 @@ export async function POST(req: Request) {
     }
     await createSession(u.id, req.headers.get('user-agent') || undefined);
     await auditSecurity('AUTH_LOGIN', { userId: u.id });
+    // tenant-scan: allow(로그인 직후 사용자의 소속 조직 목록 — 사용자 기준 조회이며 org 컨텍스트가 아직 없음)
     const orgs = await db.select().from(memberships).where(eq(memberships.userId, u.id));
     return ok({ ok: true, user: { id: u.id, email: u.email, name: u.name }, orgs });
   });

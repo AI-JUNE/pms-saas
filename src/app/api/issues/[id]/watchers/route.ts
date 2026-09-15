@@ -23,7 +23,7 @@ export async function POST(_req: Request, c: { params: { id: string } }) {
     const existing = (await db.select().from(issueWatchers)
       .where(and(eq(issueWatchers.orgId, ctx.orgId), eq(issueWatchers.issueId, issueId), eq(issueWatchers.userId, ctx.user.id))).limit(1))[0];
     if (existing) {
-      await db.delete(issueWatchers).where(eq(issueWatchers.id, existing.id));
+      await db.delete(issueWatchers).where(and(eq(issueWatchers.id, existing.id), eq(issueWatchers.orgId, ctx.orgId)));
       return ok({ watching: false });
     }
     await db.insert(issueWatchers).values({ orgId: ctx.orgId, issueId, userId: ctx.user.id, userName: ctx.user.name });
