@@ -57,7 +57,9 @@
 - [x] **파트너(채널) 개념 도입** — 조직/계약에 `partner_id`(nullable) 추가. 없으면 직접 계약. 스키마만 준비하고 화면 노출은 최소
       → 신규 `lib/partner.ts`(순수: tier agency/reseller·계약 주체 판정 contractParty, `PARTNER_MIGRATION_DDL` 초안(partners 테이블 + `organizations.partner_id` nullable FK ON DELETE SET NULL + 인덱스), 스위치 `partnerChannelEnabled`(PARTNER_CHANNEL_ENABLED, 기본 OFF → resolvePartnerId 항상 null=직접 계약), 코드 정규화, 조회 seam `PartnerScope`/`partnerScopeFor`/`filterOrgsByScope`, 연락처 제외 `publicPartner`, `partnerChannelStatus`) / tests/partner.test.ts 9건 통과(전체 172건, partner.ts 100%)
       ※ DDL 은 **부팅 자동 실행되는 MIGRATION_DDL 에 넣지 않았고**, drizzle `organizations` 스키마에도 partnerId 를 아직 선언하지 않음(미적용 상태에서 선언하면 select 가 깨짐) — 테스트가 두 조건을 매번 검사. 라이브 DDL 적용 → schema.ts `partnerId: integer('partner_id')` 추가 순서로 진행 **[활성화 승인 필요]**. 화면 노출 0
-- [ ] **매출 귀속 근거** — 어떤 고객사가 어느 파트너를 통해 유입됐는지 기록(유입 경로·계약일·담당자). 정산 분쟁을 예방하는 핵심
+- [x] **매출 귀속 근거** — 어떤 고객사가 어느 파트너를 통해 유입됐는지 기록(유입 경로·계약일·담당자). 정산 분쟁을 예방하는 핵심
+      → 신규 `lib/partnerAttribution.ts`(순수: `PARTNER_ATTRIBUTION_DDL` 초안(partner_attributions — org_id·partner_id nullable·코드 스냅샷·source 폐쇄목록 5종·contract_date·owner_ref·ended_at/end_reason, 조직당 열린 기록 1건 부분 유니크 인덱스), 스위치 `attributionEnabled`(PARTNER_ATTRIBUTION_ENABLED, 기본 OFF), 검증 `validateAttribution`(실존 날짜·미래 금지·파트너 경로↔파트너 id 모순 판정·담당자 연락처(이메일/전화) 거부), 종료 `closeAttribution`(수정 아닌 닫기, 계약일 이전 종료 금지), 정산 기준일 판정 `isActiveOn`/`activeAttribution`(반개구간), 무결성 점검 `auditAttributionRows`, 파트너별 유효 조직 근거 `attributionEvidence`, `publicAttribution`(memo·기록자 제외)) / tests/partnerAttribution.test.ts 12건 통과(전체 184건, partnerAttribution.ts lines 100%)
+      ※ DDL 은 partners 테이블 이후 적용해야 하며 MIGRATION_DDL 미혼입(테스트가 검사). 기록 API·화면 배선은 DDL 적용 후 **[활성화 승인 필요]**. 금액·수수료 계산은 «정산 리포트» 항목에서
 - [ ] **파트너 역할 권한** — 파트너 담당자는 자기가 유치한 고객사만 조회. 기존 RBAC에 `partner_admin` 역할 추가(활성화는 승인)
 - [ ] **정산 리포트** — 파트너별 계약·이용 실적·수수료 산출 근거를 조회·내보내기. 수수료율은 설정값으로 분리(하드코딩 금지)
 - [ ] **2계층 확장 여지 확보** — 테넌트 조회 경로에 파트너 필터가 나중에 끼어들 수 있도록 쿼리 계층 정리. 지금 화이트라벨은 구현하지 않음

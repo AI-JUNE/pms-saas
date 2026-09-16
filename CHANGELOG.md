@@ -3,6 +3,13 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-09-16 (배치 159 — 배포 대기, 파트너 채널 1건: 매출 귀속 근거 — 유입 기록 스키마 초안·검증·정산 근거 계층)
+- ★ **COMMERCIAL_READINESS `매출 귀속 근거` 처리** — 조직의 현재 partner_id 는 '현재 소속'일 뿐 언제·어떤 경로·누구 소개로 유입됐는지 남길 자리가 없었다. 정산 분쟁 예방을 위해 귀속을 **이벤트 로그(닫기만 하고 삭제·수정 없음)** 로 설계.
+- ⑨ **신규 `src/lib/partnerAttribution.ts`(순수, DB·next 의존 0)** — `PARTNER_ATTRIBUTION_DDL` 초안(partner_attributions: org_id CASCADE·partner_id nullable SET NULL·partner_code 스냅샷·source 폐쇄목록(partner_sales/partner_referral/partner_event/direct/migration)·contract_date·owner_ref·ended_at/end_reason·recorded_by, **조직당 열린 기록 1건** 부분 유니크 인덱스, 연락처 컬럼 없음), 스위치 `attributionEnabled`(PARTNER_ATTRIBUTION_ENABLED=true 만 ON), `validateAttribution`(실존 날짜·미래 계약일 거부·파트너 경로인데 파트너 없음/직접 계약인데 파트너 있음 모순 판정·담당자 표시자에 이메일/전화 거부), `closeAttribution`(계약일 이전 종료 금지·불변), `isActiveOn`/`activeAttribution`(정산 기준일 반개구간 판정), `auditAttributionRows`(열린 기록 중복·기간 겹침·사유 누락 점검), `attributionEvidence`(파트너별 유효 조직 목록, 금액 없음), `publicAttribution`(memo·기록자 제외). — src/lib/partnerAttribution.ts, tests/partnerAttribution.test.ts, COMMERCIAL_READINESS.md
+- 검증: 전체 `tsc --noEmit -p tsconfig.json` **error TS 0건**, 테스트 **184/184 통과·rc=0**(신규 12건, partnerAttribution.ts lines 100%·전체 97.85%). 작업 전 src 백업(/tmp/bak_1789560322). 라이브 DB 쓰기·DDL 없음. ※ 샌드박스 /sessions 디스크 100% 로 커버리지 임시폴더 생성 실패(ENOSPC) → TMPDIR=/tmp 로 재실행해 통과. CI 에는 영향 없음.
+- ⚠ DDL 적용 순서: partners(PARTNER_MIGRATION_DDL) → partner_attributions. 둘 다 MIGRATION_DDL 미혼입(테스트가 검사). 기록 API·화면 배선은 적용 후 **[활성화 승인 필요]**.
+- ⏭ 다음: `파트너 역할 권한(partner_admin)` — rbac 에 역할 추가·partnerScopeFor 배선(활성화는 승인), 이어서 `정산 리포트`(수수료율 설정값 분리).
+
 ## 2026-09-16 (배치 158 — 배포 대기, 파트너 채널 1건: 파트너(채널) 개념 도입 — 스키마 초안·판정 계층)
 - ★ **COMMERCIAL_READINESS `파트너(채널) 개념 도입` 처리** — 제이투모로우원 등 운영 대행 파트너를 조직에 귀속시킬 자리가 없었다. 계약 주체는 고원(agency), 향후 리셀러(reseller, 파트너 명의 계약)로 확장 가능한 2계층 형태로만 열어두고 화이트라벨은 구현하지 않음.
 - ⑨ **신규 `src/lib/partner.ts`(순수, DB·next 의존 0, env 인자 주입)** — `PARTNER_MIGRATION_DDL` 초안(멱등: `partners` 테이블·code 유니크·`organizations.partner_id` nullable FK ON DELETE SET NULL·인덱스), 스위치 `partnerChannelEnabled`(PARTNER_CHANNEL_ENABLED=true 만 ON, 기본 OFF), `normalizePartnerCode`(A-Z0-9- 2~20자), `parsePartnerTier/Status`(안전 기본값), `contractParty`(agency→gowon, reseller→partner), `resolvePartnerId`/`isDirectContract`(OFF·누락·비정상 값 → null=직접 계약), 조회 계층 seam `PartnerScope`·`partnerScopeFor`(슈퍼관리자·OFF → all)·`filterOrgsByScope`(OFF 면 파트너 스코프에 아무 조직도 귀속되지 않음), `publicPartner`(담당자 연락처 제외), `partnerChannelStatus`(임의 수치 없음). — src/lib/partner.ts, tests/partner.test.ts
