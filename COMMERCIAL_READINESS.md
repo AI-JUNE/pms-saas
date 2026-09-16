@@ -54,7 +54,9 @@
 계약·서비스 주체는 고원, 파트너는 영업·운영을 담당하고 수익을 배분한다.
 **향후 리셀러(파트너 명의 계약)로 전환될 수 있으므로, 지금은 2계층으로 확장 가능한 형태로만 열어둔다.**
 
-- [ ] **파트너(채널) 개념 도입** — 조직/계약에 `partner_id`(nullable) 추가. 없으면 직접 계약. 스키마만 준비하고 화면 노출은 최소
+- [x] **파트너(채널) 개념 도입** — 조직/계약에 `partner_id`(nullable) 추가. 없으면 직접 계약. 스키마만 준비하고 화면 노출은 최소
+      → 신규 `lib/partner.ts`(순수: tier agency/reseller·계약 주체 판정 contractParty, `PARTNER_MIGRATION_DDL` 초안(partners 테이블 + `organizations.partner_id` nullable FK ON DELETE SET NULL + 인덱스), 스위치 `partnerChannelEnabled`(PARTNER_CHANNEL_ENABLED, 기본 OFF → resolvePartnerId 항상 null=직접 계약), 코드 정규화, 조회 seam `PartnerScope`/`partnerScopeFor`/`filterOrgsByScope`, 연락처 제외 `publicPartner`, `partnerChannelStatus`) / tests/partner.test.ts 9건 통과(전체 172건, partner.ts 100%)
+      ※ DDL 은 **부팅 자동 실행되는 MIGRATION_DDL 에 넣지 않았고**, drizzle `organizations` 스키마에도 partnerId 를 아직 선언하지 않음(미적용 상태에서 선언하면 select 가 깨짐) — 테스트가 두 조건을 매번 검사. 라이브 DDL 적용 → schema.ts `partnerId: integer('partner_id')` 추가 순서로 진행 **[활성화 승인 필요]**. 화면 노출 0
 - [ ] **매출 귀속 근거** — 어떤 고객사가 어느 파트너를 통해 유입됐는지 기록(유입 경로·계약일·담당자). 정산 분쟁을 예방하는 핵심
 - [ ] **파트너 역할 권한** — 파트너 담당자는 자기가 유치한 고객사만 조회. 기존 RBAC에 `partner_admin` 역할 추가(활성화는 승인)
 - [ ] **정산 리포트** — 파트너별 계약·이용 실적·수수료 산출 근거를 조회·내보내기. 수수료율은 설정값으로 분리(하드코딩 금지)

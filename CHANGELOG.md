@@ -3,6 +3,13 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-09-16 (배치 158 — 배포 대기, 파트너 채널 1건: 파트너(채널) 개념 도입 — 스키마 초안·판정 계층)
+- ★ **COMMERCIAL_READINESS `파트너(채널) 개념 도입` 처리** — 제이투모로우원 등 운영 대행 파트너를 조직에 귀속시킬 자리가 없었다. 계약 주체는 고원(agency), 향후 리셀러(reseller, 파트너 명의 계약)로 확장 가능한 2계층 형태로만 열어두고 화이트라벨은 구현하지 않음.
+- ⑨ **신규 `src/lib/partner.ts`(순수, DB·next 의존 0, env 인자 주입)** — `PARTNER_MIGRATION_DDL` 초안(멱등: `partners` 테이블·code 유니크·`organizations.partner_id` nullable FK ON DELETE SET NULL·인덱스), 스위치 `partnerChannelEnabled`(PARTNER_CHANNEL_ENABLED=true 만 ON, 기본 OFF), `normalizePartnerCode`(A-Z0-9- 2~20자), `parsePartnerTier/Status`(안전 기본값), `contractParty`(agency→gowon, reseller→partner), `resolvePartnerId`/`isDirectContract`(OFF·누락·비정상 값 → null=직접 계약), 조회 계층 seam `PartnerScope`·`partnerScopeFor`(슈퍼관리자·OFF → all)·`filterOrgsByScope`(OFF 면 파트너 스코프에 아무 조직도 귀속되지 않음), `publicPartner`(담당자 연락처 제외), `partnerChannelStatus`(임의 수치 없음). — src/lib/partner.ts, tests/partner.test.ts
+- 검증: 전체 `tsc --noEmit -p tsconfig.json` **error TS 0건**, `npm run test:coverage` **172/172 통과·rc=0**(신규 9건: 스위치 엄격 판정, DDL 멱등·nullable·**migrate.ts/schema.ts 미혼입 정적 검사**, 코드 정규화 10변형, 티어·계약 주체, 파트너 id 해석 8경계, 스코프 5경계, 필터, 연락처 제거, 상태 요약). partner.ts 100%, 전체 lines 97.65%. 작업 전 src 백업(/tmp/bak_1789524737). 라이브 DB 쓰기·DDL 없음.
+- ⚠ **DDL 은 의도적으로 `lib/migrate.ts` MIGRATION_DDL 에 넣지 않음**(부팅 시 자동 실행되어 배포 즉시 라이브 DB 에 적용되므로). 적용 순서: ① 승인 후 `PARTNER_MIGRATION_DDL` 을 MIGRATION_DDL 로 이동 → ② 배포·확인 → ③ `schema.ts` organizations 에 `partnerId: integer('partner_id')` 추가. ①·③ 순서가 바뀌면 organizations select 가 깨진다 **[활성화 승인 필요]**.
+- ⏭ 다음: `매출 귀속 근거`(유입 경로·계약일·담당자 기록 — partner_attributions 초안, DDL 동일 규칙), 이어서 `파트너 역할 권한(partner_admin)`.
+
 ## 2026-09-16 (배치 157 — 배포 대기, PMS 1순위: 테넌트 격리 정적 점검 마감 + 마켓플레이스 제출자료 갱신)
 - ★ **COMMERCIAL_READINESS `테넌트 데이터 격리 재점검` 처리 완료** — 2026-09-15 배치가 `src/lib/tenantScan.ts`(순수 정적 점검기)·`tests/tenantScan.test.ts` 와 실제 누락 1건 수정(`api/issues/[id]/watchers` delete 에 orgId 조건)·허용 주석 5건까지 저장하고 기록 없이 끝났던 것을 이번 배치가 검증·마감했다. 점검기는 drizzle 문(select/insert/update/delete/execute)을 추출해 orgId 조건 부재를 찾고, 스프레드 조건(`and(...conds)`)은 선언부까지 추적하며, 예외는 `// tenant-scan: allow(사유)` 로만 통과. 실제 소스 대상: 파일 79·DB 문 104건 → **누락 0·미허용 원시SQL 0·간접insert 9(호출부 orgId 주입 확인)·허용 5**. CI 테스트에 포함되어 앞으로 orgId 누락 라우트가 생기면 빌드가 실패한다.
 - ⑨ **`docs/MARKETPLACE_SUBMISSION.md` 갱신(2026-07-24 초안 → 상용 필수 항목 반영)** — §3 표에 인증(scrypt·middleware 게이트)·관측(구조화 로그·전역 에러 캡처·알림 no-op 기본)·CI 품질 게이트 행 추가, `/api/health` 의존성 상태·커밋 해시·마스킹 설명, §3-1 Mermaid 에 로깅 계층 노드 추가, §4 보안 설명을 6절(인증·접근통제/감사·테넌트 격리·입력/무결성·보안 헤더·로깅)로 확장, §6 의 임의 가용성 수치(99.5%) 제거(임의 KPI 금지 원칙), §7 체크리스트에 완료 3건·승인 대기 1건(백업 리허설 기록) 추가. — COMMERCIAL_READINESS.md, docs/MARKETPLACE_SUBMISSION.md, CHANGELOG.md (코드 무변경)
