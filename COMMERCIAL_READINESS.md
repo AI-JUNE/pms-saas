@@ -42,8 +42,12 @@
       ※ 기본은 **관측 모드** — 판정만 하고 차단하지 않는다. `ENTITLEMENTS_ENFORCE=true` 일 때만 enforced=true 로 강제 **[활성화 승인 필요]**. 실제 차단 배선(멤버 초대·기능 라우트)은 승인 후 진행
 - [x] 온보딩 흐름 — 가입 → 워크스페이스 생성 → 샘플 프로젝트
       → 신규 `lib/onboarding.ts`(순수: defaultOrgName·orgSlug·parseRegisterOptions·sampleProjectRows(today 기준 상대 일정)·onboardingSteps·summarizeOnboarding), `lib/onboardingDb.ts`(ensureSampleProject 멱등·loadOnboardingState), `api/onboarding`(GET 체크리스트 상태 / POST action=sample 관리자 전용), `api/auth/register`가 새 조직 생성 시 샘플 프로젝트(PRJ-SAMPLE: 단계4·업무6·요구2·이슈1·리스크1)를 기본 생성(createSample:false 로 생략, 실패해도 가입 성공), 대시보드 «시작 가이드» 카드(계정→워크스페이스→프로젝트→팀원 초대, 숨기기 가능) / tests/onboarding.test.ts 7건 통과(전체 154건)
-- [ ] 테넌트 데이터 격리 재점검 (org_id 파티션 누락 라우트 탐지)
-- [ ] 마켓플레이스 제출자료 — 서비스 개요·보안 설명·아키텍처 다이어그램
+- [x] 테넌트 데이터 격리 재점검 (org_id 파티션 누락 라우트 탐지)
+      → 신규 `lib/tenantScan.ts`(순수 정적 점검기: drizzle 문 추출·테이블 식별·orgId 조건 판정·스프레드 조건 선언 추적·`// tenant-scan: allow(사유)` 예외)와 tests/tenantScan.test.ts 가 **실제 `app/api/**/route.ts` 전건 + DB 접근 lib 6종을 매 테스트마다 점검**(파일 79·DB 문 104건, 누락 0·미허용 원시SQL 0·허용 예외 5건 ≤ 8 상한). 점검으로 발견된 실제 누락 1건 수정: `api/issues/[id]/watchers` delete 에 orgId 조건 추가. CI 테스트에 포함되어 누락이 생기면 빌드 실패 / tests/tenantScan.test.ts 8건 통과(전체 163건, tsc rc=0)
+      ※ values 가 변수인 insert 9건은 'indirect' 로만 보고(호출부 확인: crud POST·onboardingDb·audit·notifications 모두 orgId 주입 확인). 런타임 DB 레벨 격리(RLS)는 별도 [승인 필요]
+- [x] 마켓플레이스 제출자료 — 서비스 개요·보안 설명·아키텍처 다이어그램
+      → `docs/MARKETPLACE_SUBMISSION.md` 2026-09-16 갱신: §3 아키텍처 표에 인증(scrypt·middleware 게이트)·관측(구조화 로그·전역 에러 캡처)·CI 품질 게이트 행 추가, `/api/health` 의존성 상태·커밋 해시 설명, §3-1 Mermaid 에 로깅 계층 추가, §4 보안 설명을 인증·접근통제/감사·테넌트 격리(정적 점검 CI)·입력/무결성·보안 헤더·로깅 6절로 확장, §6 임의 가용성 수치(99.5%) 제거, §7 체크리스트 갱신
+      ※ 문안 확정·법무 검토·다이어그램 이미지 첨부·SLA 수치는 **[승인 필요]**(사람 몫)
 
 ## 파트너 채널 (제이투모로우원 — 운영 대행 + 수익 배분)
 

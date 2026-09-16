@@ -3,6 +3,13 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-09-16 (배치 157 — 배포 대기, PMS 1순위: 테넌트 격리 정적 점검 마감 + 마켓플레이스 제출자료 갱신)
+- ★ **COMMERCIAL_READINESS `테넌트 데이터 격리 재점검` 처리 완료** — 2026-09-15 배치가 `src/lib/tenantScan.ts`(순수 정적 점검기)·`tests/tenantScan.test.ts` 와 실제 누락 1건 수정(`api/issues/[id]/watchers` delete 에 orgId 조건)·허용 주석 5건까지 저장하고 기록 없이 끝났던 것을 이번 배치가 검증·마감했다. 점검기는 drizzle 문(select/insert/update/delete/execute)을 추출해 orgId 조건 부재를 찾고, 스프레드 조건(`and(...conds)`)은 선언부까지 추적하며, 예외는 `// tenant-scan: allow(사유)` 로만 통과. 실제 소스 대상: 파일 79·DB 문 104건 → **누락 0·미허용 원시SQL 0·간접insert 9(호출부 orgId 주입 확인)·허용 5**. CI 테스트에 포함되어 앞으로 orgId 누락 라우트가 생기면 빌드가 실패한다.
+- ⑨ **`docs/MARKETPLACE_SUBMISSION.md` 갱신(2026-07-24 초안 → 상용 필수 항목 반영)** — §3 표에 인증(scrypt·middleware 게이트)·관측(구조화 로그·전역 에러 캡처·알림 no-op 기본)·CI 품질 게이트 행 추가, `/api/health` 의존성 상태·커밋 해시·마스킹 설명, §3-1 Mermaid 에 로깅 계층 노드 추가, §4 보안 설명을 6절(인증·접근통제/감사·테넌트 격리·입력/무결성·보안 헤더·로깅)로 확장, §6 의 임의 가용성 수치(99.5%) 제거(임의 KPI 금지 원칙), §7 체크리스트에 완료 3건·승인 대기 1건(백업 리허설 기록) 추가. — COMMERCIAL_READINESS.md, docs/MARKETPLACE_SUBMISSION.md, CHANGELOG.md (코드 무변경)
+- 검증: 전체 `tsc --noEmit -p tsconfig.json` **error TS 0건**, `npm run test:coverage` **163/163 통과·rc=0**(tenantScan.ts lines 98.42%, 전체 97.50%). 작업 전 src 백업(/tmp/bak_1789517046). 라이브 DB 쓰기·DDL 없음.
+- ⚠ `tests/_tmp_scan.test.ts`(빈 임시 파일, 09-15 잔여)는 샌드박스 삭제 권한이 없어 남아 있음 — 테스트에 영향 없으나 **삭제 권장 [확인 필요]**. `src/src/` 스냅샷 정리 여부도 여전히 [확인 필요].
+- ⏭ 다음: PMS 전용 항목은 사람 몫(백업 리허설·약관 확정)만 남음 → 파트너 채널 `파트너(채널) 개념 도입 — partner_id 스키마 준비`(신규 컬럼은 DDL 이라 야간 금지 → 스키마 정의·마이그레이션 SQL 초안·조회 계층 설계까지만, 적용은 [승인 필요]).
+
 ## 2026-09-14 (배치 156 — 배포 대기, PMS 1순위: 온보딩 흐름(가입 → 워크스페이스 → 샘플 프로젝트))
 - ★ **COMMERCIAL_READINESS `온보딩 흐름` 처리** — 가입 시 조직은 만들어졌지만 첫 화면이 텅 비어 있었고, 데모 채우기(10개 테이블 대량 시드)뿐이라 가볍게 둘러볼 경로가 없었다.
 - ⑨ **신규 `src/lib/onboarding.ts`(순수, DB·next 의존 0)** — `defaultOrgName`·`orgSlug`(비ASCII 조직명 → `org-<id>`), `parseRegisterOptions`(createSample 기본 true, 초대 합류 시 항상 false), `sampleProjectRows`(오늘 기준 상대 일정: 완료 업무는 과거·미착수는 미래, UTC 날짜로 자정 드리프트 없음), `onboardingSteps`/`summarizeOnboarding`(계정→워크스페이스→프로젝트→팀원 초대, next·canCreateSample). `src/lib/onboardingDb.ts` — `ensureSampleProject`(PRJ-SAMPLE 코드로 멱등, 단계4·업무6·요구2·이슈1·리스크1), `loadOnboardingState`.
