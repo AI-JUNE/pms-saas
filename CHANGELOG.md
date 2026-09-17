@@ -3,6 +3,14 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-09-17 (배치 160 — 배포 대기, 파트너 채널 1건: 파트너 역할 권한 partner_admin — 읽기 전용 화이트리스트·귀속 기반 가시 범위)
+- ★ **COMMERCIAL_READINESS `파트너 역할 권한` 처리** — 파트너 담당자는 **자기가 유치한 고객사만** 조회. 고객사 내부 업무 데이터(업무·이슈·요구사항·산출물·인원 PII)는 파트너에게 열지 않고, 계약·이용 수준 정보만 연다.
+- ⑨ **신규 `src/lib/partnerRbac.ts`(순수, DB·next 의존 0)** — `PARTNER_ROLE='partner_admin'`, 읽기 전용 화이트리스트 `PARTNER_READABLE_RESOURCES`(organization·subscription·attribution·settlement), `partnerCanAccess`(스위치 OFF·read 이외 액션·목록 밖 resource 전부 거부 fail-closed), `partnerIdOfMember`(정지·역할 불일치·형식 오류 차단), 가시 범위 `visibleOrgIds`/`canViewOrg`/`filterVisibleOrgs`를 **매출 귀속 기록(partner_attributions) 파생**으로 설계(별도 소유권 테이블 없음, 귀속 종료일부터 비가시 — 반개구간), 라우트 배선용 `decidePartnerAccess`(DISABLED/FORBIDDEN/OK), `PARTNER_RBAC_DDL` 초안(partner_members: partner_id CASCADE·user_id CASCADE·role·status + (partner_id,user_id) 유니크, 연락처 컬럼 없음), `partnerRoleStatus`.
+- ⑨ **`src/lib/rbac.ts` 배선** — hasPermission 최상단에서 partner_admin 을 분기해 **`isOrgAdmin` 단축 경로보다 먼저** 판정(파트너가 조직 관리자 권한을 승계하지 못하게). 테스트가 두 분기의 순서를 소스에서 검사. — src/lib/partnerRbac.ts, src/lib/rbac.ts, tests/partnerRbac.test.ts, COMMERCIAL_READINESS.md
+- 검증: 전체 `tsc --noEmit -p tsconfig.json` **rc=0·error TS 0건**, 테스트 **192/192 통과**(신규 8건). 작업 전 src 백업(/tmp/bak_1789607148). 라이브 DB 쓰기·DDL 실행 없음, 화면 노출 0.
+- ⚠ 스위치 `PARTNER_ROLE_ENABLED` 기본 OFF → partner_admin 은 어떤 권한도 갖지 못한다. DDL 적용 순서: partners → partner_attributions → partner_members. 셋 다 MIGRATION_DDL·schema.ts 미혼입(테스트가 검사) **[활성화 승인 필요]**.
+- ⏭ 다음: `정산 리포트` — 파트너별 계약·이용 실적·수수료 산출 근거(수수료율은 설정값으로 분리, 하드코딩 금지), 이어서 `2계층 확장 여지 확보`(쿼리 계층 파트너 필터 seam 정리).
+
 ## 2026-09-16 (배치 159 — 배포 대기, 파트너 채널 1건: 매출 귀속 근거 — 유입 기록 스키마 초안·검증·정산 근거 계층)
 - ★ **COMMERCIAL_READINESS `매출 귀속 근거` 처리** — 조직의 현재 partner_id 는 '현재 소속'일 뿐 언제·어떤 경로·누구 소개로 유입됐는지 남길 자리가 없었다. 정산 분쟁 예방을 위해 귀속을 **이벤트 로그(닫기만 하고 삭제·수정 없음)** 로 설계.
 - ⑨ **신규 `src/lib/partnerAttribution.ts`(순수, DB·next 의존 0)** — `PARTNER_ATTRIBUTION_DDL` 초안(partner_attributions: org_id CASCADE·partner_id nullable SET NULL·partner_code 스냅샷·source 폐쇄목록(partner_sales/partner_referral/partner_event/direct/migration)·contract_date·owner_ref·ended_at/end_reason·recorded_by, **조직당 열린 기록 1건** 부분 유니크 인덱스, 연락처 컬럼 없음), 스위치 `attributionEnabled`(PARTNER_ATTRIBUTION_ENABLED=true 만 ON), `validateAttribution`(실존 날짜·미래 계약일 거부·파트너 경로인데 파트너 없음/직접 계약인데 파트너 있음 모순 판정·담당자 표시자에 이메일/전화 거부), `closeAttribution`(계약일 이전 종료 금지·불변), `isActiveOn`/`activeAttribution`(정산 기준일 반개구간 판정), `auditAttributionRows`(열린 기록 중복·기간 겹침·사유 누락 점검), `attributionEvidence`(파트너별 유효 조직 목록, 금액 없음), `publicAttribution`(memo·기록자 제외). — src/lib/partnerAttribution.ts, tests/partnerAttribution.test.ts, COMMERCIAL_READINESS.md
