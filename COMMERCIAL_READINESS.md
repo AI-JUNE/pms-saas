@@ -60,7 +60,9 @@
 - [x] **매출 귀속 근거** — 어떤 고객사가 어느 파트너를 통해 유입됐는지 기록(유입 경로·계약일·담당자). 정산 분쟁을 예방하는 핵심
       → 신규 `lib/partnerAttribution.ts`(순수: `PARTNER_ATTRIBUTION_DDL` 초안(partner_attributions — org_id·partner_id nullable·코드 스냅샷·source 폐쇄목록 5종·contract_date·owner_ref·ended_at/end_reason, 조직당 열린 기록 1건 부분 유니크 인덱스), 스위치 `attributionEnabled`(PARTNER_ATTRIBUTION_ENABLED, 기본 OFF), 검증 `validateAttribution`(실존 날짜·미래 금지·파트너 경로↔파트너 id 모순 판정·담당자 연락처(이메일/전화) 거부), 종료 `closeAttribution`(수정 아닌 닫기, 계약일 이전 종료 금지), 정산 기준일 판정 `isActiveOn`/`activeAttribution`(반개구간), 무결성 점검 `auditAttributionRows`, 파트너별 유효 조직 근거 `attributionEvidence`, `publicAttribution`(memo·기록자 제외)) / tests/partnerAttribution.test.ts 12건 통과(전체 184건, partnerAttribution.ts lines 100%)
       ※ DDL 은 partners 테이블 이후 적용해야 하며 MIGRATION_DDL 미혼입(테스트가 검사). 기록 API·화면 배선은 DDL 적용 후 **[활성화 승인 필요]**. 금액·수수료 계산은 «정산 리포트» 항목에서
-- [ ] **파트너 역할 권한** — 파트너 담당자는 자기가 유치한 고객사만 조회. 기존 RBAC에 `partner_admin` 역할 추가(활성화는 승인)
+- [x] **파트너 역할 권한** — 파트너 담당자는 자기가 유치한 고객사만 조회. 기존 RBAC에 `partner_admin` 역할 추가(활성화는 승인)
+      → 신규 `lib/partnerRbac.ts`(순수: `PARTNER_ROLE='partner_admin'`, 읽기 전용 화이트리스트 `PARTNER_READABLE_RESOURCES`(organization·subscription·attribution·settlement — 고객사 내부 업무 데이터·인원 PII 제외), `partnerCanAccess`(read 이외 액션·목록 밖 resource·스위치 OFF 전부 거부 fail-closed), 소속 `partnerIdOfMember`(정지·역할 불일치 차단), 가시 범위 `visibleOrgIds`/`canViewOrg`/`filterVisibleOrgs`는 **매출 귀속 기록(partner_attributions) 파생**(반개구간 — 귀속 종료일부터 비가시, 별도 소유권 테이블 없음), 라우트용 통합 판정 `decidePartnerAccess`, `PARTNER_RBAC_DDL` 초안(partner_members: partner_id·user_id·role·status + (partner_id,user_id) 유니크), `partnerRoleStatus`). `lib/rbac.ts` hasPermission 최상단에서 partner_admin 을 **isOrgAdmin 단축 경로보다 먼저** 분기(조직 관리자 권한 승계 차단) / tests/partnerRbac.test.ts 8건 통과(전체 192건, tsc rc=0)
+      ※ 스위치 `PARTNER_ROLE_ENABLED` 기본 OFF → partner_admin 은 어떤 권한도 갖지 못한다. DDL 은 MIGRATION_DDL·schema.ts 미혼입(테스트가 매번 검사), partners 테이블 이후 적용 **[활성화 승인 필요]**. 파트너 로그인·화면 노출 0
 - [ ] **정산 리포트** — 파트너별 계약·이용 실적·수수료 산출 근거를 조회·내보내기. 수수료율은 설정값으로 분리(하드코딩 금지)
 - [ ] **2계층 확장 여지 확보** — 테넌트 조회 경로에 파트너 필터가 나중에 끼어들 수 있도록 쿼리 계층 정리. 지금 화이트라벨은 구현하지 않음
 
