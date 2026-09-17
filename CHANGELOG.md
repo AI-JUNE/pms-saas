@@ -3,6 +3,13 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-09-17 (배치 161 — 배포 대기, 파트너 채널 1건: 정산 리포트 — 요율 설정값 분리·청구일 단위 귀속·CSV 내보내기)
+- ★ **COMMERCIAL_READINESS `정산 리포트` 처리** — 파트너별 «귀속 근거 → 이용 실적 → 수수료»를 재현 가능한 한 줄기로 산출. **수수료율은 코드에 없다**(env 설정값만), 미설정이면 계산하지 않고 `rate_unconfigured` 로 표시.
+- ⑨ **신규 `src/lib/settlement.ts`(순수, DB·next 의존 0, 신규 DDL 없음)** — `loadCommissionConfig`(`PARTNER_COMMISSION_RATES` JSON·`코드=요율` 두 형식, `PARTNER_COMMISSION_ROUNDING` floor/round/ceil 기본 floor, `PARTNER_COMMISSION_BASIS` net/gross 기본 net), `parseRate`(0~1·% 표기, 음수·100% 초과 거부), `rateFor`(코드별→DEFAULT→없으면 null), `parsePeriod`(YYYY-MM 반개구간)·`isBillableLine`·`auditRevenueLines`, 집계 `buildSettlement`(청구 라인을 **청구일에 유효한 귀속 기록**에 붙여 기간 중 파트너 변경을 자동 분할, 환불 차감·과다환불 클램프, 귀속 없는 매출은 `unattributed` 분리, 직접 계약은 수수료 대상 제외), `partnerSettlementView`, 내보내기 `toSettlementCsv`/`toSettlementDetailCsv`(BOM + `csvCell` 수식 인젝션 방어)·`settlementFilename`, `settlementStatus`. — src/lib/settlement.ts, tests/settlement.test.ts, COMMERCIAL_READINESS.md
+- 검증: 전체 `tsc --noEmit -p tsconfig.json` **rc=0·error TS 0건**, 테스트 **205/205 통과**(신규 13건), 커버리지 settlement.ts lines 99.76%·전체 lines 98.26%(임계 90/80/85 상회). 작업 전 src 백업(/tmp/bak_1789646736). 라이브 DB 쓰기·DDL 실행 없음, 화면 노출 0.
+- ⚠ 스위치 `PARTNER_SETTLEMENT_ENABLED` 기본 OFF. 조회 API·화면 배선은 partners·partner_attributions DDL 적용 후 **[활성화 승인 필요]**, 요율 값 자체는 계약서 확정 후 사람이 설정. 실제 지급·세금계산서는 코드 범위 밖.
+- ⏭ 다음: `2계층 확장 여지 확보`(테넌트 조회 경로에 파트너 필터가 끼어들 쿼리 계층 정리, 화이트라벨 제외).
+
 ## 2026-09-17 (배치 160 — 배포 대기, 파트너 채널 1건: 파트너 역할 권한 partner_admin — 읽기 전용 화이트리스트·귀속 기반 가시 범위)
 - ★ **COMMERCIAL_READINESS `파트너 역할 권한` 처리** — 파트너 담당자는 **자기가 유치한 고객사만** 조회. 고객사 내부 업무 데이터(업무·이슈·요구사항·산출물·인원 PII)는 파트너에게 열지 않고, 계약·이용 수준 정보만 연다.
 - ⑨ **신규 `src/lib/partnerRbac.ts`(순수, DB·next 의존 0)** — `PARTNER_ROLE='partner_admin'`, 읽기 전용 화이트리스트 `PARTNER_READABLE_RESOURCES`(organization·subscription·attribution·settlement), `partnerCanAccess`(스위치 OFF·read 이외 액션·목록 밖 resource 전부 거부 fail-closed), `partnerIdOfMember`(정지·역할 불일치·형식 오류 차단), 가시 범위 `visibleOrgIds`/`canViewOrg`/`filterVisibleOrgs`를 **매출 귀속 기록(partner_attributions) 파생**으로 설계(별도 소유권 테이블 없음, 귀속 종료일부터 비가시 — 반개구간), 라우트 배선용 `decidePartnerAccess`(DISABLED/FORBIDDEN/OK), `PARTNER_RBAC_DDL` 초안(partner_members: partner_id CASCADE·user_id CASCADE·role·status + (partner_id,user_id) 유니크, 연락처 컬럼 없음), `partnerRoleStatus`.

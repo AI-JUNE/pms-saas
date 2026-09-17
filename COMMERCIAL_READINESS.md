@@ -63,7 +63,11 @@
 - [x] **파트너 역할 권한** — 파트너 담당자는 자기가 유치한 고객사만 조회. 기존 RBAC에 `partner_admin` 역할 추가(활성화는 승인)
       → 신규 `lib/partnerRbac.ts`(순수: `PARTNER_ROLE='partner_admin'`, 읽기 전용 화이트리스트 `PARTNER_READABLE_RESOURCES`(organization·subscription·attribution·settlement — 고객사 내부 업무 데이터·인원 PII 제외), `partnerCanAccess`(read 이외 액션·목록 밖 resource·스위치 OFF 전부 거부 fail-closed), 소속 `partnerIdOfMember`(정지·역할 불일치 차단), 가시 범위 `visibleOrgIds`/`canViewOrg`/`filterVisibleOrgs`는 **매출 귀속 기록(partner_attributions) 파생**(반개구간 — 귀속 종료일부터 비가시, 별도 소유권 테이블 없음), 라우트용 통합 판정 `decidePartnerAccess`, `PARTNER_RBAC_DDL` 초안(partner_members: partner_id·user_id·role·status + (partner_id,user_id) 유니크), `partnerRoleStatus`). `lib/rbac.ts` hasPermission 최상단에서 partner_admin 을 **isOrgAdmin 단축 경로보다 먼저** 분기(조직 관리자 권한 승계 차단) / tests/partnerRbac.test.ts 8건 통과(전체 192건, tsc rc=0)
       ※ 스위치 `PARTNER_ROLE_ENABLED` 기본 OFF → partner_admin 은 어떤 권한도 갖지 못한다. DDL 은 MIGRATION_DDL·schema.ts 미혼입(테스트가 매번 검사), partners 테이블 이후 적용 **[활성화 승인 필요]**. 파트너 로그인·화면 노출 0
-- [ ] **정산 리포트** — 파트너별 계약·이용 실적·수수료 산출 근거를 조회·내보내기. 수수료율은 설정값으로 분리(하드코딩 금지)
+- [x] **정산 리포트** — 파트너별 계약·이용 실적·수수료 산출 근거를 조회·내보내기. 수수료율은 설정값으로 분리(하드코딩 금지)
+      → 신규 `lib/settlement.ts`(순수: 요율 설정 로더 `loadCommissionConfig`(env `PARTNER_COMMISSION_RATES` — JSON `{"DEFAULT":"20%","J2M1":0.25}` 또는 `DEFAULT=20%,J2M1=0.25` 두 형식, `PARTNER_COMMISSION_ROUNDING` floor/round/ceil 기본 floor, `PARTNER_COMMISSION_BASIS` net/gross 기본 net), `parseRate`(0~1·% 표기, 범위 밖 거부), `rateFor`(코드별 → DEFAULT → **없으면 null**), 정산 기간 `parsePeriod`(YYYY-MM 반개구간), 청구 라인 선별 `isBillableLine`·무결성 점검 `auditRevenueLines`, 집계 `buildSettlement`, 파트너별 조회 `partnerSettlementView`, 내보내기 `toSettlementCsv`/`toSettlementDetailCsv`(BOM + 수식 인젝션 방어 `csvCell`)·`settlementFilename`, 상태 `settlementStatus`) / tests/settlement.test.ts 13건 통과(전체 205건, tsc rc=0, settlement.ts lines 99.76%, 전체 커버리지 lines 98.26%)
+      ※ **요율 하드코딩 없음** — 미설정이면 계산하지 않고 행 status=`rate_unconfigured` + 경고. 임의 기본 요율을 쓰지 않는다(테스트가 모듈에 요율 리터럴이 없음을 검사)
+      ※ 귀속은 **청구일 단위** — 기간 중 파트너가 바뀌면 자동 분할. 귀속 기록 없는 매출은 `unattributed` 로 분리(직접 계약 partnerId=null 과 구분), 직접 계약은 수수료 대상 아님
+      ※ 신규 테이블 없음(기존 청구 내역 집계). 스위치 `PARTNER_SETTLEMENT_ENABLED` 기본 OFF, 조회 API·화면 배선은 partners·partner_attributions DDL 적용 후 **[활성화 승인 필요]**. 실제 지급·세금계산서는 코드 범위 밖
 - [ ] **2계층 확장 여지 확보** — 테넌트 조회 경로에 파트너 필터가 나중에 끼어들 수 있도록 쿼리 계층 정리. 지금 화이트라벨은 구현하지 않음
 
 > 원칙: 파트너 관련 기능도 **코드는 만들되 활성화는 승인**. 실제 정산·청구는 계약서 확정 후.
