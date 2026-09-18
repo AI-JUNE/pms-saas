@@ -24,7 +24,10 @@
       → 신규 `lib/auditAccess.ts`(순수: normalizePath·adminAccessEvent·sanitizeAccessDetail·adminChangeKind·coarseIp·accessMeta)와 `lib/audit.ts` auditAdminAccess()로 관리 API의 **열람까지** 기록. 적용: `api/admin/users`(GET/PATCH)·`api/admin/migrate`·`api/admin/seed-demo`·`api/audit`·`api/admin/security-events`. detail은 PII·비밀 키 제거, IP는 마지막 옥텟 마스킹, 변경은 유형만(값 미기록) / tests/auditAccess.test.ts 10건 통과(전체 123건 통과)
 - [ ] **백업·복구 절차** RUNBOOK.md 문서화 + 복구 리허설 기록
       → 문서는 완료: `RUNBOOK.md`(보호 대상·Neon PITR 복구·시크릿 복구·배포 롤백·리허설 체크리스트). **복구 리허설 실시·기록은 사람 몫이라 미완** — 리허설 표는 의도적으로 비워 둠 [사람 수행 필요]
-- [ ] **약관·개인정보 처리방침 확정본 반영** (현재 초안, 문안은 사람이 확정)
+- [x] **약관·개인정보 처리방침 확정본 반영** (문안 확정은 사람 몫 — 반영 배선은 완료)
+      → 신규 `lib/legal.ts`(순수 레지스트리: 문서별 버전·시행일·초안/확정 상태를 **env 로만** 해석 — `LEGAL_DOCS_FINAL` + `LEGAL_TERMS_VERSION`/`LEGAL_TERMS_EFFECTIVE`/`LEGAL_PRIVACY_*`, 버전·날짜 파서(형식 밖·비실존 날짜 거부, 하나라도 무효면 draft 유지 fail-safe), `draftNotice`·`docMetaLine`(초안 배너·메타 문구를 상태에서 파생 — 페이지가 '초안'·placeholder 날짜를 하드코딩하지 않음), 동의 `parseConsentInput`(불리언 true 만 인정)·`missingConsents`·`checkConsent`, 재동의 `needsReconsent`/`pendingReconsent`(확정본에서만 버전 비교), `LEGAL_CONSENT_DDL` 초안(legal_consents append-only), `legalStatus`). `app/terms/page.tsx`·`app/privacy/page.tsx` 가 레지스트리 경유(2026-00-00 placeholder 제거), `api/auth/register` 가 동의 판정 + 감사로그에 **버전 스냅샷만** 기록, `login` 가입 폼에 약관·방침 동의 체크박스(링크 포함) 추가 / tests/legal.test.ts 10건 통과(전체 225건, tsc rc=0, legal.ts lines 100%·전체 98.43%)
+      ※ **문안 자체·법무 검토·시행일 결정은 사람 몫** [승인 필요]. 확정 시 코드 배포 없이 env 4개만 설정하면 배너가 사라지고 버전·시행일이 표기된다
+      ※ 가입 동의는 기본 **관측 모드** — `LEGAL_CONSENT_REQUIRED=true` 일 때만 미동의 가입을 거절 **[활성화 승인 필요]**. 동의 이력 영속화(legal_consents)는 신규 DDL이라 야간 금지 규칙에 따라 미생성(테스트가 MIGRATION_DDL·schema.ts 미혼입을 검사), 적용 전까지는 감사로그에 기록
 - [x] **테스트** 핵심 로직 커버리지 확보, CI에서 실행
       → `.github/workflows/ci.yml`(push·PR·수동, Node 22, npm ci → `npm run typecheck` → `npm run test:coverage`; 활성화 스위치 PAYMENTS_LIVE·BILLING_APPLY_LIVE 를 CI 환경에서 false 로 고정, 실DB·배포 단계 없음, permissions: contents read). `package.json` 에 `typecheck`·`test:coverage` 추가 — 커버리지는 `src/lib/**` 대상 임계값(lines 90·branches 80·funcs 85) 미달 시 **CI 실패**. 실측 96.47% lines / 88.42% branches / 93.75% funcs, 테스트 123건 전건 통과(tsc rc=0). 임계값 강제 동작은 lines=99 로 올려 rc=1 확인
       ※ 잔여(낮은 커버리지): `logger.ts` 83.73%, 그리고 DB 의존 모듈(crud·rbac·tenant·auth)은 테스트DB 필요 — 통합테스트는 별도 항목

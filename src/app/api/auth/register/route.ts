@@ -8,6 +8,7 @@ import { enforceRateLimit, RL } from '@/lib/ratelimit';
 import { auditSecurity } from '@/lib/audit';
 import { defaultOrgName, orgSlug, parseRegisterOptions } from '@/lib/onboarding';
 import { ensureSampleProject } from '@/lib/onboardingDb';
+import { checkConsent } from '@/lib/legal';
 import { log } from '@/lib/logger';
 export const dynamic = 'force-dynamic';
 const genCode = () => (Math.random().toString(36).slice(2, 10) + '00000000').slice(0, 8).toUpperCase();
@@ -18,6 +19,9 @@ export async function POST(req: Request) {
     const { email, name, password, orgName, inviteCode } = bodyOpts;
     if (!email || !password || !name) throw new ApiError(ERROR.VALIDATION, '이메일·이름·비밀번호는 필수입니다');
     if (String(password).length < 8) throw new ApiError(ERROR.VALIDATION, '비밀번호는 8자 이상이어야 합니다');
+    // 약관·개인정보 처리방침 동의. 기본은 관측 모드(막지 않음) — LEGAL_CONSENT_REQUIRED=true 일 때만 강제 [승인 필요]
+    const consent = checkConsent(bodyOpts);
+    if (!consent.ok) throw new ApiError(ERROR.VALIDATION, consent.message || '약관 동의가 필요합니다');
     const exists = (await db.select().from(users).where(eq(users.email, email)).limit(1))[0];
     if (exists) throw new ApiError(ERROR.CONFLICT, '이미 가입된 이메일입니다');
     const code = String(inviteCode || '').trim().toUpperCase();
@@ -29,7 +33,7 @@ export async function POST(req: Request) {
       const [u] = await db.insert(users).values({ email, name, passwordHash: hashPassword(password) }).returning();
       await db.insert(memberships).values({ orgId: org.id, userId: u.id, role: 'member', isOrgAdmin: false });
       await createSession(u.id, req.headers.get('user-agent') || undefined);
-      await auditSecurity('AUTH_REGISTER_JOIN', { userId: u.id, orgId: org.id });
+      await auditSecurity('AUTH_REGISTER_JOIN', { userId: u.id, orgId: org.id, detail: { consent: consent.snapshot, consentMissing: consent.missing } });
       return ok({ ok: true, joined: true, user: { id: u.id, email, name }, org: { id: org.id, name: org.name } }, 201);
     }
     // 새 조직 생성(첫 계정 = 관리자) + 초대 코드 발급
@@ -44,7 +48,7 @@ export async function POST(req: Request) {
       try { sampleProjectId = (await ensureSampleProject(org.id)).projectId; } catch { log.warn('onboarding.sample_failed', { orgId: org.id }); }
     }
     await createSession(u.id, req.headers.get('user-agent') || undefined);
-    await auditSecurity('AUTH_REGISTER', { userId: u.id, orgId: org.id, detail: { sampleProject: sampleProjectId != null } });
+    await auditSecurity('AUTH_REGISTER', { userId: u.id, orgId: org.id, detail: { sampleProject: sampleProjectId != null, consent: consent.snapshot, consentMissing: consent.missing } });
     return ok({ ok: true, user: { id: u.id, email, name }, org: { id: org.id, slug, name: org.name }, sampleProjectId }, 201);
   });
 }

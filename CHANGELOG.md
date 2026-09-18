@@ -3,6 +3,14 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-09-18 (배치 163 — 배포 대기, 공통 상용 1건: 약관·개인정보 처리방침 «확정본 반영» 배선)
+- ★ **COMMERCIAL_READINESS `약관·개인정보 처리방침 확정본 반영` 처리.** 문안 확정은 법무·사람의 몫이므로, **문안이 확정됐을 때 코드를 고치지 않고 반영되는 배선**을 만들었다. 지금까지 두 페이지가 '초안' 배너와 `2026-00-00` placeholder 를 하드코딩하고 있어, 확정 시 소스 수정·재배포가 필요했다.
+- ⑨ **신규 `src/lib/legal.ts`(순수, DB·next 의존 0, env 는 인자 주입)** — 문서 레지스트리(버전·시행일·draft/final), 파서(`parseDocVersion`·`parseEffectiveDate` — 형식 밖·비실존 날짜 거부, 하나라도 무효면 draft 유지 **fail-safe**), 표시 문구 파생(`draftNotice`·`docMetaLine`), 동의(`parseConsentInput`(불리언 true 만)·`missingConsents`·`checkConsent`)·재동의(`needsReconsent`·`pendingReconsent`, 확정본에서만 버전 비교), `LEGAL_CONSENT_DDL` 초안(legal_consents, append-only), `legalStatus`. — src/lib/legal.ts, src/app/terms/page.tsx, src/app/privacy/page.tsx, src/app/api/auth/register/route.ts, src/app/login/page.tsx, tests/legal.test.ts, COMMERCIAL_READINESS.md
+- ⑨ 배선: 약관·방침 페이지가 배너·메타를 레지스트리에서 받고(placeholder 날짜 제거), `api/auth/register` 가 동의를 판정해 감사로그에 **버전 스냅샷만**(PII·문안 없음) 남기며, 로그인 화면 가입 폼에 약관·방침 동의 체크박스(문서 링크 포함)를 추가했다. route.ts 에는 HTTP 메서드 외 export 를 추가하지 않았다.
+- 검증: `tsc --noEmit -p tsconfig.json` **rc=0·error TS 0건**, 테스트 **225/225 통과**(신규 10건), 커버리지 legal.ts lines 100%·전체 lines 98.43%/branches 91.62%/funcs 97.23%(임계 90/80/85 상회). 작업 전 src 백업(/tmp/bak_1789733162). 라이브 DB 쓰기·DDL 실행 없음.
+- ⚠ **문안·법무 검토·시행일 결정은 사람 몫 [승인 필요].** 확정 시 env 4개(`LEGAL_DOCS_FINAL`·`LEGAL_TERMS_VERSION`·`LEGAL_TERMS_EFFECTIVE`·`LEGAL_PRIVACY_VERSION`·`LEGAL_PRIVACY_EFFECTIVE`)만 설정하면 초안 배너가 사라지고 버전·시행일이 표기된다. 가입 동의 강제는 `LEGAL_CONSENT_REQUIRED=true` 일 때만 **[활성화 승인 필요]**(기본 관측 모드), 동의 이력 테이블은 야간 DDL 금지로 미생성.
+- ⏭ 다음: COMMERCIAL_READINESS 잔여는 «복구 리허설 기록»(사람 수행)뿐 → 다음 실행부터 ROADMAP.md 소항목으로 이동.
+
 ## 2026-09-18 (배치 162 — 배포 대기, 파트너 채널 1건: 2계층 확장 여지 확보 — 테넌트 조회 계층 정리)
 - ★ **COMMERCIAL_READINESS `2계층 확장 여지 확보` 처리 — 파트너 채널 섹션 전 항목 완료.** 지금까지 각 라우트가 `eq(t.orgId, ctx.orgId)` 를 직접 조립했어서 파트너(리셀러) 뷰처럼 여러 조직을 읽는 스코프가 생기면 라우트 전수 수정이 필요했다. "이 요청이 읽을 수 있는 조직"을 한 곳에서 결정하도록 정리.
 - ⑨ **신규 `src/lib/tenantQuery.ts`(순수, drizzle·db·next·env 의존 0, 신규 DDL·테이블 없음)** — 단일 진입점 `resolveReadScope`(활성 조직 → 파트너 다중 조직(스위치 ON + partner_admin) → deny), drizzle 비의존 조건 서술자 `tenantFilter`(eq/in/**deny**), `scopeOrgIds`, 런타임 가드 `scopeAllows`, 단일 조직 어댑터 `soleOrgId`, 쓰기 가드 `writableOrgId`(파트너 스코프는 읽기 전용이라 거절), `TenantScopeError`, `tenantQueryStatus`. `src/lib/crud.ts` 목록 조회(설정기반 CRUD 40개 라우트 공용)가 seam 경유 — 조건 의미는 기존과 동일. — src/lib/tenantQuery.ts, src/lib/crud.ts, tests/tenantQuery.test.ts, COMMERCIAL_READINESS.md

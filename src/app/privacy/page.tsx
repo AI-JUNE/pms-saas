@@ -1,16 +1,19 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { wrap, inner, draft, h1, meta, h2, p } from '../legal-styles';
+import { legalDoc, draftNotice, docMetaLine } from '@/lib/legal';
 
-export const metadata: Metadata = { title: '개인정보 처리방침 — PMS', description: 'PMS 개인정보 처리방침(초안).' };
+export const metadata: Metadata = { title: '개인정보 처리방침 — PMS', description: 'PMS 개인정보 처리방침.' };
 
 export default function PrivacyPage() {
+  const doc = legalDoc('privacy');
+  const notice = draftNotice(doc);
   return (
     <div style={wrap}><div style={inner}>
       <Link href="/pricing" style={{ fontSize: 13, color: 'var(--brand-600)', fontWeight: 700 }}>← 요금제로</Link>
-      <div style={draft}>본 방침은 <b>초안</b>입니다. 실제 개인정보 수집 개시 전 법무·보안 검토와 항목 확정이 필요합니다.</div>
+      {notice ? <div style={draft}>{notice}</div> : null}
       <h1 style={h1}>개인정보 처리방침</h1>
-      <div style={meta}>운영: 주식회사 고원 · 시행일: 2026-00-00 (초안)</div>
+      <div style={meta}>{docMetaLine(doc)}</div>
 
       <h2 style={h2}>1. 수집하는 개인정보 항목</h2>
       <p style={p}>회원가입·서비스 이용 과정에서 이메일, 이름(닉네임), 소속 조직명, 접속기록(IP·로그), 결제 시 결제대행사를 통한 결제정보를 수집합니다. 서비스 내 입력 데이터는 이용자 소유로 처리 위탁 범위에서만 취급합니다.</p>

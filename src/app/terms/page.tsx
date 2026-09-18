@@ -1,16 +1,19 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { wrap, inner, draft, h1, meta, h2, p } from '../legal-styles';
+import { legalDoc, draftNotice, docMetaLine } from '@/lib/legal';
 
-export const metadata: Metadata = { title: '이용약관 — PMS', description: 'PMS 서비스 이용약관(초안).' };
+export const metadata: Metadata = { title: '이용약관 — PMS', description: 'PMS 서비스 이용약관.' };
 
 export default function TermsPage() {
+  const doc = legalDoc('terms');
+  const notice = draftNotice(doc);
   return (
     <div style={wrap}><div style={inner}>
       <Link href="/pricing" style={{ fontSize: 13, color: 'var(--brand-600)', fontWeight: 700 }}>← 요금제로</Link>
-      <div style={draft}>본 약관은 <b>초안</b>입니다. 실제 서비스 적용 전 법무 검토·확정이 필요합니다.</div>
+      {notice ? <div style={draft}>{notice}</div> : null}
       <h1 style={h1}>서비스 이용약관</h1>
-      <div style={meta}>운영: 주식회사 고원 · 최종 개정: 2026-00-00 (초안)</div>
+      <div style={meta}>{docMetaLine(doc)}</div>
 
       <h2 style={h2}>제1조 (목적)</h2>
       <p style={p}>본 약관은 주식회사 고원(이하 "회사")이 제공하는 프로젝트 관리 SaaS(이하 "서비스")의 이용과 관련하여 회사와 이용자 간의 권리·의무 및 책임사항을 규정함을 목적으로 합니다.</p>
