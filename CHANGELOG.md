@@ -3,6 +3,14 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-09-18 (배치 162 — 배포 대기, 파트너 채널 1건: 2계층 확장 여지 확보 — 테넌트 조회 계층 정리)
+- ★ **COMMERCIAL_READINESS `2계층 확장 여지 확보` 처리 — 파트너 채널 섹션 전 항목 완료.** 지금까지 각 라우트가 `eq(t.orgId, ctx.orgId)` 를 직접 조립했어서 파트너(리셀러) 뷰처럼 여러 조직을 읽는 스코프가 생기면 라우트 전수 수정이 필요했다. "이 요청이 읽을 수 있는 조직"을 한 곳에서 결정하도록 정리.
+- ⑨ **신규 `src/lib/tenantQuery.ts`(순수, drizzle·db·next·env 의존 0, 신규 DDL·테이블 없음)** — 단일 진입점 `resolveReadScope`(활성 조직 → 파트너 다중 조직(스위치 ON + partner_admin) → deny), drizzle 비의존 조건 서술자 `tenantFilter`(eq/in/**deny**), `scopeOrgIds`, 런타임 가드 `scopeAllows`, 단일 조직 어댑터 `soleOrgId`, 쓰기 가드 `writableOrgId`(파트너 스코프는 읽기 전용이라 거절), `TenantScopeError`, `tenantQueryStatus`. `src/lib/crud.ts` 목록 조회(설정기반 CRUD 40개 라우트 공용)가 seam 경유 — 조건 의미는 기존과 동일. — src/lib/tenantQuery.ts, src/lib/crud.ts, tests/tenantQuery.test.ts, COMMERCIAL_READINESS.md
+- ⚠ 설계상 **fail-closed** — 스코프를 정할 수 없으면 "조건 없음"(전체 테넌트 노출)이 아니라 deny(0건)이고, 다중 조직 스코프는 `soleOrgId` 가 조용히 첫 조직을 쓰지 않고 `MULTI_ORG_SCOPE_NOT_WIRED` 로 거절한다(테스트가 검사).
+- 검증: `tsc --noEmit -p tsconfig.json` **rc=0·error TS 0건**, 테스트 **215/215 통과**(신규 10건), 테넌트 격리 정적 점검(tenantScan) 전건 통과 유지. 작업 전 src 백업(/tmp/bak_1789693507). 라이브 DB 쓰기·DDL 실행 없음, 화면 노출 0.
+- ⚠ 실제 다중 조직 조회 배선(inArray 승격)·파트너 로그인·화이트라벨 미구현 — partners·partner_attributions DDL 적용 후 **[활성화 승인 필요]**.
+- ⏭ 다음: COMMERCIAL_READINESS 잔여는 사람 몫 2건(복구 리허설 기록·약관/개인정보 처리방침 확정본)뿐 → 다음 실행은 ROADMAP.md 로 이동.
+
 ## 2026-09-17 (배치 161 — 배포 대기, 파트너 채널 1건: 정산 리포트 — 요율 설정값 분리·청구일 단위 귀속·CSV 내보내기)
 - ★ **COMMERCIAL_READINESS `정산 리포트` 처리** — 파트너별 «귀속 근거 → 이용 실적 → 수수료»를 재현 가능한 한 줄기로 산출. **수수료율은 코드에 없다**(env 설정값만), 미설정이면 계산하지 않고 `rate_unconfigured` 로 표시.
 - ⑨ **신규 `src/lib/settlement.ts`(순수, DB·next 의존 0, 신규 DDL 없음)** — `loadCommissionConfig`(`PARTNER_COMMISSION_RATES` JSON·`코드=요율` 두 형식, `PARTNER_COMMISSION_ROUNDING` floor/round/ceil 기본 floor, `PARTNER_COMMISSION_BASIS` net/gross 기본 net), `parseRate`(0~1·% 표기, 음수·100% 초과 거부), `rateFor`(코드별→DEFAULT→없으면 null), `parsePeriod`(YYYY-MM 반개구간)·`isBillableLine`·`auditRevenueLines`, 집계 `buildSettlement`(청구 라인을 **청구일에 유효한 귀속 기록**에 붙여 기간 중 파트너 변경을 자동 분할, 환불 차감·과다환불 클램프, 귀속 없는 매출은 `unattributed` 분리, 직접 계약은 수수료 대상 제외), `partnerSettlementView`, 내보내기 `toSettlementCsv`/`toSettlementDetailCsv`(BOM + `csvCell` 수식 인젝션 방어)·`settlementFilename`, `settlementStatus`. — src/lib/settlement.ts, tests/settlement.test.ts, COMMERCIAL_READINESS.md

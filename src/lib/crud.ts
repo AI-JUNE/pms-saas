@@ -9,6 +9,7 @@ import { audit } from './audit';
 import { handle, ok, ApiError, ERROR } from './http';
 import { pickInsertFields, missingRequired, pickPatchFields, needsApprove, computeJournalChanges } from './crudPure.ts';
 import { validateValues, summarizeErrors } from './validate.ts';
+import { resolveReadScope, soleOrgId } from './tenantQuery.ts';
 type Scope = 'org' | 'project' | 'user';
 // approveOn: 지정 필드 값이 목록에 포함되면 'write'가 아닌 'approve' 권한을 요구(결재 경계)
 export type CrudConfig = { table: any; resource: string; scope: Scope; codePrefix?: string; fields: string[]; required?: string[]; transform?: (values: any) => any; orderAsc?: boolean; guardDelete?: (ctx: TenantContext, id: number) => Promise<void>; approveOn?: { field: string; values: string[] }; journal?: boolean; versionOn?: boolean; };
@@ -19,7 +20,10 @@ async function assertProject(orgId: number, projectId: number) {
 }
 export function collection(cfg: CrudConfig) {
   const GET = (req: Request) => handle(async () => {
-    const ctx = await ctxOf(); const t = cfg.table; const conds = [eq(t.orgId, ctx.orgId)];
+    // 조회 스코프는 tenantQuery 한 곳에서 결정한다(2계층 파트너 필터 진입점).
+    // 현재는 활성 조직 1건 = 기존 동작과 동일. 다중 조직은 tenantFilter 'in' 승격 [승인 필요].
+    const ctx = await ctxOf(); const t = cfg.table;
+    const conds = [eq(t.orgId, soleOrgId(resolveReadScope({ orgId: ctx.orgId })))];
     if (cfg.scope === 'project') { const pid = new URL(req.url).searchParams.get('projectId'); if (pid) conds.push(eq(t.projectId, Number(pid))); }
     if (cfg.scope === 'user') conds.push(eq(t.userId, ctx.user.id));
     const rows: any = await db.select().from(t).where(and(...conds)).orderBy(cfg.orderAsc ? asc(t.id) : desc(t.id)); return ok(rows);

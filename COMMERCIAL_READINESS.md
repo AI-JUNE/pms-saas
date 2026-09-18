@@ -68,7 +68,10 @@
       ※ **요율 하드코딩 없음** — 미설정이면 계산하지 않고 행 status=`rate_unconfigured` + 경고. 임의 기본 요율을 쓰지 않는다(테스트가 모듈에 요율 리터럴이 없음을 검사)
       ※ 귀속은 **청구일 단위** — 기간 중 파트너가 바뀌면 자동 분할. 귀속 기록 없는 매출은 `unattributed` 로 분리(직접 계약 partnerId=null 과 구분), 직접 계약은 수수료 대상 아님
       ※ 신규 테이블 없음(기존 청구 내역 집계). 스위치 `PARTNER_SETTLEMENT_ENABLED` 기본 OFF, 조회 API·화면 배선은 partners·partner_attributions DDL 적용 후 **[활성화 승인 필요]**. 실제 지급·세금계산서는 코드 범위 밖
-- [ ] **2계층 확장 여지 확보** — 테넌트 조회 경로에 파트너 필터가 나중에 끼어들 수 있도록 쿼리 계층 정리. 지금 화이트라벨은 구현하지 않음
+- [x] **2계층 확장 여지 확보** — 테넌트 조회 경로에 파트너 필터가 나중에 끼어들 수 있도록 쿼리 계층 정리. 지금 화이트라벨은 구현하지 않음
+      → 신규 `lib/tenantQuery.ts`(순수: 조회 스코프 단일 진입점 `resolveReadScope`(활성 조직 → 파트너 다중 조직 → deny), drizzle 비의존 조건 서술자 `tenantFilter`(eq/in/**deny**), `scopeOrgIds`·런타임 가드 `scopeAllows`, 단일 조직 어댑터 `soleOrgId`, 쓰기 가드 `writableOrgId`(파트너 스코프는 읽기 전용이라 거절), `TenantScopeError`, `tenantQueryStatus`). `lib/crud.ts` 목록 조회(설정기반 CRUD 40개 라우트)가 `eq(t.orgId, soleOrgId(resolveReadScope({orgId: ctx.orgId})))` 로 seam 경유 — 의미는 기존과 동일 / tests/tenantQuery.test.ts 10건 통과(전체 215건, tsc rc=0). 테넌트 격리 정적 점검(tenantScan) 전건 통과 유지
+      ※ **fail-closed** — 스코프를 정할 수 없으면 "조건 없음"이 아니라 deny(0건). 다중 조직 스코프는 `soleOrgId` 가 조용히 첫 조직을 쓰지 않고 `MULTI_ORG_SCOPE_NOT_WIRED` 로 거절(테스트가 검사)
+      ※ 실제 다중 조직 조회 배선(inArray 승격)·파트너 로그인·화이트라벨은 미구현 — partners·partner_attributions DDL 적용 후 **[활성화 승인 필요]**. 화면 노출 0
 
 > 원칙: 파트너 관련 기능도 **코드는 만들되 활성화는 승인**. 실제 정산·청구는 계약서 확정 후.
 
