@@ -49,7 +49,7 @@ export default function Page() {
         if (String(v || '').trim()) return <span style={{ fontSize: 12 }}>{v}</span>;
         const st = String(row.status || 'todo');
         if (st === 'todo') return <span className="muted" style={{ fontSize: 11.5 }}>—</span>;
-        return <span title="단계 미지정 — 간트 스와이레인·단계별 진척 집계에서 제외됩니다" style={{ color: '#d98a16', fontSize: 11.5, cursor: 'help' }}>미지정</span>;
+        return <span title="단계 미지정 — 간트 스윔레인·단계별 진척 집계에서 제외됩니다" style={{ color: '#d98a16', fontSize: 11.5, cursor: 'help' }}>미지정</span>;
       } },
       { key: 'predecessor', label: '선행', render: (v, row) => {
         const code = String(v || '').trim();
@@ -140,7 +140,7 @@ export default function Page() {
     ]}
     fields={[
       { key: 'name', label: '작업명', required: true },
-      { key: 'phase', label: '단계', type: 'combo', half: true, options: ['착수', '요구사항 분석', '분석/설계', '설계', '구현/개발', '단위 테스트', '통합 테스트', '시스템 테스트', '이행/전개', '안정화', '검수', '운영/유지보수', '완료'], placeholder: '단계 선택/입력', hint: '단계를 지정해야 간트 스와이레인·단계별 진척 집계에 잡힙니다' },
+      { key: 'phase', label: '단계', type: 'combo', half: true, options: ['착수', '요구사항 분석', '분석/설계', '설계', '구현/개발', '단위 테스트', '통합 테스트', '시스템 테스트', '이행/전개', '안정화', '검수', '운영/유지보수', '완료'], placeholder: '단계 선택/입력', hint: '단계를 지정해야 간트 스윔레인·단계별 진척 집계에 잡힙니다' },
       { key: 'assignee', label: '담당자', type: 'combo', optionsFrom: 'members', half: true, placeholder: '인력 선택/입력', hint: '담당자를 지정해야 부하(리소스) 뷰·마감 알림 대상이 됩니다' },
       { key: 'status', label: '상태', type: 'select', half: true, options: [{ value: 'todo', label: '할 일' }, { value: 'doing', label: '진행중' }, { value: 'done', label: '완료' }] },
       { key: 'progress', label: '진척률', type: 'select', numeric: true, half: true, hint: '완료 상태는 100%로 맞춰야 진척 평균·EVM(EV)이 정확합니다', options: [{ value: '0', label: '0%' }, { value: '10', label: '10%' }, { value: '20', label: '20%' }, { value: '30', label: '30%' }, { value: '40', label: '40%' }, { value: '50', label: '50%' }, { value: '60', label: '60%' }, { value: '70', label: '70%' }, { value: '80', label: '80%' }, { value: '90', label: '90%' }, { value: '100', label: '100%' }] },

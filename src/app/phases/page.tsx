@@ -43,7 +43,7 @@ export default function Page() {
   const statOf = (row: any): Stat | undefined => stats[String(row?.name || '').trim()] || stats[String(row?.code || '').trim()];
 
   return <ResourceView title="단계" subtitle="프로젝트 단계를 정의합니다." endpoint="/api/phases" entity="phases" projectScoped
-    emptyText="등록된 단계가 없습니다. 단계를 정의하면 업무(WBS)의 '단계' 필드로 묶여 간트 스와이레인·단계별 진척이 집계됩니다."
+    emptyText="등록된 단계가 없습니다. 단계를 정의하면 업무(WBS)의 '단계' 필드로 묶여 간트 스윔레인·단계별 진척이 집계됩니다."
     columns={[
       {key:'code',label:'코드'},
       {key:'name',label:'단계',strong:true},
