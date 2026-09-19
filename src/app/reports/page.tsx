@@ -130,7 +130,7 @@ export default function Page() {
       setD({ issues: issues||[], tasks: tasks||[], risks: risks||[], requirements: requirements||[], projects: projects||[], sprints: sprints||[], tests: tests||[], snapshots: snapshots||[], procurement: procurement||[] });
     });
   }, [router]);
-  if (!d) return <Shell title="리포트"><div className="card card-pad" style={{ display: 'grid', gap: 12 }}>{Array.from({ length: 5 }).map((_, i) => <div key={i} className="skel" style={{ height: i === 0 ? 30 : 18, width: i === 0 ? '38%' : '100%' }} />)}</div></Shell>;
+  if (!d) return <Shell title="리포트"><span className="sr-only" role="status">리포트 지표를 불러오는 중</span><div className="card card-pad" style={{ display: 'grid', gap: 12 }} aria-busy="true">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="skel" aria-hidden="true" style={{ height: i === 0 ? 30 : 18, width: i === 0 ? '38%' : '100%' }} />)}</div></Shell>;
   const { issues, tasks, risks, requirements, projects, sprints, tests, snapshots, procurement } = d;
   // 프로젝트별 예산/기성/조달 재무 집계 (읽기 전용 계산 — /projects[id] 재무 카드와 동일 규칙)
   const won = (n: number) => '₩' + (Number(n) || 0).toLocaleString('ko-KR');
@@ -195,6 +195,7 @@ export default function Page() {
   };
   return (
     <Shell title="리포트">
+      <span className="sr-only" role="status">{`리포트 불러오기 완료 · 프로젝트 ${nfmt(projects.length)}건, 업무 ${nfmt(tasks.length)}건, 이슈 ${nfmt(issues.length)}건, 테스트 ${nfmt(tests.length)}건 기준 · 평균 진척 ${avgProg}%`}</span>
       <div className="row"><div><h2 className="h1">리포트 <BarChart3 style={{ width: 22, verticalAlign: -3, color: 'var(--brand)' }} /></h2><p className="h-sub">프로젝트 진척·품질·팀 지표를 종합 분석합니다.</p></div><div className="sp" /><button className="btn no-print" onClick={exportExcel} style={{ marginRight: 8 }}><Download style={{ width: 15 }} />엑셀 내보내기</button><button className="btn no-print" onClick={() => window.print()}><Printer style={{ width: 15 }} />인쇄 / PDF</button></div>
       <div style={{ height: 16 }} />
       <div className="kpis">

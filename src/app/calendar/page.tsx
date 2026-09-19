@@ -62,6 +62,8 @@ export default function Page() {
   const todayStr = new Date().toISOString().slice(0, 10);
   // 표시 중(숨김 제외)인 마감/기한 이벤트 중 오늘 이전에 걸린 미완료 건 = 기한 초과 (월 이동과 무관하게 전체 집계)
   const overdueCount = scoped.filter((e) => isDeadlineKind(e.kind) && !hidden.has(e.kind) && e.date.slice(0, 10) < todayStr).length;
+  // 스크린리더 라이브 안내용 — 담당자·종류 필터를 통과해 실제로 달력에 그려지는 일정 수
+  const visibleCount = scoped.filter((e) => !hidden.has(e.kind)).length;
   const dkey = (d: number) => `${cur.y}-${String(cur.m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
   const move = (delta: number) => { let y = cur.y, m = cur.m + delta; if (m < 0) { m = 11; y--; } if (m > 11) { m = 0; y++; } setCur({ y, m }); };
 
@@ -70,6 +72,7 @@ export default function Page() {
 
   return (
     <Shell title="캘린더">
+      <span className="sr-only" role="status">{!loaded ? '캘린더 일정을 불러오는 중' : `${cur.y}년 ${cur.m + 1}월 캘린더 · 일정 ${nfmt(visibleCount)}건 표시${visibleCount !== evs.length ? ` (전체 ${nfmt(evs.length)}건 중)` : ''}${overdueCount > 0 ? ` · 기한 초과 ${nfmt(overdueCount)}건` : ''}`}</span>
       <div className="row" style={{ marginBottom: 14 }}>
         <div><h2 className="h1">캘린더 <CalendarDays style={{ width: 20, verticalAlign: -3, color: 'var(--brand)' }} />
           {overdueCount > 0 && <span title={`오늘(${todayStr}) 이전에 마감·기한이 지난 미완료 업무·테스트·이슈 ${nfmt(overdueCount)}건 — 달력에서 빨강 ⚠ 로 표시됩니다`} style={{ marginLeft: 8, verticalAlign: 3, display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', borderRadius: 20, fontSize: 12, fontWeight: 700, background: '#fdecec', color: '#c0392b', border: '1px solid #f0c4c4' }}>⚠ 기한 초과 {nfmt(overdueCount)}건</span>}</h2>

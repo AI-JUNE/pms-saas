@@ -3,6 +3,13 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-09-19 (배치 165 — 배포 대기, ROADMAP ⑨ 접근성 스윕: 대시보드·리포트·통합캘린더 라이브 안내)
+- ★ **COMMERCIAL_READINESS 잔여 `[ ]` 는 여전히 «복구 리허설 실시·기록»(사람 수행) 1건뿐** → 배치164가 남긴 다음 항목(ROADMAP ⑨)을 이어서 처리.
+- ⑨ **대시보드(/dashboard)·리포트(/reports)·통합캘린더(/calendar)** 에 배치147~149 «스크린리더 라이브 안내» 패턴 확장 — 로딩 중에는 `sr-only role="status"` 로 «불러오는 중», 완료 후에는 현황 요약(대시보드: 프로젝트·열린 이슈·리스크·업무 건수 / 리포트: 집계 기준 건수·평균 진척 / 캘린더: 해당 월·표시 일정 건수, 필터 시 «전체 N건 중», 기한 초과 건수)을 읽어 준다. 스켈레톤 컨테이너에 `aria-busy`, 스켈레톤 자체에 `aria-hidden="true"`(보조기기에 가짜 행·카드가 읽히지 않도록). — src/app/dashboard/page.tsx, src/app/reports/page.tsx, src/app/calendar/page.tsx, ROADMAP.md
+- 캘린더는 담당자·종류 필터 통과분만 세는 `visibleCount` 를 새로 계산해 안내에 사용(기존 표시 로직과 동일 기준, 화면 출력 변화 없음). 대시보드는 데이터 도착 직후 켜지는 기존 `mounted` 를 로딩 완료 신호로 재사용(신규 상태 없음).
+- 검증: `tsc --noEmit -p tsconfig.json` **rc=0·error TS 0건**, 테스트 **225/225 통과**(표시 전용 변경이라 신규 테스트 없음). 작업 전 src 백업(/tmp/bak_1789819509). 라이브 DB 쓰기·DDL 실행 없음, API·권한 경계·route.ts export 변경 없음.
+- ⏭ 다음: ⑨ 스윕 잔여 — 관리자 2종(/admin 사용자·권한, /admin/security 보안 이벤트) 로딩 라이브 안내로 이 패턴 마무리. 로그인(/login) 은 인증 화면이라 야간 금지 유지.
+
 ## 2026-09-19 (배치 164 — 배포 대기, ROADMAP ⑨ 접근성 스윕: RTM·업무부하·백로그 라이브 안내)
 - ★ **COMMERCIAL_READINESS 잔여는 사람 수행 1건(복구 리허설 기록)뿐이라 ROADMAP ⑨ 소항목으로 이동.** 배치147(ResourceView)·배치148(알림·감사로그)에서 만든 «스크린리더 라이브 안내» 패턴이 ResourceView 를 쓰지 않는 표 화면 3곳에 아직 없었다.
 - ⑨ **RTM(/rtm)·업무 부하(/workload)·백로그(/backlog)** 에 동일 패턴 적용 — 표 위 `sr-only role="status"` 라이브 리전(불러오는 중 / 표시 건수, 필터 시 «전체 N건 중»), 카드에 `aria-busy`, 스켈레톤 행 `aria-hidden="true"`(보조기기에 가짜 행이 읽히지 않도록), 표 헤더 `scope="col"`(배치130 패턴과 일관). — src/app/rtm/page.tsx, src/app/workload/page.tsx, src/app/backlog/page.tsx, ROADMAP.md

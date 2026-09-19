@@ -86,7 +86,7 @@ export default function Dashboard() {
       requestAnimationFrame(() => setMounted(true));
     });
   }, [router]);
-  if (!me) return <Shell title="대시보드"><div className="kpis">{Array.from({length:6}).map((_,i)=><div className="kpi" key={i}><div className="skel" style={{height:64}}/></div>)}</div></Shell>;
+  if (!me) return <Shell title="대시보드"><span className="sr-only" role="status">대시보드를 불러오는 중</span><div className="kpis" aria-busy="true">{Array.from({length:6}).map((_,i)=><div className="kpi" key={i} aria-hidden="true"><div className="skel" style={{height:64}}/></div>)}</div></Shell>;
   const { projects, requirements, issues, risks, tasks } = d;
   const openIssues = issues.filter((x: any) => !['resolved','closed'].includes(x.status));
   const avgProg = tasks.length ? Math.round(tasks.reduce((s: number, t: any) => s + (t.progress || 0), 0) / tasks.length) : 0;
@@ -100,6 +100,8 @@ export default function Dashboard() {
   ];
   return (
     <Shell title="대시보드">
+      {/* 스크린리더 라이브 안내 — mounted 는 대시보드 데이터 도착 직후(rAF) 켜지므로 로딩 완료 시점과 같다 */}
+      <span className="sr-only" role="status">{!mounted ? '대시보드 현황을 불러오는 중' : `대시보드 현황 · 프로젝트 ${nfmt(projects.length)}건, 열린 이슈 ${nfmt(openIssues.length)}건, 리스크 ${nfmt(risks.length)}건, 업무 ${nfmt(tasks.length)}건`}</span>
       <div className="hero"><h2>안녕하세요, {me.user?.name} 님 👋</h2><p>조직 전체 현황을 한눈에 확인하세요 · {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}</p></div>
       {onb && !onb.completed && (
         <div className="card card-pad dash-card" style={{ marginTop: 14 }}>
