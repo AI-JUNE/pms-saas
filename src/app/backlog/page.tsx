@@ -86,8 +86,10 @@ export default function Backlog() {
     <Shell title="백로그">
       <div className="row"><div><h2 className="h1">백로그 & 스프린트</h2><p className="h-sub">스크럼 백로그를 스프린트로 계획하고 진행하세요. (Jira 방식)</p></div><div className="sp" /><button className="btn btn-pri" onClick={newSprint}><Plus />새 스프린트</button></div>
       <div style={{ height: 16 }} />
+      {/* 스크린리더 라이브 안내 — 배치147·148 패턴(목록·알림·감사로그)과 동일 */}
+      <span className="sr-only" role="status">{!pid ? '프로젝트가 선택되지 않았습니다' : loading ? '백로그를 불러오는 중' : `이슈 ${nfmt(issues.length)}건 · 스프린트 ${nfmt(sprints.length)}개 표시`}</span>
       {!pid ? <div className="empty">상단에서 프로젝트를 먼저 선택하세요.</div>
-        : loading ? <div className="empty">불러오는 중…</div> : (
+        : loading ? <div className="empty" aria-busy="true">불러오는 중…</div> : (
         <>
           {(() => {
             const backlogList = issues.filter((i) => !i.sprintId);

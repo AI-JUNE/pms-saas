@@ -54,11 +54,13 @@ export default function Page() {
         )}
       </div>
 
-      <div className="card" style={{ overflow: 'hidden' }}>
+      {/* 스크린리더 라이브 안내 — 배치147·148 패턴(목록·알림·감사로그)과 동일 */}
+      <span className="sr-only" role="status">{!rows ? '업무 부하 목록을 불러오는 중' : `담당자 ${nfmt(shown.length)}명 표시${filtering ? ` (전체 ${nfmt(all.length)}명 중)` : ''}`}</span>
+      <div className="card" style={{ overflow: 'hidden' }} aria-busy={!rows}>
         <table className="tbl">
-          <thead><tr><th>담당자</th><th style={{ width: 90 }}>진행 업무</th><th style={{ width: 90 }}>미결 이슈</th><th style={{ width: 110 }}>완료</th><th>부하</th></tr></thead>
+          <thead><tr><th scope="col">담당자</th><th scope="col" style={{ width: 90 }}>진행 업무</th><th scope="col" style={{ width: 90 }}>미결 이슈</th><th scope="col" style={{ width: 110 }}>완료</th><th scope="col">부하</th></tr></thead>
           <tbody>
-            {!rows && Array.from({ length: 4 }).map((_, i) => <tr key={`sk${i}`}><td colSpan={5}><div className="skel" style={{ height: 18, margin: '4px 0' }} /></td></tr>)}
+            {!rows && Array.from({ length: 4 }).map((_, i) => <tr key={`sk${i}`} aria-hidden="true"><td colSpan={5}><div className="skel" style={{ height: 18, margin: '4px 0' }} /></td></tr>)}
             {rows && all.length === 0 && <tr><td colSpan={5}><div className="empty" style={{ padding: 24 }}>인력·배정 데이터가 없습니다.</div></td></tr>}
             {rows && all.length > 0 && shown.length === 0 && <tr><td colSpan={5}><div className="empty" style={{ padding: 24 }}>'{q.trim()}'에 해당하는 담당자가 없습니다.</div></td></tr>}
             {rows && shown.map((r) => {

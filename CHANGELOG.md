@@ -3,6 +3,12 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-09-19 (배치 164 — 배포 대기, ROADMAP ⑨ 접근성 스윕: RTM·업무부하·백로그 라이브 안내)
+- ★ **COMMERCIAL_READINESS 잔여는 사람 수행 1건(복구 리허설 기록)뿐이라 ROADMAP ⑨ 소항목으로 이동.** 배치147(ResourceView)·배치148(알림·감사로그)에서 만든 «스크린리더 라이브 안내» 패턴이 ResourceView 를 쓰지 않는 표 화면 3곳에 아직 없었다.
+- ⑨ **RTM(/rtm)·업무 부하(/workload)·백로그(/backlog)** 에 동일 패턴 적용 — 표 위 `sr-only role="status"` 라이브 리전(불러오는 중 / 표시 건수, 필터 시 «전체 N건 중»), 카드에 `aria-busy`, 스켈레톤 행 `aria-hidden="true"`(보조기기에 가짜 행이 읽히지 않도록), 표 헤더 `scope="col"`(배치130 패턴과 일관). — src/app/rtm/page.tsx, src/app/workload/page.tsx, src/app/backlog/page.tsx, ROADMAP.md
+- 검증: `tsc --noEmit -p tsconfig.json` **rc=0·error TS 0건**, 테스트 **225/225 통과**(표시 전용 변경이라 신규 테스트 없음). 작업 전 src 백업(/tmp/bak_1789779960). 라이브 DB 쓰기·DDL 실행 없음, API·권한 경계 변경 없음.
+- ⏭ 다음: ⑨ 스윕 잔여 — 대시보드·리포트·통합캘린더·관리자 2종의 로딩 상태 라이브 안내(동일 패턴). 로그인(/login) 탭 div 는 인증 화면이라 야간 금지 유지.
+
 ## 2026-09-18 (배치 163 — 배포 대기, 공통 상용 1건: 약관·개인정보 처리방침 «확정본 반영» 배선)
 - ★ **COMMERCIAL_READINESS `약관·개인정보 처리방침 확정본 반영` 처리.** 문안 확정은 법무·사람의 몫이므로, **문안이 확정됐을 때 코드를 고치지 않고 반영되는 배선**을 만들었다. 지금까지 두 페이지가 '초안' 배너와 `2026-00-00` placeholder 를 하드코딩하고 있어, 확정 시 소스 수정·재배포가 필요했다.
 - ⑨ **신규 `src/lib/legal.ts`(순수, DB·next 의존 0, env 는 인자 주입)** — 문서 레지스트리(버전·시행일·draft/final), 파서(`parseDocVersion`·`parseEffectiveDate` — 형식 밖·비실존 날짜 거부, 하나라도 무효면 draft 유지 **fail-safe**), 표시 문구 파생(`draftNotice`·`docMetaLine`), 동의(`parseConsentInput`(불리언 true 만)·`missingConsents`·`checkConsent`)·재동의(`needsReconsent`·`pendingReconsent`, 확정본에서만 버전 비교), `LEGAL_CONSENT_DDL` 초안(legal_consents, append-only), `legalStatus`. — src/lib/legal.ts, src/app/terms/page.tsx, src/app/privacy/page.tsx, src/app/api/auth/register/route.ts, src/app/login/page.tsx, tests/legal.test.ts, COMMERCIAL_READINESS.md

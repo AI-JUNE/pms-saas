@@ -87,11 +87,13 @@ export default function Page() {
           {filter !== 'all' && <span className="muted" style={{ fontSize: 12 }}>· {nfmt(visibleRows.length)}건 표시 (전체 {nfmt(rows.length)}건)</span>}
         </div>
       )}
-      <div className="card" style={{ overflow: 'hidden' }}>
+      {/* 스크린리더 라이브 안내 — 배치147·148 패턴(목록·알림·감사로그)과 동일 */}
+      <span className="sr-only" role="status">{!loaded ? '요구사항 추적 매트릭스를 불러오는 중' : `요구사항 ${nfmt(visibleRows.length)}건 표시${filter !== 'all' ? ` (전체 ${nfmt(rows.length)}건 중)` : ''}`}</span>
+      <div className="card" style={{ overflow: 'hidden' }} aria-busy={!loaded}>
         <table className="tbl">
-          <thead><tr><th>요구사항</th><th>우선순위</th><th>연계 업무</th><th>연계 이슈</th><th>연계 테스트</th><th>커버리지</th></tr></thead>
+          <thead><tr><th scope="col">요구사항</th><th scope="col">우선순위</th><th scope="col">연계 업무</th><th scope="col">연계 이슈</th><th scope="col">연계 테스트</th><th scope="col">커버리지</th></tr></thead>
           <tbody>
-            {!loaded && Array.from({ length: 4 }).map((_, i) => <tr key={`sk${i}`}><td colSpan={6}><div className="skel" style={{ height: 18, margin: '4px 0' }} /></td></tr>)}
+            {!loaded && Array.from({ length: 4 }).map((_, i) => <tr key={`sk${i}`} aria-hidden="true"><td colSpan={6}><div className="skel" style={{ height: 18, margin: '4px 0' }} /></td></tr>)}
             {loaded && rows.length === 0 && <tr><td colSpan={6}><div className="empty" style={{ padding: 24 }}>요구사항이 없습니다.</div></td></tr>}
             {loaded && rows.length > 0 && visibleRows.length === 0 && <tr><td colSpan={6}><div className="empty" style={{ padding: 24 }}>선택한 상태의 요구사항이 없습니다.</div></td></tr>}
             {visibleRows.map(({ rq, lt, li, ltest, cov, col, Icon }) => (
