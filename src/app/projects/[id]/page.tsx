@@ -7,6 +7,7 @@ import { Pill, LABEL } from '@/lib/ui';
 import { ArrowLeft, ListTodo, Bug, ShieldAlert, ClipboardList, FileCheck2, Layers3, TrendingUp, Wallet, Printer } from 'lucide-react';
 
 const won = (n: number) => '₩' + Number(n || 0).toLocaleString();
+const nfmt = (n: number) => Number(n || 0).toLocaleString('ko-KR'); // 카운트 천단위 쉼표(배치118·123·139와 일관)
 
 export default function Page({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -54,8 +55,14 @@ export default function Page({ params }: { params: { id: string } }) {
         <div className="sp" />
         {p && <button className="btn btn-sm" onClick={() => window.print()} title="이 프로젝트 요약을 인쇄하거나 PDF로 저장합니다"><Printer style={{ width: 15 }} />인쇄 / PDF</button>}
       </div>
-      {err && <div className="err">{err}</div>}
-      {!d && !err && <div className="card card-pad" style={{ display: 'grid', gap: 12 }}>{Array.from({ length: 5 }).map((_, i) => <div key={i} className="skel" style={{ height: i === 0 ? 26 : 18, width: i === 0 ? '34%' : '100%' }} />)}</div>}
+      {err && <div className="err" role="alert">{err}</div>}
+      {/* 스크린리더 라이브 안내 — 배치147~149·165·166 패턴(ResourceView 미사용 요약 화면)과 동일 */}
+      <span className="sr-only" role="status">
+        {err ? '프로젝트 요약을 불러오지 못했습니다'
+          : !p ? '프로젝트 요약을 불러오는 중'
+            : `${p.name} · 진척 ${pct}% · 업무 ${nfmt(d.tasks.total)}건(완료 ${nfmt(d.tasks.done)}건) · 열린 이슈 ${nfmt(d.issues.open)}건 · ${LABEL.high} 리스크 ${nfmt(d.risks.high)}건`}
+      </span>
+      {!d && !err && <div className="card card-pad" style={{ display: 'grid', gap: 12 }} aria-busy>{Array.from({ length: 5 }).map((_, i) => <div key={i} className="skel" aria-hidden="true" style={{ height: i === 0 ? 26 : 18, width: i === 0 ? '34%' : '100%' }} />)}</div>}
       {p && (
         <>
           <div style={{ background: 'linear-gradient(135deg, var(--brand), var(--brand-2, #d97757))', borderRadius: 18, padding: '22px 26px', color: '#fff', marginBottom: 20 }}>
@@ -85,12 +92,12 @@ export default function Page({ params }: { params: { id: string } }) {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 22 }}>
-            <Metric icon={Layers3} label="단계" value={`${d.phases.done}/${d.phases.total}`} sub="완료 / 전체" href="/phases" />
-            <Metric icon={ListTodo} label="업무(WBS)" value={`${d.tasks.done}/${d.tasks.total}`} sub={`진행 ${d.tasks.doing} · 평균 ${d.tasks.avgProgress}%`} href="/tasks" />
-            <Metric icon={Bug} label="이슈" value={d.issues.open} sub={`전체 ${d.issues.total}건`} href="/issues" />
-            <Metric icon={ShieldAlert} label="리스크(High)" value={d.risks.high} sub={`전체 ${d.risks.total}건`} href="/risks" />
-            <Metric icon={ClipboardList} label="요구사항" value={`${d.requirements.approved}/${d.requirements.total}`} sub="승인 / 전체" href="/requirements" />
-            <Metric icon={FileCheck2} label="산출물" value={`${d.documents.approved}/${d.documents.total}`} sub="승인 / 전체" href="/documents" />
+            <Metric icon={Layers3} label="단계" value={`${nfmt(d.phases.done)}/${nfmt(d.phases.total)}`} sub="완료 / 전체" href="/phases" />
+            <Metric icon={ListTodo} label="업무(WBS)" value={`${nfmt(d.tasks.done)}/${nfmt(d.tasks.total)}`} sub={`진행 ${nfmt(d.tasks.doing)} · 평균 ${d.tasks.avgProgress}%`} href="/tasks" />
+            <Metric icon={Bug} label="이슈" value={nfmt(d.issues.open)} sub={`전체 ${nfmt(d.issues.total)}건`} href="/issues" />
+            <Metric icon={ShieldAlert} label={`리스크(${LABEL.high})`} value={nfmt(d.risks.high)} sub={`전체 ${nfmt(d.risks.total)}건`} href="/risks" />
+            <Metric icon={ClipboardList} label="요구사항" value={`${nfmt(d.requirements.approved)}/${nfmt(d.requirements.total)}`} sub="승인 / 전체" href="/requirements" />
+            <Metric icon={FileCheck2} label="산출물" value={`${nfmt(d.documents.approved)}/${nfmt(d.documents.total)}`} sub="승인 / 전체" href="/documents" />
           </div>
 
           {d.finance && (d.finance.contract > 0 || d.finance.procTotal > 0 || d.finance.billingPct != null) && (
@@ -104,7 +111,7 @@ export default function Page({ params }: { params: { id: string } }) {
                   {d.finance.billingAmount != null && <div style={{ fontSize: 11.5, color: 'var(--text-4)' }}>기성금액 {won(d.finance.billingAmount)}</div>}
                 </div>
                 <div>
-                  <div className="muted" style={{ fontSize: 12 }}>조달총액{d.finance.procCount > 0 ? ` (${d.finance.procCount}건)` : ''}</div>
+                  <div className="muted" style={{ fontSize: 12 }}>조달총액{d.finance.procCount > 0 ? ` (${nfmt(d.finance.procCount)}건)` : ''}</div>
                   <div style={{ fontSize: 22, fontWeight: 800 }}>{d.finance.procTotal > 0 ? won(d.finance.procTotal) : '—'}</div>
                   {d.finance.procRatio != null && <div style={{ fontSize: 11.5, color: d.finance.procRatio > 100 ? '#c0414f' : 'var(--text-4)' }}>예산 대비 {d.finance.procRatio}%{d.finance.procReceived > 0 ? ` · 입고 ${won(d.finance.procReceived)}` : ''}</div>}
                 </div>
@@ -146,13 +153,13 @@ export default function Page({ params }: { params: { id: string } }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontWeight: 750, fontSize: 14, marginBottom: 12 }}><ClipboardList style={{ width: 16, color: 'var(--brand)' }} />테스트 실행 리포트</div>
               <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
                 <div><div className="muted" style={{ fontSize: 12 }}>통과율</div>{(() => { const v = d.tests.passRate; const c = v == null ? 'var(--text-3)' : v >= 90 ? '#2f8f5b' : v >= 70 ? '#d98a16' : '#c0414f'; return <div style={{ fontSize: 22, fontWeight: 800, color: c }}>{v == null ? '—' : v + '%'}</div>; })()}</div>
-                <div><div className="muted" style={{ fontSize: 12 }}>실행/전체</div><div style={{ fontSize: 22, fontWeight: 800 }}>{d.tests.executed}/{d.tests.total}</div></div>
-                <div><div className="muted" style={{ fontSize: 12 }}>통과</div><div style={{ fontSize: 22, fontWeight: 800, color: '#2f8f5b' }}>{d.tests.pass}</div></div>
-                <div><div className="muted" style={{ fontSize: 12 }}>실패</div><div style={{ fontSize: 22, fontWeight: 800, color: '#c0414f' }}>{d.tests.fail}</div></div>
-                <div><div className="muted" style={{ fontSize: 12 }}>블록</div><div style={{ fontSize: 22, fontWeight: 800, color: '#d98a16' }}>{d.tests.blocked}</div></div>
+                <div><div className="muted" style={{ fontSize: 12 }}>실행/전체</div><div style={{ fontSize: 22, fontWeight: 800 }} title={`전체 ${nfmt(d.tests.total)}건 중 ${nfmt(d.tests.executed)}건 실행`}>{nfmt(d.tests.executed)}/{nfmt(d.tests.total)}</div></div>
+                <div><div className="muted" style={{ fontSize: 12 }}>통과</div><div style={{ fontSize: 22, fontWeight: 800, color: '#2f8f5b' }}>{nfmt(d.tests.pass)}</div></div>
+                <div><div className="muted" style={{ fontSize: 12 }}>실패</div><div style={{ fontSize: 22, fontWeight: 800, color: '#c0414f' }}>{nfmt(d.tests.fail)}</div></div>
+                <div><div className="muted" style={{ fontSize: 12 }}>블록</div><div style={{ fontSize: 22, fontWeight: 800, color: '#d98a16' }}>{nfmt(d.tests.blocked)}</div></div>
               </div>
               {(() => { const t = d.tests; const tot = Math.max(1, t.pass + t.fail + t.blocked + t.na); const seg = (n: number, c: string) => n > 0 ? <div key={c} style={{ width: `${(n / tot) * 100}%`, background: c }} /> : null; return <div style={{ display: 'flex', height: 10, width: '100%', borderRadius: 6, overflow: 'hidden', background: 'var(--surface-3)' }}>{seg(t.pass, '#2f8f5b')}{seg(t.fail, '#c0414f')}{seg(t.blocked, '#d98a16')}{seg(t.na, '#cbd5e1')}</div>; })()}
-              <div className="muted" style={{ fontSize: 11.5, marginTop: 8 }}>검증 단계 — 개발 {d.tests.byStatus.dev} · PL {d.tests.byStatus.pl} · PM {d.tests.byStatus.pm} · 완료 {d.tests.byStatus.done} · 작성중 {d.tests.byStatus.draft}</div>
+              <div className="muted" style={{ fontSize: 11.5, marginTop: 8 }}>검증 단계 — 개발 {nfmt(d.tests.byStatus.dev)} · PL {nfmt(d.tests.byStatus.pl)} · PM {nfmt(d.tests.byStatus.pm)} · 완료 {nfmt(d.tests.byStatus.done)} · 작성중 {nfmt(d.tests.byStatus.draft)}</div>
             </div>
           )}
           {d.issues?.byPriority && (
@@ -162,10 +169,10 @@ export default function Page({ params }: { params: { id: string } }) {
                 {(() => {
                   const Bar = ({ items, title }: any) => { const mx = Math.max(1, ...items.map((i: any) => i.v)); return (
                     <div><div className="muted" style={{ fontSize: 12, marginBottom: 8 }}>{title}</div>
-                      {items.map((i: any) => (<div key={i.l} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 7 }}>
+                      {items.map((i: any) => (<div key={i.l} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 7 }} title={`${title} · ${i.l} ${nfmt(i.v)}건`}>
                         <span style={{ width: 62, fontSize: 12, color: 'var(--text-2)' }}>{i.l}</span>
                         <div className="pbar" style={{ flex: 1 }}><i style={{ width: `${(i.v / mx) * 100}%`, background: i.c }} /></div>
-                        <span style={{ width: 22, textAlign: 'right', fontWeight: 800, fontSize: 12.5 }}>{i.v}</span>
+                        <span style={{ minWidth: 22, textAlign: 'right', fontWeight: 800, fontSize: 12.5 }}>{nfmt(i.v)}</span>
                       </div>))}
                     </div>); };
                   const bp = d.issues.byPriority, bl = d.risks.byLevel || { high: 0, medium: 0, low: 0 };

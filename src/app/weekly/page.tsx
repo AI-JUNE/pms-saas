@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { Shell } from '@/components/Shell';
-import { Pill } from '@/lib/ui';
+import { Pill, LABEL } from '@/lib/ui';
 import { Printer, CheckCircle2, Clock, AlertTriangle, Bug, ShieldAlert, CalendarRange } from 'lucide-react';
 const nfmt = (n: number) => n.toLocaleString('ko-KR'); // 카운트 천단위 쉼표(배치114·118·120~122와 일관)
 
@@ -23,13 +23,19 @@ export default function Page() {
   const [tasks, setTasks] = useState<any[]>([]);
   const [issues, setIssues] = useState<any[]>([]);
   const [risks, setRisks] = useState<any[]>([]);
+  // 로딩 완료 신호 — 종전에는 상태가 없어 데이터 도착 전에 «해당 항목 없음» 빈 문구가 잠깐 노출됐다(배치166 /admin 과 동일 결함)
+  const [loaded, setLoaded] = useState(false);
   useEffect(() => {
     const p = Number(localStorage.getItem('pms.project')) || null; setPid(p);
     if (!p) return;
-    fetch(`/api/project-summary?projectId=${p}`).then((r) => r.ok ? r.json() : null).then((d) => { setSum(d); setProj(d?.project); });
-    fetch(`/api/tasks?projectId=${p}`).then((r) => r.ok ? r.json() : []).then((d) => setTasks(Array.isArray(d) ? d : []));
-    fetch(`/api/issues?projectId=${p}`).then((r) => r.ok ? r.json() : []).then((d) => setIssues(Array.isArray(d) ? d : []));
-    fetch(`/api/risks?projectId=${p}`).then((r) => r.ok ? r.json() : []).then((d) => setRisks(Array.isArray(d) ? d : []));
+    const j = (r: Response) => r.ok ? r.json() : null;
+    const arr = (d: any) => Array.isArray(d) ? d : [];
+    Promise.all([
+      fetch(`/api/project-summary?projectId=${p}`).then(j).then((d) => { setSum(d); setProj(d?.project); }),
+      fetch(`/api/tasks?projectId=${p}`).then(j).then((d) => setTasks(arr(d))),
+      fetch(`/api/issues?projectId=${p}`).then(j).then((d) => setIssues(arr(d))),
+      fetch(`/api/risks?projectId=${p}`).then(j).then((d) => setRisks(arr(d))),
+    ]).catch(() => {}).finally(() => setLoaded(true));
   }, []);
 
   const { mon, sun, nMon, nSun } = weekRange();
@@ -81,6 +87,19 @@ export default function Page() {
         <div className="sp" /><button className="btn no-print" onClick={() => window.print()}><Printer style={{ width: 15 }} />인쇄 / PDF</button>
       </div>
 
+      {/* 스크린리더 라이브 안내 — 배치147~149·165·166 패턴(ResourceView 미사용 요약 화면)과 동일 */}
+      <span className="sr-only" role="status">
+        {!loaded ? '주간보고를 불러오는 중'
+          : `${ymd(mon)}부터 ${ymd(sun)}까지 주간보고 · 전체 진척 ${pct}% · 이번 주 완료 ${nfmt(doneWeek.length)}건 · 진행중 ${nfmt(doing.length)}건 · 지연 ${nfmt(overdue.length)}건 · 미결 이슈 ${nfmt(openIssues.length)}건 · ${LABEL.high} 리스크 ${nfmt(highRisks.length)}건`}
+      </span>
+
+      {!loaded && (
+        <div className="card card-pad" style={{ display: 'grid', gap: 12 }} aria-busy>
+          {Array.from({ length: 6 }).map((_, i) => <div key={i} className="skel" aria-hidden="true" style={{ height: i === 0 ? 26 : 18, width: i === 0 ? '34%' : '100%' }} />)}
+        </div>
+      )}
+
+      {loaded && (<>
       <div style={{ background: 'linear-gradient(135deg, var(--brand), #d97757)', borderRadius: 16, padding: '18px 22px', color: '#fff', marginBottom: 18 }}>
         <div style={{ display: 'flex', gap: 26, flexWrap: 'wrap' }}>
           <div><div style={{ fontSize: 12, opacity: .85 }}>전체 진척률</div><div style={{ fontSize: 26, fontWeight: 800 }}>{pct}%</div></div>
@@ -89,7 +108,7 @@ export default function Page() {
           <div><div style={{ fontSize: 12, opacity: .85 }}>진행중</div><div style={{ fontSize: 26, fontWeight: 800 }}>{nfmt(doing.length)}</div></div>
           <div title={overdue.length ? `마감이 지난 미완료 업무 ${nfmt(overdue.length)}건` : '지연 업무 없음'}><div style={{ fontSize: 12, opacity: .85 }}>지연 업무</div><div style={{ fontSize: 26, fontWeight: 800, color: overdue.length ? '#ffe08a' : undefined }}>{nfmt(overdue.length)}</div></div>
           <div title={weekIssues.length ? `미결 이슈 ${nfmt(openIssues.length)}건 (이번 주 신규 ${nfmt(weekIssues.length)}건)` : `미결 이슈 ${nfmt(openIssues.length)}건`}><div style={{ fontSize: 12, opacity: .85 }}>미결 이슈</div><div style={{ fontSize: 26, fontWeight: 800 }}>{nfmt(openIssues.length)}</div></div>
-          <div><div style={{ fontSize: 12, opacity: .85 }}>High 리스크</div><div style={{ fontSize: 26, fontWeight: 800 }}>{nfmt(highRisks.length)}</div></div>
+          <div title={`등급 ${LABEL.high} 리스크 ${nfmt(highRisks.length)}건 (전체 ${nfmt(risks.length)}건)`}><div style={{ fontSize: 12, opacity: .85 }}>{LABEL.high} 리스크</div><div style={{ fontSize: 26, fontWeight: 800 }}>{nfmt(highRisks.length)}</div></div>
         </div>
       </div>
 
@@ -113,10 +132,11 @@ export default function Page() {
             note={weekIssues.length ? `이번 주 신규 ${nfmt(weekIssues.length)}건` : undefined}
             empty="미결 이슈가 없습니다."
             render={(r: any) => (<><span className="mono" style={{ fontSize: 11.5, color: 'var(--text-3)', minWidth: 66 }}>{r.code}</span><span style={{ flex: 1, fontSize: 13 }}>{r.title}</span>{inWeek(r.createdAt) && <span className="pill p-blue" style={{ fontSize: 10.5 }} title="이번 주 등록된 이슈">신규</span>}<Pill v={r.priority} /></>)} />
-          <Block icon={ShieldAlert} title="주요 리스크 (High)" color="#c0414f" items={highRisks} empty="High 등급 리스크가 없습니다."
+          <Block icon={ShieldAlert} title={`주요 리스크 (${LABEL.high})`} color="#c0414f" items={highRisks} empty={`등급이 ${LABEL.high}인 리스크가 없습니다.`}
             render={(r: any) => (<><span className="mono" style={{ fontSize: 11.5, color: 'var(--text-3)', minWidth: 66 }}>{r.code}</span><span style={{ flex: 1, fontSize: 13 }}>{r.title}</span><span className="muted" style={{ fontSize: 11.5 }}>{r.owner || ''}</span></>)} />
         </div>
       </div>
+      </>)}
     </Shell>
   );
 }

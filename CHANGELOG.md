@@ -3,6 +3,13 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-09-21 (배치 167 — 배포 대기, ROADMAP ⑨ 스윕 잔여 2개 화면: 프로젝트 상세·주간보고)
+- ★ **COMMERCIAL_READINESS 잔여 `[ ]` 는 여전히 «복구 리허설 실시·기록»(사람 수행) 1건뿐** → 배치166이 «전 화면 완료»로 닫은 라이브 안내 스윕에서 실제로는 빠져 있던 2개 화면(ResourceView 미사용·sr-only 0건)을 마저 처리.
+- ⑨ **프로젝트 상세(/projects/[id])** — 로딩 중 `sr-only role="status"` «불러오는 중», 완료 후 프로젝트명·진척·업무/완료·열린 이슈·`LABEL.high` 리스크 건수를 읽어 준다. 스켈레톤 컨테이너 `aria-busy`·스켈레톤 `aria-hidden`, 조회 실패 배너 `role="alert"`. 카운트 천단위 쉼표(`nfmt`) 적용: KPI 6종(단계·업무·이슈·리스크·요구사항·산출물), 조달 건수, 테스트 실행 리포트(실행/전체·통과·실패·블록·검증단계 5종), 이슈·리스크 분포 막대 값(+막대 행 툴팁). '리스크(High)' 라벨을 `LABEL.high`(높음)로 한글화. — src/app/projects/[id]/page.tsx
+- ⑨ **주간보고(/weekly)** — 로딩 완료 신호가 없어 데이터 도착 전에 «해당 항목 없음» 빈 문구가 잠깐 노출되던 문제를 `loaded` 상태로 차단(배치166 /admin 과 동일 패턴), 그동안 스켈레톤 표시. `sr-only role="status"` 로 주차·진척·이번 주 완료·진행중·지연·미결 이슈·리스크 건수 안내. KPI·블록 제목·빈 상태의 원문 `High` → `LABEL.high` 한글 라벨화(배치127·136 잔여) + 리스크 KPI 툴팁 추가. 4개 fetch 를 `Promise.all(...).finally` 로 묶었을 뿐 요청·판정 로직은 동일. — src/app/weekly/page.tsx, ROADMAP.md
+- 검증: `tsc --noEmit -p tsconfig.json` **rc=0·error TS 0건**, 테스트 **225/225 통과**(표시 전용 변경이라 신규 테스트 없음, 테넌트 격리 정적 점검 포함 전건 유지). 작업 전 src 백업(/tmp/bak_1789945404). 라이브 DB 쓰기·DDL 실행 없음, API·권한 경계·route.ts 변경 없음.
+- ⏭ 다음: ⑨ 라이브 안내·카운트 쉼표 스윕은 앱 화면 전건 완료(로그인만 주간 수동 잔류). 다음 야간 후보는 설정 2종(/settings, /settings/billing)의 로딩·빈 상태 일관화 또는 ROADMAP ④ 안정화 소항목.
+
 ## 2026-09-20 (배치 166 — 배포 대기, ROADMAP ⑨ 접근성 스윕 마무리: 관리자 2종 라이브 안내)
 - ★ **COMMERCIAL_READINESS 잔여 `[ ]` 는 여전히 «복구 리허설 실시·기록»(사람 수행) 1건뿐** → 배치165가 남긴 다음 항목(ROADMAP ⑨ 관리자 2종)을 처리해 라이브 안내 스윕을 마감.
 - ⑨ **사용자·권한(/admin)·보안 이벤트(/admin/security)** 에 배치147~149·165 «스크린리더 라이브 안내» 패턴 적용 — 로딩 중 `sr-only role="status"` 로 «불러오는 중», 완료 후 현황(admin: 구성원·활성·비활성 수와 활성 관리자 0명 경고 / security: 표시 건수·적용 필터·로그인 실패 건수·더 보기 가능 여부)을 읽어 준다. 표 컨테이너 `aria-busy`, 표 헤더 `scope="col"`(배치130·149 패턴), 보안 이벤트 조회 실패 배너에 `role="alert"`. — src/app/admin/page.tsx, src/app/admin/security/page.tsx, ROADMAP.md
