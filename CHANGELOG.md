@@ -3,6 +3,14 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-09-21 (배치 168 — 배포 대기, ROADMAP ⑨ 설정 2종 일관화 + 표시 이름 미표시 버그 수정)
+- ★ **COMMERCIAL_READINESS 잔여 `[ ]` 는 여전히 «복구 리허설 실시·기록»(사람 수행) 1건뿐** → 배치167이 지목한 다음 후보(설정 2종)를 처리. 앱 화면 중 배치147~167 스윕이 닿지 않은 마지막 구간이었다.
+- 🐞 **설정(/settings) '표시 이름'이 저장된 값을 보여주지 않던 문제 수정** — `myName` 이 빈 문자열로만 시작해, 이미 이름을 저장한 사용자도 항상 빈 칸을 보고 다시 입력해야 했다. `/api/settings` GET 응답에 **읽기 전용** `me: { name, email }` 를 추가(민감정보 제외, 신규 export·DB 쓰기 없음)하고 화면이 이를 초기값으로 사용한다. 저장 성공 시 `d.me.name`·`d.org.name` 을 갱신해 «변경된 내용이 없습니다» 판정이 저장 후에도 맞게 동작. 로그인 이메일도 함께 표시. — src/app/api/settings/route.ts, src/app/settings/page.tsx
+- ⑨ **설정(/settings)** — 로딩을 `empty` 한 줄에서 스켈레톤 카드(`aria-busy`·`aria-hidden`)+`sr-only role="status"` 안내로 교체하고, 완료 후 조직명·플랜·내 역할을 읽어 준다. 폼 접근성(배치143 패턴): 조직명·표시 이름·비밀번호 3종 라벨 `htmlFor`/`id` 연결과 `aria-required`, 안내문 `aria-describedby`. 비밀번호 결과 메시지는 성공 `role="status"`·실패 `role="alert"`. 비관리자에게 조직명이 왜 잠겨 있는지 안내 추가. 데모 데이터 생성 **실패 시 아무 피드백 없이 버튼만 되살아나던** 동작에 `role="alert"` 오류 문구 추가.
+- ⑨ **구독 관리(/settings/billing)** — 동일한 스켈레톤+라이브 안내(조직·플랜·결제 모드·좌석), 조회 실패 화면 `role="alert"`(제목 유실도 함께 수정), 관리 액션 진행 중 «요청을 처리하는 중» 안내와 결과 패널 `role="status"`, 좌석 사용/한도·잔여 석수·환불 견적 일수·좌석 수 천단위 쉼표(`nfmt`, 배치123 스윕과 일관). — src/app/settings/billing/page.tsx, ROADMAP.md
+- 검증: `tsc --noEmit -p tsconfig.json` **rc=0·error TS 0건**, 테스트 **225/225 통과**(테넌트 격리 정적 점검 포함 전건 유지). 작업 전 src 백업(/tmp/bak_1789953774). 라이브 DB 쓰기·DDL 실행 없음, route.ts 는 GET 응답 필드 추가만(HTTP 메서드 외 export 없음), 권한 경계 변경 없음.
+- ⏭ 다음: ⑨ 화면 스윕은 앱 전 화면 완료(로그인만 주간 수동 잔류). 다음 야간 후보는 ROADMAP ④ 안정화 소항목, 또는 가격(/pricing)·약관/개인정보(/terms·/privacy) 등 앱 외부 공개 페이지의 동일 일관화.
+
 ## 2026-09-21 (배치 167 — 배포 대기, ROADMAP ⑨ 스윕 잔여 2개 화면: 프로젝트 상세·주간보고)
 - ★ **COMMERCIAL_READINESS 잔여 `[ ]` 는 여전히 «복구 리허설 실시·기록»(사람 수행) 1건뿐** → 배치166이 «전 화면 완료»로 닫은 라이브 안내 스윕에서 실제로는 빠져 있던 2개 화면(ResourceView 미사용·sr-only 0건)을 마저 처리.
 - ⑨ **프로젝트 상세(/projects/[id])** — 로딩 중 `sr-only role="status"` «불러오는 중», 완료 후 프로젝트명·진척·업무/완료·열린 이슈·`LABEL.high` 리스크 건수를 읽어 준다. 스켈레톤 컨테이너 `aria-busy`·스켈레톤 `aria-hidden`, 조회 실패 배너 `role="alert"`. 카운트 천단위 쉼표(`nfmt`) 적용: KPI 6종(단계·업무·이슈·리스크·요구사항·산출물), 조달 건수, 테스트 실행 리포트(실행/전체·통과·실패·블록·검증단계 5종), 이슈·리스크 분포 막대 값(+막대 행 툴팁). '리스크(High)' 라벨을 `LABEL.high`(높음)로 한글화. — src/app/projects/[id]/page.tsx

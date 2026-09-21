@@ -37,6 +37,7 @@ type ManageResult = {
 };
 
 const won = (n: number | null | undefined) => (typeof n === 'number' ? `₩${n.toLocaleString('ko-KR')}` : '—');
+const nfmt = (n: number) => n.toLocaleString('ko-KR'); // 카운트 천단위 쉼표(배치114·118·120~123과 일관)
 
 export default function Page() {
   const router = useRouter();
@@ -68,16 +69,34 @@ export default function Page() {
       .catch((s) => (s === 401 ? router.push('/login') : setErr(true)));
   }, [router]);
 
-  if (err) return <Shell title="구독 관리"><div className="empty">구독 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</div></Shell>;
-  if (!d) return <Shell title="구독 관리"><div className="empty">불러오는 중…</div></Shell>;
+  if (err) return (
+    <Shell title="구독 관리">
+      <h2 className="h1">구독 관리</h2>
+      <div style={{ height: 18 }} />
+      <div className="empty" role="alert">구독 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</div>
+    </Shell>
+  );
+  if (!d) return (
+    <Shell title="구독 관리">
+      <h2 className="h1">구독 관리</h2>
+      <p className="h-sub">조직의 요금제와 결제 상태를 관리합니다.</p>
+      <span className="sr-only" role="status">구독 정보를 불러오는 중</span>
+      <div style={{ height: 18 }} />
+      <div className="card card-pad" style={{ maxWidth: 860 }} aria-busy="true">
+        {Array.from({ length: 4 }).map((_, i) => <div key={`sk${i}`} className="skel" aria-hidden="true" style={{ height: 18, margin: '10px 0' }} />)}
+      </div>
+    </Shell>
+  );
 
   const curPlan = d.org?.plan || 'free';
   const configuredCount = Object.values(d.billing?.configured || {}).filter(Boolean).length;
+  const ent = d.entitlements;
 
   return (
     <Shell title="구독 관리">
       <h2 className="h1">구독 관리</h2>
       <p className="h-sub">조직의 요금제와 결제 상태를 관리합니다.</p>
+      <span className="sr-only" role="status">{`구독 관리 · 조직 ${d.org?.name || '—'} · 현재 플랜 ${PLAN_LABEL[curPlan] || curPlan} · 결제 모드 ${d.billing?.live ? '라이브' : '테스트(스캐폴딩)'}${ent ? ` · 좌석 ${nfmt(ent.seats.used)}${ent.seats.limit === null ? '석(무제한)' : `/${nfmt(ent.seats.limit)}석`}` : ''}`}</span>
       <div style={{ height: 18 }} />
 
       <div className="card card-pad" style={{ maxWidth: 860 }}>
@@ -117,13 +136,13 @@ export default function Page() {
             </p>
             <div className="row" style={{ gap: 18, fontSize: 13, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
               <span className="muted">좌석</span>
-              <strong>
-                {d.entitlements.seats.used}
-                {d.entitlements.seats.limit === null ? ' / 무제한' : ` / ${d.entitlements.seats.limit}`}
+              <strong title={`사용 중 ${nfmt(d.entitlements.seats.used)}석${d.entitlements.seats.limit === null ? ' · 한도 없음' : ` · 한도 ${nfmt(d.entitlements.seats.limit)}석`}`}>
+                {nfmt(d.entitlements.seats.used)}
+                {d.entitlements.seats.limit === null ? ' / 무제한' : ` / ${nfmt(d.entitlements.seats.limit)}`}
               </strong>
               {d.entitlements.seats.limit !== null && (
                 <span className={`pill ${d.entitlements.seats.canAddOne ? 'p-gray' : 'p-red'} np`}>
-                  {d.entitlements.seats.exceeded ? '한도 초과' : d.entitlements.seats.canAddOne ? `잔여 ${d.entitlements.seats.remaining}석` : '한도 도달'}
+                  {d.entitlements.seats.exceeded ? '한도 초과' : d.entitlements.seats.canAddOne ? `잔여 ${nfmt(d.entitlements.seats.remaining ?? 0)}석` : '한도 도달'}
                 </span>
               )}
             </div>
@@ -171,13 +190,14 @@ export default function Page() {
               <button className="btn" disabled={!!busy} onClick={() => manage('refund')}>환불 견적</button>
             </div>
 
+            <span className="sr-only" role="status">{busy ? '요청을 처리하는 중' : ''}</span>
             {res && (
-              <div style={{ marginTop: 14, border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '12px 14px', fontSize: 12.5, lineHeight: 1.8 }}>
+              <div role="status" style={{ marginTop: 14, border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '12px 14px', fontSize: 12.5, lineHeight: 1.8 }}>
                 {res.message && <div style={{ color: 'var(--brand-600)' }}>{res.message}</div>}
                 {res.subscription && (
                   <div className="row" style={{ gap: 16, flexWrap: 'wrap' }}>
                     <span className="muted">플랜</span><strong>{res.subscription.planName}</strong>
-                    <span className="muted">좌석</span><strong>{res.subscription.seats}</strong>
+                    <span className="muted">좌석</span><strong>{nfmt(res.subscription.seats)}</strong>
                     <span className="muted">월 청구액</span><strong>{res.subscription.autoBillable ? won(res.subscription.amount) : '자동청구 대상 아님'}</strong>
                     <span className="muted">다음 청구일</span><strong>{res.subscription.nextChargeAt || '—'}</strong>
                   </div>
@@ -195,8 +215,8 @@ export default function Page() {
                 ) : (
                   <div>
                     <span className="muted">결제액</span> <strong>{won(res.quote.amount)}</strong>{' · '}
-                    <span className="muted">사용</span> {res.quote.usedDays}일{' / '}
-                    <span className="muted">잔여</span> {res.quote.remainDays}일{' (총 '}{res.quote.periodDays}일){' · '}
+                    <span className="muted">사용</span> {nfmt(res.quote.usedDays)}일{' / '}
+                    <span className="muted">잔여</span> {nfmt(res.quote.remainDays)}일{' (총 '}{nfmt(res.quote.periodDays)}일){' · '}
                     <span className="muted">환불 예정액</span> <strong>{won(res.quote.refund)}</strong>
                   </div>
                 ))}

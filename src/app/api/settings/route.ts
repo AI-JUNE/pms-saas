@@ -15,7 +15,9 @@ export async function GET() {
       await db.update(organizations).set({ inviteCode: code }).where(eq(organizations.id, ctx.orgId));
       org = { ...org, inviteCode: code };
     }
-    return ok({ org, role: ctx.role, isOrgAdmin: ctx.isOrgAdmin });
+    // 내 계정 표시용(읽기 전용) — 설정 화면의 '표시 이름' 초기값. 비밀번호 해시 등 민감정보는 제외한다.
+    const me = { name: ctx.user.name, email: ctx.user.email };
+    return ok({ org, role: ctx.role, isOrgAdmin: ctx.isOrgAdmin, me });
   });
 }
 export async function PATCH(req: Request) {
