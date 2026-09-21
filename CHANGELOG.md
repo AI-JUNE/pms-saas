@@ -3,6 +3,14 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-09-21 (배치 169 — 배포 대기, COMMERCIAL_READINESS 최상단 «백업·복구» 코드측 잔여분: 리허설 기한 추적)
+- ★ **백로그 최상단 `[ ]` 항목의 코드로 할 수 있는 부분을 처리** — 「복구 리허설 실시·기록」 자체는 사람 몫이라 `[ ]` 유지. 대신 **미실시가 조용히 잊히지 않도록** 기계적 추적을 붙였다.
+- 신규 `lib/recovery.ts`(순수·DB 비의존) — 엄격 날짜 파서(`2026-2-3`·`2026-02-30`·미래 일자 거부), 한/영 표기 정규화(`부분 통과`를 pass 로 오인하지 않음), 소요시간 파서(판독 불가는 `null`, 추측 금지), **RUNBOOK §6 표 파서**(`(미실시)`·`[확인 필요]` placeholder 는 기록으로 세지 않음), 무결성 점검, 신선도 판정 `missing`/`stale`/`failing`/`ok` + `dueDate`·해야 할 일 한 줄.
+- **임의 수치 없음** — 리허설 주기는 `RECOVERY_REHEARSAL_INTERVAL_DAYS` 설정값만 인정하고, 미설정이면 기한 판정을 **보류**한다(기본 주기 리터럴이 없음을 테스트가 검사). RTO/RPO 수치도 코드·문서에 넣지 않았다.
+- `/api/health` 에 `checks.recovery` 추가 — **required: false** 라 리허설 미실시로 503 이 되지 않고 `degraded`(200)로만 드러난다. 담당자·비고는 env 에 담지 않고 `publicRehearsal()` 로 걸러 공개(PII 노출 방지). `route.ts` 는 GET 내부만 수정(HTTP 메서드 외 export 없음). `RUNBOOK.md` 6절에 「기한 추적(자동)」 절·env 표 추가. — src/lib/recovery.ts, src/lib/health.ts(CheckName 1줄), src/app/api/health/route.ts, tests/recovery.test.ts, RUNBOOK.md, COMMERCIAL_READINESS.md
+- 검증: `tsc --noEmit` **rc=0·error TS 0건**, 테스트 **243/243 통과**(신규 18건, 테넌트 격리 정적 점검 전건 유지), 커버리지 lines 98.59%·branches 91.21%·funcs 97.48%(recovery.ts lines 100%) — CI 임계값 통과. 작업 전 src 백업(/tmp/bak_1789992336). 라이브 DB 쓰기·DDL·신규 테이블 없음.
+- ⏭ 다음: COMMERCIAL_READINESS 잔여는 **사람 수행분만** 남음(리허설 실시·env 3개 설정). ROADMAP ⑨ 잔여는 로그인(/login) 1개로 야간 금지 → 다음 야간 후보는 공개 페이지(/pricing·/terms·/privacy) 일관화 또는 ④ 안정화 소항목.
+
 ## 2026-09-21 (배치 168 — 배포 대기, ROADMAP ⑨ 설정 2종 일관화 + 표시 이름 미표시 버그 수정)
 - ★ **COMMERCIAL_READINESS 잔여 `[ ]` 는 여전히 «복구 리허설 실시·기록»(사람 수행) 1건뿐** → 배치167이 지목한 다음 후보(설정 2종)를 처리. 앱 화면 중 배치147~167 스윕이 닿지 않은 마지막 구간이었다.
 - 🐞 **설정(/settings) '표시 이름'이 저장된 값을 보여주지 않던 문제 수정** — `myName` 이 빈 문자열로만 시작해, 이미 이름을 저장한 사용자도 항상 빈 칸을 보고 다시 입력해야 했다. `/api/settings` GET 응답에 **읽기 전용** `me: { name, email }` 를 추가(민감정보 제외, 신규 export·DB 쓰기 없음)하고 화면이 이를 초기값으로 사용한다. 저장 성공 시 `d.me.name`·`d.org.name` 을 갱신해 «변경된 내용이 없습니다» 판정이 저장 후에도 맞게 동작. 로그인 이메일도 함께 표시. — src/app/api/settings/route.ts, src/app/settings/page.tsx

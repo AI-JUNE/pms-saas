@@ -67,6 +67,23 @@ DB 손상이 아니라 배포 회귀라면 DB를 건드리지 말고 배포만 �
 | --- | --- | --- | --- | --- | --- | --- |
 | (미실시) | | | | | | 최초 리허설 예정 `[확인 필요]` |
 
+### 기한 추적 (자동)
+
+위 표는 사람이 채우지만, **미실시·기한초과가 잊히지 않도록** `lib/recovery.ts`가 기계적으로 판정한다.
+
+- `GET /api/health` → `checks.recovery.detail.rehearsal` 에 `status`(missing/stale/failing/ok)·`lastDate`·`ageDays`·`dueDate`·해야 할 일(`action`)이 노출된다.
+  판정용 체크라서 **required: false** — 리허설 미실시로 서비스가 down(503)이 되지는 않고 `degraded`(200)로만 표시된다.
+- 리허설을 실제로 수행하면 위 표에 기록하고, 아래 환경변수를 갱신한다(값 없으면 "미실시"로 남는다).
+
+| 환경변수 | 값 | 설명 |
+| --- | --- | --- |
+| `RECOVERY_REHEARSAL_INTERVAL_DAYS` | 예: `180` | 리허설 주기(일). **미설정이면 기한 판정을 하지 않는다** — 임의 기본 주기를 쓰지 않는다 `[확인 필요]` |
+| `RECOVERY_LAST_REHEARSAL` | `YYYY-MM-DD` | 마지막 리허설 일자. 형식 밖·비실존 날짜·미래 날짜는 무효 처리 |
+| `RECOVERY_LAST_REHEARSAL_RESULT` | `정상` / `부분 통과` / `실패` | `정상`이 아니면 `failing` — 기한 내여도 `ok`가 되지 않는다 |
+| `RECOVERY_LAST_REHEARSAL_KIND` | `정기` / `사건` | 선택 |
+
+> 담당자 이름·비고는 환경변수에 넣지 않는다(공개 엔드포인트 노출 방지). 사람 정보는 위 표에만 둔다.
+
 ### 리허설 체크리스트
 
 - [ ] Neon 복구 브랜치 생성 성공
