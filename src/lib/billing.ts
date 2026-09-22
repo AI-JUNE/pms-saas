@@ -24,7 +24,8 @@ export const PLANS: Plan[] = [
     unit: '/ 사용자 · 월',
     note: '소규모 팀 시작용',
     desc: '프로젝트·WBS·이슈/리스크·간트 기본으로 팀 협업을 시작하세요.',
-    features: ['프로젝트·단계·WBS', '이슈/결함·리스크', '기본 간트·칸반·캘린더', '멤버·권한(RBAC)', '5인까지 무료 체험'],
+    // 좌석 수·무료 체험 문구는 여기에 적지 않는다 — SEAT_LIMIT/env 에서 파생한다(lib/planClaims.ts).
+    features: ['프로젝트·단계·WBS', '이슈/결함·리스크', '기본 간트·칸반·캘린더', '멤버·권한(RBAC)'],
     cta: '무료로 시작',
     href: '/dashboard',
   },

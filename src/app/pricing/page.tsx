@@ -1,14 +1,17 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { PLANS, PAYMENTS_LIVE } from '@/lib/billing';
+import { seatClaim, freeTrialClaim } from '@/lib/planClaims';
 import CheckoutButton from './CheckoutButton';
 
 export const metadata: Metadata = {
   title: '요금제 — PMS',
-  description: '팀 규모에 맞춘 3단계 요금제. 5인까지 무료로 시작하고, 성과관리(EVM)·RTM·전자결재·테스트까지 하나로.',
+  description: '팀 규모에 맞춘 3단계 요금제. 계획·WBS부터 성과관리(EVM)·RTM·전자결재·테스트까지 하나로.',
 };
 
 export default function PricingPage() {
+  // 무료 체험 문구는 근거(env)가 있을 때만 노출한다 — 화면이 좌석 수를 하드코딩하지 않는다.
+  const freeTrial = freeTrialClaim();
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text-1)', fontFamily: 'var(--font)' }}>
       {/* 상단 바 */}
@@ -20,6 +23,7 @@ export default function PricingPage() {
         <Link href="/dashboard" style={{ fontSize: 13.5, fontWeight: 700, color: '#fff', background: 'var(--brand)', padding: '9px 16px', borderRadius: 'var(--r-sm)' }}>데모 둘러보기</Link>
       </header>
 
+      <main id="main-content">
       {/* 히어로 */}
       <section style={{ maxWidth: 1080, margin: '0 auto', padding: '64px 22px 8px', textAlign: 'center' }}>
         <div style={{ display: 'inline-block', fontSize: 12, fontWeight: 800, letterSpacing: '.06em', color: 'var(--brand-600)', background: 'var(--brand-50)', padding: '6px 13px', borderRadius: 999, textTransform: 'uppercase' }}>Pricing</div>
@@ -27,14 +31,14 @@ export default function PricingPage() {
           팀 규모에 맞춰, <span style={{ color: 'var(--brand)' }}>쉽고 간편하게</span>
         </h1>
         <p style={{ fontSize: 16.5, color: 'var(--text-2)', maxWidth: 560, margin: '0 auto', lineHeight: 1.6 }}>
-          5인까지 무료로 시작하세요. 계획·WBS부터 성과관리(EVM)·전자결재·테스트까지 하나의 플랫폼에서.
+          계획·WBS부터 성과관리(EVM)·전자결재·테스트까지 하나의 플랫폼에서.{freeTrial ? ` ${freeTrial}.` : ''}
         </p>
         <div style={{ fontSize: 12.5, color: 'var(--text-3)', marginTop: 14 }}>연간 결제 기준 · 부가세 별도 · 월간 결제는 약 20% 높음</div>
         {!PAYMENTS_LIVE && (<div style={{ display: 'inline-block', marginTop: 12, fontSize: 12, fontWeight: 700, color: 'var(--amber)', background: 'var(--amber-50)', border: '1px solid #f0d9a8', padding: '6px 12px', borderRadius: 999 }}>결제 준비 중 · 지금은 무료 데모로 이용하세요</div>)}
       </section>
 
       {/* 요금제 3단계 */}
-      <section style={{ maxWidth: 1080, margin: '0 auto', padding: '28px 22px 24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 20, alignItems: 'stretch' }}>
+      <section aria-label="요금제" style={{ maxWidth: 1080, margin: '0 auto', padding: '28px 22px 24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 20, alignItems: 'stretch' }}>
         {PLANS.map((t) => (
           <div
             key={t.name}
@@ -54,7 +58,8 @@ export default function PricingPage() {
               <span style={{ fontSize: 34, fontWeight: 800, letterSpacing: '-.03em' }}>{t.price}</span>
               {t.unit && <span style={{ fontSize: 13, color: 'var(--text-3)', fontWeight: 600 }}>{t.unit}</span>}
             </div>
-            <p style={{ fontSize: 13.5, color: 'var(--text-2)', lineHeight: 1.55, margin: '6px 0 16px', minHeight: 40 }}>{t.desc}</p>
+            <p style={{ fontSize: 13.5, color: 'var(--text-2)', lineHeight: 1.55, margin: '6px 0 10px', minHeight: 40 }}>{t.desc}</p>
+            <div style={{ fontSize: 12.5, color: 'var(--text-3)', fontWeight: 600, marginBottom: 14 }}>좌석 {seatClaim(t.id)}</div>
             <Link
               href={t.href}
               style={{
@@ -87,6 +92,7 @@ export default function PricingPage() {
           <div style={{ marginTop: 10, fontSize: 12.5 }}><Link href="/terms" style={{ color: 'var(--brand-600)', fontWeight: 700 }}>이용약관</Link> · <Link href="/privacy" style={{ color: 'var(--brand-600)', fontWeight: 700 }}>개인정보 처리방침</Link></div>
         </div>
       </section>
+      </main>
     </div>
   );
 }
