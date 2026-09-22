@@ -3,6 +3,14 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-09-22 (배치 170 — 배포 대기, 요금제 카드 문구 ↔ 엔타이틀먼트 정합성 가드 + 근거 없는 «5인까지 무료» 문구 제거)
+- ★ **COMMERCIAL_READINESS 잔여 `[ ]` 는 여전히 «복구 리허설 실시·기록»(사람 수행) 1건뿐** → 배치169가 지목한 다음 후보(공개 페이지)를 보다가 **실제 상용 결함**을 발견해 그쪽을 처리했다.
+- 🐞 **근거 없는 상용 약속 제거** — 가격 페이지(히어로·메타 설명)와 Basic 카드가 「5인까지 무료」를 약속했지만, 코드에는 무료 티어가 없고 `SEAT_LIMIT.basic` 은 **10석**이었다(숫자도 정책도 불일치). 해당 문구를 삭제하고, 무료 체험 안내는 **env `PRICING_FREE_TRIAL_SEATS` 가 있을 때만** 생성한다 — 미설정이면 화면은 아무 약속도 하지 않는다(임의 기본값 없음).
+- 신규 `lib/planClaims.ts`(순수) — 카드 문구 ↔ 기능 id 레지스트리 `CLAIM_REGISTRY`(feature/inherit/**unverifiable** 3종), 대조기 `auditPlanClaims`(과장 `over_promised`·미등록 `unmapped`·잘못된 승계 `bad_inherit` 만 오류로 보고, 카드에 안 적힌 가용 기능은 정보성 `unclaimed`), 좌석 문구 파생 `seatClaim`(SEAT_LIMIT 에서만), env 전용 `freeTrialSeats`/`freeTrialClaim`(형식 밖·0·음수·소수·Basic 상한 초과는 문구 생략), 요약 `planClaimsStatus`.
+- 가격 페이지: 각 카드에 **좌석 상한 줄**(SEAT_LIMIT 파생) 표시, 본문 랜드마크 `<main id="main-content">`·요금제 섹션 `aria-label`(⑨ 접근성 패턴). SLA·조달·전용 인프라 문구는 코드가 보증할 수 없으므로 `unverifiable` 로 분리해 **사람 확인 몫**으로 남겼다. — src/lib/planClaims.ts, src/lib/billing.ts, src/app/pricing/page.tsx, tests/planClaims.test.ts
+- 검증: `tsc --noEmit -p tsconfig.json` **rc=0·error TS 0건**, 테스트 **254/254 통과**(신규 11건), 커버리지 lines 98.66%·branches 91.13%·funcs 97.54%(planClaims.ts lines 100%) — CI 임계값 통과. 테스트가 `billing.ts`·`pricing/page.tsx`·`planClaims.ts` 원문에 인원수 리터럴(`N인`)이 없음을 매번 검사하므로 같은 결함이 재발하면 CI 가 실패한다. 작업 전 src 백업(/tmp/bak_1790039450). 라이브 DB 쓰기·DDL·신규 테이블 없음, route.ts 변경 없음.
+- ⏭ 다음: Enterprise 카드의 `unverifiable` 3건(전용 인프라·SLA·공공 조달) 문안 확정 **[승인 필요]**. 야간 후보는 약관/개인정보(/terms·/privacy) 랜드마크·목차 일관화 또는 ROADMAP ④ 안정화 소항목.
+
 ## 2026-09-21 (배치 169 — 배포 대기, COMMERCIAL_READINESS 최상단 «백업·복구» 코드측 잔여분: 리허설 기한 추적)
 - ★ **백로그 최상단 `[ ]` 항목의 코드로 할 수 있는 부분을 처리** — 「복구 리허설 실시·기록」 자체는 사람 몫이라 `[ ]` 유지. 대신 **미실시가 조용히 잊히지 않도록** 기계적 추적을 붙였다.
 - 신규 `lib/recovery.ts`(순수·DB 비의존) — 엄격 날짜 파서(`2026-2-3`·`2026-02-30`·미래 일자 거부), 한/영 표기 정규화(`부분 통과`를 pass 로 오인하지 않음), 소요시간 파서(판독 불가는 `null`, 추측 금지), **RUNBOOK §6 표 파서**(`(미실시)`·`[확인 필요]` placeholder 는 기록으로 세지 않음), 무결성 점검, 신선도 판정 `missing`/`stale`/`failing`/`ok` + `dueDate`·해야 할 일 한 줄.
