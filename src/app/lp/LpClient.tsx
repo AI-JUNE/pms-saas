@@ -375,8 +375,9 @@ export default function LpClient() {
   return (
     <div className="lp">
       <style dangerouslySetInnerHTML={{ __html: css }} />
+      <a href="#main-content" className="skip-link">본문으로 건너뛰기</a>
 
-      <nav className="lp-nav">
+      <nav className="lp-nav" aria-label="주 메뉴">
         <div className="wrap">
           <Link href="/dashboard" className="lp-brand" aria-label="홈으로">
             <Mark />
@@ -395,6 +396,7 @@ export default function LpClient() {
         </div>
       </nav>
 
+      <main id="main-content" tabIndex={-1}>
       <section className="lp-hero">
         <div className="wrap">
           <span className="eyebrow" data-reveal>프로젝트 관리 통합 플랫폼</span>
@@ -603,6 +605,7 @@ export default function LpClient() {
           </div>
         </div>
       </section>
+      </main>
 
       <footer className="lp-foot">
         <div className="wrap">
