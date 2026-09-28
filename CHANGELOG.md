@@ -3,6 +3,15 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-09-28 (배치 173 — 배포 대기, 404 화면 신설 + 앱 경로 정합성 가드, 색인 차단 누락 `/workload` 수정)
+- ★ **COMMERCIAL_READINESS 잔여 `[ ]` 는 여전히 «복구 리허설 실시·기록»(사람 수행) 1건뿐** → 배치172가 남긴 다음 후보(잔여 소항목 재발굴)를 보다가 **실제 상용 구멍 2건**을 찾아 처리했다.
+- 🐞 **404 화면이 아예 없었다** — `app/not-found.tsx` 가 없어 오타·만료 링크로 들어온 방문자는 Next.js 기본 **영문** 404(`This page could not be found.`)를 봤다. 한국어 브랜드 화면으로 교체: 요청 경로 표시(쿼리·해시 제거 후 절단), 레지스트리 기반 «혹시 이 화면을 찾으셨나요?» 추천, 근거가 없으면 추천 대신 기본 진입점만 노출(**없는 화면을 지어내지 않는다**), skip-link·`main#main-content` 랜드마크(배치142·170~172 패턴).
+- 🐞 **`/workload` 가 robots 색인 차단 목록에서 빠져 있었다** — 담당자 실명·업무량이 그려지는 앱 화면인데 `siteMeta.DISALLOW_PREFIXES` 에 없어 운영에서 색인 허용 상태였다. 아래 가드가 찾아낸 실제 누락이며 1줄 추가로 수정.
+- 신규 `lib/appRoutes.ts`(순수·next/DB/env 비의존) — 화면 경로 **단일 레지스트리**(앱 33 + 공개 6, href·한국어 라벨·access). 경로 목록이 Shell.tsx NAV·middleware.ts P·siteMeta DISALLOW 세 곳에 흩어져 있어 새 화면을 만들며 하나를 빠뜨려도 아무도 알려주지 않던 구조를 정본 1개 + 대조 테스트로 바꿨다. 판정기: `auditPageFiles`(실제 page.tsx ↔ 레지스트리 1:1)·`auditNavTargets`(메뉴에만 있는 깨진 링크)·`auditIndexBlock`(색인 차단 누락)·`auditSessionGate`(세션 게이트 누락, **middleware 와 같은 느슨한 startsWith 로 충실 모델링**)·`suggestScreens`(오타 추천, 편집거리 cap)·`parseGatedPrefixes`/`parseNavHrefs`(실제 소스 파싱).
+- ⚠ **세션 게이트 누락 16개 화면은 고치지 않고 기록만** — `/settings`·`/admin`·`/audit` 등은 middleware 서버 리다이렉트 대상이 아니라 로그인 전 빈 껍데기가 한 번 그려진다(데이터는 API 401 + Shell 의 클라이언트 리다이렉트로 보호 — 심층 방어 공백). middleware 는 세션 경계라 야간 금지 규칙에 따라 손대지 않고 `UNGATED_SCREENS_KNOWN` 에 명시, 테스트는 **목록 밖의 새 누락만** 실패로 잡는다(고치면 목록에서 지우면 되고, 이미 게이트된 경로가 목록에 남아도 실패). ROADMAP ⑩(주간 수동)에 항목 추가. — src/lib/appRoutes.ts, src/app/not-found.tsx, src/lib/siteMeta.ts, tests/appRoutes.test.ts, ROADMAP.md
+- 검증: `tsc --noEmit -p tsconfig.json` **rc=0·error TS 0건**, 테스트 **282/282 통과**(신규 15건), 커버리지 lines 98.82%·branches 91.49%·funcs 97.70%(appRoutes.ts lines 100%·branches 96.12%) — CI 임계값(90/80/85) 통과. 라이브 DB 쓰기·DDL·신규 테이블 없음, route.ts 변경 없음, 인증·세션·결제 로직 변경 없음.
+- ⏭ 다음: ⑩ «세션 게이트 누락 16개» 주간 수동 처리 **[승인 필요]**. 별건으로 `src/src/` 에 옛 페이지·컴포넌트 사본 트리가 남아 있어 grep·유지보수를 오염시킨다(파일 삭제는 야간 금지라 보고만).
+
 ## 2026-09-28 (배치 172 — 배포 대기, 랜딩(`/`, `/lp`) 공개 페이지 skip-link·main 랜드마크·nav aria-label 추가)
 - ★ **COMMERCIAL_READINESS 잔여 `[ ]` 는 여전히 «복구 리허설 실시·기록»(사람 수행) 1건뿐** → 배치171이 남긴 다음 후보(공개 페이지 랜드마크·목차 일관화)를 랜딩·홈에 적용.
 - ⑨ **접근성 패턴 확장** — 랜딩·홈(`/`, `/lp` 모두 동일한 `LpClient` 렌더)에 Shell.tsx(배치142)·가격/약관/개인정보(배치170·171) 패턴을 적용: `<a href="#main-content" className="skip-link">본문으로 건너뛰기</a>` 스킵 링크, 상단 `<nav>` 에 `aria-label="주 메뉴"`, 히어로부터 최종 CTA까지 전 섹션을 `<main id="main-content" tabIndex={-1}>` 로 감싸 페이지에 정확히 하나의 main 랜드마크가 있도록 정리. 표시 문구·데이터·스타일 로직 변경 없음(마크업 구조만 3곳 수정). — src/app/lp/LpClient.tsx, ROADMAP.md

@@ -38,6 +38,8 @@ export const DISALLOW_PREFIXES = [
   '/snapshots',
   '/audit',
   '/form-definitions',
+  // 담당자 실명·업무량이 그려지는 화면이라 색인 차단 대상인데 목록에서 빠져 있었다(appRoutes 가드가 잡아냄).
+  '/workload',
 ] as const;
 
 /** sitemap 우선순위/갱신주기(공개 경로만). 목록에 없으면 기본값 사용. */
