@@ -56,6 +56,7 @@ export const APP_SCREENS: AppScreen[] = [
   { href: '/notifications', label: '알림', aliases: ['notification'], access: 'session' },
   // 제안 앱 — public/apps/<key>/index.html 을 AppFrame 이 iframe 으로 띄운다.
   // 페이지 파일은 src/app/apps/<key>/page.tsx 로 1:1 존재한다(동적 세그먼트 아님).
+  { href: '/apps/analysis', label: '제안분석', aliases: ['erm', 'analysis', 'rfp', '분석'], access: 'session' },
   { href: '/apps/quality', label: '제안 품질관리', aliases: ['eqm', 'quality', '품질'], access: 'session' },
   { href: '/apps/strategy', label: '제안 전략도출', aliases: ['esm', 'strategy', '전략'], access: 'session' },
   { href: '/apps/performance', label: '고객 성과관리', aliases: ['epm', 'performance', '성과'], access: 'session' },
