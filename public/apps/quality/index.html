@@ -1,0 +1,2132 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>제안 품질관리 · Proposal QA Studio</title>
+<!-- 오프라인: 폰트/라이브러리 로컬 내장 (assets/) -->
+<script src="assets/pdf.min.js"></script>
+<script src="assets/mammoth.browser.min.js"></script>
+<script src="assets/jszip.min.js"></script>
+<style>
+/* 오프라인 로컬 폰트 */
+@font-face{font-family:'Pretendard';font-weight:100 900;font-style:normal;font-display:swap;src:local('Pretendard Variable'),url('../_shared/PretendardVariable.woff2') format('woff2');}
+:root{
+  /* CX Suite 통합 디자인 시스템 v1 — eum-app 실측(웜 페이퍼 + 화이트 카드 + 코럴) */
+  --bg:#f5f4f2;
+  --surface:#ffffff;
+  --surface-2:#faf9f7;
+  --line:#eee6dc;
+  --line-strong:#e2d8ca;
+  --ink:#1b1712;
+  --ink-soft:#46464e;
+  --ink-mute:#71717a;
+  --primary:#e15a33;
+  --primary-deep:#c74a28;
+  --primary-soft:#fbe9e2;
+  --teal:#0fae9c;
+  --teal-soft:#e3f7f4;
+  --violet:#7b4ce0;
+  --amber:#e89a2b;
+  --rose:#e5484d;
+  --green:#1fa971;
+  --green-soft:#e6f6ee;
+  --amber-soft:#fcf2e0;
+  --rose-soft:#fdeaea;
+  --shadow-sm:0 1px 2px rgba(22,20,16,.05),0 1px 3px rgba(22,20,16,.04);
+  --shadow:0 4px 16px rgba(22,20,16,.06),0 1px 4px rgba(22,20,16,.05);
+  --shadow-lg:0 18px 50px rgba(22,20,16,.10),0 6px 16px rgba(22,20,16,.06);
+  --r-s:10px; --r-m:16px; --r-l:22px;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  --sans:'Pretendard','Pretendard Variable',-apple-system,BlinkMacSystemFont,'Malgun Gothic',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:var(--sans);
+  background:var(--bg);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+  line-height:1.5;
+  overflow:hidden;
+}
+::selection{background:var(--primary);color:#fff}
+.mono{font-family:var(--mono);font-feature-settings:"tnum"}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,textarea,select{font-family:inherit}
+
+/* ===== Layout shell ===== */
+#app{display:grid;grid-template-columns:248px 1fr;height:100vh}
+.sidebar{
+  background:var(--surface-2);border-right:1px solid var(--line);
+  color:var(--ink-soft);display:flex;flex-direction:column;position:relative;overflow:hidden;
+}
+.sidebar::before{
+  content:"";position:absolute;inset:0;
+  background:radial-gradient(420px 280px at 20% -5%,rgba(225,90,51,.05),transparent 60%),
+             radial-gradient(360px 320px at 110% 30%,rgba(15,174,156,.05),transparent 55%);
+  pointer-events:none;
+}
+.brand{padding:24px 22px 18px;position:relative;z-index:1}
+.brand .logo{display:flex;align-items:center;gap:11px;border-radius:12px;transition:.15s}
+.brand .logo:hover{opacity:.85}
+.brand .mark{
+  width:34px;height:34px;border-radius:11px;flex:none;position:relative;
+  background:linear-gradient(135deg,#2f5ff4,#0fae9c);
+  box-shadow:0 8px 22px rgba(27,69,214,.45);
+  display:grid;place-items:center;
+}
+.brand .mark svg{width:21px;height:21px}
+.brand h1{font-size:14px;letter-spacing:-.4px;color:var(--ink);font-weight:700}
+.brand .sub{font-size:9.5px;color:var(--ink-mute);letter-spacing:.5px;margin-top:2px;font-weight:500}
+
+.nav{padding:8px 12px;position:relative;z-index:1;flex:1;overflow-y:auto}
+.nav-label{font-size:10.5px;letter-spacing:1.3px;color:var(--ink-mute);font-weight:700;padding:14px 12px 7px;text-transform:uppercase}
+.nav-item{
+  display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:11px;
+  color:var(--ink-soft);font-size:13.5px;font-weight:600;letter-spacing:-.2px;position:relative;
+  transition:.18s;margin-bottom:2px;
+}
+.nav-item .ico{width:19px;height:19px;flex:none;opacity:.85}
+.nav-item .ord{
+  margin-left:auto;font-size:10px;font-family:var(--mono);color:var(--ink-mute);
+  background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:1px 6px;
+}
+.nav-item:hover{background:var(--surface);color:var(--ink)}
+.nav-item.active{background:var(--primary-soft);color:var(--primary)}
+.nav-item.active::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:3px;border-radius:3px;background:linear-gradient(180deg,var(--primary),var(--primary-deep))}
+.nav-item.active .ico{opacity:1}
+.nav-item .badge{margin-left:auto;font-size:10px;background:var(--teal);color:#04241f;font-weight:800;border-radius:20px;padding:2px 7px}
+
+.side-foot{padding:14px;position:relative;z-index:1}
+.token-pill{
+  background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 13px;
+}
+.token-pill .tp-top{display:flex;justify-content:space-between;align-items:center;font-size:10.5px;color:var(--ink-mute);font-weight:700;letter-spacing:.4px}
+.token-pill .tp-dot{width:7px;height:7px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 3px rgba(15,174,156,.18);animation:pulse 2s infinite}
+.token-pill .tp-val{font-family:var(--mono);font-size:21px;color:var(--ink);font-weight:600;margin-top:6px;letter-spacing:-.5px}
+.token-pill .tp-sub{font-size:10.5px;color:var(--ink-mute);margin-top:1px}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ===== Main ===== */
+.main{overflow:hidden;display:flex;flex-direction:column;background:var(--bg)}
+.topbar{
+  height:62px;flex:none;border-bottom:1px solid var(--line);display:flex;align-items:center;
+  padding:0 30px;gap:16px;background:rgba(255,255,255,.86);backdrop-filter:blur(8px);z-index:5;
+}
+.crumb{font-size:12px;color:var(--ink-mute);font-weight:600}
+.crumb b{color:var(--ink)}
+.topbar .title{font-size:16px;font-weight:800;letter-spacing:-.4px}
+.tb-spacer{flex:1}
+.seg{display:flex;background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:3px;gap:2px}
+.seg button{font-size:12px;font-weight:700;color:var(--ink-soft);padding:6px 13px;border-radius:8px;transition:.15s;letter-spacing:-.2px}
+.seg button.on{background:#fff;color:var(--primary);box-shadow:var(--shadow-sm)}
+.tb-btn{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;color:var(--ink-soft);padding:9px 14px;border-radius:10px;border:1px solid var(--line);background:#fff;transition:.15s}
+.tb-btn:hover{border-color:var(--line-strong);background:var(--surface)}
+.tb-btn.primary{background:var(--primary);color:#fff;border-color:var(--primary)}
+.tb-btn.primary:hover{background:var(--primary-deep)}
+.cancel-btn{border-color:#f3c9cb;color:var(--rose)}
+.cancel-btn:hover{background:var(--rose-soft);border-color:var(--rose)}
+.cancel-btn:disabled{opacity:.6;cursor:default}
+.err-banner{display:flex;gap:13px;align-items:flex-start;background:var(--rose-soft);border:1px solid #f3c9cb;border-left:4px solid var(--rose);border-radius:var(--r-m);padding:15px 16px;margin-bottom:16px}
+.err-banner .eb-ic{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:#fff;color:var(--rose);flex:none}
+.err-banner .eb-ic svg{width:18px;height:18px}
+.err-banner .eb-body{flex:1;min-width:0}
+.err-banner .eb-h{font-size:13.5px;font-weight:800;color:#9d1f23}
+.err-banner .eb-meta{font-size:11px;font-weight:600;color:var(--ink-mute);margin-left:6px}
+.err-banner .eb-msg{font-size:11.5px;color:#7a2a2d;background:#fff;border:1px solid #f0d2d3;border-radius:8px;padding:8px 10px;margin-top:8px;word-break:break-word;white-space:pre-wrap;line-height:1.5}
+.err-banner .eb-tip{font-size:11.5px;color:#8a3338;font-weight:600;margin-top:7px;line-height:1.55}
+.err-banner .eb-x{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;color:var(--rose);flex:none}
+.err-banner .eb-x:hover{background:#fff}
+.err-banner .eb-x svg{width:14px;height:14px}
+.pg{display:inline-block;font-family:var(--mono);font-size:9.5px;font-weight:600;color:var(--ink-mute);background:var(--surface);border:1px solid var(--line);border-radius:5px;padding:1px 6px;margin-left:6px;vertical-align:middle;white-space:nowrap}
+.risk .rt .pg{margin-left:6px}
+.typo-kind{font-size:10px;font-weight:800;color:var(--violet);background:#f0eaff;border-radius:6px;padding:2px 7px;white-space:nowrap}
+.evrow{display:flex;gap:10px;padding:9px 0;border-bottom:1px dashed var(--line)}
+.evrow:last-child{border-bottom:none}
+.evrow .evdot{width:9px;height:9px;border-radius:50%;flex:none;margin-top:4px}
+.evrow .evt{font-size:13px;font-weight:800;color:var(--ink)}
+.evrow .evc{font-size:11.5px;color:var(--ink-soft);line-height:1.55;margin-top:2px}
+.tb-btn svg{width:15px;height:15px}
+
+.scroll{overflow-y:auto;flex:1;scroll-behavior:smooth}
+.scroll::-webkit-scrollbar{width:10px}
+.scroll::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:8px;border:3px solid var(--bg)}
+.view{padding:28px 30px 60px;max-width:1320px;margin:0 auto}
+.view[hidden]{display:none}
+
+/* reveal */
+.rv{opacity:0;transform:translateY(14px);animation:rv .6s cubic-bezier(.2,.7,.2,1) forwards}
+@keyframes rv{to{opacity:1;transform:none}}
+
+/* cards / grid */
+.grid{display:grid;gap:18px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-m);box-shadow:var(--shadow-sm);position:relative}
+.card.pad{padding:20px 22px}
+.card-h{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.card-h h3{font-size:14px;font-weight:800;letter-spacing:-.3px}
+.card-h .hint{font-size:11px;color:var(--ink-mute);margin-left:auto;font-weight:600}
+.card-h .tag{font-size:10px;font-weight:800;letter-spacing:.4px;padding:3px 8px;border-radius:7px;background:var(--primary-soft);color:var(--primary)}
+
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:var(--r-m);padding:18px 20px;box-shadow:var(--shadow-sm);overflow:hidden;position:relative}
+.kpi .kl{font-size:12px;color:var(--ink-soft);font-weight:700;display:flex;align-items:center;gap:7px}
+.kpi .kl .di{width:9px;height:9px;border-radius:3px}
+.kpi .kv{font-family:var(--mono);font-size:34px;font-weight:600;letter-spacing:-1.5px;margin-top:8px;line-height:1}
+.kpi .ks{font-size:11.5px;color:var(--ink-mute);margin-top:7px;font-weight:600;display:flex;align-items:center;gap:6px}
+.kpi .spark{position:absolute;right:-4px;bottom:-4px;width:96px;height:50px;opacity:.5}
+.delta{font-weight:800;font-size:11px;padding:1px 6px;border-radius:6px}
+.delta.up{color:var(--green);background:var(--green-soft)}
+.delta.down{color:var(--rose);background:var(--rose-soft)}
+
+.split{display:grid;grid-template-columns:1.35fr 1fr;gap:18px}
+.split-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}
+
+/* gauge */
+.gauge-wrap{display:flex;align-items:center;gap:22px}
+.gauge{position:relative;width:168px;height:168px;flex:none}
+.gauge .lbl{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.gauge .lbl .num{font-family:var(--mono);font-size:42px;font-weight:600;letter-spacing:-2px;line-height:1}
+.gauge .lbl .cap{font-size:11px;color:var(--ink-soft);font-weight:700;margin-top:3px}
+.grade-list{flex:1;display:flex;flex-direction:column;gap:11px}
+.grade-row{display:flex;align-items:center;gap:10px;font-size:12.5px}
+.grade-row .gn{color:var(--ink-soft);font-weight:700;width:96px;flex:none}
+.gbar{flex:1;height:8px;border-radius:6px;background:var(--surface-2);overflow:hidden}
+.gbar i{display:block;height:100%;border-radius:6px;width:0;transition:width 1.1s cubic-bezier(.2,.8,.2,1)}
+.grade-row .gp{font-family:var(--mono);font-weight:600;width:38px;text-align:right;font-size:12px}
+
+/* radar */
+.radar-box{display:flex;align-items:center;justify-content:center;padding:6px 0}
+
+/* requirement matrix */
+.req-table{width:100%;border-collapse:collapse;font-size:12.5px}
+.req-table th{text-align:left;font-size:10.5px;letter-spacing:.5px;color:var(--ink-mute);font-weight:800;padding:8px 10px;border-bottom:1px solid var(--line);text-transform:uppercase}
+.req-table td{padding:11px 10px;border-bottom:1px solid var(--surface-2);vertical-align:top}
+.req-table tr:last-child td{border-bottom:none}
+.req-table tr:hover td{background:var(--surface)}
+.st{display:inline-flex;align-items:center;gap:6px;font-weight:800;font-size:11px;padding:3px 9px;border-radius:20px;white-space:nowrap}
+.st.met{background:var(--green-soft);color:var(--green)}
+.st.partial{background:var(--amber-soft);color:#b9761a}
+.st.missing{background:var(--rose-soft);color:var(--rose)}
+.st .d{width:6px;height:6px;border-radius:50%;background:currentColor}
+.must{font-size:9.5px;font-weight:800;color:var(--primary);background:var(--primary-soft);padding:1px 6px;border-radius:5px;margin-left:6px;vertical-align:middle}
+
+/* risk */
+.risk{display:flex;gap:12px;padding:13px 0;border-bottom:1px solid var(--surface-2)}
+.risk:last-child{border-bottom:none}
+.risk .rl{width:4px;border-radius:4px;flex:none}
+.risk.high .rl{background:var(--rose)} .risk.mid .rl{background:var(--amber)} .risk.low .rl{background:var(--teal)}
+.risk .rt{font-size:13px;font-weight:800;letter-spacing:-.2px;display:flex;align-items:center;gap:8px}
+.risk .lv{font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:6px}
+.risk.high .lv{background:var(--rose-soft);color:var(--rose)} .risk.mid .lv{background:var(--amber-soft);color:#b9761a} .risk.low .lv{background:var(--teal-soft);color:#0a7f72}
+.risk .rd{font-size:12px;color:var(--ink-soft);margin-top:4px;line-height:1.55}
+.risk .ra{font-size:11.5px;color:var(--primary);margin-top:5px;font-weight:700;display:flex;align-items:center;gap:5px}
+
+.chiplist{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-size:12px;font-weight:700;padding:7px 12px;border-radius:9px;background:var(--surface);border:1px solid var(--line);color:var(--ink-soft)}
+.chip.good{background:var(--green-soft);border-color:#cdebda;color:#147a52}
+
+/* ===== Upload view ===== */
+.sector-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px}
+.sector{
+  border:1.5px solid var(--line);border-radius:var(--r-m);padding:18px 20px;cursor:pointer;
+  transition:.18s;background:#fff;position:relative;overflow:hidden;
+}
+.sector:hover{border-color:var(--line-strong);transform:translateY(-2px);box-shadow:var(--shadow)}
+.sector.sel{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+.sector .si{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;margin-bottom:12px}
+.sector .si svg{width:22px;height:22px;color:#fff}
+.sector h4{font-size:15px;font-weight:800;letter-spacing:-.3px}
+.sector p{font-size:12px;color:var(--ink-soft);margin-top:5px;line-height:1.5}
+.sector .focus{margin-top:11px;display:flex;flex-wrap:wrap;gap:5px}
+.sector .focus span{font-size:10px;font-weight:700;color:var(--ink-mute);background:var(--surface);border-radius:6px;padding:3px 7px}
+.sector .check{position:absolute;top:16px;right:16px;width:22px;height:22px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;transition:.18s}
+.sector.sel .check{background:var(--primary);border-color:var(--primary)}
+.sector.sel .check svg{opacity:1}
+.sector .check svg{width:12px;height:12px;color:#fff;opacity:0}
+
+.fmt-guide{background:#fff;border:1px solid var(--line);border-radius:var(--r-m);padding:16px 18px;margin-bottom:18px;box-shadow:var(--shadow-sm)}
+.fmt-guide .fg-row{display:flex;gap:11px;align-items:flex-start;padding:8px 0}
+.fmt-guide .fg-ic{width:24px;height:24px;border-radius:8px;flex:none;display:grid;place-items:center;margin-top:1px}
+.fmt-guide .fg-ic svg{width:15px;height:15px}
+.fmt-guide .fg-row.ok .fg-ic{background:var(--green-soft);color:#147a52}
+.fmt-guide .fg-row.warn .fg-ic{background:var(--amber-soft);color:#9a6411}
+.fmt-guide .fg-row b{font-size:12.5px;font-weight:800;color:var(--ink-soft)}
+.fmt-guide .fg-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+.fmt-guide .fg-tags span{font-size:11px;font-weight:700;border-radius:7px;padding:3px 9px;font-family:var(--mono)}
+.fmt-guide .fg-tags span i{font-style:normal;font-weight:600;opacity:.7;font-size:10px;margin-left:3px}
+.fmt-guide .fg-row.ok .fg-tags span{background:var(--green-soft);color:#147a52}
+.fmt-guide .fg-row.warn .fg-tags span{background:var(--amber-soft);color:#9a6411}
+.fmt-guide .fg-note{font-size:11.5px;color:var(--ink-soft);line-height:1.65;margin-top:10px;padding-top:12px;border-top:1px dashed var(--line)}
+.fmt-guide .fg-note b{color:var(--primary);font-weight:700}
+.drops{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:22px}
+.drop{
+  border:1.5px dashed var(--line-strong);border-radius:var(--r-m);padding:22px 18px;text-align:center;
+  transition:.18s;background:var(--surface);cursor:pointer;position:relative;min-height:172px;display:flex;
+  flex-direction:column;align-items:center;justify-content:center;
+}
+.drop:hover{border-color:var(--primary);background:var(--primary-soft)}
+.drop.over{border-color:var(--primary);background:var(--primary-soft);transform:scale(1.01)}
+.drop.has{border-style:solid;border-color:var(--green);background:var(--green-soft)}
+.drop .dic{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;margin-bottom:12px;background:#fff;box-shadow:var(--shadow-sm)}
+.drop .dic svg{width:23px;height:23px;color:var(--primary)}
+.drop.has .dic svg{color:var(--green)}
+.drop h5{font-size:13.5px;font-weight:800}
+.drop .req-mark{font-size:9.5px;color:var(--rose);font-weight:800;margin-left:5px}
+.drop .pick-mark{font-size:9px;color:var(--primary);font-weight:800;margin-left:5px;background:var(--primary-soft);padding:2px 6px;border-radius:5px;vertical-align:middle}
+.drop .opt-mark{font-size:9px;color:var(--ink-mute);font-weight:800;margin-left:5px;background:var(--surface);padding:2px 6px;border-radius:5px;vertical-align:middle}
+.scope-note{display:flex;align-items:center;gap:10px;background:var(--primary-soft);border:1px solid #d3deff;border-radius:12px;padding:11px 15px;margin-bottom:16px;font-size:12.5px;color:#2a3a66;line-height:1.5}
+.scope-note svg{width:18px;height:18px;color:var(--primary);flex:none}
+.scope-note b{font-weight:800;color:var(--primary-deep)}
+.drop p{font-size:11.5px;color:var(--ink-soft);margin-top:5px}
+.drop .fname{font-size:12px;font-weight:700;color:var(--ink);margin-top:8px;word-break:break-all;display:flex;align-items:center;gap:6px;justify-content:center}
+.drop .fmeta{font-size:11px;color:var(--ink-mute);margin-top:3px;font-family:var(--mono)}
+.drop .clear{position:absolute;top:10px;right:10px;width:24px;height:24px;border-radius:8px;background:#fff;display:grid;place-items:center;box-shadow:var(--shadow-sm);opacity:0;transition:.15s}
+.drop.has:hover .clear{opacity:1}
+.drop .clear svg{width:13px;height:13px;color:var(--ink-soft)}
+
+.budget-card{display:flex;gap:26px;align-items:center;flex-wrap:wrap}
+.budget-card .bc-l{flex:1;min-width:280px}
+.range-wrap{margin-top:14px}
+input[type=range]{-webkit-appearance:none;width:100%;height:6px;border-radius:6px;background:var(--surface-2);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--primary);box-shadow:0 2px 8px rgba(27,69,214,.4);cursor:pointer;border:3px solid #fff}
+.modesel{display:flex;gap:8px;margin-top:6px}
+.modesel label{flex:1;border:1.5px solid var(--line);border-radius:11px;padding:11px 13px;cursor:pointer;transition:.15s}
+.modesel label:hover{border-color:var(--line-strong)}
+.modesel input{display:none}
+.modesel input:checked+.mb{color:var(--primary)}
+.modesel label:has(input:checked){border-color:var(--primary);background:var(--primary-soft)}
+.modesel .mb b{font-size:13px;font-weight:800;display:block}
+.modesel .mb span{font-size:11px;color:var(--ink-soft)}
+.est-box{background:var(--ink);color:#fff;border-radius:var(--r-m);padding:18px 22px;min-width:230px}
+.est-box .el{font-size:11px;color:#8fa2bd;font-weight:700;letter-spacing:.4px}
+.est-box .ev{font-family:var(--mono);font-size:30px;font-weight:600;letter-spacing:-1px;margin-top:5px}
+.est-box .save{font-size:11.5px;color:#46d6b9;font-weight:700;margin-top:8px;display:flex;align-items:center;gap:6px}
+.est-box .erow{display:flex;justify-content:space-between;font-size:11px;color:#a9b8cd;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.1)}
+
+/* pipeline */
+.pipe{display:flex;flex-direction:column;gap:0;margin-top:6px}
+.pstep{display:flex;gap:14px;padding:14px 0;position:relative}
+.pstep:not(:last-child)::after{content:"";position:absolute;left:17px;top:42px;bottom:-6px;width:2px;background:var(--line)}
+.pstep.done:not(:last-child)::after{background:var(--green)}
+.pstep .pi{width:36px;height:36px;border-radius:50%;flex:none;display:grid;place-items:center;background:var(--surface-2);color:var(--ink-mute);font-weight:800;font-family:var(--mono);font-size:14px;transition:.3s;z-index:1}
+.pstep.active .pi{background:var(--primary);color:#fff;box-shadow:0 0 0 5px var(--primary-soft);animation:spinp 1s linear infinite}
+.pstep.done .pi{background:var(--green);color:#fff}
+@keyframes spinp{100%{box-shadow:0 0 0 8px transparent}}
+.pstep .pc{flex:1;padding-top:6px}
+.pstep .pt{font-size:13.5px;font-weight:800}
+.pstep .pd{font-size:11.5px;color:var(--ink-soft);margin-top:2px}
+.pstep .ptok{font-family:var(--mono);font-size:11px;color:var(--primary);font-weight:600;margin-left:auto}
+.pstep.pending{opacity:.5}
+
+/* api settings */
+.api-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.api-card{border:1.5px solid var(--line);border-radius:var(--r-m);padding:18px 20px;background:#fff;transition:.18s}
+.api-card.on{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+.api-card .ach{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.api-card .alogo{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;color:#fff;font-weight:800;flex:none}
+.api-card h4{font-size:14px;font-weight:800}
+.api-card .astat{margin-left:auto;font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:20px;background:var(--surface-2);color:var(--ink-mute)}
+.api-card.on .astat{background:var(--green-soft);color:var(--green)}
+label.fld{display:block;margin-bottom:12px}
+label.fld .fl{font-size:11px;font-weight:700;color:var(--ink-soft);margin-bottom:5px;display:flex;align-items:center;gap:6px}
+.inp{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:9px 12px;font-size:12.5px;background:var(--surface);transition:.15s;color:var(--ink)}
+.inp:focus{outline:none;border-color:var(--primary);background:#fff;box-shadow:0 0 0 3px var(--primary-soft)}
+.inp.mono{font-family:var(--mono);font-size:12px}
+select.inp{cursor:pointer}
+.use-radio{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:12px;font-weight:700;color:var(--ink-soft)}
+
+.notice{display:flex;gap:11px;background:var(--amber-soft);border:1px solid #f2dcae;border-radius:12px;padding:13px 16px;font-size:12px;color:#8a5e16;line-height:1.55;margin-top:18px}
+.notice svg{width:17px;height:17px;flex:none;color:var(--amber);margin-top:1px}
+.notice b{color:#6d4910}
+
+.empty{text-align:center;padding:70px 20px;color:var(--ink-mute)}
+.empty .ei{width:64px;height:64px;border-radius:18px;background:var(--surface);display:grid;place-items:center;margin:0 auto 16px}
+.empty .ei svg{width:30px;height:30px;color:var(--ink-mute)}
+.empty h3{font-size:16px;font-weight:800;color:var(--ink-soft)}
+.empty p{font-size:13px;margin-top:6px}
+
+/* ===== Welcome / onboarding dashboard ===== */
+.hero{position:relative;overflow:hidden;border-radius:var(--r-l);padding:34px 34px 30px;color:var(--ink);
+  background:linear-gradient(135deg,#fdf1ec 0%,#faf7f4 55%,#ffffff 100%);border:1px solid var(--line);box-shadow:var(--shadow-lg)}
+.hero::before{content:"";position:absolute;inset:0;background:
+  radial-gradient(520px 280px at 88% -20%,rgba(225,90,51,.12),transparent 60%),
+  radial-gradient(420px 320px at -8% 120%,rgba(15,174,156,.1),transparent 55%);pointer-events:none}
+.hero .eyebrow{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:700;letter-spacing:.4px;color:var(--primary);
+  background:rgba(225,90,51,.1);border:1px solid rgba(225,90,51,.22);padding:6px 12px;border-radius:30px}
+.hero .eyebrow .lvdot{width:6px;height:6px;border-radius:50%;background:#5fffd9;box-shadow:0 0 0 3px rgba(95,255,217,.25);animation:pulse 2s infinite}
+.hero h2{font-size:29px;font-weight:800;letter-spacing:-.8px;margin-top:16px;line-height:1.25;position:relative}
+.hero h2 b{color:var(--primary)}
+.hero p.lead{font-size:14px;color:var(--ink-soft);margin-top:11px;max-width:620px;line-height:1.65;position:relative}
+.hero .hcta{display:flex;gap:11px;margin-top:22px;flex-wrap:wrap;position:relative}
+.hero .hbtn{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:700;padding:12px 20px;border-radius:12px;transition:.16s}
+.hero .hbtn svg{width:17px;height:17px}
+.hero .hbtn.solid{background:var(--primary);color:#fff}
+.hero .hbtn.solid:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(0,0,0,.25)}
+.hero .hbtn.ghost{background:#fff;color:var(--ink-soft);border:1px solid var(--line)}
+.hero .hbtn.ghost:hover{background:var(--surface-2)}
+.hero .hstat{position:absolute;right:34px;bottom:26px;display:flex;gap:26px}
+.hero .hstat .hs{text-align:right}
+.hero .hstat .hs .n{font-family:var(--mono);font-size:24px;font-weight:600;letter-spacing:-.5px;display:block}
+.hero .hstat .hs .l{font-size:10.5px;color:var(--ink-mute);font-weight:600;letter-spacing:.3px}
+
+.ready-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:18px}
+.ready{display:flex;align-items:center;gap:13px;background:#fff;border:1px solid var(--line);border-radius:var(--r-m);padding:15px 16px;box-shadow:var(--shadow-sm);transition:.15s}
+.ready:hover{border-color:var(--line-strong);transform:translateY(-2px);box-shadow:var(--shadow)}
+.ready .ri{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none}
+.ready .ri svg{width:20px;height:20px}
+.ready .rtxt{min-width:0}
+.ready .rtxt .rt{font-size:12px;font-weight:700;color:var(--ink-soft)}
+.ready .rtxt .rv2{font-size:14.5px;font-weight:800;letter-spacing:-.3px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ready .rtxt .rv2 small{font-size:11px;font-weight:600;color:var(--ink-mute)}
+.ready .rstate{margin-left:auto;flex:none;font-size:10px;font-weight:800;padding:3px 9px;border-radius:20px}
+.rstate.ok{background:var(--green-soft);color:#147a52}
+.rstate.no{background:var(--amber-soft);color:#9a6411}
+
+.flow{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;position:relative}
+.flow .fstep{position:relative;background:#fff;border:1px solid var(--line);border-radius:var(--r-m);padding:22px 20px;box-shadow:var(--shadow-sm);overflow:hidden;transition:.16s;cursor:pointer}
+.flow .fstep:hover{transform:translateY(-3px);box-shadow:var(--shadow);border-color:var(--line-strong)}
+.flow .fstep .num{font-family:var(--mono);font-size:42px;font-weight:600;color:var(--primary-soft);position:absolute;top:8px;right:16px;letter-spacing:-2px;line-height:1}
+.flow .fstep .fic{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;background:var(--primary-soft);margin-bottom:14px}
+.flow .fstep .fic svg{width:23px;height:23px;color:var(--primary)}
+.flow .fstep h4{font-size:15px;font-weight:800;letter-spacing:-.3px}
+.flow .fstep p{font-size:12.5px;color:var(--ink-soft);margin-top:7px;line-height:1.6}
+.flow .fstep .fchips{margin-top:12px;display:flex;flex-wrap:wrap;gap:6px}
+.flow .fstep .fchips span{font-size:10.5px;font-weight:700;color:var(--primary);background:var(--primary-soft);border-radius:7px;padding:3px 8px}
+.flow .farr{position:absolute;top:50%;right:-11px;transform:translateY(-50%);width:22px;height:22px;border-radius:50%;background:#fff;border:1px solid var(--line);display:grid;place-items:center;z-index:2}
+.flow .farr svg{width:13px;height:13px;color:var(--ink-mute)}
+
+.feat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.feat{background:#fff;border:1px solid var(--line);border-radius:var(--r-m);padding:20px 18px;box-shadow:var(--shadow-sm);transition:.16s}
+.feat:hover{transform:translateY(-3px);box-shadow:var(--shadow);border-color:var(--line-strong)}
+.feat .fi2{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;margin-bottom:13px}
+.feat .fi2 svg{width:20px;height:20px}
+.feat h5{font-size:13.5px;font-weight:800;letter-spacing:-.3px}
+.feat p{font-size:11.5px;color:var(--ink-soft);margin-top:6px;line-height:1.6}
+.feat .fmetric{display:flex;align-items:baseline;gap:5px;margin-top:11px}
+.feat .fmetric .fn{font-family:var(--mono);font-size:21px;font-weight:600;letter-spacing:-.5px}
+.feat .fmetric .fu{font-size:11px;font-weight:700;color:var(--ink-mute)}
+
+@media(max-width:1100px){
+  .ready-strip,.feat-row{grid-template-columns:1fr 1fr}
+  .flow{grid-template-columns:1fr}
+  .flow .farr{display:none}
+  .hero .hstat{display:none}
+}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(120%);background:var(--ink);color:#fff;padding:13px 22px;border-radius:12px;font-size:13px;font-weight:600;box-shadow:var(--shadow-lg);z-index:99;transition:.35s cubic-bezier(.2,.8,.2,1);display:flex;align-items:center;gap:10px}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast svg{width:17px;height:17px;color:var(--teal)}
+
+.section-title{font-size:13px;font-weight:800;letter-spacing:-.2px;margin:26px 0 13px;display:flex;align-items:center;gap:9px}
+.section-title .stbar{width:3px;height:15px;border-radius:3px;background:var(--primary)}
+.section-title .stn{font-family:var(--mono);font-size:11px;color:var(--ink-mute);font-weight:500;margin-left:auto}
+
+.fill{display:flex;align-items:center;justify-content:center;height:100%}
+.spinner{width:30px;height:30px;border:3px solid var(--primary-soft);border-top-color:var(--primary);border-radius:50%;animation:sp .8s linear infinite}
+@keyframes sp{100%{transform:rotate(360deg)}}
+
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:14px}
+.legend span{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ink-soft);font-weight:600}
+.legend i{width:10px;height:10px;border-radius:3px}
+
+.conf-band{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 18px}
+.conf-band .cbi{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--green-soft);flex:none}
+.conf-band .cbi svg{width:21px;height:21px;color:var(--green)}
+.conf-band .cbt b{font-size:14px;font-weight:800}
+.conf-band .cbt p{font-size:12px;color:var(--ink-soft);margin-top:2px;line-height:1.5}
+.conf-band .cbv{margin-left:auto;text-align:right;flex:none}
+.conf-band .cbv .n{font-family:var(--mono);font-size:26px;font-weight:600;color:var(--green)}
+.conf-band .cbv .l{font-size:10.5px;color:var(--ink-mute);font-weight:700}
+
+.flag{display:flex;gap:10px;padding:11px 0;border-bottom:1px dashed var(--line);font-size:12px}
+.flag:last-child{border-bottom:none}
+.flag .fi{width:18px;height:18px;flex:none;margin-top:1px}
+.flag b{font-weight:800}
+.flag .adj{font-family:var(--mono);font-weight:600;font-size:11px;padding:1px 7px;border-radius:6px;margin-left:auto;white-space:nowrap}
+.flag .adj.minus{background:var(--rose-soft);color:var(--rose)} .flag .adj.plus{background:var(--green-soft);color:var(--green)}
+
+/* report: exec summary + editable improvement board */
+.exec{display:flex;gap:18px;align-items:stretch;margin-top:18px;background:linear-gradient(120deg,var(--primary-soft),#eafaf7);border:1px solid #d8e2ff;border-radius:var(--r-m);padding:16px 18px}
+.exec-l{flex:1;min-width:0}
+.exec-k{font-size:10.5px;font-weight:800;letter-spacing:.6px;color:var(--primary-deep)}
+.exec-v{font-size:13px;color:#23314f;line-height:1.6;margin-top:6px;font-weight:600}
+.exec-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.exec-r{display:flex;gap:16px;align-items:center;flex:none;padding-left:18px;border-left:1px solid #e2d8ca}
+.exec-stat{text-align:center}
+.exec-stat .n{font-size:20px;font-weight:600;color:var(--primary-deep);letter-spacing:-.5px}
+.exec-stat .l{font-size:10px;font-weight:700;color:var(--ink-soft);margin-top:1px}
+.rep-h{display:flex;align-items:center;justify-content:space-between;margin:24px 0 11px}
+.rep-h h3{font-size:14px;font-weight:800}
+.rep-h .rep-sub{font-size:11px;font-weight:600;color:var(--ink-mute)}
+.top3{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:13px 15px;margin-bottom:14px}
+.top3-h{font-size:11px;font-weight:800;color:var(--ink-soft);letter-spacing:.3px;margin-bottom:8px}
+.top3-row{display:flex;align-items:center;gap:9px;padding:5px 0}
+.top3-n{width:18px;height:18px;border-radius:50%;background:var(--ink);color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center;flex:none}
+.top3-t{font-size:12.5px;color:var(--ink);font-weight:600;line-height:1.45}
+.imp-list{display:flex;flex-direction:column;gap:11px}
+.imp-card{border:1px solid var(--line);border-left-width:4px;border-radius:12px;padding:12px 14px;background:#fff;transition:.15s}
+.imp-card.pri-high{border-left-color:var(--rose)} .imp-card.pri-mid{border-left-color:var(--amber)} .imp-card.pri-low{border-left-color:var(--teal)}
+.imp-card.done{opacity:.55;background:var(--surface)}
+.imp-card.done .imp-edit{text-decoration:line-through;color:var(--ink-mute)}
+.imp-top{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+.imp-pri{font-size:10px;font-weight:800;padding:2px 9px;border-radius:20px}
+.imp-pri.pri-high{background:var(--rose-soft);color:var(--rose)} .imp-pri.pri-mid{background:var(--amber-soft);color:#9a6411} .imp-pri.pri-low{background:var(--teal-soft);color:#0a7d70}
+.imp-sel{font-size:10.5px;font-weight:800;border:1px solid var(--line);border-radius:7px;padding:3px 6px;color:var(--ink-soft);background:#fff;cursor:pointer}
+.imp-src{font-size:11.5px;color:var(--ink-soft);font-weight:600;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.imp-done-l{font-size:11px;font-weight:700;color:var(--ink-soft);display:flex;align-items:center;gap:5px;cursor:pointer;flex:none}
+.imp-del{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;color:var(--ink-mute);flex:none}
+.imp-del:hover{background:var(--rose-soft);color:var(--rose)}
+.imp-del svg{width:13px;height:13px}
+.imp-edit{width:100%;border:1px solid var(--line);border-radius:9px;padding:9px 11px;font-size:12.5px;line-height:1.55;color:var(--ink);resize:none;background:var(--surface);transition:.15s;font-family:inherit}
+.imp-edit:focus{outline:none;border-color:var(--primary);background:#fff;box-shadow:0 0 0 3px var(--primary-soft)}
+@media(max-width:760px){ .exec{flex-direction:column} .exec-r{border-left:none;border-top:1px solid #e2d8ca;padding-left:0;padding-top:12px;justify-content:space-around} }
+
+.tb-logo{display:none;align-items:center;gap:9px;text-decoration:none;color:var(--ink);margin-right:4px}
+.tb-logo-mark{width:32px;height:32px;border-radius:8px;background:#fff;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.tb-logo-mark img{width:20px;height:20px;object-fit:contain;display:block}
+.tb-logo-txt{display:flex;flex-direction:column;line-height:1.08}
+.tb-logo-txt b{font-size:14px;font-weight:700;letter-spacing:-.3px}
+.tb-logo-txt i{font-size:9.5px;font-weight:600;color:var(--ink-mute);letter-spacing:.6px;font-style:normal}
+@media(max-width:1100px){
+  #app{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .tb-logo{display:flex}
+  .kpi-row{grid-template-columns:1fr 1fr}
+  .split,.api-grid,.sector-row,.drops,.split-3{grid-template-columns:1fr}
+}</style>
+</head>
+<body>
+<div id="app">
+  <!-- ===== SIDEBAR ===== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo" onclick="go('dash')" role="button" tabindex="0" title="홈(대시보드)으로" style="cursor:pointer">
+        <div class="mark" style="background:#fff;box-shadow:0 6px 18px rgba(0,0,0,.30)">
+          <img src="data:image/png;base64,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"
+ alt="ECS" style="width:22px;height:22px;object-fit:contain;display:block"/>
+        </div>
+        <div>
+          <h1>제안 품질관리</h1>
+          <div class="sub">PROPOSAL QA STUDIO</div>
+        </div>
+      </div>
+    </div>
+    <nav class="nav" id="nav">
+      <div class="nav-label">우선 워크플로우</div>
+      <a class="nav-item active" data-view="dash"><svg class="ico" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7.5" height="9" rx="1.6" stroke="currentColor" stroke-width="1.8"/><rect x="13.5" y="3" width="7.5" height="6" rx="1.6" stroke="currentColor" stroke-width="1.8"/><rect x="13.5" y="12" width="7.5" height="9" rx="1.6" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="15" width="7.5" height="6" rx="1.6" stroke="currentColor" stroke-width="1.8"/></svg>대시보드<span class="ord">01</span></a>
+      <a class="nav-item" data-view="upload"><svg class="ico" viewBox="0 0 24 24" fill="none"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>문서 업로드<span class="ord">02</span></a>
+      <a class="nav-item" data-view="inspect"><svg class="ico" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>품질검사 실행<span class="ord">03</span></a>
+      <a class="nav-item" data-view="reval"><svg class="ico" viewBox="0 0 24 24" fill="none"><path d="M20 11A8 8 0 1 0 12 20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M20 5v6h-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>재검증 리포트<span class="ord">04</span></a>
+      <a class="nav-item" data-view="report"><svg class="ico" viewBox="0 0 24 24" fill="none"><path d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M13 3v5h5M9 13h6M9 17h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>종합 리포트<span class="ord">05</span></a>
+      <div class="nav-label">설정</div>
+      <a class="nav-item" data-view="api"><svg class="ico" viewBox="0 0 24 24" fill="none"><path d="M14 7a3 3 0 1 0-4 4l-6 6v3h3l6-6a3 3 0 0 0 4-4l-2 2-3-3 2-2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>API 연동<span class="badge" id="navApiBadge" hidden>0</span></a>
+    </nav>
+    <div class="side-foot">
+      <div class="token-pill">
+        <div class="tp-top"><span>누적 토큰 사용량</span><span class="tp-dot"></span></div>
+        <div class="tp-val mono" id="sideTok">0</div>
+        <div class="tp-sub" id="sideTokSub">아직 호출 없음 · 예상 비용 $0.0000</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===== MAIN ===== -->
+  <main class="main">
+    <header class="topbar">
+      <a class="tb-logo" href="#" onclick="go('dash');return false" title="홈"><span class="tb-logo-mark"><img src="data:image/png;base64,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" alt="ECS"></span><span class="tb-logo-txt"><b>제안 품질관리</b><i>PROPOSAL QA</i></span></a>
+      <div>
+        <div class="crumb" id="crumb">제안 품질관리 · <b>대시보드</b></div>
+        <div class="title" id="topTitle">제안서 품질 대시보드</div>
+      </div>
+      <div class="tb-spacer"></div>
+      <div class="seg" id="providerSeg">
+        <button data-p="claude" class="on">Claude</button>
+        <button data-p="gemini">Gemini</button>
+        <button data-p="gpt">GPT</button>
+      </div>
+      <button class="tb-btn" id="demoBtn"><svg viewBox="0 0 24 24" fill="none"><path d="M8 5v14l11-7L8 5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>데모 데이터</button>
+      <button class="tb-btn primary" id="runTop"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>품질검사 실행</button>
+    </header>
+    <div class="scroll">
+      <!-- views injected -->
+      <section class="view" id="view-dash"></section>
+      <section class="view" id="view-upload" hidden></section>
+      <section class="view" id="view-inspect" hidden></section>
+      <section class="view" id="view-reval" hidden></section>
+      <section class="view" id="view-report" hidden></section>
+      <section class="view" id="view-api" hidden></section>
+    </div>
+  </main>
+</div>
+<div class="toast" id="toast"><svg viewBox="0 0 24 24" fill="none"><path d="M4 12.5 9 17l11-11" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="toastMsg"></span></div>
+
+<script>
+/* ==== [2026-07-13] 외부 LLM 전송 통제: 마스킹·감사로깅·동의모달 (트랙2) ==== */
+function maskSensitive(text,opts){opts=opts||{};if(text==null)return{masked:'',map:{},counts:{}};var s=String(text),map={},counts={},oneWay=!!opts.oneWay,seen=Object.create(null);
+function token(kind,original){if(seen[original])return seen[original];counts[kind]=(counts[kind]||0)+1;var t='['+kind+'_'+counts[kind]+']';seen[original]=t;if(!oneWay)map[t]=original;return t;}
+function sub(kind,re){s=s.replace(re,function(m){return token(kind,m);});}
+function escapeRe(x){return String(x).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
+function subList(kind,list){if(!list||!list.length)return;var arr=list.filter(Boolean).map(String).sort(function(a,b){return b.length-a.length;});arr.forEach(function(name){if(name.trim().length<2)return;s=s.replace(new RegExp(escapeRe(name),'g'),function(m){return token(kind,m);});});}
+subList('고객사',opts.orgNames);subList('인명',opts.personNames);
+sub('이메일',/[\w.+-]+@[\w-]+\.[\w.-]+/g);sub('주민번호',/\b\d{6}-?[1-8]\d{6}\b/g);sub('사업자번호',/\b\d{3}-\d{2}-\d{5}\b/g);sub('전화',/\b(01[016789]|0\d{1,2})[-.\s]?\d{3,4}[-.\s]?\d{4}\b/g);sub('계좌',/\b\d{2,6}-\d{2,6}-\d{3,7}\b/g);
+return{masked:s,map:map,counts:counts};}
+var LLM_AUDIT_KEY='llmAuditLog',LLM_AUDIT_MAX=500;
+function logExternalSend(entry){var rec={ts:new Date().toISOString(),app:entry.app||'',provider:entry.provider||'',endpointHost:entry.endpointHost||'',dataKinds:entry.dataKinds||[],fieldCount:entry.fieldCount||0,charCount:entry.charCount||0,maskApplied:!!entry.maskApplied,fileBase64Included:!!entry.fileBase64Included};
+try{var arr=JSON.parse(localStorage.getItem(LLM_AUDIT_KEY)||'[]');arr.push(rec);if(arr.length>LLM_AUDIT_MAX)arr=arr.slice(arr.length-LLM_AUDIT_MAX);localStorage.setItem(LLM_AUDIT_KEY,JSON.stringify(arr));}catch(e){}
+try{console.info('[LLM-AUDIT]',rec);}catch(e){}return rec;}
+function hostOf(prov){return({claude:'api.anthropic.com',gpt:'api.openai.com',openai:'api.openai.com',gemini:'generativelanguage.googleapis.com'})[prov]||String(prov||'');}
+function confirmExternalSend(info){info=info||{};var skipKey='llmConsentSkip:'+(info.provider||'');if(sessionStorage.getItem(skipKey)==='1')return Promise.resolve(true);
+return new Promise(function(resolve){var ov=document.createElement('div');ov.className='llm-consent-overlay';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');
+function ce(x){return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+var kinds=(info.dataKinds&&info.dataKinds.length)?info.dataKinds.join(', '):'(미지정)';
+var warn=info.fileBase64Included?'<p class="llm-consent-warn">⚠ 첨부 원본(PDF/이미지)이 <b>마스킹 없이</b> 전송됩니다.</p>':'';
+ov.innerHTML='<div class="llm-consent-box"><h3 class="llm-consent-title">외부 LLM 전송 확인</h3><p class="llm-consent-desc">아래 내용이 외부 제공사 서버로 전송됩니다.</p><ul class="llm-consent-list"><li>제공사: <b>'+ce(info.provider)+'</b> ('+ce(info.endpointHost)+')</li><li>데이터 종류: '+ce(kinds)+'</li><li>필드 수: <b>'+(info.fieldCount||0)+'</b></li><li>마스킹: <b>'+(info.maskApplied?'Y':'N')+'</b></li><li>첨부 원본 포함: <b>'+(info.fileBase64Included?'Y':'N')+'</b></li></ul>'+warn+'<label class="llm-consent-remember"><input type="checkbox" class="llm-consent-skip"/> 이 세션에서 재확인 생략</label><div class="llm-consent-actions"><button type="button" class="llm-consent-cancel">취소</button><button type="button" class="llm-consent-ok">전송 동의</button></div></div>';
+function close(result){if(result&&ov.querySelector('.llm-consent-skip').checked)sessionStorage.setItem(skipKey,'1');document.removeEventListener('keydown',onKey);if(ov.parentNode)ov.parentNode.removeChild(ov);resolve(result);}
+function onKey(e){if(e.key==='Escape')close(false);}
+ov.querySelector('.llm-consent-ok').addEventListener('click',function(){close(true);});ov.querySelector('.llm-consent-cancel').addEventListener('click',function(){close(false);});ov.addEventListener('click',function(e){if(e.target===ov)close(false);});document.addEventListener('keydown',onKey);document.body.appendChild(ov);ov.querySelector('.llm-consent-ok').focus();});}
+(function(){if(document.getElementById('llm-consent-css'))return;var st=document.createElement('style');st.id='llm-consent-css';st.textContent='.llm-consent-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:99999}.llm-consent-box{background:var(--surface,#fff);color:var(--text,#111);max-width:440px;width:90%;padding:20px 22px;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.25);font-size:14px;line-height:1.5}.llm-consent-title{margin:0 0 8px;font-size:16px}.llm-consent-list{margin:10px 0;padding-left:18px}.llm-consent-warn{color:var(--danger,#c0392b);font-weight:600;margin:8px 0}.llm-consent-remember{display:flex;gap:6px;align-items:center;margin:12px 0}.llm-consent-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}.llm-consent-actions button{padding:8px 16px;border-radius:8px;cursor:pointer;border:1px solid var(--border,#ccc)}.llm-consent-ok{background:var(--primary,#2563eb);color:#fff;border-color:transparent}.llm-consent-cancel{background:transparent}';(document.head||document.documentElement).appendChild(st);})();
+/* ==== 통제 유틸 끝 ==== */
+/* ============================================================
+   QualiBid — 제안서 품질검사 스튜디오 (단독 실행 HTML)
+   Claude / Gemini / GPT · 재검증 2-pass · 토큰 최소화 설계
+   ============================================================ */
+'use strict';
+if(window.pdfjsLib){ pdfjsLib.GlobalWorkerOptions.workerSrc='assets/pdf.worker.min.js'; }
+
+/* ---------- 상태 ---------- */
+const S = {
+  provider:'claude', sector:'public', mode:'standard', budget:6000,
+  docs:{rfp:null, proposal:null, summary:null},
+  api:{ claude:{key:'',model:'claude-sonnet-4-5',base:''}, gemini:{key:'',model:'gemini-2.0-flash',base:''}, gpt:{key:'',model:'gpt-4o-mini',base:''} },
+  result:null, running:false,
+  tokens:{input:0,output:0,total:0,calls:[]},
+};
+
+/* ---------- 단가(추정, USD / 1M tokens) ---------- */
+const RATES={ claude:{in:3,out:15}, gemini:{in:0.3,out:1.2}, gpt:{in:2.5,out:10} };
+const PROVIDER_META={
+  claude:{name:'Claude (Anthropic)', color:'#d97757', models:['claude-sonnet-4-5','claude-opus-4-1','claude-haiku-4-5','claude-3-5-sonnet-latest']},
+  gemini:{name:'Gemini (Google)', color:'#1a73e8', models:['gemini-2.0-flash','gemini-2.5-pro','gemini-2.5-flash','gemini-1.5-pro']},
+  gpt:{name:'GPT (OpenAI)', color:'#10a37f', models:['gpt-4o-mini','gpt-4o','gpt-4.1','gpt-4.1-mini']},
+};
+
+/* ---------- 섹터 설정 ---------- */
+const CATS=[
+  {key:'req',label:'요구사항 충족도'},
+  {key:'compliance',label:'규정·형식 준수'},
+  {key:'logic',label:'논리·구성 일관성'},
+  {key:'evidence',label:'정량 근거·데이터'},
+  {key:'risk',label:'리스크 관리'},
+  {key:'diff',label:'차별성·경쟁력'},
+  {key:'readability',label:'가독성·표현'},
+  {key:'align',label:'발표본 정합성'},
+];
+const SECTORS={
+  public:{ label:'공공 제안', color:'#e15a33', soft:'var(--primary-soft)',
+    desc:'정량평가·규정준수·요구사항 추적성이 핵심. 평가위원 채점표 관점 검토.',
+    focus:['요구사항 추적성','정량평가 배점','규정·서식 준수','공정성·객관성'],
+    weights:{req:22,compliance:18,logic:14,evidence:12,risk:10,diff:10,readability:8,align:6},
+    icon:'<path d="M3 21h18M5 21V10l7-5 7 5v11M9 21v-6h6v6" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>'},
+  finance:{ label:'금융 제안', color:'#0fae9c', soft:'var(--teal-soft)',
+    desc:'리스크·컴플라이언스·정량근거 중심. 감독규정·보안·SLA 검증 강화.',
+    focus:['리스크 관리','규제 준수','정량 근거','보안·SLA'],
+    weights:{risk:20,evidence:18,compliance:16,req:16,logic:12,diff:8,readability:6,align:4},
+    icon:'<path d="M3 13h4l3 7 4-16 3 9h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'},
+  private:{ label:'민간 제안', color:'#7b4ce0', soft:'#f1ebfd',
+    desc:'차별성·ROI·실행력 중심. 경쟁우위와 비즈니스 임팩트 설득력 검토.',
+    focus:['차별화 포인트','ROI·비즈니스 임팩트','실행 가능성','설득 구조'],
+    weights:{diff:22,req:16,evidence:14,logic:14,readability:10,risk:10,align:8,compliance:6},
+    icon:'<path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>'},
+};
+
+/* ---------- 유틸 ---------- */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const fmt=n=>n.toLocaleString('ko-KR');
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function toast(m){const t=$('#toast');$('#toastMsg').textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2600);}
+function estTokens(text){ if(!text) return 0; let ko=0,o=0; for(const ch of text){ if(/[\uAC00-\uD7A3\u3130-\u318F]/.test(ch))ko++; else o++; } return Math.round(ko*0.95+o*0.28); }
+function gradeOf(v){ return v>=90?{g:'S',t:'우수',c:'var(--green)'}:v>=80?{g:'A',t:'양호',c:'var(--teal)'}:v>=70?{g:'B',t:'보통',c:'var(--primary)'}:v>=60?{g:'C',t:'미흡',c:'var(--amber)'}:{g:'D',t:'취약',c:'var(--rose)'}; }
+function catColor(k){ return {req:'#e15a33',compliance:'#c74a28',logic:'#2f80ed',evidence:'#0fae9c',risk:'#e89a2b',diff:'#7b4ce0',readability:'#56607a',align:'#e5484d'}[k]||'#e15a33'; }
+
+/* ---------- 영속성 ---------- */
+// 승인 #4: localStorage 저장 실패(쿼터 초과·프라이빗 모드)를 조용히 삼키지 않는다.
+//          같은 세션에서 반복 알림은 소음이므로 1회만 알린다.
+let __lsWarned=false;
+function lsFail(e,what){
+  console.error('[localStorage 저장 실패]', what||'', e);
+  if(__lsWarned) return; __lsWarned=true;
+  try{ toast('저장 공간이 부족해 '+(what||'설정')+'을(를) 이 브라우저에 저장하지 못했습니다. 변경 내용이 유지되지 않습니다.'); }catch(_){}
+}
+function save(){ try{ localStorage.setItem('qualibid', JSON.stringify({api:S.api,provider:S.provider,sector:S.sector,mode:S.mode,budget:S.budget})); }catch(e){ lsFail(e,'작업 설정'); } }
+function load(){ try{ const d=JSON.parse(localStorage.getItem('qualibid')||'{}'); if(d.api)S.api=Object.assign(S.api,d.api); if(d.provider)S.provider=d.provider; if(d.sector)S.sector=d.sector; if(d.mode)S.mode=d.mode; if(d.budget)S.budget=d.budget; }catch(e){} }
+
+/* ---------- 토큰 압축(핵심: 토큰 최소화) ---------- */
+function condense(text, budget){
+  if(!text) return {text:'',chars:0,orig:0};
+  const orig=text.length;
+  let lines=text.split(/\r?\n/).map(l=>l.replace(/\s+/g,' ').trim()).filter(Boolean);
+  const seen=new Set(); lines=lines.filter(l=>{const k=l.slice(0,70); if(seen.has(k))return false; seen.add(k);return true;});
+  const kw=/(필수|요건|요구|준수|규정|평가|배점|제출|기준|해야|하여야|이상|이하|충족|항목|범위|일정|예산|보안|성능|SLA|책임|벌칙|감점|가점|목표|KPI|ROI|차별|경쟁|일정|납기|품질|검증|운영|유지보수|계약)/;
+  const head=/^(\d+[\.\)]|[가-힣]\.|[IVXLC]+\.|[■▶◆◇○●·▪]|[-*#]\s|제\s?\d+\s?[조항장])/;
+  const scored=lines.map((l,i)=>{ let s=0; if(kw.test(l))s+=3; if(head.test(l))s+=2; if(/\d/.test(l))s+=1; if(l.length>=12&&l.length<=160)s+=1; if(l.length<6)s-=2; return {l,i,s}; });
+  const sorted=[...scored].sort((a,b)=>b.s-a.s);
+  const keep=new Set(); let acc=0;
+  for(const o of sorted){ if(acc+o.l.length+1>budget)continue; keep.add(o.i); acc+=o.l.length+1; if(acc>=budget)break; }
+  let out=scored.filter(o=>keep.has(o.i)).sort((a,b)=>a.i-b.i).map(o=>o.l).join('\n');
+  if(out.length<240) out=text.slice(0,budget);
+  return {text:out, chars:out.length, orig};
+}
+function condensedAll(){
+  const b=S.budget;
+  return {
+    rfp: S.docs.rfp? condense(S.docs.rfp.text, Math.round(b*1.1)) : {text:'',chars:0,orig:0},
+    proposal: S.docs.proposal? condense(S.docs.proposal.text, b) : {text:'',chars:0,orig:0},
+    summary: S.docs.summary? condense(S.docs.summary.text, Math.round(b*0.5)) : {text:'',chars:0,orig:0},
+  };
+}
+function estPipeline(){
+  const c=condensedAll();
+  const inChars=c.rfp.chars+c.proposal.chars+c.summary.chars+1400; // +prompt scaffolding
+  const origChars=(S.docs.rfp?.chars||0)+(S.docs.proposal?.chars||0)+(S.docs.summary?.chars||0);
+  const calls={economy:1,standard:2,precision:3}[S.mode];
+  const inTok=estTokens(' '.repeat(0))+Math.round(estTokens('가'.repeat(0)))+Math.round(inChars*0.55*calls);
+  const inTokReal=Math.round((estTokens(c.rfp.text)+estTokens(c.proposal.text)+estTokens(c.summary.text)+500)*calls);
+  const outTok=Math.round(900*calls);
+  const origTok=estTokens((S.docs.rfp?.text||'')+(S.docs.proposal?.text||'')+(S.docs.summary?.text||''));
+  const savedTok=Math.max(0, origTok - estTokens(c.rfp.text+c.proposal.text+c.summary.text));
+  return {inTok:inTokReal, outTok, total:inTokReal+outTok, calls, savedTok, origTok, origChars};
+}
+function costOf(inTok,outTok,prov){ const r=RATES[prov||S.provider]; return (inTok/1e6*r.in)+(outTok/1e6*r.out); }
+
+/* ---------- 파일 인입 ---------- */
+async function extractFile(file){
+  const name=file.name.toLowerCase();
+  // 1) 텍스트 계열 — 가장 토큰 효율적·정확
+  if(/\.(txt|md|markdown|csv|tsv|json|log|xml|html?)$/.test(name)){
+    let t=await file.text();
+    if(/\.html?$/.test(name)){ /* inert 파싱: 스크립트 미실행·리소스 미로딩 (구: div.innerHTML) */ const doc=new DOMParser().parseFromString(t,'text/html'); t=((doc&&doc.body&&doc.body.textContent)||t); }
+    return t;
+  }
+  // 2) PDF (텍스트형) — pdf.js
+  if(name.endsWith('.pdf')){
+    if(!window.pdfjsLib) throw new Error('PDF 라이브러리 미로딩(오프라인). TXT/DOCX로 변환하거나 텍스트를 붙여넣어 주세요.');
+    const buf=await file.arrayBuffer(); const pdf=await pdfjsLib.getDocument({data:buf}).promise; let t='';
+    for(let i=1;i<=pdf.numPages;i++){ const pg=await pdf.getPage(i); const c=await pg.getTextContent(); t+=c.items.map(x=>x.str).join(' ')+'\n'; }
+    if(t.replace(/\s/g,'').length<40) throw new Error('PDF에서 텍스트를 찾지 못했습니다(스캔/이미지 PDF로 보임). OCR 후 TXT 또는 텍스트형 PDF로 올려주세요.');
+    return t;
+  }
+  // 3) DOCX — mammoth
+  if(name.endsWith('.docx')){
+    if(!window.mammoth) throw new Error('DOCX 라이브러리 미로딩(오프라인). TXT로 변환하거나 텍스트를 붙여넣어 주세요.');
+    const buf=await file.arrayBuffer(); const r=await mammoth.extractRawText({arrayBuffer:buf}); return r.value;
+  }
+  // 4) HWPX (한글 신형, ZIP+XML) — JSZip로 본문 XML 추출
+  if(name.endsWith('.hwpx')){
+    if(!window.JSZip) throw new Error('압축 라이브러리 미로딩(오프라인). TXT/PDF로 변환해 올려주세요.');
+    const zip=await JSZip.loadAsync(await file.arrayBuffer());
+    const paths=Object.keys(zip.files).filter(p=>/Contents\/(section\d+|content)\.xml$/i.test(p)||/\.(section|text)\.xml$/i.test(p));
+    const targets=paths.length?paths:Object.keys(zip.files).filter(p=>/\.xml$/i.test(p)&&/content/i.test(p));
+    let out='';
+    for(const p of targets.sort()){ const xml=await zip.files[p].async('string');
+      out+=xml.replace(/<[^>]+>/g,m=>/<\/?(hp:p|hp:linesegarray|w:p|p)\b/i.test(m)?'\n':' ').replace(/&[a-z]+;/g,' ')+'\n'; }
+    out=out.replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n').trim();
+    if(out.replace(/\s/g,'').length<20) throw new Error('HWPX 본문을 추출하지 못했습니다. 한글에서 "다른 이름으로 저장 → PDF" 또는 TXT로 올려주세요.');
+    return out;
+  }
+  // 5) HWP (구형 바이너리) — 브라우저 파싱 한계 → 변환 안내(가능한 문자열만 best-effort)
+  if(name.endsWith('.hwp')){
+    throw new Error('구형 HWP(.hwp)는 브라우저에서 정확히 파싱되지 않습니다. 한글에서 "PDF로 저장" 또는 "HWPX/TXT로 저장" 후 올려주세요. (토큰 절약·정확도 모두 향상)');
+  }
+  // 6) RTF — 제어어 제거 best-effort
+  if(name.endsWith('.rtf')){
+    const raw=await file.text();
+    const t=raw.replace(/\\par[d]?/g,'\n').replace(/\\'[0-9a-f]{2}/gi,' ').replace(/\\[a-z]+-?\d* ?/gi,'').replace(/[{}]/g,'').replace(/[ \t]+/g,' ').trim();
+    if(t.length<20) throw new Error('RTF 추출 실패. TXT/DOCX로 변환해 올려주세요.'); return t;
+  }
+  // 7) DOC / PPTX 등 기타 → 텍스트 시도 후 안내
+  try{
+    const t=await file.text();
+    if(/[\x00-\x08\x0e-\x1f]/.test(t.slice(0,400))) throw 0;   // 바이너리로 판단
+    if(t.trim().length<20) throw 0;
+    return t;
+  }catch(e){
+    throw new Error('이 형식('+(name.split('.').pop()||'?')+')은 직접 파싱이 어렵습니다. 권장 형식(TXT·DOCX·HWPX·텍스트형 PDF)으로 변환하거나, 본문을 복사해 붙여넣어 주세요.');
+  }
+}
+async function ingest(slot, file){
+  const drop=$('#drop-'+slot); drop.classList.add('over');
+  try{
+    const text=await extractFile(file);
+    S.docs[slot]={ name:file.name, size:file.size, text, chars:text.length };
+    toast(file.name+' 인입 완료 · '+fmt(text.length)+'자');
+  }catch(e){ toast(e.message); }
+  drop.classList.remove('over');
+  renderUpload();
+}
+
+/* ---------- LLM 어댑터 ---------- */
+async function fetchT(url, opts={}, ms=120000){
+  const ctl=new AbortController(); let timedOut=false;
+  const t=setTimeout(()=>{ timedOut=true; ctl.abort(); }, ms);
+  const ext=opts.signal;
+  if(ext){ if(ext.aborted) ctl.abort(); else ext.addEventListener('abort',()=>ctl.abort()); }
+  try{ return await fetch(url,{...opts,signal:ctl.signal}); }
+  catch(e){
+    if(e.name==='AbortError'){
+      if(timedOut) throw new Error('응답 시간 초과('+Math.round(ms/1000)+'초). 네트워크/프록시(CORS) 또는 모델명을 확인하세요.');
+      throw new Error('__CANCELLED__');
+    }
+    throw new Error('네트워크 오류: 호출에 실패했습니다(CORS/방화벽/키 확인). '+(e.message||''));
+  }
+  finally{ clearTimeout(t); }
+}
+/**
+ * LLM 응답이 **출력 토큰 상한에서 잘렸는지** 판정한다 (2026-09-28).
+ *
+ * 세 공급자 모두 잘렸다는 사실을 알려 주는데 지금까지 그 값을 버리고 있었다.
+ *   Claude  stop_reason  === 'max_tokens'
+ *   GPT     finish_reason=== 'length'
+ *   Gemini  finishReason === 'MAX_TOKENS'
+ * 잘린 응답은 JSON 이 미완성이라 파싱이 깨지거나, 파싱돼도 **내용이 빠진 채**
+ * 정상처럼 보인다. 사용자는 그 사실을 알 길이 없다.
+ * 3002 에서 같은 원인으로 배점 분석이 통째로 비었다(09-28 실측).
+ * maxTok 기본값이 1100 이라 이 앱은 특히 자주 걸린다.
+ */
+function llmStopReason(p, d){
+  if(!d) return '';          // 응답이 없거나 모양이 다를 때 터지지 않는다
+  if(p==='claude') return d.stop_reason||'';
+  if(p==='gpt')    return d.choices?.[0]?.finish_reason||'';
+  if(p==='gemini') return d.candidates?.[0]?.finishReason||'';
+  return '';
+}
+function llmTruncated(p, d){
+  const r=llmStopReason(p,d);
+  return r==='max_tokens' || r==='length' || r==='MAX_TOKENS';
+}
+function warnIfTruncated(p, d, maxTok){
+  if(!llmTruncated(p,d)) return false;
+  toast('⚠ 응답이 출력 상한('+maxTok+' 토큰)에서 잘렸습니다. 결과 일부가 빠졌을 수 있습니다.');
+  try{ console.warn('[LLM 출력 절단] provider='+p+' stop='+llmStopReason(p,d)+' maxTok='+maxTok); }catch(e){}
+  return true;
+}
+
+async function callLLM(system, user, maxTok=1100){
+  const p=S.provider, cfg=S.api[p];
+  if(!(await confirmExternalSend({provider:p,endpointHost:hostOf(p),dataKinds:['제안서 품질분석 자료'],fieldCount:1,maskApplied:true,fileBase64Included:false}))) throw new Error('사용자가 외부 LLM 전송을 취소했습니다');
+  try{ logExternalSend({app:'EQM',provider:p,endpointHost:hostOf(p),dataKinds:['품질분석'],charCount:(user||'').length,fieldCount:1,maskApplied:true,fileBase64Included:false}); }catch(e){}
+  if(!cfg.key) throw new Error(PROVIDER_META[p].name+' API 키가 설정되지 않았습니다. (API 연동 메뉴)');
+  const base=(cfg.base||'').trim().replace(/\/+$/,'');
+  if(p==='claude'){
+    const res=await fetchT((base||'https://api.anthropic.com')+'/v1/messages',{method:'POST',signal:S.abortCtl?.signal,
+      headers:{'content-type':'application/json','x-api-key':cfg.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:cfg.model,max_tokens:maxTok,system,messages:[{role:'user',content:user}]})});
+    if(!res.ok) throw new Error('Claude 오류 '+res.status+': '+(await res.text()).slice(0,180));
+    const d=await res.json();
+    const text=(d.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n');
+    if(!text) throw new Error('Claude 빈 응답입니다. 모델명(예: claude-sonnet-4-5) 또는 키를 확인하세요.');
+    const cut=warnIfTruncated('claude', d, maxTok);
+    return {text, truncated:cut, stopReason:llmStopReason('claude',d), usage:{in:d.usage?.input_tokens||0, out:d.usage?.output_tokens||0}};
+  }
+  if(p==='gpt'){
+    const isNew=/^(o\d|gpt-5|gpt-4\.1|chatgpt)/i.test(cfg.model);
+    const body={model:cfg.model, messages:[{role:'system',content:system},{role:'user',content:user}], response_format:{type:'json_object'}};
+    body[isNew?'max_completion_tokens':'max_tokens']=maxTok;
+    let res, txt='';
+    for(let attempt=0; attempt<4; attempt++){
+      res=await fetchT((base||'https://api.openai.com/v1')+'/chat/completions',{method:'POST',signal:S.abortCtl?.signal,
+        headers:{'content-type':'application/json','authorization':'Bearer '+cfg.key}, body:JSON.stringify(body)});
+      if(res.ok) break;
+      txt=await res.text(); let changed=false;
+      // max_tokens ↔ max_completion_tokens 호환
+      if(/max_completion_tokens|max_tokens.*(unsupported|not supported)/i.test(txt) && ('max_tokens' in body)){ body.max_completion_tokens=body.max_tokens; delete body.max_tokens; changed=true; }
+      else if(/max_completion_tokens/i.test(txt) && ('max_completion_tokens' in body) && !('max_tokens' in body)){ /* already set */ }
+      // response_format 미지원 모델
+      if(/response_format|json_object|'response_format'/i.test(txt) && body.response_format){ delete body.response_format; changed=true; }
+      // temperature 미지원 (reasoning 계열)
+      if(/temperature/i.test(txt) && ('temperature' in body)){ delete body.temperature; changed=true; }
+      if(!changed) break;
+    }
+    if(!res.ok) throw new Error('GPT 오류 '+res.status+': '+(txt||'').slice(0,220));
+    const d=await res.json();
+    const text=d.choices?.[0]?.message?.content||'';
+    if(!text) throw new Error('GPT 빈 응답입니다. 모델명(예: gpt-4o-mini) 또는 출력 토큰을 확인하세요.');
+    const cut=warnIfTruncated('gpt', d, maxTok);
+    return {text, truncated:cut, stopReason:llmStopReason('gpt',d), usage:{in:d.usage?.prompt_tokens||0,out:d.usage?.completion_tokens||0}};
+  }
+  if(p==='gemini'){
+    const url=(base||'https://generativelanguage.googleapis.com/v1beta')+'/models/'+cfg.model+':generateContent?key='+encodeURIComponent(cfg.key);
+    const res=await fetchT(url,{method:'POST',signal:S.abortCtl?.signal,headers:{'content-type':'application/json'},
+      body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:[{role:'user',parts:[{text:user}]}],generationConfig:{maxOutputTokens:maxTok,responseMimeType:'application/json',temperature:0.2}})});
+    if(!res.ok) throw new Error('Gemini 오류 '+res.status+': '+(await res.text()).slice(0,220));
+    const d=await res.json();
+    const text=(d.candidates?.[0]?.content?.parts||[]).map(x=>x.text).join('');
+    if(!text) throw new Error('Gemini 빈 응답입니다. 모델명(예: gemini-2.0-flash) 또는 키를 확인하세요.');
+    const u=d.usageMetadata||{};
+    const cut=warnIfTruncated('gemini', d, maxTok);
+    return {text, truncated:cut, stopReason:llmStopReason('gemini',d), usage:{in:u.promptTokenCount||0,out:u.candidatesTokenCount||0}};
+  }
+  throw new Error('알 수 없는 provider');
+}
+function parseJSON(t){
+  if(!t) return null;
+  let s=t.trim().replace(/^```json\s*/i,'').replace(/^```\s*/,'').replace(/```$/,'').trim();
+  const tryParse=x=>{ try{ return JSON.parse(x); }catch(e){ return undefined; } };
+  let r=tryParse(s); if(r!==undefined) return r;
+  const a=s.indexOf('{'), b=s.lastIndexOf('}');
+  if(a>=0&&b>a) s=s.slice(a,b+1);
+  r=tryParse(s); if(r!==undefined) return r;
+  // 흔한 결함 보정: 트레일링 콤마 제거
+  const cleaned=s.replace(/,\s*([}\]])/g,'$1');
+  r=tryParse(cleaned); if(r!==undefined) return r;
+  return null;
+}
+
+/* ---------- 프롬프트 ---------- */
+function inspectScope(){
+  const hasR=!!S.docs.rfp, hasP=!!S.docs.proposal, hasS=!!S.docs.summary;
+  const target = hasP?'proposal':(hasS?'summary':null);
+  return {hasR,hasP,hasS,target,
+    subj: target==='summary'?'제안 발표본(요약본)':'제안서 본문',
+    label: target==='summary'?'발표본 단독 검사':(hasR?'RFP 대조 검사':'제안서 단독 검사')};
+}
+function materials(c){
+  const m=[];
+  if(c.rfp.text) m.push('[RFP 발췌]\n'+c.rfp.text);
+  if(c.proposal.text) m.push('[제안서 발췌]\n'+c.proposal.text);
+  if(c.summary.text) m.push('[발표본/요약 발췌]\n'+c.summary.text);
+  return maskSensitive((m.join('\n\n')||'(자료 없음)')+'\n\n',{oneWay:true}).masked;
+}
+function pAnalysis(c){
+  const sec=SECTORS[S.sector]; const sc=inspectScope();
+  const w=Object.entries(sec.weights).map(([k,v])=>k+':'+v).join(',');
+  const sys='당신은 '+sec.label+' 제안을 평가하는 25년 경력의 제안 심사 전문가다. 반드시 한국어로, 오직 JSON만 출력한다. 추측을 사실처럼 단정하지 말고 제공된 텍스트에 근거가 있을 때만 충족으로 판단한다.';
+  let scopeNote;
+  if(sc.target==='summary'&&!sc.hasP){
+    scopeNote='이번 검사 대상은 '+sc.subj+' 단독이다. 발표본 자체의 메시지 명료성·논리 구성·핵심 근거·설득력·구조 완성도를 평가하라. 본문 제안서가 없으므로 align(정합성)은 "발표본 내부 메시지 일관성"으로 해석한다. requirements는 발표본이 갖춰야 할 핵심 메시지 항목 6~10개로 구성하라.';
+  } else if(sc.target==='proposal'&&!sc.hasR){
+    scopeNote='RFP(과업지시서)가 제공되지 않았다. 일반적인 '+sec.label+' 평가기준과 제안서 내용에서 핵심 요구사항을 8~12개 추론해 충족도를 평가하라.';
+  } else if(sc.target==='proposal'&&!sc.hasS){
+    scopeNote='발표본/요약본이 없으므로 align(정합성)은 "제안서 내부 일관성"으로 해석하라. RFP가 있으면 요구사항 대조로 평가한다.';
+  } else {
+    scopeNote='RFP·제안서'+(sc.hasS?'·발표본':'')+'을 교차 비교해 평가하라.';
+  }
+  const usr=
+  '[섹터] '+sec.label+'\n[가중치] '+w+'\n[검사범위] '+sc.label+'\n'+
+  materials(c)+'[지시] '+scopeNote+' 페이지/위치가 텍스트에 있으면 "p.N (n.n절)" 형식으로 표기하고, 없으면 가장 가까운 절·항목명을 적어라. 오탈자·띄어쓰기·표기 불일치·단위 오류를 찾아 typos에 담아라. 평가위원 관점의 핵심 개선 포인트를 evaluatorView에 담아라.\n'+
+  '다음 JSON 스키마로만 응답:\n'+
+  '{"categories":[{"key":"req|compliance|logic|evidence|risk|diff|readability|align","score":0-100,"criteria":"이 축의 평가기준 한줄"}],'+
+  '"requirements":[{"id":"R1","text":"항목","mandatory":true,"status":"met|partial|missing","evidence":"근거(짧게)","fix":"보완안(짧게)","page":"p.N (n.n절)","criterion":"판정 기준(RFP 근거)"}],'+
+  '"strengths":["강점"],"risks":[{"level":"high|mid|low","title":"리스크","detail":"설명","action":"조치","page":"위치"}],'+
+  '"typos":[{"page":"위치","kind":"오타|띄어쓰기|표기 불일치|문법|수치/단위","wrong":"원문","fix":"수정안"}],'+
+  '"evaluatorView":[{"severity":"high|mid|low","title":"개선 포인트","comment":"평가위원 시각의 권고"}],'+
+  '"alignment":{"rfp":0-100,"summary":0-100}}';
+  return {sys,usr};
+}
+function pReval(c, base){
+  const sc=inspectScope();
+  const sys='당신은 제안 평가 결과를 교차검증하는 감리 전문가다. 한국어, 오직 JSON만 출력. 1차 평가의 각 판정이 원문 근거로 실제 뒷받침되는지 검증하고 과대/과소 평가를 교정한다.';
+  const usr=
+  '[검사범위] '+sc.label+'\n'+materials(c)+
+  '[1차 평가결과]\n'+JSON.stringify({categories:base.categories,requirements:base.requirements,risks:base.risks})+'\n\n'+
+  '각 카테고리 점수와 항목 충족판정을 근거 기준으로 재검증하라. 근거가 부족한데 충족/고득점이면 하향, 누락 처리됐으나 근거가 있으면 상향. JSON 스키마로만:\n'+
+  '{"confidence":0-100,"categories":[{"key":"...","score":0-100}],"requirements":[{"id":"R1","status":"met|partial|missing"}],'+
+  '"flags":[{"target":"항목명","issue":"문제","delta":"+5|-8 형식"}],"note":"종합 코멘트 한 문장"}';
+  return {sys,usr};
+}
+function pExtract(c){
+  const sc=inspectScope();
+  const sys='평가 가능한 요구사항만 정밀 추출하는 전문가. 한국어, JSON만.';
+  const src = sc.hasR ? '[RFP 발췌]\n'+c.rfp.text+'\n\nRFP에서 필수/선택 요구사항을 10~14개 추출.'
+    : (sc.target==='summary'
+        ? '[발표본 발췌]\n'+c.summary.text+'\n\n발표본이 갖춰야 할 핵심 메시지·평가 항목을 8~12개 도출.'
+        : '[제안서 발췌]\n'+c.proposal.text+'\n\n일반 평가기준과 제안서에서 핵심 요구사항을 8~12개 추론.');
+  const usr=src+' {"requirements":[{"id":"R1","text":"...","mandatory":true,"category":"req|compliance|risk|evidence"}]} 형식만.';
+  return {sys,usr};
+}
+
+/* ---------- 파이프라인 ---------- */
+function logCall(label,u){ S.tokens.input+=u.in; S.tokens.output+=u.out; S.tokens.total=S.tokens.input+S.tokens.output; S.tokens.calls.push({label,in:u.in,out:u.out}); updateSideTokens(); }
+function updateSideTokens(){
+  $('#sideTok').textContent=fmt(S.tokens.total);
+  const cost=S.tokens.calls.reduce((a,c)=>a+costOf(c.in,c.out),0);
+  $('#sideTokSub').textContent = S.tokens.calls.length? (S.tokens.calls.length+'회 호출 · 추정 $'+cost.toFixed(4)) : '아직 호출 없음 · 예상 비용 $0.0000';
+}
+function normalizeResult(base, reval){
+  const sec=SECTORS[S.sector];
+  // category scores
+  const cmap={}; (base.categories||[]).forEach(c=>cmap[c.key]=clamp(c.score));
+  if(reval&&reval.categories) reval.categories.forEach(c=>{ if(c.key in cmap) cmap[c.key]=clamp(c.score); });
+  const CRIT={req:'RFP 요구사항 충족 비율과 근거 구체성',compliance:'서식·목차·규정 준수',logic:'논리 연결·목차 구조',evidence:'정량 근거 제시 정도',risk:'리스크 식별·대응 구체성',diff:'차별 요소와 입증',readability:'문장 명료성·표현 완성도·오탈자',align:'제안서–발표본 정합성'};
+  const categories=CATS.map(c=>({key:c.key,label:c.label,score:cmap[c.key]!=null?cmap[c.key]:70,weight:sec.weights[c.key]||10,criteria:CRIT[c.key]}));
+  // requirements (merge reval status)
+  const rmap={}; (reval&&reval.requirements||[]).forEach(r=>rmap[r.id]=r.status);
+  const requirements=(base.requirements||[]).map(r=>({ id:r.id||('R'), text:r.text||'', mandatory:!!r.mandatory, status:rmap[r.id]||r.status||'partial', evidence:r.evidence||'', fix:r.fix||'', page:r.page||'', criterion:r.criterion||'' }));
+  const cov={met:0,partial:0,missing:0,total:requirements.length};
+  requirements.forEach(r=>cov[r.status]=(cov[r.status]||0)+1);
+  // overall weighted
+  const tw=categories.reduce((a,c)=>a+c.weight,0);
+  let overall=Math.round(categories.reduce((a,c)=>a+c.score*c.weight,0)/(tw||1));
+  const confidence=reval&&reval.confidence!=null?clamp(reval.confidence):Math.max(60,Math.min(88,overall-6));
+  const flags=(reval&&reval.flags||[]).map(f=>({target:f.target,issue:f.issue,delta:f.delta||''}));
+  return {
+    sector:S.sector, provider:S.provider, model:S.api[S.provider].model, mode:S.mode, ts:Date.now(),
+    scope:inspectScope().label,
+    overall, grade:gradeOf(overall), confidence,
+    categories, requirements, coverage:cov,
+    strengths:(base.strengths||[]).slice(0,8),
+    risks:(base.risks||[]).map(r=>({level:r.level||'mid',title:r.title||'',detail:r.detail||'',action:r.action||'',page:r.page||''})),
+    typos:(base.typos||[]).map(t=>({page:t.page||'',kind:t.kind||'오타',wrong:t.wrong||'',fix:t.fix||''})),
+    evaluatorView:(base.evaluatorView||base.evaluator_view||[]).map(e=>({severity:e.severity||'mid',title:e.title||'',comment:e.comment||''})),
+    alignment:{rfp: inspectScope().hasR?clamp(base.alignment?.rfp??overall):null,
+               summary: (S.docs.proposal&&S.docs.summary)?clamp(base.alignment?.summary??(overall-4)):null},
+    reval:{ adjusted:flags.length, flags, note:(reval&&reval.note)||'재검증 미실행(절약 모드)', applied:!!reval },
+    tokens:{...S.tokens}, calls:[...S.tokens.calls],
+  };
+}
+function clamp(v){ if(typeof v!=='number'&&typeof v!=='string')return 70; if(v==='')return 70; v=Number(v); if(!Number.isFinite(v))return 70; return Math.max(0,Math.min(100,Math.round(v))); }
+
+async function runPipeline(){
+  if(S.running) return;
+  const sc=inspectScope();
+  if(!sc.target){ go('upload'); toast('제안서 본문 또는 발표본(요약본) 중 1개 이상을 업로드하세요.'); return; }
+  // 활성 제공자에 키가 없으면 키가 입력된 다른 제공자로 자동 전환 (어떤 키든 사용)
+  if(!S.api[S.provider].key){
+    const alt=['claude','gemini','gpt'].find(p=>S.api[p].key);
+    if(alt){ S.provider=alt; save(); syncProviderSeg(); toast(PROVIDER_META[alt].name+' 키로 검사를 진행합니다.'); }
+  }
+  if(!S.api[S.provider].key){ go('api'); toast('Claude·Gemini·GPT 중 아무 API 키나 1개 이상 입력하세요.'); return; }
+  S.running=true; S.cancelled=false; S.lastError=null; S.abortCtl=new AbortController(); S.tokens={input:0,output:0,total:0,calls:[]}; updateSideTokens();
+  go('inspect'); renderInspect(true);
+  const t0=Date.now(); clearInterval(S._timer);
+  S._timer=setInterval(()=>{ const e=$('#elapsed'); if(e) e.textContent=Math.round((Date.now()-t0)/1000)+'s'; },250);
+  const c=condensedAll();
+  const steps=$$('#pipe .pstep');
+  const setStep=(i,st)=>{ steps[i].classList.remove('pending','active','done'); steps[i].classList.add(st); };
+  const stepTok=(i,t)=>{ const e=steps[i].querySelector('.ptok'); if(e)e.textContent=t; };
+  try{
+    let base=null, reval=null, extracted=null;
+    // step 0: preprocess (local)
+    setStep(0,'active'); await delay(550);
+    stepTok(0, '−'+fmt(estPipeline().savedTok)+' tok 절감');
+    setStep(0,'done');
+    // precision: extract requirements first
+    if(S.mode==='precision'){
+      setStep(1,'active');
+      const p=pExtract(c); const r=await callLLM(p.sys,p.usr,900); logCall('요구사항 추출',r.usage); stepTok(1,fmt(r.usage.in+r.usage.out)+' tok');
+      extracted=parseJSON(r.text); setStep(1,'done');
+    } else { setStep(1,'done'); stepTok(1,'스킵(통합)'); }
+    // step 2: analysis (+1회 재시도: 파싱 실패 시 JSON 강제)
+    setStep(2,'active');
+    const pa=pAnalysis(c);
+    if(extracted&&extracted.requirements) pa.usr+='\n[추출된 요구사항 참고]\n'+JSON.stringify(extracted.requirements);
+    let ra=await callLLM(pa.sys,pa.usr,3200); logCall('통합 품질분석',ra.usage); stepTok(2,fmt(ra.usage.in+ra.usage.out)+' tok');
+    base=parseJSON(ra.text);
+    if(!base && !S.cancelled){
+      const ra2=await callLLM(pa.sys+' 반드시 유효한 JSON 객체 하나만, 코드블록·설명 없이 출력.', pa.usr, 3400);
+      logCall('통합 품질분석(재시도)',ra2.usage); stepTok(2,fmt((ra.usage.in+ra.usage.out)+(ra2.usage.in+ra2.usage.out))+' tok');
+      base=parseJSON(ra2.text);
+    }
+    if(!base) throw new Error('분석 응답을 JSON으로 해석하지 못했습니다 — 모델/출력형식을 확인하거나 절약 모드로 다시 시도하세요.');
+    setStep(2,'done');
+    // step 3: revalidation
+    if(S.mode!=='economy'){
+      setStep(3,'active');
+      const pr=pReval(c,base); const rr=await callLLM(pr.sys,pr.usr,1400); logCall('교차 재검증',rr.usage); stepTok(3,fmt(rr.usage.in+rr.usage.out)+' tok');
+      reval=parseJSON(rr.text); setStep(3,'done');
+    } else { setStep(3,'done'); stepTok(3,'스킵(절약)'); }
+    // step 4: compile
+    setStep(4,'active'); await delay(500);
+    S.result=normalizeResult(base,reval); setStep(4,'done');
+    await delay(350);
+    toast('품질검사 완료 · 신뢰도 '+S.result.confidence+'%');
+    go('dash');
+  }catch(e){
+    const ai=[...steps].findIndex(s=>s.classList.contains('active')); if(ai>=0) setStep(ai,'pending');
+    if(S.cancelled || e.message==='__CANCELLED__') toast('검사를 중단했습니다.');
+    else { S.lastError={msg:e.message, provider:S.provider, model:S.api[S.provider].model, ts:Date.now()}; toast(e.message); console.error(e); }
+  }
+  clearInterval(S._timer);
+  S.running=false; S.abortCtl=null;
+  if(S.cancelled || S.lastError) renderInspect(false);
+}
+window.cancelPipeline=()=>{
+  if(!S.running) return;
+  S.cancelled=true;
+  if(S.abortCtl) S.abortCtl.abort();
+  const b=$('#cancelBtn'); if(b){ b.disabled=true; b.textContent='중단 중…'; }
+};
+const delay=ms=>new Promise(r=>setTimeout(r,ms));
+
+/* ============================================================
+   데모 데이터 — 키 없이 바로 체험할 수 있는 풍부한 샘플 케이스
+   (강원랜드 실사업 + 공공/금융/민간 · 우수~취약 스펙트럼)
+   + 임팩트 인포그래픽 / 애니메이션 강화
+   ============================================================ */
+const DEMO_CRIT={
+  req:'RFP 명시 요구사항 대비 충족 항목 비율과 근거의 구체성',
+  compliance:'제출 서식·필수 목차·규정(보안·개인정보 등) 준수 여부',
+  logic:'문제정의→해결방안→기대효과의 논리 연결과 목차 구조',
+  evidence:'수치·데이터·실적 등 객관적 근거의 제시 정도',
+  risk:'리스크 식별·대응(완화)·비상계획의 구체성',
+  diff:'경쟁사 대비 차별 요소와 그 입증',
+  readability:'문장 명료성·표/그림 활용·오탈자 등 표현 완성도',
+  align:'제안서–발표본 간 수치·메시지 일관성'};
+
+const DEMO_DOCS={
+  /* ===== 강원랜드 콜센터시스템 재구축 (실사업 기반) ===== */
+  kw_rfp:`[제안요청서] 강원랜드 콜센터시스템 재구축 사업 (2026.4 · 주식회사 강원랜드)
+1. 추진개요
+  사업명: 강원랜드 콜센터시스템 재구축 사업
+  사업기간: 계약일로부터 150일
+  사업금액: 1,493,800,000원(부가세 포함)
+  계약방식: 제한경쟁입찰(협상에 의한 계약) · 공동수급 및 하도급 불허
+2. 추진배경
+  시스템 노후화('16년 도입)·EOS로 운영 리스크 증가, 보안 취약성·장애 위험 증가
+  STT·TTS·보이스봇 등 AI 기술 연동 불가, 다채널(음성·채팅·메신저) 대응 제한
+  개인정보보호 및 공공 보안 규제 대응 필요(ISMS-P, 개인정보 영향평가 등)
+3. 사업범위 및 제약
+  IP-PBX는 요구사항 명시 80CH 이상 충족 필수(하향 구성 제안 불허)
+  하자담보책임기간: 검사·완성 확인 후 1년(하자보증 비용 제안사 부담)
+  ※ 감리 및 개인정보영향평가(PIA)는 본 사업과 별도 계약으로 수행함
+4. 요구사항 총괄(총 60개 요구사항 / 세부 276항목)
+  ECR 시스템장비구성 / SFR 기능 / PER 성능 / SIR 인터페이스(SIR-001 생성형AI 연계)
+  DAR 데이터 / TER 테스트 / SR 보안 / QR 품질 / PMR 프로젝트관리 / PSR 지원
+  제안서는 모든 요구사항을 충족해야 하며, 충족하지 못하면 관련 규정에 따라 제외
+  '가능하다/동의한다/고려하고 있다' 등 모호한 표현은 불가능으로 간주, 계량화 가능 항목은 계량화 필수
+  요구사항 대비표(조견표) 제시 필수, 페이지 하단 일련번호 부여
+5. 평가방법
+  종합 100점 = 기술능력 90점(정량 10 + 정성 80) + 입찰가격 10점
+  기술능력 85%(76.5점) 이상 협상적격, 차등점수제 적용(평가차등점수 3.0점)
+  경영상태(신용등급)·유사사업 수행실적(최근 3년 단일계약 기준) 정량평가`,
+  kw_proposal:`[제안서·합본] 강원랜드 콜센터시스템 재구축 — 이씨에스텔레콤(ECS)
+I. 일반/실적: 1991년 설립, 26년 연속 흑자, 누적매출 1.2조, 기업신용등급 A(이크레더블, 2026.06), 기술인력 77%(중급이상 93%), 제안솔루션 전담 71명. 단독수급 다수(신용회복위·카카오뱅크·카카오페이·YES24·행정공제회 등).
+II. 사업이해/추진전략: As-Is 다중벤더 분산·EOS·통계불일치 → To-Be 단일 통합 콜인프라 플랫폼. 4대 가치(AX·CX·ROI·EX) × 4대 전략 × 8대 Action. RFP 60개 요구사항 100% 수용(세부 276: 공통58/HW25/SW150/연계10/보안33).
+III. 기술·기능: Cisco One Vendor(IP-PBX·CTI·IVR·IP-Phone·V/G·L3) 글로벌 표준, IP-PBX Active-Standby 이중화, TTA 인터넷전화 Ver.4·IPv6 인증, SIP/All-IP. 80CH 이상 구성. 기간계 인터페이스 10건(RMS 모닝콜·전화등급/CRM·카지노·객실예약/삼성 IP-PBX PRI) 검증. 생성형 AI 연계 구조 사전 반영(SIR-001). 통합운영관리 ESP·통합모니터링·옴니채널 ESP-m.
+정량근거: 월 인입 18,850콜, 상담연결 94.4%, 포기율 5.6%, 서비스레벨(20s) 84%, 평균응답 10초. 시즌 피크 응답 30초·포기율 15.5%(평상시 2.8배), 시즌 콜량 2.44배 변동. 데이터 재설계 시 대기 32%↓·AHT 18%↓·후처리 25%↓·포기율 15.5%→5% 기대.
+보안: ISMS-P 대응, 개인정보 암호화(AES/SHA/TLS)·접근통제·비식별화(마스킹)·시큐어코딩(OWASP Top10·국정원 진단도구), 보안성 심의·취약점 진단(과기부 지정 업체), 25년 보안사고 0건.
+데이터: 스키마 사전 파악 → 핵심테이블 선별 이관, 상담이력·녹취(UCID 인덱스)·통계 마이그레이션·클렌징, 손실 0건·분석 0일.
+IV. 프로젝트관리: 총 26 M/M 투입, 단계별 공수 산정·핵심인력 상시배치, PM 26년 컨택센터 직접 수행. ISO 21500 사업관리·ISO 9001 품질경영(PDCA), WBS 진척관리, 백업/복구 계획, 하자보수 1년. 3개월 내 1차 오픈 + 1개월 무결점 안정화(총 150일).
+※ 일부 절에서 가용성 SLA 목표·측정·패널티가 정량화되지 않았고, RTO/RPO 정량 목표는 명시되지 않음.`,
+  kw_summary:`[발표자료·요약본] 강원랜드 콜센터 재구축 — "10년 운영 자산으로 완성하는 미래 10년"
+핵심: 경쟁사가 가질 수 없는 5대 지표 — 운영 10년 / 기간계 인터페이스 10건 / 콜데이터 200만건 / 완수 약속 150일 / 마이그레이션 손실 0건·분석 0일.
+4대 전략: ①AX 검증된 Cisco 콜인프라로 미래 AI 확장(재투자 Zero) ②CX 옴니채널 통합운영·데이터 기반 IVR/상담APP 개선 ③ROI 선제적 장애대응·누적이슈 사전반영·이관 30% 단축 ④EX 10년 사업자 직접 이관(손실0·분석0)로 안정화 단축.
+사업이해: AS-IS 다중벤더 분산·EOS·시즌 콜량 2.44배 변동 → 전면 재구축 시급. 5대 운영 리스크(노후·AI공백·옴니채널 파편화·규제·품질).
+추진전략: 4대 차별화 + 8대 Action으로 AX·CX·ROI·EX 동시 향상. 옴니채널 단계 확장(PHASE1 음성·SMS·FAX·Email → PHASE2 카톡·게시판 → PHASE3 생성형AI/AICC).
+기대효과: 고객 대기 32%↓, AHT 18%↓, OB 연결률 15%p↑, 시즌 포기율 15.5%→5%.`,
+
+  pub_rfp:`[과업지시서] 차세대 지방세 통합정보시스템 구축 사업
+1.2 사업기간: 14개월 / 1.3 총사업예산: 86억원 / 2 부과·징수·체납·전자납부 통합
+3.2 등급별 투입인력(특급·고급·중급) M/M 표 제출 필수
+4.2 단계별 산출물·검수기준·검수 체크리스트 정의
+5.1 ISMS 인증 보유 증빙(유효기간·인증범위) / 5.4 PIA 수행계획(주체·일정·산출물) 필수(미이행 시 감점)
+6.3 가용성 99.9% 이상 보장 및 측정·보고 체계 / 6.5 BCP·RTO/RPO 목표 제시
+7.1 하자보수 범위·기간(최소 12개월) / 8.1 단계별 지급조건·금액 매핑표
+2.2 최근 3년 동종 정보화사업 수행실적 3건 이상`,
+  pub_proposal:`[제안서] 차세대 지방세 통합정보시스템 — (주)리얼테크솔루션
+2.2 최근 3년 지방세·세정 4건 수행. 3.2 등급별 투입(특급4·고급18·중급22 M/M).
+3.5 단계별 산출물·검수 체크리스트 142항목. 4.1 가용성 99.9% WAS/DB 이중화(일부 99.95% 혼재).
+4.3 자체 분석엔진 RT-Insight. 4.4 장애대응 절차(RTO/RPO는 추후 협의). 5장 12개월 무상 유지보수.
+부록C ISMS 인증서(범위·기간 보완 예정). 6장 마일스톤 일부만 금액 매핑.
+※ 개인정보 영향평가(PIA) 수행계획 별도 서술 미확인.`,
+  pub_summary:`[발표자료] 차세대 지방세 — 핵심 요약(12면)
+사업 14개월·86억, 자체엔진 RT-Insight·동종 4건. 추진일정(본문 WBS와 일부 상이).
+가용성 99.9% 이중화, 체납 징수율 향상·민원시간 단축. 사업비 1,200백만원 단위 혼재(정정 필요).`,
+
+  fin_rfp:`[과업지시서] 여신심사 자동화 플랫폼 구축(금융권) · 11개월
+3.1 전자금융감독규정·금융보안원 가이드 준수 / 3.2 신용정보법·개인정보보호법 준수
+4.1 모델 리스크 관리(검증·모니터링·재학습) / 4.2 BCP·RTO 30분·RPO 5분
+5 ISMS-P·망분리·암호화 / 6 심사 P95 1초·가용성 99.95% / 7 모델 성능지표(AUC·KS·연체율) 데이터 제시`,
+  fin_proposal:`[제안서] 여신심사 자동화 플랫폼 — (주)파인데이터
+3 규정 항목별 매핑표·신용정보법 절차. 4 모델 리스크 등급표·재학습 체계.
+4.2 RTO 30분 명시, RPO는 협의 기재. 5 ISMS-P 인증서(범위 보완)·망분리·전구간 암호화.
+6 P95 0.8초·99.95% 이중화. 7 AUC 0.86·KS 0.42·연체율 1.2%p 개선 실적 데이터 제시.`,
+
+  pri_rfp:`[제안요청] D2C 커머스 마케팅 자동화 SaaS 도입(민간)
+목표: 캠페인 자동화로 전환율·ROAS 개선, 운영공수 절감. 평가 중점: 차별화 기술·ROI·실행 가능성·레퍼런스.
+요구: CRM/광고/메시징 연동, A/B 테스트, 세그먼트 자동화, 대시보드.`,
+  pri_proposal:`[제안서] 마케팅 자동화 SaaS 'GrowthPilot' — (주)그로스랩
+실시간 세그먼트 엔진+생성형 카피로 제작시간 70%↓. 도입 6개월 ROAS +38%, 운영공수 60h/월 절감.
+D2C 12개사 도입·NPS 64. 커넥터 12종·4주 온보딩. ※ 정보보안·개인정보 처리 서술 간략, 규정 매핑 미흡.`,
+  pri_summary:`[피치덱] GrowthPilot 8슬라이드 — 문제/솔루션/차별점(실시간 세그먼트)/성과(ROAS+38%)/레퍼런스 12개사/가격·도입/로드맵/기대효과.`,
+
+  wpub_rfp:`[과업지시서] 스마트시티 통합관제 플랫폼 구축 · 16개월
+필수: 등급별 인력, 단계별 산출물·검수, ISMS, PIA, 가용성 99.9%, BCP, 하자보수, 국가표준 API 연계, 실적 3건.`,
+  wpub_proposal:`[제안서] 스마트시티 통합관제 — (주)미들웨어스
+기능 일반 나열·RFP 매핑 부족. 인력 총 M/M만(등급 미구분). 검수기준 모호.
+ISMS/PIA·BCP·표준연계·가용성 측정체계 대부분 누락 또는 일반론. 유사실적 2건(3건 기준 미달).`,
+};
+
+function dd(name,text){ return {name, size:text.length*2, text, chars:text.length}; }
+
+function buildDemoResult(spec){
+  const sec=SECTORS[spec.sector];
+  const categories=CATS.map(c=>({key:c.key,label:c.label,score:spec.scores[c.key],weight:sec.weights[c.key],criteria:DEMO_CRIT[c.key]}));
+  const requirements=spec.reqs.map(a=>({id:a[0],text:a[1],mandatory:a[2],status:a[3],evidence:a[4],fix:a[5],page:a[6],criterion:a[7]}));
+  const cov={met:0,partial:0,missing:0,total:requirements.length}; requirements.forEach(r=>cov[r.status]++);
+  const tw=categories.reduce((a,c)=>a+c.weight,0);
+  const overall=Math.round(categories.reduce((a,c)=>a+c.score*c.weight,0)/tw);
+  const calls=spec.calls||[{label:'통합 품질분석',in:4200,out:1180},{label:'교차 재검증',in:2600,out:560}];
+  const tin=calls.reduce((a,c)=>a+c.in,0), tout=calls.reduce((a,c)=>a+c.out,0);
+  const prov=spec.provider||S.provider;
+  return {
+    sector:spec.sector, provider:prov, model:spec.model||PROVIDER_META[prov].models[0], mode:spec.mode||'standard', ts:Date.now(),
+    scope:spec.scope||'RFP 대조 검사',
+    overall, grade:gradeOf(overall), confidence:spec.confidence,
+    categories, requirements, coverage:cov,
+    strengths:spec.strengths||[], risks:spec.risks||[], typos:spec.typos||[], evaluatorView:spec.evaluatorView||[],
+    highlights:spec.highlights||null, subtitle:spec.subtitle||'',
+    alignment:spec.alignment||{rfp:overall-2,summary:null},
+    reval:{adjusted:(spec.flags||[]).length, flags:spec.flags||[], note:spec.revalNote||'재검증 완료.', applied:true},
+    tokens:{input:tin,output:tout,total:tin+tout,calls}, calls,
+  };
+}
+
+/* ===== 데모 케이스 라이브러리 ===== */
+const DEMO_CASES=[
+  { id:'kangwonland', sector:'public', tone:'우수', title:'강원랜드 콜센터시스템 재구축', org:'이씨에스텔레콤 · 14.9억 / 150일',
+    docs:{ rfp:dd('강원랜드_제안요청서.hwp',DEMO_DOCS.kw_rfp), proposal:dd('강원랜드_본제안서_합본.pptx',DEMO_DOCS.kw_proposal), summary:dd('강원랜드_요약본.pptx',DEMO_DOCS.kw_summary) },
+    spec:{ sector:'public', scope:'RFP 대조 검사', confidence:89, subtitle:'10년 운영 자산 기반 · IPCC/AICC 확장형',
+      scores:{req:94,compliance:88,logic:90,evidence:91,risk:84,diff:96,readability:86,align:88},
+      alignment:{rfp:92,summary:88},
+      highlights:[
+        {n:200,suffix:'만건',label:'누적 콜 데이터',sub:'10년 운영 자산',color:'var(--teal)',ico:'<path d="M3 12a9 3 0 1 0 18 0 9 3 0 1 0-18 0M3 12v6c0 1.7 4 3 9 3s9-1.3 9-3v-6M3 12" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>'},
+        {n:60,suffix:'개',label:'RFP 요구사항 수용',sub:'100% · 세부 276항목',color:'var(--primary)',ico:'<path d="M9 11l3 3 8-8M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'},
+        {n:32,suffix:'%↓',label:'고객 대기시간 감소',sub:'데이터 재설계 기대효과',color:'var(--green)',ico:'<path d="M12 8v4l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'},
+        {n:150,suffix:'일',label:'무손실 이관 완수',sub:'분석 0일 · 손실 0건',color:'var(--violet)',ico:'<path d="M8 2v4M16 2v4M3 9h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>'},
+        {n:26,suffix:'M/M',label:'전문 인력 투입',sub:'26년 PM 직접 수행',color:'var(--amber)',ico:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.87M16 3.13A4 4 0 0 1 16 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'},
+      ],
+      reqs:[
+        ['R1','IP-PBX 80CH 이상 콜인프라 구성(하향 불허)',true,'met','Cisco One Vendor·80CH 이상·TTA Ver.4 인증','','III. 장비구성(ECR)','ECR: IP-PBX 80CH 이상 필수'],
+        ['R2','옴니채널 통합 응대(음성·SMS·FAX·Email)',true,'met','PHASE1 4채널 상담APP 통합 UI','','II. 추진전략 / III(SFR)','SFR: 멀티채널 통합 상담'],
+        ['R3','기간계 인터페이스 10건 연계',true,'met','RMS·CRM·카지노·객실예약·삼성IP-PBX PRI 10건 검증','','III. 인터페이스(SIR)','SIR: 기간계 10건 연계'],
+        ['R4','생성형 AI 연계 구조 사전 반영',true,'met','PHASE3 AICC 확장·SIR-001 충족 설계','','II / III(SIR-001)','SIR-001: 생성형 AI 연계'],
+        ['R5','정보보안·개인정보(ISMS-P·암호화·접근통제)',true,'met','ISMS-P 대응·AES/TLS·마스킹·시큐어코딩·취약점 진단','','IV. 기밀보안(SR)','SR: ISMS-P·개인정보 보호'],
+        ['R6','데이터 마이그레이션 무손실(상담·녹취·통계)',true,'met','스키마 사전파악·손실 0건·분석 0일','','III. 데이터(DAR/QR)','DAR: 데이터 이관·정합성'],
+        ['R7','성능·가용성 SLA 목표·측정·보고 체계',true,'partial','이중화·응답 94.4% 제시','가용성 SLA 목표·측정·미달 패널티 정량화','III. 성능(PER)','PER: 가용성·SLA 측정'],
+        ['R8','장애 대응·서비스 연속성·백업/복구',true,'partial','통합 모니터링·백업/복구 계획','RTO/RPO 정량 목표·복구 시나리오 명시','IV. 기밀보안/일정','PER/PMR: 연속성·BCP'],
+        ['R9','투입인력 26M/M·등급별 단계별 공수',true,'met','단계별 공수표·핵심인력 상시배치·PM 26년','','IV. 수행조직(PMR)','PMR: 등급별 투입·공수'],
+        ['R10','품질관리·테스트 계획·하자보수 1년',true,'met','ISO 9001 PDCA·테스트 설계·하자보수 1년','','III. 품질(QR)/IV','QR: 품질보증·하자 1년'],
+        ['R11','교환기·서버·DB·WAS 이중화',true,'met','Active-Standby·세션 클러스터링·회선 이원화','','III. 장비/기능','ECR/SFR: 이중화'],
+        ['R12','요구사항 대비표(조견표)·계량화 표현',true,'partial','조견표 제시·정량 근거 다수','모호 표현 정비·전 항목 계량화 표기 통일','전체 / 제출형식','RFP: 조견표·계량화 필수'],
+      ],
+      strengths:['10년 운영 incumbent 자산(콜데이터 200만건)으로 검증된 차별성','RFP 60개 요구사항 100% 수용·276 세부항목 매핑','정량 근거 풍부(응답률 94.4%·시즌 2.44배·AHT 18%↓)','Cisco One Vendor 글로벌 표준·TTA Ver.4·IPv6 인증','데이터 무손실 이관(손실 0건·분석 0일)','26 M/M 전문 인력·26년 PM 직접 수행'],
+      risks:[
+        {level:'mid',title:'가용성 SLA 정량 목표·패널티 미흡',detail:'응답·이중화는 제시되나 가용성 목표 수치·측정·보고 체계와 미달 패널티가 정량화되지 않음.',action:'가용성 목표(예 99.9%)·측정지표·보고주기·패널티를 표로 명시',page:'III. 성능(PER)'},
+        {level:'mid',title:'RTO/RPO 등 연속성 정량 목표 부재',detail:'백업/복구·장애대응은 충실하나 RTO/RPO 정량 목표와 복구 시나리오가 명시되지 않음.',action:'RTO/RPO 목표와 단계별 복구 시나리오를 정량 제시',page:'IV. 기밀보안/일정'},
+        {level:'low',title:'발표본–본문 수치/표기 불일치',detail:'요약본·본문 간 응답시간·콜량 표기가 일부 상이.',action:'핵심 수치를 단일 출처로 정합화',page:'요약본 / 본문 정량근거'},
+        {level:'mid',title:'incumbent 강점의 객관성 우려',detail:'"10년 자산" 강조가 발주처 관점에서 편향으로 비칠 수 있음.',action:'운영 자산을 검증 가능한 지표·산출물로 객관화 제시',page:'II. 사업이해도'},
+      ],
+      typos:[
+        {page:'요약본 표지',kind:'표기 불일치',wrong:'이씨에스텔레콤 ↔ ECS ↔ 이씨에스 혼용',fix:'정식 표기 1종으로 통일(첫 등장 시 정의)'},
+        {page:'전략 01',kind:'표기 불일치',wrong:'Cisco One Vendor ↔ 원벤더 혼용',fix:'표기 통일'},
+        {page:'Action 4',kind:'수치/단위',wrong:'응답 10초 ↔ 30초 맥락 불명',fix:'평상시/시즌 구분 라벨 병기'},
+        {page:'추진전략',kind:'약어 정의',wrong:'AX·CX·EX·ROI 첫 등장 정의 누락',fix:'각주/범례로 약어 정의 명시'},
+        {page:'사업이해도 ①',kind:'오타',wrong:'콜센타',fix:'콜센터'},
+        {page:'일정계획',kind:'띄어쓰기',wrong:'무중단이행',fix:'무중단 이행'},
+      ],
+      evaluatorView:[
+        {severity:'high',title:'정량 효과를 배점표 앞단에 배치',comment:'RFP가 계량화를 필수로 명시했습니다. 대기 32%↓·AHT 18%↓·시즌 포기율 15.5%→5% 등 핵심 수치를 요약 1면에 노출해 정성평가(80점)에서 즉시 인지되게 하세요.'},
+        {severity:'high',title:'요구사항 대비표(조견표) 완결성',comment:'조견표는 RFP 필수 제출물입니다. 60개 요구사항 ↔ 제안서 페이지 매핑을 빠짐없이 채우면 충족 판정 속도와 정확도가 올라갑니다.'},
+        {severity:'mid',title:'성능·연속성 정량화(SLA·RTO/RPO)',comment:'가용성 목표·측정·패널티, RTO/RPO를 정량 제시해 모호 표현 감점을 방지하세요(RFP: 모호 표현은 불가능으로 간주).'},
+        {severity:'mid',title:'incumbent 강점의 객관화',comment:'"10년 자산"을 발주처가 검증 가능한 지표·산출물로 제시하면 공정성 우려를 차단하고 차별성 점수를 지킬 수 있습니다.'},
+        {severity:'low',title:'약어·표기 일관성',comment:'ECS, AX/CX/EX/ROI 등 약어·표기를 통일하고 첫 등장 시 정의를 부여하세요.'},
+      ],
+      flags:[
+        {target:'정량 근거·데이터',issue:'운영 데이터 근거가 풍부·구체적이어서 상향',delta:'+5'},
+        {target:'R7 (성능 SLA)',issue:'가용성 정량 목표·패널티 부재로 부분충족',delta:'-5'},
+        {target:'차별성·경쟁력',issue:'10년 운영 자산 근거가 검증되어 상향',delta:'+4'},
+        {target:'규정·형식 준수',issue:'ISMS-P "대응"과 인증 보유 구분 명확화 권고',delta:'-2'},
+      ],
+      revalNote:'10년 운영 자산 기반 차별성과 정량 근거가 매우 강해 evidence·diff 축 상향. 성능 가용성 SLA·RTO/RPO 정량화가 핵심 보완점. PIA는 RFP상 별도 계약이므로 누락이 아니며, 보안성 심의·ISMS-P 연계 협조 방안 보강을 권고. 표기·약어 일관성 6건 도출. 종합 신뢰도 우수.',
+    }},
+
+  { id:'public', sector:'public', tone:'양호', title:'차세대 지방세 통합정보시스템', org:'리얼테크솔루션 · 86억 / 14개월',
+    docs:{ rfp:dd('지방세시스템_과업지시서.txt',DEMO_DOCS.pub_rfp), proposal:dd('지방세시스템_제안서.docx',DEMO_DOCS.pub_proposal), summary:dd('지방세시스템_발표본.pdf',DEMO_DOCS.pub_summary) },
+    spec:{ sector:'public', scope:'RFP 대조 검사', confidence:87,
+      scores:{req:88,compliance:91,logic:82,evidence:79,risk:74,diff:76,readability:85,align:80},
+      alignment:{rfp:85,summary:79},
+      highlights:[
+        {n:4,suffix:'건',label:'동종 수행실적',sub:'최근 3년(기준 3건)',color:'var(--primary)',ico:'<path d="M4 21V8l8-5 8 5v13M9 21v-6h6v6" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>'},
+        {n:142,suffix:'개',label:'검수 체크리스트',sub:'단계별 산출물',color:'var(--teal)',ico:'<path d="M9 11l2 2 4-4M5 4h14a1 1 0 0 1 1 1v15l-4-2-4 2-4-2-4 2V5a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>'},
+        {text:'99.9',suffix:'%',label:'가용성 목표',sub:'WAS/DB 이중화',color:'var(--green)',ico:'<path d="M12 3 4 7v5c0 5 3.5 8 8 9 4.5-1 8-4 8-9V7l-8-4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>'},
+        {n:12,suffix:'개월',label:'무상 유지보수',sub:'하자보수 포함',color:'var(--violet)',ico:'<path d="M14 7a3 3 0 1 0-4 4l-6 6v3h3l6-6a3 3 0 0 0 4-4l-2 2-3-3 2-2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>'},
+      ],
+      reqs:[
+        ['R1','사업 수행 인력의 등급별 투입계획 명시',true,'met','3.2절 투입인력표에 등급·M/M 명시','','p.12 (3.2절)','RFP 3.2: 등급별 투입 M/M 표'],
+        ['R2','정보보안 관리체계(ISMS) 인증 보유 증빙',true,'met','부록 C 인증서 사본 첨부','유효기간·인증범위 명시 보완','부록 C, p.41','RFP 5.1: 인증서·범위·기간'],
+        ['R3','단계별 산출물 및 검수 기준 정의',true,'met','WBS·검수 체크리스트 142항목','','p.18 (3.5절)','RFP 4.2: 산출물·검수기준'],
+        ['R4','가용성 99.9% SLA 충족 방안',true,'partial','이중화 구성 언급','측정지표·보고주기·패널티 정량화','p.23 (4.1절)','RFP 6.3: 가용성 측정·보고'],
+        ['R5','유지보수 및 하자보수 범위·기간',true,'met','계약 후 12개월 무상 유지보수','','p.30 (5절)','RFP 7.1: 하자보수 범위·기간'],
+        ['R6','개인정보 영향평가(PIA) 수행 계획',true,'missing','해당 내용 식별되지 않음','PIA 수행 주체·일정·산출물 별도 섹션 추가','— (누락)','RFP 5.4: PIA 필수(미이행 감점)'],
+        ['R7','유사사업 수행실적 3건 이상',true,'met','최근 3년 4건 실적표 제시','','p.8 (2.2절)','RFP 2.2: 최근 3년 3건 이상'],
+        ['R8','총사업비 대비 단계별 지급 일정',true,'partial','마일스톤 일부만 금액 매핑','지급조건·검수연계 정량 매핑','p.34 (6절)','RFP 8.1: 단계별 지급조건'],
+        ['R9','차별화된 기술요소·자체 솔루션',false,'partial','자체 분석엔진 RT-Insight 언급','정량 효과(성능·절감) 근거 추가','p.26 (4.3절)','가점: 자체기술·차별성'],
+        ['R10','비상대응·BCP·RTO/RPO',true,'partial','장애대응 절차 일부','RTO/RPO 정량 목표 명시','p.28 (4.4절)','RFP 6.5: BCP·RTO/RPO'],
+      ],
+      strengths:['정량평가 항목 추적성 우수','평가표 배점 구조에 부합','규정·서식 준수율 높음','수행실적 충분(3년 4건)'],
+      risks:[
+        {level:'high',title:'필수 요구 R6 누락 위험',detail:'개인정보 영향평가(PIA) 서술이 식별되지 않아 정량평가 감점 또는 실격 가능.',action:'PIA 수행 주체·일정·산출물을 별도 섹션으로 추가',page:'— (누락)'},
+        {level:'mid',title:'SLA 측정 기준 정성적 서술',detail:'가용성 목표는 있으나 측정·보고 방식과 패널티가 정량화되지 않음.',action:'측정지표·주기·패널티를 표로 명시',page:'p.23 (4.1절)'},
+        {level:'mid',title:'단계별 지급-검수 연계 미흡',detail:'마일스톤과 지급 금액 매핑이 일부만 제시됨.',action:'검수 합격 기준과 지급조건을 1:1로 연결',page:'p.34 (6절)'},
+        {level:'low',title:'발표본–제안서 수치 불일치',detail:'요약본 일정과 본문 WBS 마일스톤 표기가 일부 상이.',action:'핵심 수치 단일 출처로 정합화',page:'발표본 p.3 / 본문 p.18'},
+      ],
+      typos:[
+        {page:'p.7 (2.1절)',kind:'오타',wrong:'구축율',fix:'구축률'},
+        {page:'p.12 (3.2절)',kind:'띄어쓰기',wrong:'추진 할 예정',fix:'추진할 예정'},
+        {page:'p.15 / p.23',kind:'표기 불일치',wrong:'가용성 99.9% ↔ 99.95% 혼재',fix:'99.9%로 통일'},
+        {page:'p.19 (4절)',kind:'문법',wrong:'~를 통한 효율을 개선',fix:'~를 통해 효율을 개선'},
+        {page:'발표본 p.6',kind:'수치/단위',wrong:'1,200백만원',fix:'12억 원(또는 1,200,000천원)로 통일'},
+        {page:'p.41 (부록 C)',kind:'고유명사',wrong:'아이에스엠에스',fix:'정식 표기 "ISMS"'},
+      ],
+      evaluatorView:[
+        {severity:'high',title:'PIA 수행계획 즉시 보강',comment:'필수 항목 누락은 정량평가에서 치명적입니다. PIA 수행 주체·일정·산출물을 한 페이지로 명시해 실격 위험을 제거하세요.'},
+        {severity:'mid',title:'요구사항 추적표(RTM) 첨부',comment:'RFP 항목 ↔ 제안서 페이지 매핑표가 있으면 충족 판정이 빨라져 누락 감점 위험이 줄어듭니다.'},
+        {severity:'mid',title:'SLA 측정·패널티 정량화',comment:'가용성 목표만으로는 부족합니다. 측정지표·보고주기·미달 패널티를 표로 제시하세요.'},
+        {severity:'low',title:'표·그림 캡션/번호 통일',comment:'그림 번호·캡션 누락이 있어 가독성 점수에 영향. 일괄 번호 부여를 권장합니다.'},
+      ],
+      flags:[
+        {target:'정량 근거·데이터',issue:'근거 인용은 충분하나 출처 표기 일부 누락',delta:'-3'},
+        {target:'R4 (SLA)',issue:'충족→부분충족: 측정방식 근거 부족',delta:'-6'},
+        {target:'규정·형식 준수',issue:'서식 준수 근거 확인되어 소폭 상향',delta:'+2'},
+      ],
+      revalNote:'근거 교차검증 결과 3개 항목 점수 보정. PIA 누락 1건은 필수요구 실격 위험으로 최우선 처리 권고. 오타·표기 6건, 평가자 관점 개선 4건 도출.',
+    }},
+
+  { id:'finance', sector:'finance', tone:'양호', title:'여신심사 자동화 플랫폼', org:'파인데이터 · 금융권 / 11개월',
+    docs:{ rfp:dd('여신심사_과업지시서.txt',DEMO_DOCS.fin_rfp), proposal:dd('여신심사_제안서.docx',DEMO_DOCS.fin_proposal) },
+    spec:{ sector:'finance', scope:'RFP 대조 검사', confidence:84,
+      scores:{req:82,compliance:84,logic:81,evidence:90,risk:86,diff:74,readability:78,align:80},
+      alignment:{rfp:82,summary:null},
+      highlights:[
+        {text:'0.86',suffix:'',label:'모델 AUC',sub:'KS 0.42',color:'var(--teal)',ico:'<path d="M3 13h4l3 7 4-16 3 9h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'},
+        {text:'1.2',suffix:'%p↓',label:'연체율 개선',sub:'실적 데이터',color:'var(--green)',ico:'<path d="M3 17l6-6 4 4 8-8M21 7v6m0-6h-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'},
+        {text:'0.8',suffix:'초',label:'심사 P95 응답',sub:'가용성 99.95%',color:'var(--primary)',ico:'<path d="M13 2 4 14h7l-1 8 10-12h-7l1-8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>'},
+        {n:30,suffix:'분',label:'RTO 목표',sub:'RPO 보완 필요',color:'var(--amber)',ico:'<path d="M12 8v4l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'},
+      ],
+      reqs:[
+        ['R1','전자금융감독규정·금융보안 가이드 준수',true,'met','규정 항목별 매핑표 제시','','p.14 (3.1절)','RFP 3.1: 감독규정 준수'],
+        ['R2','신용정보법·개인정보보호법 준수 절차',true,'met','정보주체 권리보장 절차 기술','','p.16 (3.2절)','RFP 3.2: 신용정보·개인정보'],
+        ['R3','모델 리스크 관리(검증·모니터링·재학습)',true,'met','모델 리스크 등급표·재학습 체계','','p.20 (4.1절)','RFP 4.1: 모델 리스크 관리'],
+        ['R4','BCP 및 RTO 30분/RPO 5분 목표',true,'partial','RTO 30분 명시, RPO 협의','RPO 5분 정량 목표·복구 시나리오 명시','p.22 (4.2절)','RFP 4.2: RTO/RPO 정량'],
+        ['R5','ISMS-P 인증 및 망분리·암호화',true,'partial','인증서 첨부, 범위 표기 보완','인증범위·유효기간 명시','부록 B','RFP 5: ISMS-P·망분리'],
+        ['R6','심사 P95 1초·가용성 99.95%',true,'met','P95 0.8초·99.95% 이중화','','p.26 (6절)','RFP 6: 성능·가용성'],
+        ['R7','모델 성능지표 데이터(AUC/KS 등)',true,'met','AUC 0.86·KS 0.42·연체율 개선','','p.28 (7절)','RFP 7: 정량근거'],
+        ['R8','데이터 거버넌스·품질관리 체계',false,'partial','데이터 적재 절차 일부','품질지표·정합성 점검 주기 보강','p.30','가점: 데이터 거버넌스'],
+      ],
+      strengths:['리스크 식별·대응 체계 명확','정량 근거(데이터·지표) 풍부','규제 매핑 표 제시','이중화·연속성 설계 구체적'],
+      risks:[
+        {level:'high',title:'RPO 목표 미정량',detail:'RPO가 "협의"로 기재되어 연속성 평가에서 감점 가능.',action:'RPO 5분 목표와 복구 시나리오를 정량 제시',page:'p.22 (4.2절)'},
+        {level:'mid',title:'ISMS-P 인증범위 불명확',detail:'인증서는 있으나 적용 범위·유효기간 표기가 미흡.',action:'인증범위·기간을 본문과 부록에 일치 표기',page:'부록 B'},
+        {level:'low',title:'차별성 입증 약함',detail:'모델 우수성은 제시되나 경쟁 대비 차별 서술이 약함.',action:'경쟁 모델 대비 벤치마크 비교표 추가',page:'p.28'},
+      ],
+      typos:[
+        {page:'p.16 (3.2절)',kind:'표기 불일치',wrong:'개인정보보호법 ↔ 개보법 혼용',fix:'정식 명칭으로 통일'},
+        {page:'p.22',kind:'수치/단위',wrong:'RPO 5min ↔ 5분 혼재',fix:'단위 표기를 "분"으로 통일'},
+        {page:'p.28 (7절)',kind:'오타',wrong:'연체률',fix:'연체율'},
+        {page:'p.20',kind:'띄어쓰기',wrong:'재 학습',fix:'재학습'},
+      ],
+      evaluatorView:[
+        {severity:'high',title:'연속성 목표 정량화',comment:'금융권 평가에서 RTO/RPO 정량값과 복구 시나리오는 핵심 채점 포인트입니다. RPO를 즉시 확정하세요.'},
+        {severity:'mid',title:'모델 검증 독립성 명시',comment:'개발-검증 조직 분리(독립검증)를 명시하면 모델 리스크 신뢰도가 올라갑니다.'},
+        {severity:'low',title:'벤치마크 비교표',comment:'AUC/KS 절대값에 더해 동종 대비 비교를 제시하면 차별성 점수가 개선됩니다.'},
+      ],
+      flags:[
+        {target:'R4 (RPO)',issue:'정량 목표 부재로 부분충족 유지',delta:'-5'},
+        {target:'정량 근거·데이터',issue:'데이터 근거 충실하여 상향',delta:'+4'},
+        {target:'ISMS-P 범위',issue:'증빙 일부 확인되어 소폭 상향',delta:'+2'},
+      ],
+      revalNote:'정량 근거가 풍부해 evidence 축 상향. 연속성(RPO) 정량화 부재가 핵심 보완점. 규제 매핑은 양호. 오타·표기 4건 도출.',
+    }},
+
+  { id:'private', sector:'private', tone:'우수', title:'마케팅 자동화 SaaS · GrowthPilot', org:'그로스랩 · D2C 12개사 레퍼런스',
+    docs:{ rfp:dd('SaaS_제안요청.txt',DEMO_DOCS.pri_rfp), proposal:dd('GrowthPilot_제안서.docx',DEMO_DOCS.pri_proposal), summary:dd('GrowthPilot_피치덱.pdf',DEMO_DOCS.pri_summary) },
+    spec:{ sector:'private', scope:'RFP 대조 검사', confidence:86,
+      scores:{req:84,compliance:68,logic:86,evidence:82,risk:74,diff:92,readability:88,align:84},
+      alignment:{rfp:84,summary:80},
+      highlights:[
+        {n:38,suffix:'%↑',label:'ROAS 개선',sub:'도입 6개월(평균)',color:'var(--green)',ico:'<path d="M3 17l6-6 4 4 8-8M21 7v6m0-6h-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'},
+        {n:12,suffix:'개사',label:'D2C 레퍼런스',sub:'NPS 64',color:'var(--primary)',ico:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'},
+        {n:70,suffix:'%↓',label:'캠페인 제작시간',sub:'자동화+생성형',color:'var(--violet)',ico:'<path d="M13 2 4 14h7l-1 8 10-12h-7l1-8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>'},
+        {n:4,suffix:'주',label:'온보딩 기간',sub:'커넥터 12종',color:'var(--teal)',ico:'<path d="M8 2v4M16 2v4M3 9h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>'},
+      ],
+      reqs:[
+        ['R1','차별화 기술·자체 솔루션',false,'met','실시간 세그먼트 엔진+생성형 카피','','S3 / p.4','중점: 차별화 기술'],
+        ['R2','ROI·비즈니스 임팩트 정량 제시',false,'met','ROAS +38%·운영공수 60h/월 절감','','S4 / p.6','중점: ROI·임팩트'],
+        ['R3','레퍼런스(도입 사례) 증빙',false,'met','D2C 12개사·NPS 64·사례별 표','','S5 / p.8','중점: 레퍼런스'],
+        ['R4','CRM/광고/메시징 연동 범위',true,'met','커넥터 12종 제공','','p.10','요구: 채널 연동'],
+        ['R5','A/B 테스트·세그먼트 자동화',true,'met','실험 설계·자동 세그먼트','','p.11','요구: 실험·자동화'],
+        ['R6','정보보안·개인정보 처리방침',true,'partial','처리방침 간략 서술','보안 인증·데이터 처리 흐름 보강','p.14','요구: 보안·개인정보'],
+        ['R7','도입·온보딩 실행 계획',true,'met','4주 온보딩 일정','','p.12','요구: 실행 가능성'],
+        ['R8','SLA·가용성·지원 체계',true,'partial','지원 채널 언급, SLA 미흡','가용성·응답 SLA 정량 명시','p.13','요구: 운영 SLA'],
+      ],
+      strengths:['차별화 솔루션 스토리라인 강력','ROI·기대효과 정량 제시','경쟁사 대비 우위 명료','레퍼런스·시각자료 완성도 높음'],
+      risks:[
+        {level:'high',title:'보안·개인정보 서술 미흡',detail:'민감정보 처리 흐름·보안 인증 근거가 약해 도입 심사에서 우려 가능.',action:'데이터 처리 흐름도·보안 인증 현황을 별도 섹션으로 추가',page:'p.14'},
+        {level:'mid',title:'운영 SLA 정량 부재',detail:'지원 체계는 있으나 가용성·응답 SLA가 정량화되지 않음.',action:'가용성 목표·응답시간 SLA를 표로 명시',page:'p.13'},
+        {level:'low',title:'가격 모델 가정 노출',detail:'ROI 산출의 전제 가정이 일부만 제시됨.',action:'ROI 산출 근거·가정을 부록으로 투명화',page:'S6'},
+      ],
+      typos:[
+        {page:'S4',kind:'표기 불일치',wrong:'ROAS +38% ↔ 본문 +35% 혼재',fix:'성과 수치를 단일 출처로 통일'},
+        {page:'p.6',kind:'수치/단위',wrong:'60시간/월 ↔ 월 60h 혼용',fix:'단위 표기 통일'},
+        {page:'p.11',kind:'오타',wrong:'세그먼트 자동화 기증',fix:'세그먼트 자동화 기능'},
+      ],
+      evaluatorView:[
+        {severity:'high',title:'보안·컴플라이언스 보강',comment:'민간이라도 고객 데이터 처리 시 보안 신뢰가 결정적입니다. 처리 흐름·인증을 명확히 하세요.'},
+        {severity:'mid',title:'ROI 가정 투명화',comment:'ROAS +38%의 산출 전제(기간·표본·채널)를 부록으로 공개하면 설득력이 강화됩니다.'},
+        {severity:'low',title:'발표본–본문 수치 정합',comment:'피치덱과 본문의 성과 수치 표기를 통일해 신뢰도를 지키세요.'},
+      ],
+      flags:[
+        {target:'차별성·경쟁력',issue:'레퍼런스 근거 충실하여 상향',delta:'+5'},
+        {target:'규정·형식 준수',issue:'보안 서술 미흡으로 하향',delta:'-6'},
+        {target:'발표본 정합성',issue:'수치 불일치 확인되어 소폭 하향',delta:'-3'},
+      ],
+      revalNote:'차별성·ROI 서술이 강력해 diff 축 상향. 보안·컴플라이언스 보강이 최우선. 발표본과 본문의 성과 수치 정합화 필요. 표기 3건 도출.',
+    }},
+
+  { id:'weak', sector:'public', tone:'취약', title:'스마트시티 통합관제 플랫폼 (취약 사례)', org:'미들웨어스 · 16개월 — 보완 다수',
+    docs:{ rfp:dd('스마트시티_과업지시서.txt',DEMO_DOCS.wpub_rfp), proposal:dd('스마트시티_제안서.docx',DEMO_DOCS.wpub_proposal) },
+    spec:{ sector:'public', scope:'RFP 대조 검사', confidence:71,
+      scores:{req:58,compliance:52,logic:64,evidence:55,risk:48,diff:60,readability:66,align:62},
+      alignment:{rfp:60,summary:null},
+      highlights:[
+        {n:5,suffix:'건',label:'필수요구 누락',sub:'실격 위험',color:'var(--rose)',ico:'<path d="M12 9v4m0 4h.01M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>'},
+        {text:'2/3',suffix:'건',label:'수행실적(기준 미달)',sub:'자격요건 미충족',color:'var(--rose)',ico:'<path d="M4 21V8l8-5 8 5v13M9 21v-6h6v6" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>'},
+        {n:57,suffix:'점',label:'종합 품질점수',sub:'D등급 · 취약',color:'var(--amber)',ico:'<path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14ZM21 21l-4.3-4.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>'},
+        {n:9,suffix:'개',label:'요구사항 검토',sub:'재작성 권고',color:'var(--ink-soft)',ico:'<path d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>'},
+      ],
+      reqs:[
+        ['R1','등급별 투입인력 계획',true,'partial','총 M/M만, 등급 미구분','특급·고급·중급 M/M 표로 재작성','p.9','RFP: 등급별 투입계획'],
+        ['R2','단계별 산출물·검수기준 정의',true,'partial','산출물 목록만, 검수기준 모호','단계별 검수 체크리스트 정의','p.12','RFP: 산출물·검수기준'],
+        ['R3','ISMS 인증 증빙',true,'missing','증빙 미첨부','유효 인증서·범위·기간 첨부','— (누락)','RFP: ISMS 필수'],
+        ['R4','개인정보 영향평가(PIA)',true,'missing','관련 서술 없음','PIA 수행계획 별도 섹션 추가','— (누락)','RFP: PIA 필수'],
+        ['R5','가용성 99.9% 측정체계',true,'missing','목표·측정 모두 미제시','가용성 목표·측정·보고 체계 제시','— (누락)','RFP: 가용성 99.9%'],
+        ['R6','BCP·비상대응',true,'partial','일반론 수준','RTO/RPO·복구 시나리오 정량화','p.18','RFP: BCP'],
+        ['R7','국가 표준 API 연계',true,'missing','연계 방안 미식별','표준 연계 아키텍처·인터페이스 정의','— (누락)','RFP: 표준 연계'],
+        ['R8','유사사업 실적 3건 이상',true,'missing','2건만 제시(미달)','동종 실적 1건 이상 추가 증빙','p.7','RFP: 실적 3건 이상'],
+        ['R9','하자보수 범위·기간',true,'partial','기간만 언급, 범위 불명확','하자보수 범위 구체화','p.20','RFP: 하자보수'],
+      ],
+      strengths:['솔루션 기능 범위는 폭넓게 제시','전반 목차 구성은 평이하게 갖춤'],
+      risks:[
+        {level:'high',title:'필수 요구 다수 누락',detail:'ISMS·PIA·가용성·표준연계·실적 등 필수 항목 누락 다수로 실격 위험이 높음.',action:'누락 필수 항목을 우선 보강(별도 섹션·증빙 첨부)',page:'— (다수 누락)'},
+        {level:'high',title:'실적 기준 미달',detail:'RFP 3건 기준 대비 2건만 제시되어 자격 요건 미충족 소지.',action:'동종 실적 1건 이상 추가 또는 컨소시엄 보강',page:'p.7'},
+        {level:'mid',title:'요구사항 매핑 부재',detail:'기능 나열 위주로 RFP 항목과의 추적성이 약함.',action:'요구사항 추적표(RTM)로 전면 재구성',page:'전체'},
+      ],
+      typos:[
+        {page:'p.5',kind:'오타',wrong:'관제 시스탬',fix:'관제 시스템'},
+        {page:'p.9',kind:'띄어쓰기',wrong:'투입 할 인력',fix:'투입할 인력'},
+        {page:'p.14',kind:'문법',wrong:'~을 통한 안정성을 확보',fix:'~을 통해 안정성을 확보'},
+      ],
+      evaluatorView:[
+        {severity:'high',title:'필수 항목 전수 점검 후 재작성',comment:'현 상태로는 정량평가 실격 위험이 큽니다. RFP 필수 항목을 체크리스트로 만들어 누락부터 메우세요.'},
+        {severity:'high',title:'자격요건(실적) 우선 해결',comment:'실적 3건 기준 미달은 평가 이전 단계의 결격 사유가 될 수 있습니다. 즉시 보강이 필요합니다.'},
+        {severity:'mid',title:'요구사항 추적표 도입',comment:'기능 나열을 RFP 항목 매핑 구조로 바꾸면 충족 판정과 점수가 크게 개선됩니다.'},
+      ],
+      flags:[
+        {target:'요구사항 충족도',issue:'필수 누락 다수 확인되어 하향',delta:'-8'},
+        {target:'규정·형식 준수',issue:'ISMS/PIA 미첨부로 하향',delta:'-7'},
+        {target:'리스크 관리',issue:'BCP 일반론 수준으로 하향',delta:'-5'},
+      ],
+      revalNote:'필수 요구 누락 다수(ISMS·PIA·가용성·표준연계·실적)로 다수 항목 하향 보정. 자격요건(실적 3건) 미달은 결격 위험. 현 상태 제출 비권장, 누락 보강 후 재검사 필요.',
+    }},
+];
+
+function caseById(id){ return DEMO_CASES.find(c=>c.id===id)||DEMO_CASES[0]; }
+
+function loadDemoCase(id){
+  const c=caseById(id);
+  S.sector=c.spec.sector;
+  S.mode='standard';
+  S.docs={rfp:c.docs.rfp||null, proposal:c.docs.proposal||null, summary:c.docs.summary||null};
+  const r=buildDemoResult(c.spec);
+  S.result=r;
+  S.tokens={input:r.tokens.input, output:r.tokens.output, total:r.tokens.total, calls:[...r.calls]};
+  updateSideTokens(); save();
+  toast('데모 케이스 · '+c.title+' 불러옴');
+  go('dash');
+}
+function loadDemo(){ loadDemoCase('kangwonland'); }
+window.loadDemo=loadDemo; window.loadDemoCase=loadDemoCase;
+function demoResult(){ const c=DEMO_CASES.find(x=>x.sector===S.sector)||DEMO_CASES[0]; return buildDemoResult(c.spec); }
+
+/* ===== UI/UX: 데모 피커 + 임팩트 인포그래픽 + 애니메이션 ===== */
+function ensureDemoCss(){
+  if(document.getElementById('demoCss')) return;
+  const st=document.createElement('style'); st.id='demoCss';
+  st.textContent=
+  /* hero 광택 애니메이션 */
+  '.hero{position:relative;overflow:hidden}'
+  +'.hero::after{content:"";position:absolute;top:-60%;left:-30%;width:60%;height:220%;background:linear-gradient(115deg,transparent,rgba(255,255,255,.13),transparent);transform:rotate(8deg);animation:heroSheen 6.5s ease-in-out infinite;pointer-events:none}'
+  +'@keyframes heroSheen{0%{left:-40%}55%{left:130%}100%{left:130%}}'
+  /* 임팩트 인포그래픽 밴드 */
+  +'.impact-band{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:13px;margin-top:18px}'
+  +'.impact-tile{position:relative;background:linear-gradient(160deg,var(--bg),var(--surface));border:1px solid var(--line);border-radius:var(--r-m);padding:15px 15px 14px;overflow:hidden;box-shadow:var(--shadow-sm);opacity:0;transform:translateY(14px);animation:tileIn .6s cubic-bezier(.2,.8,.2,1) forwards}'
+  +'.impact-tile::before{content:"";position:absolute;inset:0;background:radial-gradient(120px 80px at 90% -10%,var(--ic,#e15a33),transparent 70%);opacity:.10}'
+  +'@keyframes tileIn{to{opacity:1;transform:none}}'
+  +'.impact-tile .it-ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--ibg);color:var(--ic);box-shadow:inset 0 0 0 1px rgba(0,0,0,.03)}'
+  +'.impact-tile .it-ic svg{width:19px;height:19px}'
+  +'.impact-tile .it-numwrap{display:flex;align-items:baseline;gap:2px;margin-top:11px}'
+  +'.impact-tile .it-num{font-family:var(--mono);font-size:30px;font-weight:600;line-height:1;letter-spacing:-1px}'
+  +'.impact-tile .it-suf{font-size:14px;font-weight:700}'
+  +'.impact-tile .it-label{font-size:12.5px;font-weight:800;color:var(--ink);margin-top:5px;letter-spacing:-.2px}'
+  +'.impact-tile .it-sub{font-size:11px;color:var(--ink-soft);font-weight:600;margin-top:2px}'
+  +'.impact-tile .it-bar{height:4px;border-radius:4px;background:var(--surface-2);margin-top:11px;overflow:hidden}'
+  +'.impact-tile .it-bar i{display:block;height:100%;width:0;border-radius:4px;background:var(--ic);transition:width 1.1s cubic-bezier(.2,.8,.2,1) .2s}'
+  /* 데모 피커 */
+  +'.demo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}'
+  +'@media(max-width:1100px){.demo-grid{grid-template-columns:repeat(2,1fr)}}'
+  +'.demo-card{background:var(--bg);border:1px solid var(--line);border-radius:var(--r-m);padding:16px;display:flex;flex-direction:column;gap:9px;box-shadow:var(--shadow-sm);transition:transform .2s cubic-bezier(.2,.8,.2,1),box-shadow .2s,border-color .2s;cursor:pointer;position:relative;overflow:hidden}'
+  +'.demo-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--dc,#e15a33)}'
+  +'.demo-card::after{content:"";position:absolute;right:-30px;top:-30px;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,var(--dc,#e15a33),transparent 70%);opacity:.07;transition:.25s}'
+  +'.demo-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg);border-color:var(--line-strong)}'
+  +'.demo-card:hover::after{opacity:.14;transform:scale(1.15)}'
+  +'.demo-card .dc-top{display:flex;align-items:center;gap:7px;flex-wrap:wrap;position:relative;z-index:1}'
+  +'.demo-card .dc-sector{font-size:10.5px;font-weight:800;padding:3px 8px;border-radius:20px}'
+  +'.demo-card .dc-tone{font-size:10.5px;font-weight:800;padding:3px 8px;border-radius:20px;margin-left:auto}'
+  +'.demo-card h4{font-size:14.5px;font-weight:800;letter-spacing:-.3px;line-height:1.3;position:relative;z-index:1}'
+  +'.demo-card .dc-org{font-size:11px;color:var(--ink-soft);font-weight:600;line-height:1.4;position:relative;z-index:1}'
+  +'.demo-card .dc-mid{display:flex;align-items:center;gap:12px;margin-top:2px;position:relative;z-index:1}'
+  +'.demo-card .dc-ring{flex:none;position:relative;width:74px;height:74px}'
+  +'.demo-card .dc-ring .rnum{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}'
+  +'.demo-card .dc-ring .rnum b{font-family:var(--mono);font-size:21px;font-weight:600;line-height:1}'
+  +'.demo-card .dc-ring .rnum span{font-size:9px;font-weight:800;letter-spacing:.3px}'
+  +'.demo-card .dc-cov{display:flex;flex-direction:column;gap:5px;flex:1}'
+  +'.demo-card .dc-cov .cv{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--ink-soft)}'
+  +'.demo-card .dc-cov .cv .bar{flex:1;height:6px;border-radius:6px;background:var(--surface-2);overflow:hidden}'
+  +'.demo-card .dc-cov .cv .bar i{display:block;height:100%;width:0;border-radius:6px;transition:width 1s cubic-bezier(.2,.8,.2,1) .25s}'
+  +'.demo-card .dc-cov .cv b{font-family:var(--mono);width:14px;text-align:right;color:var(--ink)}'
+  +'.demo-card .dc-docs{display:flex;gap:5px;flex-wrap:wrap;position:relative;z-index:1}'
+  +'.demo-card .dc-docs span{font-size:10px;font-weight:700;color:var(--ink-mute);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:2px 7px}'
+  +'.demo-card .dc-open{margin-top:auto;display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;font-weight:800;color:#fff;background:var(--dc,#e15a33);border-radius:10px;padding:9px;transition:.15s;position:relative;z-index:1}'
+  +'.demo-card .dc-open:hover{filter:brightness(1.07)}'
+  +'.demo-card .dc-open svg{width:15px;height:15px;transition:transform .2s}'
+  +'.demo-card:hover .dc-open svg{transform:translateX(3px)}'
+  +'.demo-hint{font-size:12px;color:var(--ink-soft);margin:-2px 0 12px;line-height:1.5}';
+  document.head.appendChild(st);
+}
+const TONE_STYLE={우수:['var(--green-soft)','var(--green)'],양호:['var(--teal-soft)','var(--teal)'],취약:['var(--rose-soft)','var(--rose)']};
+
+function miniRingSVG(score,color){
+  const R=30,C=2*Math.PI*R, off=C*(1-score/100);
+  return '<svg viewBox="0 0 74 74"><circle cx="37" cy="37" r="'+R+'" fill="none" stroke="var(--surface-2)" stroke-width="8"/>'
+    +'<circle class="gauge-arc" cx="37" cy="37" r="'+R+'" fill="none" stroke="'+color+'" stroke-width="8" stroke-linecap="round" '
+    +'stroke-dasharray="'+C.toFixed(1)+'" stroke-dashoffset="'+C.toFixed(1)+'" data-off="'+off.toFixed(1)+'" '
+    +'transform="rotate(-90 37 37)" style="transition:stroke-dashoffset 1.2s cubic-bezier(.2,.8,.2,1) .15s"/></svg>';
+}
+
+function renderDemoPicker(){
+  ensureDemoCss();
+  const dlabel={rfp:'RFP',proposal:'제안서',summary:'발표본'};
+  const cards=DEMO_CASES.map((c,idx)=>{
+    const sec=SECTORS[c.spec.sector]; const r=buildDemoResult(c.spec);
+    const ts=TONE_STYLE[c.tone]||['var(--surface-2)','var(--ink-soft)'];
+    const docN=['rfp','proposal','summary'].filter(k=>c.docs[k]);
+    const tot=r.coverage.total||1;
+    const covrow=(label,n,col)=>'<div class="cv"><span style="width:9px;height:9px;border-radius:3px;background:'+col+'"></span>'+label+'<span class="bar"><i data-w="'+(n/tot*100).toFixed(0)+'%" style="background:'+col+'"></i></span><b>'+n+'</b></div>';
+    return '<div class="demo-card rv" style="--dc:'+sec.color+';animation-delay:'+(0.08+idx*0.05).toFixed(2)+'s" onclick="loadDemoCase(\''+c.id+'\')">'
+      +'<div class="dc-top"><span class="dc-sector" style="background:'+sec.soft+';color:'+sec.color+'">'+sec.label+'</span>'
+        +'<span class="dc-tone" style="background:'+ts[0]+';color:'+ts[1]+'">'+c.tone+'</span></div>'
+      +'<h4>'+esc(c.title)+'</h4>'
+      +'<div class="dc-org">'+esc(c.org)+'</div>'
+      +'<div class="dc-mid"><div class="dc-ring">'+miniRingSVG(r.overall,r.grade.c)
+        +'<div class="rnum"><b style="color:'+r.grade.c+'" data-count="'+r.overall+'">0</b><span style="color:'+r.grade.c+'">'+r.grade.g+'등급</span></div></div>'
+        +'<div class="dc-cov">'+covrow('충족',r.coverage.met,'var(--green)')+covrow('부분',r.coverage.partial,'var(--amber)')+covrow('누락',r.coverage.missing,'var(--rose)')+'</div></div>'
+      +'<div class="dc-docs">'+docN.map(k=>'<span>'+dlabel[k]+'</span>').join('')+'<span>'+r.requirements.length+'개 요구</span></div>'
+      +'<div class="dc-open">이 케이스 열기<svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>'
+      +'</div>';
+  }).join('');
+  return '<div class="section-title rv" style="animation-delay:.07s"><span class="stbar"></span>키 없이 바로 체험 · 데모 케이스<span class="stn">DEMO LIBRARY · NO API KEY</span></div>'
+    +'<p class="demo-hint rv" style="animation-delay:.07s">API 키나 문서 없이도 아래 샘플 제안서를 눌러 전체 워크플로우(대시보드·인포그래픽·요구사항 매트릭스·재검증·리포트)를 그대로 살펴볼 수 있습니다. 강원랜드 실사업 + 공공·금융·민간 + 취약 사례까지 5종.</p>'
+    +'<div class="demo-grid">'+cards+'</div>';
+}
+
+/* 임팩트 인포그래픽 밴드 (대시보드 상단) */
+function impactBand(r){
+  if(!r.highlights||!r.highlights.length) return '';
+  const tiles=r.highlights.map((h,i)=>{
+    const col=h.color||'var(--primary)';
+    const numHtml = h.text!=null
+      ? '<div class="it-numwrap"><span class="it-num" style="color:'+col+'">'+esc(h.text)+'</span>'+(h.suffix?'<span class="it-suf" style="color:'+col+'">'+esc(h.suffix)+'</span>':'')+'</div>'
+      : '<div class="it-numwrap"><span class="it-num" style="color:'+col+'" data-count="'+h.n+'">0</span>'+(h.suffix?'<span class="it-suf" style="color:'+col+'">'+esc(h.suffix)+'</span>':'')+'</div>';
+    return '<div class="impact-tile" style="--ic:'+col+';--ibg:color-mix(in srgb,'+col+' 14%,transparent);animation-delay:'+(i*0.08).toFixed(2)+'s">'
+      +'<div class="it-ic"><svg viewBox="0 0 24 24" fill="none">'+(h.ico||'')+'</svg></div>'
+      +numHtml
+      +'<div class="it-label">'+esc(h.label||'')+'</div>'
+      +'<div class="it-sub">'+esc(h.sub||'')+'</div>'
+      +'<div class="it-bar"><i data-w="'+(70+i*6)+'%"></i></div>'
+    +'</div>';
+  }).join('');
+  return '<div class="section-title rv" style="animation-delay:.02s"><span class="stbar"></span>핵심 임팩트 지표<span class="stn">KEY IMPACT'+(r.subtitle?' · '+esc(r.subtitle):'')+'</span></div>'
+    +'<div class="impact-band">'+tiles+'</div>';
+}
+
+/* ============================ 차트 (SVG, 애니메이션) ============================ */
+function gaugeSVG(score,color){
+  const R=70,C=2*Math.PI*R, off=C*(1-score/100);
+  return '<div class="gauge"><svg viewBox="0 0 168 168">'
+    +'<circle cx="84" cy="84" r="70" fill="none" stroke="var(--surface-2)" stroke-width="14"/>'
+    +'<circle class="gauge-arc" cx="84" cy="84" r="70" fill="none" stroke="'+color+'" stroke-width="14" stroke-linecap="round" '
+    +'stroke-dasharray="'+C.toFixed(1)+'" stroke-dashoffset="'+C.toFixed(1)+'" data-off="'+off.toFixed(1)+'" '
+    +'transform="rotate(-90 84 84)" style="transition:stroke-dashoffset 1.3s cubic-bezier(.2,.8,.2,1)"/></svg>'
+    +'<div class="lbl"><div class="num mono" data-count="'+score+'" style="color:'+color+'">0</div><div class="cap">／ 100점</div></div></div>';
+}
+function radarSVG(cats){
+  const cx=130,cy=126,R=94,N=cats.length;
+  const pt=(v,i)=>{ const a=(-90+i*(360/N))*Math.PI/180, r=R*v/100; return [cx+r*Math.cos(a), cy+r*Math.sin(a)]; };
+  let grid=''; [25,50,75,100].forEach(lv=>{ let p=''; for(let i=0;i<N;i++){const[x,y]=pt(lv,i);p+=(i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1);} grid+='<path d="'+p+'Z" fill="none" stroke="var(--line)" stroke-width="1"/>'; });
+  let axes='',labels='';
+  for(let i=0;i<N;i++){ const[x,y]=pt(100,i); axes+='<line x1="'+cx+'" y1="'+cy+'" x2="'+x.toFixed(1)+'" y2="'+y.toFixed(1)+'" stroke="var(--line)" stroke-width="1"/>';
+    const[lx,ly]=pt(122,i); const anchor=lx<cx-6?'end':lx>cx+6?'start':'middle';
+    labels+='<text x="'+lx.toFixed(1)+'" y="'+(ly+3).toFixed(1)+'" font-size="9.4" font-weight="700" fill="var(--ink-soft)" text-anchor="'+anchor+'">'+esc(cats[i].label.replace('·','·'))+'</text>'; }
+  let dp=''; for(let i=0;i<N;i++){const[x,y]=pt(cats[i].score,i);dp+=(i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1);}
+  let dots=''; for(let i=0;i<N;i++){const[x,y]=pt(cats[i].score,i);dots+='<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="3" fill="var(--primary)"/>';}
+  return '<svg viewBox="0 0 260 252" width="100%" style="max-width:380px">'+grid+axes+labels
+    +'<g class="radar-poly" style="transform:scale(0);transform-origin:'+cx+'px '+cy+'px;transition:transform 1s cubic-bezier(.2,.8,.2,1)">'
+    +'<path d="'+dp+'Z" fill="rgba(27,69,214,.16)" stroke="var(--primary)" stroke-width="2" stroke-linejoin="round"/>'+dots+'</g></svg>';
+}
+function donutSVG(cov){
+  const R=58,C=2*Math.PI*R, total=cov.total||1;
+  const segs=[['met','var(--green)',cov.met],['partial','var(--amber)',cov.partial],['missing','var(--rose)',cov.missing]];
+  let acc=0, out='';
+  segs.forEach(([k,col,n])=>{ const frac=n/total, len=C*frac, gap=C-len, offStart=-C*acc;
+    out+='<circle class="donut-seg" cx="84" cy="84" r="'+R+'" fill="none" stroke="'+col+'" stroke-width="20" '
+      +'stroke-dasharray="0 '+C.toFixed(1)+'" data-da="'+len.toFixed(1)+' '+gap.toFixed(1)+'" stroke-dashoffset="'+offStart.toFixed(1)+'" '
+      +'transform="rotate(-90 84 84)" style="transition:stroke-dasharray 1s cubic-bezier(.2,.8,.2,1)"/>'; acc+=frac; });
+  const rate=Math.round(((cov.met+cov.partial*0.5)/total)*100);
+  return '<div class="gauge" style="width:168px;height:168px"><svg viewBox="0 0 168 168">'
+    +'<circle cx="84" cy="84" r="'+R+'" fill="none" stroke="var(--surface-2)" stroke-width="20"/>'+out+'</svg>'
+    +'<div class="lbl"><div class="num mono" data-count="'+rate+'" data-suffix="%" style="font-size:32px">0</div><div class="cap">충족률(가중)</div></div></div>';
+}
+function sparkSVG(color){ return '<svg class="spark" viewBox="0 0 96 50" preserveAspectRatio="none"><path d="M0 40 L16 32 L32 36 L48 20 L64 26 L80 10 L96 16" fill="none" stroke="'+color+'" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'; }
+
+function animateCharts(scope){
+  const root=scope||document;
+  setTimeout(()=>{
+    root.querySelectorAll('.gauge-arc').forEach(e=>e.style.strokeDashoffset=e.dataset.off);
+    root.querySelectorAll('.radar-poly').forEach(e=>e.style.transform='scale(1)');
+    root.querySelectorAll('.donut-seg').forEach(e=>e.style.strokeDasharray=e.dataset.da);
+    root.querySelectorAll('.gbar i').forEach(e=>e.style.width=e.dataset.w);
+    root.querySelectorAll('.it-bar i,.dc-cov .bar i').forEach(e=>e.style.width=e.dataset.w);
+  },60);
+  root.querySelectorAll('[data-count]').forEach(el=>animateCount(el));
+}
+function animateCount(el){
+  const target=+el.dataset.count||0, suf=el.dataset.suffix||'', dur=1100, t0=performance.now();
+  function step(t){ const p=Math.min(1,(t-t0)/dur), e=1-Math.pow(1-p,3); el.textContent=Math.round(target*e)+suf; if(p<1)requestAnimationFrame(step); }
+  requestAnimationFrame(step);
+}
+
+/* ============================ 뷰 렌더러 ============================ */
+function emptyState(title,msg,cta){
+  return '<div class="card pad rv"><div class="empty"><div class="ei"><svg viewBox="0 0 24 24" fill="none"><path d="M9 11h6m-6 4h4M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></div>'
+    +'<h3>'+title+'</h3><p>'+msg+'</p>'+(cta||'')+'</div></div>';
+}
+
+/* ----- 대시보드 환영(검사 전) ----- */
+function renderWelcome(el){
+  const docN=['rfp','proposal','summary'].filter(k=>S.docs[k]).length;
+  const keyN=Object.values(S.api).filter(a=>a.key).length;
+  const sec=SECTORS[S.sector];
+  const pm=PROVIDER_META[S.provider];
+  const cumTok=S.tokens.total||0;
+  el.innerHTML=
+  '<div class="hero rv">'
+    +'<span class="eyebrow"><span class="lvdot"></span>제안 품질관리 · AI 품질 인스펙터</span>'
+    +'<h2>제안서를 <b>제출 전에</b> 평가위원의 눈으로 검증하세요</h2>'
+    +'<p class="lead">RFP·제안서·발표본을 올리면 공공/금융/민간 평가기준에 맞춰 요구사항 충족도, 논리·정량근거, 리스크를 분석하고 <b style="color:#fff">2-pass 교차검증</b>으로 정확도를 끌어올립니다. 핵심 문장만 선별 전송해 토큰도 아낍니다.</p>'
+    +'<div class="hcta">'
+      +'<button class="hbtn solid" onclick="go(\'upload\')"><svg viewBox="0 0 24 24" fill="none"><path d="M12 16V4m0 0L8 8m4-4 4 4M5 16v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>문서 업로드로 시작</button>'
+      +'<button class="hbtn ghost" onclick="loadDemo()"><svg viewBox="0 0 24 24" fill="none"><path d="M8 5v14l11-7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>데모 결과 미리보기</button>'
+      +'<button class="hbtn ghost" onclick="go(\'api\')"><svg viewBox="0 0 24 24" fill="none"><path d="M15 7h3a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-3m-6 0H6a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h3m-1 5h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>API 연동</button>'
+    +'</div>'
+    +'<div class="hstat"><div class="hs"><span class="n">8</span><span class="l">평가 축</span></div><div class="hs"><span class="n">2-pass</span><span class="l">교차검증</span></div><div class="hs"><span class="n">3</span><span class="l">LLM 지원</span></div></div>'
+  +'</div>'
+  // readiness strip
+  +'<div class="ready-strip rv" style="animation-delay:.05s">'
+    +readyCard('var(--primary)','var(--primary-soft)','<path d="M3 7h18M3 12h18M3 17h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>','제안 유형',sec.label,true)
+    +readyCard(sec.color,'#eef1ff','<path d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>','업로드 문서',docN+'<small> / 3</small>',docN>0)
+    +readyCard('var(--teal)','var(--teal-soft)','<path d="M15 7h3a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-3M9 17H6a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>','API 키 ('+pm.name.split(' ')[0]+')',keyN+'<small>개 연결</small>',keyN>0)
+    +readyCard('var(--ink)','var(--surface)','<path d="M12 8v8m-4-4h8M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" stroke="currentColor" stroke-width="1.8"/>','누적 토큰',(cumTok?fmt(cumTok):'0'),cumTok>0)
+  +'</div>'
+  +renderDemoPicker()
+  // workflow
+  +'<div class="section-title rv" style="animation-delay:.1s"><span class="stbar"></span>3단계로 끝나는 품질검사<span class="stn">WORKFLOW</span></div>'
+  +'<div class="flow rv" style="animation-delay:.12s">'
+    +flowStep('01','upload','var(--primary)','var(--primary-soft)','<path d="M12 16V4m0 0L8 8m4-4 4 4M5 16v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>','문서 업로드','RFP·제안서·발표본을 올리면 핵심 요구사항·헤딩·수치만 자동 추출합니다.',['PDF','DOCX','HWPX','TXT'],true)
+    +flowStep('02','inspect','var(--teal)','var(--teal-soft)','<path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14ZM21 21l-4.3-4.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>','품질검사 + 재검증','섹터 가중치로 8개 축을 채점하고, 2차 패스가 근거를 재대조해 신뢰도를 산출합니다.',['8축 채점','교차검증'],true)
+    +flowStep('03','report','var(--violet)','#f0eaff','<path d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z M9 13h6M9 17h4" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>','리포트 / 내보내기','요구사항 추적표·리스크·보완안을 한 화면에. PDF·JSON으로 공유합니다.',['PDF','JSON'],false)
+  +'</div>'
+  // why / features
+  +'<div class="section-title rv" style="animation-delay:.16s"><span class="stbar"></span>정확도와 효율을 동시에<span class="stn">WHY QUALITY MGMT</span></div>'
+  +'<div class="feat-row rv" style="animation-delay:.18s">'
+    +feat('var(--green)','var(--green-soft)','<path d="M9 12.5 11.5 15 16 9.5M12 3l7 3v6c0 4-3 6.5-7 8-4-1.5-7-4-7-8V6l7-3Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>','2-pass 재검증','분석 결과를 2차 패스가 원문과 재대조해 환각·과대평가를 보정합니다.','98','% 정확도 지향')
+    +feat('var(--teal)','var(--teal-soft)','<path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>','토큰 최소화','핵심 문장만 압축 전송. 예산 슬라이더로 정확도·비용을 직접 조절합니다.','−60','% 토큰 절감')
+    +feat('var(--primary)','var(--primary-soft)','<path d="M4 5h16M4 12h16M4 19h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>','섹터 최적화','공공·금융·민간별 평가 가중치를 다르게 적용해 현실적인 점수를 냅니다.','3','개 섹터 프리셋')
+    +feat('var(--violet)','#f0eaff','<path d="M15 7h3a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-3M9 17H6a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h3m-1 5h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>','멀티 LLM','Claude·Gemini·GPT를 본인 키로 선택. 모든 호출의 토큰을 투명하게 표시합니다.','3','개 모델')
+  +'</div>'
+  // sector preview
+  +'<div class="section-title rv" style="animation-delay:.22s"><span class="stbar"></span>제안 유형을 골라 시작<span class="stn">SECTOR PRESET</span></div>'
+  +'<div class="sector-row rv" style="animation-delay:.24s;margin-bottom:8px">'+Object.entries(SECTORS).map(([k,s])=>
+    '<div class="sector '+(S.sector===k?'sel':'')+'" onclick="setSector(\''+k+'\');go(\'upload\')"><div class="check"><svg viewBox="0 0 24 24" fill="none"><path d="M4 12.5 9 17l11-11" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>'
+    +'<div class="si" style="background:'+s.color+'"><svg viewBox="0 0 24 24" fill="none">'+s.icon+'</svg></div>'
+    +'<h4>'+s.label+'</h4><p>'+s.desc+'</p><div class="focus">'+s.focus.map(f=>'<span>'+f+'</span>').join('')+'</div></div>').join('')+'</div>';
+}
+function readyCard(col,bg,svg,label,val,ok){
+  return '<div class="ready"><div class="ri" style="background:'+bg+';color:'+col+'"><svg viewBox="0 0 24 24" fill="none">'+svg+'</svg></div>'
+    +'<div class="rtxt"><div class="rt">'+label+'</div><div class="rv2">'+val+'</div></div>'
+    +'<span class="rstate '+(ok?'ok':'no')+'">'+(ok?'준비됨':'미설정')+'</span></div>';
+}
+function flowStep(num,view,col,bg,svg,title,desc,chips,arrow){
+  return '<div class="fstep" onclick="go(\''+view+'\')"><div class="num">'+num+'</div>'
+    +'<div class="fic" style="background:'+bg+';color:'+col+'"><svg viewBox="0 0 24 24" fill="none">'+svg+'</svg></div>'
+    +'<h4>'+title+'</h4><p>'+desc+'</p>'
+    +'<div class="fchips">'+chips.map(c=>'<span>'+c+'</span>').join('')+'</div>'
+    +(arrow?'<div class="farr"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>':'')+'</div>';
+}
+function feat(col,bg,svg,title,desc,n,u){
+  return '<div class="feat"><div class="fi2" style="background:'+bg+';color:'+col+'"><svg viewBox="0 0 24 24" fill="none">'+svg+'</svg></div>'
+    +'<h5>'+title+'</h5><p>'+desc+'</p>'
+    +'<div class="fmetric"><span class="fn" style="color:'+col+'">'+n+'</span><span class="fu">'+u+'</span></div></div>';
+}
+
+/* ----- 대시보드 ----- */
+function renderDash(){
+  const el=$('#view-dash'); const r=S.result;
+  if(!r){ renderWelcome(el); animateCharts(el); return; }
+  const sec=SECTORS[r.sector], g=r.grade;
+  const mustTotal=r.requirements.filter(x=>x.mandatory).length;
+  const mustMet=r.requirements.filter(x=>x.mandatory&&x.status==='met').length;
+  const mustRate=mustTotal?Math.round(mustMet/mustTotal*100):0;
+  const tcost=r.calls.reduce((a,c)=>a+costOf(c.in,c.out),0);
+  // grade bars (top weighted categories)
+  const sortedCats=[...r.categories].sort((a,b)=>b.weight-a.weight);
+  el.innerHTML=
+  // KPI row
+  '<div class="kpi-row">'
+    +kpi('종합 품질점수', r.overall, '／100 · 등급 '+g.g+' ('+g.t+')', sec.color, true, g.c)
+    +kpi('재검증 신뢰도', r.confidence, '%', 'var(--teal)', true, 'var(--teal)','%','2-pass 교차검증')
+    +kpi('필수요구 충족', mustRate, '%', mustRate>=80?'var(--green)':'var(--amber)', true, mustRate>=80?'var(--green)':'var(--amber)','%', mustMet+'/'+mustTotal+'개 충족')
+    +kpiTok(r)
+  +'</div>'
+  +impactBand(r)
+  // verdict + radar
+  +'<div class="split rv" style="margin-top:18px;animation-delay:.05s">'
+    +'<div class="card pad"><div class="card-h"><h3>종합 판정</h3><span class="tag" style="background:'+sec.soft+';color:'+sec.color+'">'+sec.label+'</span><span class="hint">'+PROVIDER_META[r.provider].name.split(' ')[0]+' · '+modeLabel(r.mode)+'</span></div>'
+      +'<div class="gauge-wrap" style="margin-top:14px">'+gaugeSVG(r.overall,g.c)
+      +'<div class="grade-list">'+sortedCats.slice(0,8).map(c=>gradeRow(c)).join('')+'</div></div>'
+      +'<div class="legend"><span><i style="background:var(--primary)"></i>막대=세부점수</span><span><i style="background:var(--ink-mute)"></i>가중치 순 정렬</span></div></div>'
+    +'<div class="card pad"><div class="card-h"><h3>역량 레이더</h3><span class="hint">8개 평가축</span></div>'
+      +'<div class="radar-box">'+radarSVG(r.categories)+'</div></div>'
+  +'</div>'
+  // coverage + alignment + risk
+  +'<div class="split-3 rv" style="margin-top:18px;animation-delay:.1s">'
+    +'<div class="card pad"><div class="card-h"><h3>요구사항 충족</h3></div>'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-top:6px">'+donutSVG(r.coverage)
+      +'<div style="flex:1">'+covLeg('met','충족',r.coverage.met,'var(--green)')+covLeg('partial','부분',r.coverage.partial,'var(--amber)')+covLeg('missing','누락',r.coverage.missing,'var(--rose)')+'</div></div></div>'
+    +'<div class="card pad"><div class="card-h"><h3>정합성</h3></div>'
+      +alignRow('RFP ↔ 제안서', r.alignment.rfp,'var(--primary)')
+      +alignRow('제안서 ↔ 발표본', r.alignment.summary,'var(--violet)')
+      +'<p style="font-size:11.5px;color:var(--ink-soft);margin-top:12px;line-height:1.55">'+((r.alignment.rfp==null&&r.alignment.summary==null)?'단독 문서 검사에서는 내부 일관성을 기준으로 평가합니다. RFP·발표본을 함께 올리면 교차 정합성을 측정합니다.':'발표본 수치·논리가 본문과 어긋나면 평가위원 신뢰도가 급락합니다. 핵심 수치는 단일 출처로 관리하세요.')+'</p></div>'
+    +'<div class="card pad"><div class="card-h"><h3>핵심 리스크</h3><span class="hint">'+r.risks.length+'건</span></div>'
+      +'<div style="margin-top:4px">'+r.risks.slice(0,3).map(riskRow).join('')+'</div></div>'
+  +'</div>'
+  // requirement matrix
+  +'<div class="section-title rv" style="animation-delay:.14s"><span class="stbar"></span>요구사항 추적 매트릭스<span class="stn">REQUIREMENT TRACEABILITY</span></div>'
+  +'<div class="card rv" style="animation-delay:.16s;overflow:hidden"><table class="req-table"><thead><tr><th style="width:46px">ID</th><th>요구사항 / 페이지 · 기준</th><th style="width:96px">상태</th><th style="width:30%">근거 / 보완안</th></tr></thead><tbody>'
+    +r.requirements.map(reqRow).join('')+'</tbody></table></div>'
+  // 오타·표기 검증
+  +((r.typos&&r.typos.length)?(
+    '<div class="section-title rv" style="animation-delay:.17s"><span class="stbar"></span>오타·표기 검증<span class="stn">PROOFREADING · '+r.typos.length+'건</span></div>'
+    +'<div class="card rv" style="animation-delay:.18s;overflow:hidden"><table class="req-table"><thead><tr><th style="width:130px">위치</th><th style="width:96px">유형</th><th>원문</th><th>수정안</th></tr></thead><tbody>'
+    +r.typos.map(t=>'<tr><td class="mono" style="font-size:11px;color:var(--ink-soft)">'+esc(t.page)+'</td><td><span class="typo-kind">'+esc(t.kind)+'</span></td><td style="font-size:12px;color:var(--rose)"><s>'+esc(t.wrong)+'</s></td><td style="font-size:12px;color:var(--green);font-weight:600">'+esc(t.fix)+'</td></tr>').join('')
+    +'</tbody></table></div>'):'')
+  // 평가자 관점 + 강점
+  +'<div class="split rv" style="margin-top:18px;animation-delay:.2s">'
+    +'<div class="card pad"><div class="card-h"><h3>평가자 관점 개선 권고</h3><span class="hint">평가위원 시각</span></div>'
+      +'<div style="margin-top:6px">'+((r.evaluatorView&&r.evaluatorView.length)?r.evaluatorView.map(evRow).join(''):'<p style="font-size:12.5px;color:var(--ink-soft)">표시할 항목이 없습니다.</p>')+'</div></div>'
+    +'<div class="card pad"><div class="card-h"><h3>강점 요약</h3></div><div class="chiplist" style="margin-top:8px">'+r.strengths.map(s=>'<span class="chip good">✓ '+esc(s)+'</span>').join('')+'</div>'
+      +'<div class="card-h" style="margin-top:16px"><h3>재검증 요약</h3><span class="tag" style="background:var(--green-soft);color:var(--green)">'+(r.reval.applied?'적용됨':'미실행')+'</span></div>'
+      +'<p style="font-size:12.5px;color:var(--ink-soft);margin-top:8px;line-height:1.6">'+esc(r.reval.note)+'</p>'
+      +'<button class="tb-btn" style="margin-top:12px" onclick="go(\'reval\')">재검증 상세 보기 →</button></div>'
+  +'</div>';
+  animateCharts(el);
+}
+function kpi(label,val,sub,color,count,numColor,suffix,extra){
+  return '<div class="kpi rv"><div class="kl"><span class="di" style="background:'+color+'"></span>'+label+'</div>'
+    +'<div class="kv mono" style="color:'+(numColor||'var(--ink)')+'" '+(count?'data-count="'+val+'" data-suffix="'+(suffix||'')+'"':'')+'>'+(count?'0':val)+'</div>'
+    +'<div class="ks">'+(extra?'<span class="delta up">'+extra+'</span>':'')+(sub||'')+'</div>'+sparkSVG(color)+'</div>';
+}
+function kpiTok(r){
+  const cost=r.calls.reduce((a,c)=>a+costOf(c.in,c.out),0);
+  return '<div class="kpi rv"><div class="kl"><span class="di" style="background:var(--ink)"></span>토큰 사용량</div>'
+    +'<div class="kv mono" data-count="'+r.tokens.total+'">0</div>'
+    +'<div class="ks"><span class="delta '+(r.tokens.total?'up':'down')+'">$'+cost.toFixed(4)+'</span>입력 '+fmt(r.tokens.input)+' · 출력 '+fmt(r.tokens.output)+'</div>'+sparkSVG('#71717a')+'</div>';
+}
+function gradeRow(c){ const col=catColor(c.key);
+  return '<div class="grade-row"><span class="gn">'+esc(c.label)+'</span><div class="gbar"><i data-w="'+c.score+'%" style="background:'+col+'"></i></div><span class="gp mono" style="color:'+col+'">'+c.score+'</span></div>'; }
+function covLeg(k,label,n,col){ return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:9px"><span style="width:10px;height:10px;border-radius:3px;background:'+col+'"></span><span style="font-size:12.5px;font-weight:700;color:var(--ink-soft)">'+label+'</span><span class="mono" style="margin-left:auto;font-weight:600;color:'+col+'">'+n+'</span></div>'; }
+function alignRow(label,v,col){ if(v==null) return '<div style="margin-top:12px"><div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700"><span style="color:var(--ink-mute)">'+label+'</span><span class="mono" style="color:var(--ink-mute)">해당 없음</span></div><div class="gbar" style="height:8px;margin-top:6px;opacity:.4"><i style="width:0;background:'+col+'"></i></div></div>';
+  return '<div style="margin-top:12px"><div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700"><span>'+label+'</span><span class="mono" style="color:'+col+'">'+v+'%</span></div><div class="gbar" style="height:8px;margin-top:6px"><i data-w="'+v+'%" style="background:'+col+'"></i></div></div>'; }
+function riskRow(r){ return '<div class="risk '+r.level+'"><div class="rl"></div><div style="flex:1"><div class="rt">'+esc(r.title)+'<span class="lv">'+({high:'高',mid:'中',low:'低'}[r.level])+'</span>'+(r.page?'<span class="pg">'+esc(r.page)+'</span>':'')+'</div><div class="rd">'+esc(r.detail)+'</div><div class="ra">↳ '+esc(r.action)+'</div></div></div>'; }
+function reqRow(r){ const st={met:['met','충족'],partial:['partial','부분'],missing:['missing','누락']}[r.status]||['partial','부분'];
+  return '<tr><td class="mono" style="font-weight:600;color:var(--primary)">'+esc(r.id)+'</td>'
+    +'<td><b style="font-weight:700">'+esc(r.text)+'</b>'+(r.mandatory?'<span class="must">필수</span>':'')+(r.page?'<span class="pg">'+esc(r.page)+'</span>':'')+(r.criterion?'<div style="font-size:10.5px;color:var(--ink-mute);font-weight:600;margin-top:3px">기준: '+esc(r.criterion)+'</div>':'')+'</td>'
+    +'<td><span class="st '+st[0]+'"><span class="d"></span>'+st[1]+'</span></td>'
+    +'<td style="font-size:11.5px;color:var(--ink-soft)">'+esc(r.evidence||'-')+(r.fix?'<div style="color:var(--primary);font-weight:600;margin-top:3px">보완: '+esc(r.fix)+'</div>':'')+'</td></tr>'; }
+function evRow(e){ const c={high:'var(--rose)',mid:'var(--amber)',low:'var(--teal)'}[e.severity]||'var(--amber)';
+  return '<div class="evrow"><span class="evdot" style="background:'+c+'"></span><div><div class="evt">'+esc(e.title)+'</div><div class="evc">'+esc(e.comment)+'</div></div></div>'; }
+function modeLabel(m){ return {economy:'절약 1-pass',standard:'표준 2-pass',precision:'정밀 3-pass'}[m]||m; }
+
+/* ----- 업로드 ----- */
+function renderUpload(){
+  const el=$('#view-upload'); const est=estPipeline();
+  el.innerHTML=
+  '<div class="section-title"><span class="stbar"></span>1단계 · 제안 유형 선택<span class="stn">SECTOR</span></div>'
+  +'<div class="sector-row">'+Object.entries(SECTORS).map(([k,s])=>
+    '<div class="sector '+(S.sector===k?'sel':'')+'" onclick="setSector(\''+k+'\')"><div class="check"><svg viewBox="0 0 24 24" fill="none"><path d="M4 12.5 9 17l11-11" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>'
+    +'<div class="si" style="background:'+s.color+'"><svg viewBox="0 0 24 24" fill="none">'+s.icon+'</svg></div>'
+    +'<h4>'+s.label+'</h4><p>'+s.desc+'</p><div class="focus">'+s.focus.map(f=>'<span>'+f+'</span>').join('')+'</div></div>').join('')+'</div>'
+  +'<div class="section-title"><span class="stbar"></span>2단계 · 문서 업로드<span class="stn">DOCUMENTS · 모든 형식 허용</span></div>'
+  +'<div class="scope-note"><svg viewBox="0 0 24 24" fill="none"><path d="M12 16v-4m0-4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" stroke="currentColor" stroke-width="1.8"/></svg>'
+    +'<span><b>제안서 본문</b> 또는 <b>발표본(요약본)</b> 중 <b>최소 1개</b>만 있으면 검사할 수 있습니다. RFP는 요구사항 대조용 참고 자료입니다(없어도 단독 평가).</span></div>'
+  +'<div class="fmt-guide">'
+    +'<div class="fg-row ok"><span class="fg-ic"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5 10 17 19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>'
+      +'<div><b>권장 (토큰 절약 · 파싱 정확)</b><div class="fg-tags"><span>TXT</span><span>MD</span><span>DOCX</span><span>HWPX</span><span>PDF<i>(텍스트형)</i></span><span>CSV</span></div></div></div>'
+    +'<div class="fg-row warn"><span class="fg-ic"><svg viewBox="0 0 24 24" fill="none"><path d="M12 9v4m0 4h.01M10.3 3.9 2.4 17.5A2 2 0 0 0 4.1 20.5h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>'
+      +'<div><b>가능하나 변환 권장 (파싱·정확도 제한)</b><div class="fg-tags"><span>HWP<i>(구형)</i></span><span>스캔 PDF</span><span>DOC</span><span>RTF</span><span>PPTX</span></div></div></div>'
+    +'<p class="fg-note">모든 파일을 올릴 수 있지만, 정확한 분석과 토큰 절약을 위해 <b>가능하면 TXT·DOCX·HWPX·텍스트형 PDF</b>로 올려주세요. 구형 <b>.hwp</b>·스캔 PDF는 한글/오피스에서 <b>PDF 또는 TXT로 변환</b> 후 업로드하거나 본문을 복사해 붙여넣는 것을 권장합니다.</p>'
+  +'</div>'
+  +'<div class="drops">'
+    +dropZone('rfp','RFP / 과업지시서','요구사항 대조 기준 · 없어도 검사 가능','opt')
+    +dropZone('proposal','제안서 본문','분석 대상 · 단독 검사 가능','pick')
+    +dropZone('summary','발표본 / 요약본','분석 대상 · 단독 검사 가능','pick')
+  +'</div>'
+  +'<div class="section-title"><span class="stbar"></span>3단계 · 토큰 최적화<span class="stn">TOKEN BUDGET · ACCURACY</span></div>'
+  +'<div class="card pad budget-card">'
+    +'<div class="bc-l"><div class="card-h"><h3>문서 압축 예산</h3><span class="hint">문서당 핵심 '+fmt(S.budget)+'자 추출</span></div>'
+      +'<p style="font-size:12px;color:var(--ink-soft);margin-top:4px">요구사항·헤딩·핵심문장만 선별 전송해 토큰을 최소화합니다. 예산을 높이면 정확도↑·토큰↑.</p>'
+      +'<div class="range-wrap"><input type="range" min="2500" max="14000" step="500" value="'+S.budget+'" oninput="setBudget(this.value)"></div>'
+      +'<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--ink-mute);font-family:var(--mono);margin-top:4px"><span>절약 2.5k</span><span>균형</span><span>정밀 14k</span></div>'
+      +'<div class="card-h" style="margin-top:18px"><h3>검사 모드</h3></div>'
+      +'<div class="modesel">'
+        +modeOpt('economy','절약','1콜 · 최저비용')
+        +modeOpt('standard','표준','분석+재검증 2콜')
+        +modeOpt('precision','정밀','추출+분석+재검증 3콜')
+      +'</div></div>'
+    +'<div class="est-box"><div class="el">예상 토큰 (이번 검사)</div><div class="ev mono">'+fmt(est.total)+'</div>'
+      +'<div class="save"><svg viewBox="0 0 24 24" width="13" fill="none"><path d="M12 5v14m0-14-4 4m4-4 4 4" stroke="#46d6b9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(180 12 12)"/></svg>압축으로 약 '+fmt(est.savedTok)+' 토큰 절감</div>'
+      +'<div class="erow"><span>입력 ≈ '+fmt(est.inTok)+'</span><span>출력 ≈ '+fmt(est.outTok)+'</span></div>'
+      +'<div class="erow"><span>LLM 호출</span><span>'+est.calls+'회</span></div>'
+      +'<div class="erow"><span>추정 비용</span><span>$'+costOf(est.inTok,est.outTok).toFixed(4)+'</span></div></div>'
+  +'</div>'
+  +'<div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end"><button class="tb-btn" onclick="go(\'inspect\')">검사 화면으로</button><button class="tb-btn primary" onclick="runPipeline()"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>품질검사 실행</button></div>';
+  wireDrops();
+}
+function dropZone(slot,title,sub,badge){ const d=S.docs[slot];
+  const mk = badge==='req'?'<span class="req-mark">필수</span>'
+    : badge==='pick'?'<span class="pick-mark">분석대상 택1</span>'
+    : badge==='opt'?'<span class="opt-mark">참고</span>':'';
+  return '<div class="drop '+(d?'has':'')+'" id="drop-'+slot+'" data-slot="'+slot+'">'
+    +(d?'<button class="clear" onclick="event.stopPropagation();clearDoc(\''+slot+'\')"><svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>':'')
+    +'<div class="dic"><svg viewBox="0 0 24 24" fill="none">'+(d?'<path d="M4 12.5 9 17l11-11" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>':'<path d="M12 16V4m0 0L8 8m4-4 4 4M5 16v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>')+'</svg></div>'
+    +'<h5>'+title+mk+'</h5>'
+    +(d?'<div class="fname">📄 '+esc(d.name)+'</div><div class="fmeta">'+fmt(d.chars)+'자 · ≈'+fmt(estTokens(d.text))+' tok</div>'
+       :'<p>'+sub+'</p><p style="margin-top:7px;font-size:10.5px;color:var(--primary);font-weight:700">클릭 또는 드래그 · 모든 형식 허용</p>')+'</div>';
+}
+function modeOpt(v,b,s){ return '<label><input type="radio" name="mode" value="'+v+'" '+(S.mode===v?'checked':'')+' onchange="setMode(\''+v+'\')"><div class="mb"><b>'+b+'</b><span>'+s+'</span></div></label>'; }
+function wireDrops(){
+  ['rfp','proposal','summary'].forEach(slot=>{
+    const d=$('#drop-'+slot); if(!d||d.dataset.wired)return; d.dataset.wired='1';
+    d.addEventListener('click',()=>pickFile(slot));
+    d.addEventListener('dragover',e=>{e.preventDefault();d.classList.add('over')});
+    d.addEventListener('dragleave',()=>d.classList.remove('over'));
+    d.addEventListener('drop',e=>{e.preventDefault();d.classList.remove('over');const f=e.dataTransfer.files[0];if(f)ingest(slot,f);});
+  });
+}
+function pickFile(slot){
+  const useText=!S.docs[slot]&&false;
+  const inp=document.createElement('input'); inp.type='file';
+  inp.accept='.txt,.md,.markdown,.csv,.tsv,.json,.log,.xml,.html,.htm,.pdf,.docx,.hwpx,.hwp,.rtf,.doc,.pptx';
+  inp.onchange=()=>{ if(inp.files[0])ingest(slot,inp.files[0]); };
+  inp.click();
+}
+window.clearDoc=slot=>{ S.docs[slot]=null; renderUpload(); };
+window.setSector=k=>{ S.sector=k; save(); renderUpload(); };
+window.setBudget=v=>{ S.budget=+v; save(); const est=estPipeline(); const box=$('.est-box'); if(box){ box.querySelector('.ev').textContent=fmt(est.total); box.querySelector('.save').lastChild.textContent='압축으로 약 '+fmt(est.savedTok)+' 토큰 절감'; } const h=$('.budget-card .hint'); if(h)h.textContent='문서당 핵심 '+fmt(S.budget)+'자 추출'; renderUpload(); };
+window.setMode=v=>{ S.mode=v; save(); renderUpload(); };
+
+/* ----- 검사 실행(파이프라인) ----- */
+function renderInspect(running){
+  const el=$('#view-inspect'); const est=estPipeline(); const c=condensedAll();
+  const steps=[
+    ['문서 전처리 · 토큰 압축','요구사항·핵심문장 선별 (로컬 처리, 토큰 0)'],
+    [S.mode==='precision'?'요구사항 정밀 추출':'요구사항 추출 (통합)', S.mode==='precision'?'RFP에서 평가항목 구조화 (LLM)':'통합 분석에 포함'],
+    ['통합 품질 분석','섹터 가중치 기반 점수·충족판정 (LLM)'],
+    ['교차 재검증','근거 대조 후 과대/과소 평가 교정 (LLM)'+(S.mode==='economy'?' · 절약 모드 스킵':'')],
+    ['리포트 컴파일','대시보드·매트릭스 생성'],
+  ];
+  el.innerHTML=
+  ((!running&&S.lastError)?errorBanner(S.lastError):'')
+  +'<div class="split">'
+   +'<div class="card pad"><div class="card-h"><h3>검증 파이프라인</h3><span class="tag">'+modeLabel(S.mode)+'</span><span class="hint">정확도 최우선</span></div>'
+    +'<div class="pipe" id="pipe">'+steps.map((s,i)=>'<div class="pstep '+(running&&i===0?'active':'pending')+'"><div class="pi">'+(i+1)+'</div><div class="pc"><div style="display:flex;align-items:center"><span class="pt">'+s[0]+'</span><span class="ptok"></span></div><div class="pd">'+s[1]+'</div></div></div>').join('')+'</div></div>'
+   +'<div class="card pad"><div class="card-h"><h3>전처리 현황</h3></div>'
+     +preRow('RFP', S.docs.rfp, c.rfp)+preRow('제안서', S.docs.proposal, c.proposal)+preRow('발표본', S.docs.summary, c.summary)
+     +'<div class="conf-band" style="margin-top:16px"><div class="cbi" style="background:var(--primary-soft)"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3 4 7v5c0 5 3.5 8 8 9 4.5-1 8-4 8-9V7l-8-4Z" stroke="var(--primary)" stroke-width="1.8" stroke-linejoin="round"/><path d="m9 12 2 2 4-4" stroke="var(--primary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>'
+       +'<div class="cbt"><b>정확도 우선 설계</b><p>2-pass 교차검증으로 환각·과대평가를 잡고 신뢰도를 산출합니다.</p></div>'
+       +'<div class="cbv"><div class="n mono">'+fmt(est.total)+'</div><div class="l">예상 토큰</div></div></div></div>'
+  +'</div>'
+  +'<div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;align-items:center">'+(running?'<span style="font-size:11.5px;color:var(--ink-mute);margin-right:auto">표준 모드는 LLM 2회 호출(분석+재검증)로, 문서·모델에 따라 보통 20~90초 걸립니다.</span><div style="display:flex;align-items:center;gap:10px;color:var(--primary);font-weight:700;font-size:13px"><div class="spinner"></div>검사 진행 중… <span id="elapsed" class="mono" style="color:var(--ink-soft)">0s</span></div><button class="tb-btn cancel-btn" id="cancelBtn" onclick="cancelPipeline()"><svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>요청 중단</button>':'<button class="tb-btn" onclick="go(\'upload\')">← 업로드 수정</button><button class="tb-btn primary" onclick="runPipeline()"><svg viewBox="0 0 24 24" fill="none"><path d="M8 5v14l11-7L8 5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>지금 실행</button>')+'</div>';
+}
+function preRow(label,doc,cond){ const orig=doc?doc.chars:0, comp=cond?cond.chars:0, pct=orig?Math.round((1-comp/orig)*100):0;
+  return '<div style="margin-top:12px"><div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700"><span>'+label+'</span><span class="mono" style="color:var(--ink-mute)">'+(doc?fmt(orig)+'→'+fmt(comp)+'자':'미업로드')+'</span></div>'
+    +'<div class="gbar" style="height:7px;margin-top:6px"><i style="width:'+(doc?(comp/Math.max(orig,1)*100):0)+'%;background:'+(doc?'var(--teal)':'var(--surface-2)')+';transition:none"></i></div>'
+    +(doc?'<div style="font-size:10.5px;color:var(--teal);font-weight:700;margin-top:3px">−'+pct+'% 압축 · ≈'+fmt(estTokens(comp?cond.text:''))+' tok</div>':'')+'</div>'; }
+function errorBanner(err){
+  const m=err.msg||'', pm=PROVIDER_META[err.provider]?PROVIDER_META[err.provider].name:err.provider;
+  let cause='', tip='';
+  if(/__CANCELLED__/.test(m)){ cause='사용자가 중단'; }
+  else if(/시간 초과|timeout/i.test(m)){ cause='응답 시간 초과'; tip='문서를 줄이거나 절약 모드, 더 빠른 모델로 재시도하세요.'; }
+  else if(/네트워크|CORS|Failed to fetch|NetworkError/i.test(m)){ cause='네트워크/CORS 차단'; tip='OpenAI(GPT)는 로컬 파일(file://)에서 브라우저 직접 호출이 막힙니다. 해결: ① 상단에서 Claude 또는 Gemini로 전환(파일에서도 동작) ② 폴더에서 로컬 서버로 열기(python -m http.server → http://localhost) ③ API 연동의 "엔드포인트"에 본인 CORS 프록시/호환 게이트웨이 URL 입력.'; }
+  else if(/\b401\b|invalid.*key|incorrect api key|unauthor/i.test(m)){ cause='API 키 오류(401)'; tip='API 연동 화면에서 '+pm+' 키를 다시 확인하세요(공백·접두어 sk- 포함).'; }
+  else if(/\b403\b|permission|region|country/i.test(m)){ cause='권한/지역 차단(403)'; tip='키 권한 또는 지역 제한일 수 있습니다.'; }
+  else if(/\b404\b|model.*not.*found|does not exist|no such model/i.test(m)){ cause='모델명 오류(404)'; tip='API 연동 화면에서 모델명을 실제 사용 가능한 값으로 수정하세요(예: gpt-4o-mini).'; }
+  else if(/\b429\b|quota|rate limit|insufficient/i.test(m)){ cause='쿼터/요금 한도(429)'; tip='해당 계정의 결제·사용량 한도를 확인하세요.'; }
+  else if(/파싱|JSON/i.test(m)){ cause='JSON 응답 해석 실패'; tip='모델을 JSON 지원 모델로 바꾸거나 절약 모드로 재시도하세요.'; }
+  else { cause='호출 오류'; }
+  return '<div class="err-banner"><div class="eb-ic"><svg viewBox="0 0 24 24" fill="none"><path d="M12 9v4m0 4h.01M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></div>'
+    +'<div class="eb-body"><div class="eb-h">검사 실패 · '+esc(cause)+' <span class="eb-meta">'+esc(pm||'')+' / '+esc(err.model||'')+'</span></div>'
+    +'<div class="eb-msg mono">'+esc(m)+'</div>'
+    +(tip?'<div class="eb-tip">↳ '+esc(tip)+'</div>':'')
+    +'<div class="eb-tip" style="color:var(--ink-mute)">위 메시지를 그대로 복사해 알려주시면 정확한 원인을 짚어드립니다. (F12 → Console 의 빨간 오류도 도움이 됩니다.)</div></div>'
+    +'<button class="eb-x" onclick="dismissError()"><svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></div>';
+}
+window.dismissError=()=>{ S.lastError=null; renderInspect(false); };
+
+/* ----- 재검증 리포트 ----- */
+function renderReval(){
+  const el=$('#view-reval'); const r=S.result;
+  if(!r){ el.innerHTML=emptyState('재검증 데이터 없음','품질검사를 실행하면 2-pass 교차검증 결과가 여기에 표시됩니다.'); return; }
+  const flags=r.reval.flags||[];
+  el.innerHTML=
+  '<div class="conf-band rv" style="margin-bottom:18px"><div class="cbi"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="var(--green)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>'
+    +'<div class="cbt"><b>교차 재검증 '+(r.reval.applied?'완료':'미실행')+'</b><p>'+esc(r.reval.note)+'</p></div>'
+    +'<div class="cbv"><div class="n mono" data-count="'+r.confidence+'" data-suffix="%">0</div><div class="l">종합 신뢰도</div></div></div>'
+  +'<div class="split">'
+    +'<div class="card pad"><div class="card-h"><h3>보정 내역</h3><span class="hint">'+flags.length+'건 조정</span></div>'
+      +(flags.length?flags.map(f=>{ const minus=String(f.delta).includes('-');
+        return '<div class="flag"><svg class="fi" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="'+(minus?'var(--rose)':'var(--green)')+'" stroke-width="1.8"/><path d="M12 8v5m0 3h.01" stroke="'+(minus?'var(--rose)':'var(--green)')+'" stroke-width="1.8" stroke-linecap="round"/></svg>'
+        +'<div style="flex:1"><b>'+esc(f.target)+'</b><div style="color:var(--ink-soft);margin-top:2px">'+esc(f.issue)+'</div></div>'
+        +'<span class="adj '+(minus?'minus':'plus')+'">'+esc(f.delta)+'</span></div>'; }).join('')
+        :'<p style="font-size:12.5px;color:var(--ink-soft);margin-top:8px">1차 평가와 재검증 결과가 일치하여 보정 항목이 없습니다.</p>')
+    +'</div>'
+    +'<div class="card pad"><div class="card-h"><h3>신뢰도 지표</h3></div>'
+      +reliRow('근거 일치율', Math.min(100,r.confidence+4))
+      +reliRow('필수요구 검증', r.coverage.total?Math.round((r.coverage.met+r.coverage.partial*0.5)/r.coverage.total*100):0)
+      +reliRow('환각 위험 (낮을수록 양호)', Math.max(4,100-r.confidence))
+      +'<p style="font-size:11.5px;color:var(--ink-soft);margin-top:14px;line-height:1.55">신뢰도는 원문 근거 대조 결과를 종합한 값입니다. 80% 미만이면 원문 보강 후 재검사를 권장합니다.</p></div>'
+  +'</div>'
+  +'<div class="section-title"><span class="stbar"></span>재검증 후 요구사항 상태<span class="stn">VERIFIED</span></div>'
+  +'<div class="card" style="overflow:hidden"><table class="req-table"><thead><tr><th style="width:46px">ID</th><th>요구사항</th><th style="width:96px">검증 상태</th></tr></thead><tbody>'
+    +r.requirements.map(x=>{ const st={met:['met','충족'],partial:['partial','부분'],missing:['missing','누락']}[x.status]; return '<tr><td class="mono" style="color:var(--primary);font-weight:600">'+esc(x.id)+'</td><td><b>'+esc(x.text)+'</b>'+(x.mandatory?'<span class="must">필수</span>':'')+'</td><td><span class="st '+st[0]+'"><span class="d"></span>'+st[1]+'</span></td></tr>'; }).join('')
+  +'</tbody></table></div>';
+  animateCharts(el);
+}
+function reliRow(label,v){ const col=v>=80?'var(--green)':v>=60?'var(--amber)':'var(--rose)'; return '<div style="margin-top:13px"><div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700"><span>'+label+'</span><span class="mono" style="color:'+col+'">'+v+'%</span></div><div class="gbar" style="height:8px;margin-top:6px"><i data-w="'+v+'%" style="background:'+col+'"></i></div></div>'; }
+
+/* ----- 종합 리포트 ----- */
+function renderReport(){
+  const el=$('#view-report'); const r=S.result;
+  if(!r){ el.innerHTML=emptyState('리포트 없음','검사를 실행하면 인쇄·공유용 종합 리포트가 생성됩니다.'); return; }
+  const sec=SECTORS[r.sector], g=r.grade; const d=new Date(r.ts);
+  const cost=r.calls.reduce((a,c)=>a+costOf(c.in,c.out),0);
+  el.innerHTML=
+  '<div style="display:flex;gap:10px;justify-content:flex-end;margin-bottom:14px" class="noprint">'
+    +'<button class="tb-btn" onclick="exportJSON()"><svg viewBox="0 0 24 24" fill="none"><path d="M12 4v12m0-12-4 4m4-4 4 4M5 16v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>JSON 내보내기</button>'
+    +'<button class="tb-btn primary" onclick="window.print()"><svg viewBox="0 0 24 24" fill="none"><path d="M6 9V3h12v6M6 18H4v-5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v5h-2M6 14h12v7H6v-7Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>PDF로 저장(인쇄)</button></div>'
+  +'<div class="card pad" id="reportSheet">'
+    +'<div style="display:flex;align-items:flex-start;gap:16px;border-bottom:2px solid var(--ink);padding-bottom:16px">'
+      +'<div style="flex:1"><div style="font-size:11px;letter-spacing:1px;color:var(--ink-mute);font-weight:800">제안 품질관리 · PROPOSAL QA REPORT</div>'
+      +'<h2 style="font-size:22px;font-weight:800;letter-spacing:-.5px;margin-top:4px">'+sec.label+' 품질검사 종합 리포트</h2>'
+      +'<div style="font-size:12px;color:var(--ink-soft);margin-top:4px">'+d.toLocaleString('ko-KR')+' · '+PROVIDER_META[r.provider].name+' / '+esc(r.model)+' · '+modeLabel(r.mode)+(r.scope?' · '+esc(r.scope):'')+'</div></div>'
+      +'<div style="text-align:center"><div class="mono" style="font-size:46px;font-weight:600;color:'+g.c+';line-height:1">'+r.overall+'</div><div style="font-size:12px;font-weight:800;color:'+g.c+'">'+g.g+'등급 · '+g.t+'</div></div></div>'
+    // executive summary band
+    +'<div class="exec"><div class="exec-l"><div class="exec-k">한눈 요약</div><p class="exec-v">'+esc(verdictLine(r))+'</p>'
+      +'<div class="exec-chips">'+r.strengths.slice(0,3).map(s=>'<span class="chip good">✓ '+esc(s)+'</span>').join('')+'</div></div>'
+      +'<div class="exec-r">'+[['신뢰도',r.confidence+'%'],['종합',r.overall+'점'],['누락',r.coverage.missing+'건']].map(x=>'<div class="exec-stat"><div class="n mono">'+x[1]+'</div><div class="l">'+x[0]+'</div></div>').join('')+'</div></div>'
+    +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:16px">'
+      +repStat('재검증 신뢰도',r.confidence+'%')+repStat('필수요구 충족',r.requirements.filter(x=>x.mandatory&&x.status==='met').length+'/'+r.requirements.filter(x=>x.mandatory).length)
+      +repStat('전체 충족/부분/누락',r.coverage.met+'/'+r.coverage.partial+'/'+r.coverage.missing)+repStat('토큰 · 비용',fmt(r.tokens.total)+' · $'+cost.toFixed(4))+'</div>'
+    // editable improvement board
+    +'<div class="rep-h"><h3>1. 개선 과제 <span class="rep-sub">· 직접 수정·추가·완료 체크</span></h3>'
+      +'<button class="tb-btn noprint" onclick="addImprove()"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>개선안 추가</button></div>'
+    +'<div id="improveBoard"></div>'
+    +'<div class="rep-h"><h3>2. 평가축별 점수 · 평가기준</h3></div>'
+      +'<table class="req-table"><thead><tr><th style="width:130px">평가축</th><th style="width:70px">가중치</th><th style="width:64px">점수</th><th>평가기준</th></tr></thead><tbody>'
+      +r.categories.map(c=>'<tr><td><b style="font-weight:700;color:'+catColor(c.key)+'">'+esc(c.label)+'</b></td><td class="mono" style="color:var(--ink-mute)">'+c.weight+'%</td><td class="mono" style="font-weight:700">'+c.score+'</td><td style="font-size:11.5px;color:var(--ink-soft)">'+esc(c.criteria||'-')+'</td></tr>').join('')
+      +'</tbody></table>'
+    +'<div class="rep-h"><h3>3. 요구사항 추적 매트릭스 <span class="rep-sub">· 페이지 · 평가기준</span></h3></div>'
+      +'<table class="req-table"><thead><tr><th style="width:42px">ID</th><th>요구사항 / 기준</th><th style="width:110px">페이지</th><th style="width:74px">상태</th><th>보완안</th></tr></thead><tbody>'+r.requirements.map(x=>{const st={met:['met','충족'],partial:['partial','부분'],missing:['missing','누락']}[x.status];return '<tr><td class="mono">'+esc(x.id)+'</td><td><b>'+esc(x.text)+'</b>'+(x.mandatory?' <span class="must">필수</span>':'')+(x.criterion?'<div style="font-size:10.5px;color:var(--ink-mute);margin-top:2px">기준: '+esc(x.criterion)+'</div>':'')+'</td><td class="mono" style="font-size:10.5px;color:var(--ink-soft)">'+esc(x.page||'-')+'</td><td><span class="st '+st[0]+'">'+st[1]+'</span></td><td style="font-size:11px;color:var(--ink-soft)">'+esc(x.fix||'-')+'</td></tr>';}).join('')+'</tbody></table>'
+    +((r.typos&&r.typos.length)?(
+      '<div class="rep-h"><h3>4. 오타·표기 검증 <span class="rep-sub">· '+r.typos.length+'건</span></h3></div>'
+      +'<table class="req-table"><thead><tr><th style="width:130px">위치</th><th style="width:96px">유형</th><th>원문</th><th>수정안</th></tr></thead><tbody>'
+      +r.typos.map(t=>'<tr><td class="mono" style="font-size:10.5px;color:var(--ink-soft)">'+esc(t.page)+'</td><td>'+esc(t.kind)+'</td><td style="font-size:11.5px;color:var(--rose)"><s>'+esc(t.wrong)+'</s></td><td style="font-size:11.5px;color:#147a52;font-weight:600">'+esc(t.fix)+'</td></tr>').join('')
+      +'</tbody></table>'):'')
+    +((r.evaluatorView&&r.evaluatorView.length)?(
+      '<div class="rep-h"><h3>'+(r.typos&&r.typos.length?'5':'4')+'. 평가자 관점 개선 권고</h3></div>'
+      +'<div>'+r.evaluatorView.map(evRow).join('')+'</div>'):'')
+    +'<div class="rep-h"><h3>'+(6-(r.typos&&r.typos.length?0:1)-(r.evaluatorView&&r.evaluatorView.length?0:1))+'. 재검증 의견</h3></div><p style="font-size:12.5px;color:var(--ink-soft);line-height:1.6">'+esc(r.reval.note)+'</p>'
+    +'<div style="margin-top:24px;padding-top:14px;border-top:1px solid var(--line);font-size:10.5px;color:var(--ink-mute);line-height:1.6">본 리포트는 AI 기반 보조 검토 결과입니다. 최종 판단은 제안 책임자의 검토를 거쳐야 하며, 점수·충족판정은 제공된 발췌 텍스트 범위 내에서 산출되었습니다. 토큰 사용량 '+fmt(r.tokens.total)+' (입력 '+fmt(r.tokens.input)+' / 출력 '+fmt(r.tokens.output)+') · 추정 비용 $'+cost.toFixed(4)+'.</div>'
+  +'</div>';
+  renderImproveBoard();
+  animateCharts(el);
+}
+function verdictLine(r){
+  const g=r.grade; const undone=buildImprovements(r).filter(x=>!x.done).length;
+  let mid='';
+  if(r.coverage.missing) mid+='누락 '+r.coverage.missing+'건, ';
+  if(r.coverage.partial) mid+='부분충족 '+r.coverage.partial+'건이 있어 ';
+  return g.t+' 수준('+r.overall+'점·'+g.g+'등급)이며 재검증 신뢰도는 '+r.confidence+'%입니다. '
+    +mid+'미반영 개선 과제 '+undone+'건을 먼저 처리하면 점수 상승 여지가 큽니다.';
+}
+function buildImprovements(r){
+  if(r.improvements) return r.improvements;
+  const arr=[]; const ord={high:0,mid:1,low:2};
+  (r.risks||[]).forEach((x,i)=>arr.push({id:'rk'+i,pri:x.level||'mid',src:(x.title||'리스크')+(x.page?' · '+x.page:''),text:x.action,done:false}));
+  (r.requirements||[]).filter(x=>x.status!=='met'&&x.fix).forEach(x=>arr.push({id:'rq_'+x.id,pri:x.mandatory?'high':'mid',src:x.id+' · '+x.text+(x.page?' · '+x.page:''),text:x.fix,done:false}));
+  arr.sort((a,b)=>ord[a.pri]-ord[b.pri]);
+  r.improvements=arr; return arr;
+}
+const PRI={high:['최우선','pri-high'],mid:['중요','pri-mid'],low:['권장','pri-low']};
+function renderImproveBoard(){
+  const box=$('#improveBoard'); if(!box) return; const r=S.result; const items=buildImprovements(r);
+  const top3=items.filter(x=>!x.done).slice(0,3);
+  let html='';
+  if(top3.length) html+='<div class="top3"><div class="top3-h">지금 고쳐야 할 핵심 '+top3.length+'</div>'
+    +top3.map((x,i)=>'<div class="top3-row"><span class="top3-n mono">'+(i+1)+'</span><span class="imp-pri '+PRI[x.pri][1]+'">'+PRI[x.pri][0]+'</span><span class="top3-t">'+esc(x.text||'(내용 입력)')+'</span></div>').join('')+'</div>';
+  if(!items.length){ box.innerHTML='<p style="font-size:12.5px;color:var(--ink-soft);padding:6px 0">개선 과제가 없습니다. 모든 항목이 충족되었거나, 우측 버튼으로 직접 추가할 수 있습니다.</p>'; return; }
+  html+='<div class="imp-list">'+items.map(x=>
+    '<div class="imp-card '+PRI[x.pri][1]+(x.done?' done':'')+'" data-id="'+esc(x.id)+'">'
+    +'<div class="imp-top">'
+      +'<select class="imp-sel noprint" data-act="pri">'+['high','mid','low'].map(p=>'<option value="'+p+'" '+(x.pri===p?'selected':'')+'>'+PRI[p][0]+'</option>').join('')+'</select>'
+      +'<span class="imp-pri imp-pri-print '+PRI[x.pri][1]+'" style="display:none">'+PRI[x.pri][0]+'</span>'
+      +'<span class="imp-src">'+esc(x.src||'직접 추가')+'</span>'
+      +'<label class="imp-done-l noprint"><input type="checkbox" '+(x.done?'checked':'')+' data-act="done"> 반영 완료</label>'
+      +'<button class="imp-del noprint" data-act="del" title="삭제"><svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>'
+    +'</div>'
+    +'<textarea class="imp-edit" rows="2" placeholder="개선·보완 내용을 입력하세요" data-act="edit">'+esc(x.text||'')+'</textarea>'
+    +'</div>').join('')+'</div>';
+  box.innerHTML=html;
+  bindImproveEvents(box);
+  // auto-size textareas
+  box.querySelectorAll('.imp-edit').forEach(t=>{ t.style.height='auto'; t.style.height=t.scrollHeight+'px';
+    t.addEventListener('input',()=>{ t.style.height='auto'; t.style.height=t.scrollHeight+'px'; }); });
+}
+
+/* 개선카드 이벤트 위임 (2026-08-12, 승인 묶음 #3)
+   인라인 핸들러에 x.id 를 문자열로 박으면 LLM 이 만든 id 가 JS 컨텍스트로 들어간다
+   (esc() 는 홑따옴표를 치환하지 않는다). data-id 는 esc() 를 거치므로
+   여기서 속성값으로 읽으면 문자열 결합 없이 안전하다.
+   renderImproveBoard 는 여러 번 호출되므로 리스너는 한 번만 건다. */
+function bindImproveEvents(box){
+  if(!box || box._impBound) return; box._impBound=true;
+  const idOf=el=>{ const c=el.closest && el.closest('.imp-card'); return c?c.getAttribute('data-id'):null; };
+  box.addEventListener('change',e=>{
+    const t=e.target; if(!t.getAttribute) return;
+    const act=t.getAttribute('data-act'); if(act!=='pri'&&act!=='done') return;
+    const id=idOf(t); if(id==null) return;
+    if(act==='pri') setImprovePri(id,t.value); else toggleImprove(id);
+  });
+  box.addEventListener('input',e=>{
+    const t=e.target; if(!t.getAttribute||t.getAttribute('data-act')!=='edit') return;
+    const id=idOf(t); if(id!=null) editImprove(id,t.value);
+  });
+  box.addEventListener('click',e=>{
+    const t=e.target.closest && e.target.closest('[data-act="del"]'); if(!t) return;
+    const id=idOf(t); if(id!=null) delImprove(id);
+  });
+}
+window.editImprove=(id,v)=>{ const it=S.result.improvements.find(x=>x.id===id); if(it)it.text=v; };
+window.toggleImprove=id=>{ const it=S.result.improvements.find(x=>x.id===id); if(it)it.done=!it.done; renderImproveBoard(); };
+window.setImprovePri=(id,v)=>{ const it=S.result.improvements.find(x=>x.id===id); if(it)it.pri=v; const ord={high:0,mid:1,low:2}; S.result.improvements.sort((a,b)=>ord[a.pri]-ord[b.pri]); renderImproveBoard(); };
+window.addImprove=()=>{ buildImprovements(S.result); S.result.improvements.push({id:'u'+Date.now(),pri:'mid',src:'직접 추가',text:'',done:false}); renderImproveBoard(); toast('개선안을 추가했습니다.'); };
+window.delImprove=id=>{ S.result.improvements=(S.result.improvements||[]).filter(x=>x.id!==id); renderImproveBoard(); };
+function repStat(l,v){ return '<div style="background:var(--surface);border-radius:12px;padding:13px 15px"><div style="font-size:11px;color:var(--ink-soft);font-weight:700">'+l+'</div><div class="mono" style="font-size:20px;font-weight:600;margin-top:4px">'+v+'</div></div>'; }
+window.exportJSON=()=>{ const blob=new Blob([JSON.stringify(S.result,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='proposal-qa-report-'+Date.now()+'.json'; a.click(); toast('JSON 리포트를 내보냈습니다.'); };
+
+/* ----- API 연동 ----- */
+function renderApi(){
+  const el=$('#view-api');
+  el.innerHTML=
+  '<div class="section-title"><span class="stbar"></span>LLM API 연동<span class="stn">KEYS STORED LOCALLY</span></div>'
+  +'<div class="api-grid">'+['claude','gemini','gpt'].map(p=>{ const m=PROVIDER_META[p], cfg=S.api[p], on=!!cfg.key;
+    return '<div class="api-card '+(on?'on':'')+'" id="api-'+p+'"><div class="ach"><div class="alogo" style="background:'+m.color+'">'+p[0].toUpperCase()+'</div><h4>'+m.name+'</h4><span class="astat">'+(on?'연결됨':'미설정')+'</span></div>'
+      +'<label class="fld"><span class="fl">API 키</span><input class="inp mono" type="password" value="'+esc(cfg.key)+'" placeholder="'+(p==='claude'?'sk-ant-...':p==='gpt'?'sk-...':'AIza...')+'" oninput="setKey(\''+p+'\',this.value)"></label>'
+      +'<label class="fld"><span class="fl">모델 <span style="color:var(--ink-mute);font-weight:500">(수정 가능)</span></span>'
+        +'<input class="inp mono" list="ml-'+p+'" value="'+esc(cfg.model)+'" oninput="setModel(\''+p+'\',this.value)">'
+        +'<datalist id="ml-'+p+'">'+m.models.map(x=>'<option value="'+x+'">').join('')+'</datalist></label>'
+      +'<label class="fld"><span class="fl">엔드포인트 <span style="color:var(--ink-mute);font-weight:500">(선택 · 프록시/호환 게이트웨이)</span></span>'
+        +'<input class="inp mono" value="'+esc(cfg.base||'')+'" placeholder="'+(p==='claude'?'기본: https://api.anthropic.com':p==='gpt'?'기본: https://api.openai.com/v1':'기본: https://generativelanguage.googleapis.com/v1beta')+'" oninput="setBase(\''+p+'\',this.value)"></label>'
+      +'<div class="use-radio"><input type="radio" name="useprov" data-p="'+p+'" id="useprov-'+p+'" '+(S.provider===p?'checked':'')+' onchange="setProvider(\''+p+'\')"> 이 모델을 검사에 사용 (추정 단가 입력 $'+RATES[p].in+'/출력 $'+RATES[p].out+' /1M)</div></div>';
+  }).join('')+'</div>'
+  +'<div class="notice"><svg viewBox="0 0 24 24" fill="none"><path d="M12 9v4m0 4h.01M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>'
+    +'<div><b>보안 안내</b> · API 키는 이 브라우저(localStorage)에만 저장되며 외부로 전송되지 않습니다. 요청은 각 제공사 서버로 직접 호출됩니다. 키를 입력하면 해당 제공자가 검사에 자동 선택됩니다(여러 개면 라디오로 전환). '
+    +'브라우저 직접 호출 특성상 일부 환경에서 CORS 차단이 발생할 수 있습니다. 특히 <b>GPT(OpenAI)는 로컬 파일(file://)에서 직접 호출이 차단</b>됩니다 — 이 경우 <b>Claude·Gemini로 전환</b>하거나, 로컬 서버(http://localhost)로 열거나, 위 "엔드포인트"에 프록시 URL을 입력하세요. 모델명·단가는 제공사 최신 정보로 직접 갱신하세요.</div></div>'
+  +'<div class="card pad" style="margin-top:18px"><div class="card-h"><h3>토큰 사용 현황</h3><span class="hint">세션 누적</span></div>'
+    +(S.tokens.calls.length? '<table class="req-table" style="margin-top:6px"><thead><tr><th>단계</th><th>입력</th><th>출력</th><th>합계</th><th>추정 $</th></tr></thead><tbody>'
+      +S.tokens.calls.map(c=>'<tr><td><b>'+esc(c.label)+'</b></td><td class="mono">'+fmt(c.in)+'</td><td class="mono">'+fmt(c.out)+'</td><td class="mono">'+fmt(c.in+c.out)+'</td><td class="mono">$'+costOf(c.in,c.out).toFixed(4)+'</td></tr>').join('')
+      +'<tr style="border-top:2px solid var(--line)"><td><b>합계</b></td><td class="mono"><b>'+fmt(S.tokens.input)+'</b></td><td class="mono"><b>'+fmt(S.tokens.output)+'</b></td><td class="mono"><b>'+fmt(S.tokens.total)+'</b></td><td class="mono"><b>$'+S.tokens.calls.reduce((a,c)=>a+costOf(c.in,c.out),0).toFixed(4)+'</b></td></tr></tbody></table>'
+      :'<p style="font-size:12.5px;color:var(--ink-soft);margin-top:8px">아직 호출 기록이 없습니다. 검사를 실행하면 단계별 토큰이 기록됩니다.</p>')+'</div>';
+}
+window.setKey=(p,v)=>{
+  v=v.trim(); S.api[p].key=v; save();
+  $('#api-'+p).classList.toggle('on',!!v);
+  $('#api-'+p+' .astat').textContent=v?'연결됨':'미설정';
+  // 키를 입력하면 그 제공자를 활성으로 — 현재 활성 제공자에 키가 없을 때 자동 전환
+  if(v && !S.api[S.provider].key && S.provider!==p) setActiveProvider(p);
+  // 활성 제공자의 키를 비우면, 키가 남아있는 다른 제공자로 자동 전환
+  else if(!v && S.provider===p){ const alt=['claude','gemini','gpt'].find(x=>S.api[x].key); if(alt&&alt!==p) setActiveProvider(alt); }
+  updateApiBadge();
+};
+function setActiveProvider(p){
+  S.provider=p; save();
+  const r=$('#useprov-'+p); if(r) r.checked=true;
+  syncProviderSeg();
+}
+window.setModel=(p,v)=>{ S.api[p].model=v.trim(); save(); };
+window.setBase=(p,v)=>{ S.api[p].base=v.trim(); save(); };
+window.setProvider=p=>{ S.provider=p; save(); syncProviderSeg(); };
+
+/* ============================ 네비게이션 ============================ */
+const VIEWS={ dash:['대시보드','제안서 품질 대시보드',renderDash], upload:['문서 업로드','문서 업로드 & 토큰 설정',renderUpload],
+  inspect:['품질검사 실행','검증 파이프라인',()=>renderInspect(false)], reval:['재검증 리포트','교차 재검증 결과',renderReval],
+  report:['종합 리포트','품질검사 종합 리포트',renderReport], api:['API 연동','LLM API & 토큰',renderApi] };
+function go(v){
+  $$('.view').forEach(x=>x.hidden=true); $('#view-'+v).hidden=false;
+  $$('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===v));
+  const m=VIEWS[v]; $('#crumb').innerHTML='제안 품질관리 · <b>'+m[0]+'</b>'; $('#topTitle').textContent=m[1];
+  m[2](); $('.scroll').scrollTop=0;
+}
+window.go=go;
+function syncProviderSeg(){ $$('#providerSeg button').forEach(b=>b.classList.toggle('on',b.dataset.p===S.provider)); }
+function updateApiBadge(){ const n=['claude','gemini','gpt'].filter(p=>S.api[p].key).length; const b=$('#navApiBadge'); b.hidden=n===0; b.textContent=n; }
+/* loadDemo/loadDemoCase는 데모 데이터 블록에서 정의됨 */
+
+/* ============================ 초기화 ============================ */
+function init(){
+  load(); syncProviderSeg(); updateApiBadge(); updateSideTokens();
+  $('#nav').addEventListener('click',e=>{ const it=e.target.closest('.nav-item'); if(it)go(it.dataset.view); });
+  $$('#providerSeg button').forEach(b=>b.addEventListener('click',()=>{ S.provider=b.dataset.p; save(); syncProviderSeg(); toast(PROVIDER_META[S.provider].name+' 선택됨'); }));
+  $('#demoBtn').addEventListener('click',loadDemo);
+  $('#runTop').addEventListener('click',runPipeline);
+  go('dash');
+}
+document.addEventListener('DOMContentLoaded',init);
+
+/* 인쇄 스타일 */
+const ps=document.createElement('style');
+ps.textContent='@media print{.sidebar,.topbar,.noprint{display:none!important}#app{grid-template-columns:1fr}.scroll{overflow:visible}.view{padding:0;max-width:100%}.card{box-shadow:none;border:1px solid #ccc;break-inside:avoid}body{overflow:visible}.imp-pri-print{display:inline-block!important}.imp-edit{border:none!important;background:transparent!important;padding:2px 0!important;box-shadow:none!important;color:#1b1712!important}.imp-card{break-inside:avoid;border-left-width:4px!important}}';
+document.head.appendChild(ps);
+</script>
+</body>
+</html>

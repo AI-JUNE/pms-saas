@@ -48,6 +48,11 @@ const NAV = [
     { href: '/workload', label: '업무 부하', icon: Gauge },
     { href: '/notifications', label: '알림', icon: Bell },
   ]},
+  { group: '제안', items: [
+    { href: '/apps/quality', label: '제안 품질관리', icon: ClipboardCheck },
+    { href: '/apps/strategy', label: '제안 전략도출', icon: GitBranch },
+    { href: '/apps/performance', label: '고객 성과관리', icon: Gauge },
+  ]},
   { group: '관리', items: [
     { href: '/admin', label: '사용자·권한', icon: ShieldCheck },
     { href: '/audit', label: '감사 로그', icon: Activity },

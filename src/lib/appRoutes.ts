@@ -54,6 +54,11 @@ export const APP_SCREENS: AppScreen[] = [
   { href: '/members', label: '인력', aliases: ['member', '멤버'], access: 'session' },
   { href: '/workload', label: '업무 부하', aliases: ['load', '리소스'], access: 'session' },
   { href: '/notifications', label: '알림', aliases: ['notification'], access: 'session' },
+  // 제안 앱 — public/apps/<key>/index.html 을 AppFrame 이 iframe 으로 띄운다.
+  // 페이지 파일은 src/app/apps/<key>/page.tsx 로 1:1 존재한다(동적 세그먼트 아님).
+  { href: '/apps/quality', label: '제안 품질관리', aliases: ['eqm', 'quality', '품질'], access: 'session' },
+  { href: '/apps/strategy', label: '제안 전략도출', aliases: ['esm', 'strategy', '전략'], access: 'session' },
+  { href: '/apps/performance', label: '고객 성과관리', aliases: ['epm', 'performance', '성과'], access: 'session' },
   { href: '/admin', label: '사용자·권한', aliases: ['admin', '관리자'], access: 'session' },
   { href: '/admin/security', label: '보안 이벤트', aliases: ['security'], access: 'session' },
   { href: '/audit', label: '감사 로그', aliases: ['audit'], access: 'session' },

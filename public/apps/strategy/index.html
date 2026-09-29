@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>제안 전략관리 · ECS</title>
+<!-- 오프라인: Pretendard 로컬 내장 (assets/) -->
+<style>
+  /* 오프라인 로컬 폰트 */
+  @font-face{font-family:'Pretendard Variable';font-weight:100 900;font-style:normal;font-display:swap;src:url('../_shared/PretendardVariable.woff2') format('woff2');}
+  @font-face{font-family:'Pretendard';font-weight:100 900;font-style:normal;font-display:swap;src:local('Pretendard Variable'),url('../_shared/PretendardVariable.woff2') format('woff2');}
+  :root{
+    /* CX Suite 통합 디자인 시스템 v1 (2026-07-09) — 변수명 유지, 값만 통일 */
+    --bg:#f5f4f2;--surface:#ffffff;--sidebar:#faf9f7;
+    --ink:#1b1712;--ink-dim:#46464e;--ink-faint:#71717a;
+    --line:#eee6dc;--brand:#e15a33;--brand-2:#c74a28;--accent:#2f6fd0;--accent-2:#5a9bef;--pink:#cc5480;
+    --ax:#2f6fd0;--cx:#e15a33;--ex:#1f9d55;--roi:#b3820a;
+    --ok:#1f9d55;--warn:#b3820a;--crit:#c1452f;
+    --sw-s:#1f9d55;--sw-w:#c1452f;--sw-o:#2f6fd0;--sw-t:#b3820a;
+    --sh-sm:0 1px 2px rgba(22,20,16,.06),0 1px 3px rgba(22,20,16,.05);
+    --sh-md:0 4px 14px -6px rgba(22,20,16,.14);--sh-lg:0 18px 44px -22px rgba(22,20,16,.26);
+    --mono:'SF Mono',ui-monospace,'Cascadia Mono',monospace;--r:14px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{font-family:'Pretendard Variable',Pretendard,-apple-system,system-ui,'Malgun Gothic',sans-serif;background:var(--bg);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased}
+  ::placeholder{color:var(--ink-faint)}
+  .app{display:flex;min-height:100vh}
+  .side{width:218px;flex-shrink:0;background:var(--sidebar);border-right:1px solid var(--line);padding:22px 14px;position:sticky;top:0;height:100vh;overflow:auto}
+  .side .brand .b1{font-size:19px;font-weight:800}.side .brand{padding:6px 10px 18px}.side .brand .b2{font-size:11.5px;color:var(--ink-faint);font-weight:600}
+  .side .lbl{font-size:10.5px;color:var(--ink-faint);font-weight:700;letter-spacing:.08em;padding:0 10px;margin:8px 0}
+  .nav a{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;font-size:13.5px;font-weight:600;color:var(--ink-dim);text-decoration:none;margin-bottom:3px;transition:.15s;cursor:pointer}
+  .nav a:hover{background:#f0f1f5;color:var(--ink)}.nav a.on{background:#eaf1ff;color:var(--brand-2)}.nav a .ic{font-size:15px;width:18px;text-align:center}
+  .side .foot{margin-top:18px;padding:12px 10px;border-top:1px solid var(--line);font-size:11px;color:var(--ink-faint);line-height:1.6}
+  .main{flex:1;min-width:0}
+  .topbar{display:flex;align-items:center;gap:14px;padding:18px 30px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.85);backdrop-filter:blur(8px);position:sticky;top:0;z-index:40}
+  .topbar .crumb{font-size:12px;color:var(--ink-faint);font-weight:600}.topbar .crumb b{color:var(--ink)}
+  .topbar .right{margin-left:auto;display:flex;gap:9px;align-items:center}
+  .content{padding:26px 30px 40px;max-width:1240px}
+  @media(max-width:880px){.side{display:none}.content{padding:18px}}
+  .pg-title{display:flex;align-items:flex-start;gap:13px;margin-bottom:6px}.pg-title .em{font-size:24px}.pg-title h1{font-size:26px;font-weight:800;letter-spacing:-.02em}
+  .pg-sub{color:var(--ink-dim);font-size:14px;max-width:840px;margin-bottom:4px}
+  .btn{font-family:inherit;font-weight:700;font-size:13.5px;border:none;border-radius:11px;padding:11px 18px;cursor:pointer;transition:.18s;display:inline-flex;align-items:center;gap:8px}
+  .btn.dark{background:#15171f;color:#fff;box-shadow:var(--sh-sm)}.btn.dark:hover{background:#262a36;transform:translateY(-1px)}.btn.dark:disabled{opacity:.5;cursor:not-allowed;transform:none}
+  .btn.line{background:var(--surface);border:1px solid var(--line);color:var(--ink-dim)}.btn.line:hover{border-color:#d8d3c8;color:var(--ink)}
+  .btn.brand{background:linear-gradient(110deg,var(--accent),var(--brand-2));color:#fff;box-shadow:0 10px 24px -12px rgba(0,148,212,.6)}.btn.brand:hover{transform:translateY(-1px)}.btn.brand:disabled{opacity:.5;cursor:not-allowed;transform:none}
+  .tabs{display:flex;gap:7px;margin:20px 0 6px;flex-wrap:wrap}
+  .tab{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);padding:10px 16px;border-radius:11px;font-size:13px;color:var(--ink-dim);font-weight:700;cursor:pointer;transition:.18s;box-shadow:var(--sh-sm)}
+  .tab:hover{border-color:#d8d3c8;color:var(--ink)}.tab.on{background:#15171f;border-color:#15171f;color:#fff}
+  .tab .n{font-family:var(--mono);font-size:10.5px;opacity:.7}.tab .mini{font-family:var(--mono);font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:20px;background:#eef0f5;color:var(--brand-2)}.tab.on .mini{background:rgba(255,255,255,.2);color:#fff}
+  .panel{display:none}.panel.on{display:block;animation:fade .35s}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);margin:14px 0;overflow:hidden;box-shadow:var(--sh-sm)}
+  .card-head{display:flex;align-items:center;gap:13px;padding:15px 20px;cursor:pointer;user-select:none;border-bottom:1px solid transparent;transition:.2s}
+  .card-head:hover{background:#fafbfd}.card.open .card-head{border-bottom-color:var(--line)}
+  .card-head .ix{font-family:var(--mono);font-size:12px;color:var(--brand-2);border:1px solid var(--line);border-radius:8px;padding:5px 9px;font-weight:700;background:#f5f7fb}
+  .card-head h2{font-size:15.5px;font-weight:800;letter-spacing:-.01em}
+  .card-head .hint{font-size:12px;color:var(--ink-faint);margin-left:auto;text-align:right;max-width:300px;line-height:1.4}
+  .card-head .chev{margin-left:12px;color:var(--accent);transition:transform .3s;font-size:12px;flex-shrink:0}.card.open .card-head .chev{transform:rotate(90deg)}
+  .card-body{display:none;padding:6px 20px 20px}.card.open .card-body{display:block;animation:fade .3s}
+  .grid{display:grid;gap:13px}.grid.c2{grid-template-columns:1fr 1fr}.grid.c3{grid-template-columns:1fr 1fr 1fr}.grid.c4{grid-template-columns:repeat(4,1fr)}
+  @media(max-width:760px){.grid.c2,.grid.c3,.grid.c4{grid-template-columns:1fr}.card-head .hint{display:none}}
+  .ownerbar{display:flex;gap:9px;align-items:center;flex-wrap:wrap;background:#f7f8fb;border:1px solid var(--line);border-radius:10px;padding:9px 13px;margin-bottom:13px}
+  .ownerbar .ol{font-size:11.5px;color:var(--ink-faint);font-weight:700}.ownerbar input{max-width:140px;padding:7px 10px;font-size:12.5px}.ownerbar select{max-width:160px;padding:7px 10px;font-size:12.5px}
+  .ownerbar .credit{margin-left:auto;font-family:var(--mono);font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px}
+  .credit.hi{color:var(--ok);background:#e9f7ef;border:1px solid #bce3cb}.credit.mid{color:var(--warn);background:#fdf3e6;border:1px solid #f3ddb8}.credit.lo{color:var(--crit);background:#fdeaea;border:1px solid #f3c4c4}.credit.none{color:var(--ink-faint);background:#f1f2f6;border:1px solid var(--line)}
+  .field{display:flex;flex-direction:column;gap:6px}
+  .field label{font-size:12.5px;color:var(--ink-dim);font-weight:600;display:flex;align-items:center;gap:7px}
+  .field label .pos{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:#fde8f1;color:var(--pink);border:1px solid #f6c9dd}
+  .field .sub{font-size:11px;color:var(--ink-faint);font-weight:400}
+  input,select,textarea{width:100%;background:#fff;border:1px solid var(--line);border-radius:10px;color:var(--ink);font-family:inherit;font-size:13.5px;padding:10px 12px;transition:.18s;resize:vertical}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,148,212,.1)}
+  textarea{min-height:58px;line-height:1.55}select{cursor:pointer}
+  .seg{display:flex;gap:8px;flex-wrap:wrap}
+  .seg button{flex:1;min-width:88px;background:#fff;border:1px solid var(--line);border-radius:10px;color:var(--ink-dim);font-family:inherit;font-size:12.5px;font-weight:600;padding:11px 8px;cursor:pointer;transition:.18s}
+  .seg button:hover{border-color:#d8d3c8;color:var(--ink)}.seg button.on{background:linear-gradient(120deg,var(--brand),var(--brand-2));border-color:var(--brand);color:#fff;box-shadow:0 6px 16px -8px rgba(29,55,139,.5)}
+  .seg button small{display:block;font-size:10px;font-weight:400;opacity:.85;margin-top:3px}
+  .chips{display:flex;gap:7px;flex-wrap:wrap}
+  .chip{font-size:12px;font-weight:600;padding:7px 13px;border-radius:20px;border:1px solid var(--line);background:#fff;color:var(--ink-dim);cursor:pointer;transition:.15s;user-select:none}
+  .chip:hover{border-color:#d8d3c8}.chip.on{background:var(--brand);border-color:var(--brand);color:#fff}
+  .swot{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:680px){.swot{grid-template-columns:1fr}}
+  .sw-cell{border:1px solid var(--line);border-radius:12px;padding:13px 15px;background:#fff}
+  .sw-cell .sh{font-size:12px;font-weight:800;margin-bottom:8px;display:flex;align-items:center;gap:7px}
+  .sw-cell.S{border-top:3px solid var(--sw-s)}.sw-cell.S .sh{color:var(--sw-s)}
+  .sw-cell.W{border-top:3px solid var(--sw-w)}.sw-cell.W .sh{color:var(--sw-w)}
+  .sw-cell.O{border-top:3px solid var(--sw-o)}.sw-cell.O .sh{color:var(--sw-o)}
+  .sw-cell.T{border-top:3px solid var(--sw-t)}.sw-cell.T .sh{color:var(--sw-t)}
+  .chk-group .gh{font-size:12px;font-weight:800;color:var(--brand-2);margin:13px 0 7px;text-transform:uppercase}
+  .chk{display:flex;align-items:flex-start;gap:11px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px;cursor:pointer;transition:.15s;background:#fff}
+  .chk:hover{border-color:#d8d3c8}.chk.done{background:#f0faf3;border-color:#bce3cb}
+  .chk .box{width:18px;height:18px;border-radius:5px;border:2px solid #d8d3c8;flex-shrink:0;margin-top:1px;display:grid;place-items:center;font-size:11px;color:transparent;transition:.15s}
+  .chk.done .box{background:var(--ok);border-color:var(--ok);color:#fff}.chk .t{font-size:12.5px;color:var(--ink-dim);line-height:1.5}.chk.done .t{color:var(--ink)}
+  .prog{height:9px;border-radius:20px;background:#ece9e2;overflow:hidden}.prog .bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--ok));border-radius:20px;transition:width .7s cubic-bezier(.2,.8,.2,1)}
+  .drop{border:1.5px dashed #cdd3e0;border-radius:13px;padding:18px;text-align:center;cursor:pointer;transition:.2s;background:#fafbfd}
+  .drop:hover,.drop.over{background:#f0f6fc;border-color:var(--accent)}.drop .ic{font-size:21px}.drop .t{font-size:13px;color:var(--ink-dim);font-weight:600;margin-top:5px}.drop .s{font-size:11px;color:var(--ink-faint);margin-top:3px}
+  .filelist{display:flex;flex-direction:column;gap:7px;margin-top:11px}
+  .fileitem{display:flex;align-items:center;gap:10px;background:#f7f8fb;border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-size:12.5px}
+  .fileitem .fk{font-family:var(--mono);font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;background:#eaf1ff;color:var(--brand-2)}.fileitem .fn{flex:1;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fileitem .rm{cursor:pointer;color:var(--crit);font-weight:800;padding:0 6px}
+  .usage-tab{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:10px}.usage-tab th,.usage-tab td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}.usage-tab th{color:var(--ink-faint);font-weight:600;font-size:11.5px}.usage-tab td b{color:var(--brand-2)}
+  .warnbox{font-size:12px;color:var(--warn);background:#fdf6ea;border:1px solid #f1ddb6;border-radius:10px;padding:10px 13px;line-height:1.5;margin-top:8px}
+  .okbox{font-size:12.5px;color:var(--ok);background:#eef9f1;border:1px solid #bfe3cb;border-radius:10px;padding:9px 13px;line-height:1.5;margin-top:8px;font-weight:600}
+  .actionbar{position:sticky;bottom:0;z-index:25;margin-top:18px;padding:13px 0;background:linear-gradient(180deg,transparent,var(--bg) 35%)}
+  .actionbar-inner{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+  .readout{font-size:11px;color:var(--ink-faint);font-family:var(--mono);margin-left:auto;text-align:right;line-height:1.6}.readout b{color:var(--brand-2)}.readout .w{color:var(--warn)}
+  .o-empty{text-align:center;color:var(--ink-faint);padding:46px 20px;font-size:14px;border:1.5px dashed var(--line);border-radius:14px;background:var(--surface)}
+  .loading{display:flex;flex-direction:column;align-items:center;gap:15px;padding:48px 20px}.spinner{width:40px;height:40px;border:3px solid #e6e9f0;border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.loading .msg{color:var(--ink-dim);font-size:13.5px}
+  .reveal{opacity:0;transform:translateY(14px);animation:rev .6s cubic-bezier(.2,.7,.2,1) forwards}@keyframes rev{to{opacity:1;transform:none}}
+  .dash-top{display:grid;grid-template-columns:auto 1fr;gap:18px;background:linear-gradient(120deg,#fbfcff,#f4f7ff);border:1px solid var(--line);border-radius:18px;padding:22px 24px;box-shadow:var(--sh-md);margin-bottom:16px}
+  @media(max-width:680px){.dash-top{grid-template-columns:1fr}}
+  .grade-wrap{display:flex;align-items:center;gap:18px}
+  .gauge{position:relative;width:128px;height:80px}.gauge svg{width:128px;height:80px;overflow:visible}.gauge .center{position:absolute;left:0;right:0;bottom:2px;text-align:center}.gauge .center .g{font-size:30px;font-weight:800;line-height:1}.gauge .center .s{font-size:11px;color:var(--ink-faint);font-weight:700;margin-top:2px}
+  .verdict{display:flex;flex-direction:column;gap:8px;justify-content:center}.verdict .vt{font-size:16px;font-weight:800}.verdict .vm{font-size:13px;color:var(--ink-dim);line-height:1.55}
+  .winpill{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:800;padding:5px 13px;border-radius:20px;width:fit-content}
+  .winpill.상{color:var(--ok);background:#e9f7ef;border:1px solid #bce3cb}.winpill.중{color:var(--warn);background:#fdf3e6;border:1px solid #f3ddb8}.winpill.하{color:var(--crit);background:#fdeaea;border:1px solid #f3c4c4}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}@media(max-width:760px){.kpis{grid-template-columns:repeat(2,1fr)}}
+  .kpi{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:15px 16px;box-shadow:var(--sh-sm)}.kpi .kl{font-size:11.5px;color:var(--ink-faint);font-weight:700}.kpi .kv{font-size:27px;font-weight:800;letter-spacing:-.02em;margin-top:6px;font-variant-numeric:tabular-nums;color:var(--brand)}.kpi .kv small{font-size:13px;color:var(--ink-faint);font-weight:700}.kpi.cyan .kv{color:var(--accent)}.kpi.pink .kv{color:var(--pink)}.kpi.green .kv{color:var(--ok)}.kpi .kf{font-size:10.5px;color:var(--ink-faint);margin-top:5px;font-family:var(--mono)}
+  .charts{display:grid;grid-template-columns:1.3fr 1fr;gap:14px;margin-bottom:16px}@media(max-width:860px){.charts{grid-template-columns:1fr}}
+  .chart-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px;box-shadow:var(--sh-sm)}.chart-card .ct{font-size:13px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .barrow{display:flex;align-items:center;gap:10px;margin-bottom:10px}.barrow .bl{font-size:12px;color:var(--ink-dim);font-weight:600;width:120px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.barrow .bt{flex:1;height:18px;background:#eef0f5;border-radius:20px;overflow:hidden}.barrow .bf{height:100%;border-radius:20px;width:0;transition:width 1s cubic-bezier(.2,.8,.2,1);background:linear-gradient(90deg,var(--brand),var(--accent))}.barrow .bv{font-size:12px;font-weight:800;width:34px;text-align:right;font-variant-numeric:tabular-nums;color:var(--brand)}.dimrow .bf{background:linear-gradient(90deg,var(--accent),var(--accent-2))}
+  .cov-chips{display:flex;gap:9px;flex-wrap:wrap}.axc{flex:1;min-width:64px;text-align:center;border-radius:12px;padding:12px 8px;border:1.5px solid;font-weight:800;font-size:13px;opacity:.4;transition:.4s}.axc.has{opacity:1}
+  .axc.AX{color:var(--ax);border-color:var(--ax);background:#eaf6fc}.axc.CX{color:var(--cx);border-color:var(--cx);background:#fdeaf2}.axc.EX{color:var(--ex);border-color:var(--ex);background:#eaf7ef}.axc.ROI{color:var(--roi);border-color:var(--roi);background:#fdf4e8}.axc .axn{font-size:10px;font-weight:700;color:var(--ink-faint);margin-top:3px}
+  .sw-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}@media(max-width:680px){.sw-cols{grid-template-columns:1fr}}
+  .sw{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--sh-sm)}.sw h4{font-size:12.5px;font-weight:800;margin-bottom:10px}.sw.s h4{color:var(--ok)}.sw.w h4{color:var(--crit)}.sw li{font-size:12.5px;color:var(--ink-dim);line-height:1.6;list-style:none;padding-left:16px;position:relative;margin-bottom:5px}.sw.s li:before{content:"▲";position:absolute;left:0;color:var(--ok);font-size:9px;top:3px}.sw.w li:before{content:"▼";position:absolute;left:0;color:var(--crit);font-size:9px;top:3px}
+  .consist{background:#fdf0f0;border:1px solid #f3c9c9;border-radius:14px;padding:15px 19px;margin-bottom:16px}.consist .h{font-size:13px;font-weight:800;color:var(--crit);margin-bottom:9px}.consist .ci{font-size:12.5px;color:var(--ink);line-height:1.6;padding:7px 0;border-bottom:1px dashed #f0cccc}.consist .ci:last-child{border-bottom:none}.consist .ci b{color:var(--crit)}.consist .ci .sg{color:var(--accent)}
+  .draftrev{background:#f6f4ff;border:1px solid #ddd6f5;border-radius:14px;padding:15px 19px;margin-bottom:16px}.draftrev .h{font-size:13px;font-weight:800;color:#6d3fd0;margin-bottom:9px}.draftrev .di{font-size:12.5px;color:var(--ink);line-height:1.6;padding:8px 0;border-bottom:1px dashed #ddd6f5}.draftrev .di:last-child{border-bottom:none}.draftrev .act{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;margin-right:6px}.act.유지{background:#e9f7ef;color:var(--ok)}.act.개선{background:#fdf3e6;color:var(--warn)}.act.대체{background:#fdeaea;color:var(--crit)}
+  .sec-title{font-size:16px;font-weight:800;margin:20px 0 12px;display:flex;align-items:center;gap:9px}
+  .scard{background:var(--surface);border:1px solid var(--line);border-radius:15px;padding:18px 20px;margin-bottom:13px;box-shadow:var(--sh-sm);transition:.25s}.scard:hover{box-shadow:var(--sh-md)}.scard.picked{border-color:var(--brand-2);box-shadow:0 0 0 2px rgba(44,79,184,.15),var(--sh-md)}
+  .scard .topline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}.scard .snum{font-family:var(--mono);font-size:12.5px;font-weight:800;color:var(--brand-2)}
+  .badge{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px}.badge.type{color:var(--brand-2);background:#eef2fc;border:1px solid #d3ddf6}.badge.ax{border:1px solid}.badge.ax.AX{color:var(--ax);background:#eaf6fc;border-color:#bfe3f3}.badge.ax.CX{color:var(--cx);background:#fdeaf2;border-color:#f6c9dd}.badge.ax.EX{color:var(--ex);background:#eaf7ef;border-color:#bce3cb}.badge.ax.ROI{color:var(--roi);background:#fdf4e8;border-color:#f3ddb8}
+  .stot{margin-left:auto;display:flex;align-items:center;gap:8px}.stot .sc{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--brand)}.stot .sc small{font-size:11px;color:var(--ink-faint)}
+  .pick{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:var(--ink-dim);cursor:pointer;user-select:none;border:1px solid var(--line);padding:5px 10px;border-radius:20px}.pick input{width:auto;margin:0}
+  .scard h3{font-size:17px;font-weight:800;line-height:1.35;margin-bottom:12px}
+  .why{display:flex;gap:10px;align-items:flex-start;background:#f0f7fc;border-left:3px solid var(--accent);border-radius:0 11px 11px 0;padding:11px 14px;font-size:13px;line-height:1.55;margin-bottom:11px}.why .ico{color:var(--accent);font-weight:800;flex-shrink:0}.why b{color:var(--accent)}
+  .blk{margin-bottom:9px}.blk .h{font-size:11px;letter-spacing:.05em;color:var(--ink-faint);font-weight:700;text-transform:uppercase;margin-bottom:4px}.blk .t{font-size:13px;color:var(--ink);line-height:1.6}
+  .anchor-tag{display:inline-flex;gap:5px;font-size:11.5px;font-weight:600;color:var(--pink);background:#fdeef4;border:1px solid #f6cfe0;padding:4px 10px;border-radius:8px;margin:3px 5px 3px 0}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px}.pill.high{color:var(--ok);background:#e9f7ef;border:1px solid #bce3cb}.pill.mid{color:var(--warn);background:#fdf3e6;border:1px solid #f3ddb8}.pill.low{color:var(--crit);background:#fdeaea;border:1px solid #f3c4c4}.pill.검증완료{color:var(--ok);background:#e9f7ef;border:1px solid #bce3cb}.pill.교차확인{color:var(--warn);background:#fdf3e6;border:1px solid #f3ddb8}.pill.미검증{color:var(--crit);background:#fdeaea;border:1px solid #f3c4c4}
+  .evalbars{display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;margin:10px 0}.eb{display:flex;align-items:center;gap:8px}.eb .el{font-size:11px;color:var(--ink-dim);width:62px;flex-shrink:0}.eb .et{flex:1;height:6px;background:#eef0f5;border-radius:10px;overflow:hidden}.eb .ef{height:100%;background:var(--accent);border-radius:10px;width:0;transition:width .8s}.eb .ev{font-size:11px;font-weight:700;width:26px;text-align:right;color:var(--brand)}
+  .ecomment{font-size:12px;color:var(--ink-dim);font-style:italic;background:#f7f8fb;border-radius:8px;padding:8px 11px;margin-top:8px}
+  .subs{display:flex;flex-direction:column;gap:6px;margin-top:3px}.subs .si{display:flex;gap:9px;font-size:12.5px;color:var(--ink-dim);line-height:1.5}.subs .si .b{color:var(--accent);font-weight:800;flex-shrink:0}
+  .blk-section{margin:18px 0 6px}.blk-section h3{font-size:15px;font-weight:800;display:flex;align-items:center;gap:9px;margin-bottom:10px}.blk-section h3 .tg{font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px}.tg.ghost-tg{background:#eaf6fc;color:var(--accent)}.tg.risk-tg{background:#fdeaf2;color:var(--pink)}
+  .move{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:13px 16px;margin-bottom:9px;box-shadow:var(--sh-sm)}.move .mh{font-size:13.5px;font-weight:800;margin-bottom:5px}.move .mr{font-size:12.5px;color:var(--ink-dim);line-height:1.6;margin-bottom:3px}.move .mr b{color:var(--accent)}.move .where{display:inline-block;font-size:11px;color:var(--warn);background:#fdf6ea;border:1px solid #f1ddb6;border-radius:7px;padding:3px 9px;margin-top:4px}
+  .gap-card{background:#fdf6ea;border:1px solid #f1ddb6;border-radius:13px;padding:14px 18px;margin:12px 0}.gap-card .h{font-size:12.5px;font-weight:800;color:var(--warn);margin-bottom:7px}.gap-card ul{margin:0;padding-left:18px}.gap-card li{font-size:12.5px;color:var(--ink-dim);line-height:1.7}
+  .err{background:#fdeaea;border:1px solid #f3c4c4;border-radius:13px;padding:17px 20px;color:var(--crit);font-size:13px;line-height:1.6}
+  .copybar{display:flex;gap:9px;margin-top:8px;flex-wrap:wrap}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#15171f;color:#fff;padding:11px 20px;border-radius:11px;font-size:13px;font-weight:600;opacity:0;transition:.3s;z-index:100;box-shadow:var(--sh-lg)}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .scard .ctl{display:flex;gap:6px;margin-left:auto}
+  .iconbtn{font-size:11px;font-weight:700;border:1px solid var(--line);background:#fff;color:var(--ink-dim);border-radius:8px;padding:4px 9px;cursor:pointer;transition:.15s}
+  .iconbtn:hover{border-color:#d8d3c8;color:var(--ink)}.iconbtn.del:hover{border-color:#f3c4c4;color:var(--crit)}
+  .keymsg{font-size:13.5px;font-weight:700;color:var(--brand-2);background:#eef2fc;border:1px solid #d3ddf6;border-radius:9px;padding:9px 13px;margin-bottom:11px}
+  .deepen{margin-top:13px;border-top:1px dashed var(--line);padding-top:12px}
+  .deepen .dl{font-size:11.5px;color:var(--ink-faint);font-weight:700;margin-bottom:8px}
+  .deepen .lenses{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px}
+  .lens{font-size:11.5px;font-weight:600;padding:6px 12px;border-radius:18px;border:1px solid var(--line);background:#fff;color:var(--ink-dim);cursor:pointer;transition:.15s}
+  .lens:hover{border-color:var(--accent);color:var(--accent);background:#f0f7fc}
+  .deepen .qrow{display:flex;gap:7px}.deepen .qrow input{flex:1;font-size:12.5px}
+  .dblock{background:#f5f9fd;border:1px solid #dde6f3;border-radius:11px;padding:11px 14px;margin-top:9px}
+  .dblock .dh{font-size:12px;font-weight:800;color:var(--brand-2);margin-bottom:6px;display:flex;align-items:center;gap:7px}
+  .dblock .dh .x{margin-left:auto;cursor:pointer;color:var(--ink-faint);font-weight:800}
+  .dblock ul{margin:0;padding-left:17px}.dblock li{font-size:12.5px;color:var(--ink);line-height:1.6;margin-bottom:3px}
+  .editform{display:flex;flex-direction:column;gap:9px}.editform .ef-row{display:flex;gap:9px;flex-wrap:wrap}.editform .ef-row>div{flex:1;min-width:120px}.editform label{font-size:11px;color:var(--ink-faint);font-weight:700;margin-bottom:3px;display:block}
+  .note-blk{background:#fffceb;border:1px solid #f1e7b6;border-radius:9px;padding:9px 12px;font-size:12.5px;color:var(--ink-dim);line-height:1.6;margin-top:9px}
+  .fcat{max-width:120px;padding:5px 8px;font-size:11.5px}
+  .iconbtn.up{color:var(--brand-2);border-color:#cdd9f5}.iconbtn.up:hover{background:#eef3ff;border-color:var(--brand-2)}
+  .delta{font-size:11.5px;font-weight:800;padding:3px 10px;border-radius:20px}
+  .delta.up{color:var(--ok);background:#e9f7ef;border:1px solid #bce3cb}.delta.down{color:var(--crit);background:#fdeaea;border:1px solid #f3c4c4}
+  .impr{background:#eef9f1;border:1px solid #c6e8d2;border-radius:11px;padding:11px 14px;margin:9px 0}
+  .impr .ih{font-size:12px;font-weight:800;color:var(--ok);margin-bottom:6px}
+  .impr ul{margin:0;padding-left:17px}.impr li{font-size:12.5px;color:var(--ink);line-height:1.6;margin-bottom:3px}.impr li.nd{color:var(--warn)}
+  .improve-panel{background:linear-gradient(120deg,#f3f8ff,#eef4ff);border:1px solid #d6e2fb;border-radius:16px;padding:18px 22px;margin:18px 0 0;box-shadow:var(--sh-md)}
+  .improve-panel .ip-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap}.improve-panel .ip-h{font-size:15px;font-weight:800}.improve-panel .ip-s{font-size:12.5px;color:var(--ink-dim);margin-top:3px;max-width:560px}.improve-panel button{margin-left:auto}
+  .radar{width:100%;max-width:210px;display:block;margin:2px auto 0}
+  .kpi{transition:transform .22s,box-shadow .22s}.kpi:hover{transform:translateY(-3px);box-shadow:var(--sh-md)}
+  .chart-card{transition:box-shadow .22s}.chart-card:hover{box-shadow:var(--sh-md)}
+  .gauge svg path[id]{filter:drop-shadow(0 2px 7px rgba(0,148,212,.45))}
+  .dash-top{position:relative;overflow:hidden}
+  .dash-top::after{content:"";position:absolute;top:0;left:-65%;width:45%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);transform:skewX(-20deg);animation:sheen 3.2s ease-in-out .3s 1}
+  @keyframes sheen{0%{left:-65%}55%,100%{left:140%}}
+  .winpill{position:relative}
+  .scard{transition:box-shadow .22s,border-color .22s,transform .22s}.scard:hover{transform:translateY(-2px)}
+  .lens{transition:.15s}.lens:active{transform:scale(.96)}
+  .btn.brand:active,.btn.dark:active{transform:translateY(0) scale(.98)}
+
+/* ===== appended enhancements ===== */
+  /* ============ R2R21 v6 — guided wizard enhancements ============ */
+  :root{--maxw:1180px;--glass:rgba(255,255,255,.72);--ring:rgba(0,148,212,.14)}
+  body{background:var(--bg);position:relative;min-height:100vh}
+  body::before{content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;
+    background:
+      radial-gradient(900px 520px at 12% -8%, rgba(0,148,212,.10), transparent 60%),
+      radial-gradient(820px 520px at 100% 0%, rgba(29,55,139,.10), transparent 55%),
+      radial-gradient(700px 600px at 50% 120%, rgba(232,0,110,.06), transparent 60%);}
+  body::after{content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;opacity:.5;
+    background-image:radial-gradient(rgba(20,40,90,.045) 1px,transparent 1px);background-size:22px 22px;
+    -webkit-mask-image:radial-gradient(circle at 50% 30%,#000,transparent 75%);mask-image:radial-gradient(circle at 50% 30%,#000,transparent 75%)}
+
+  /* topbar */
+  .topbar{display:flex;align-items:center;gap:14px;padding:13px 26px;border-bottom:1px solid var(--line);
+    background:var(--glass);backdrop-filter:blur(14px) saturate(140%);position:sticky;top:0;z-index:50}
+  .logo{display:flex;align-items:center;gap:11px;cursor:pointer;user-select:none;border:none;background:none;padding:4px 8px;border-radius:12px;transition:.18s}
+  .logo:hover{background:rgba(29,55,139,.06)}.logo:active{transform:scale(.98)}
+  .logo .mk{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;color:#fff;font-size:19px;flex-shrink:0;
+    background:linear-gradient(135deg,var(--brand),var(--accent));box-shadow:0 8px 20px -8px rgba(0,148,212,.7);position:relative;overflow:hidden}
+  .logo .mk::after{content:"";position:absolute;inset:0;background:linear-gradient(120deg,transparent,rgba(255,255,255,.5),transparent);transform:translateX(-120%) skewX(-18deg);animation:mksheen 4.5s ease-in-out infinite}
+  @keyframes mksheen{0%,72%{transform:translateX(-120%) skewX(-18deg)}88%,100%{transform:translateX(220%) skewX(-18deg)}}
+  .logo .lt{display:flex;flex-direction:column;line-height:1.05;text-align:left}
+  .logo .lt .a{font-size:17px;font-weight:800;letter-spacing:-.02em;color:var(--ink)}
+  .logo .lt .b{font-size:10.5px;font-weight:700;color:var(--ink-faint);letter-spacing:.04em}
+  .top-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+  .apiPill{display:inline-flex;align-items:center;gap:9px;font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;
+    border:1px solid var(--line);background:#fff;color:var(--ink-dim);padding:9px 14px;border-radius:30px;transition:.18s;box-shadow:var(--sh-sm)}
+  .apiPill:hover{border-color:#d8d3c8;transform:translateY(-1px)}
+  .apiPill .dot{width:8px;height:8px;border-radius:50%;background:#d8d3c8;box-shadow:0 0 0 0 rgba(22,163,74,.5)}
+  .apiPill.ok .dot{background:var(--ok);animation:pulse 2.4s ease-out infinite}
+  .apiPill.ok{color:var(--ink);border-color:#bce3cb;background:#f4fbf6}
+  .apiPill.off .dot{background:var(--crit)}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(22,163,74,.45)}70%{box-shadow:0 0 0 7px rgba(22,163,74,0)}100%{box-shadow:0 0 0 0 rgba(22,163,74,0)}}
+  .apiPill .apt{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .btn.go{background:linear-gradient(110deg,var(--brand),var(--accent));color:#fff;box-shadow:0 12px 26px -12px rgba(0,148,212,.7);font-size:13.5px}
+  .btn.go:hover{transform:translateY(-1px)}.btn.go:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+  /* stepper */
+  .stepwrap{position:sticky;top:65px;z-index:45;background:var(--glass);backdrop-filter:blur(14px) saturate(140%);border-bottom:1px solid var(--line)}
+  .stepper{max-width:var(--maxw);margin:0 auto;padding:14px 26px 16px;display:flex;align-items:flex-start;gap:6px;position:relative}
+  .stepper .track{position:absolute;left:60px;right:60px;top:33px;height:3px;background:#e3e7f0;border-radius:3px;z-index:0}
+  .stepper .track #stepfill{position:absolute;inset:0 auto 0 0;height:100%;width:0;border-radius:3px;background:linear-gradient(90deg,var(--brand),var(--accent),var(--accent-2));transition:width .6s cubic-bezier(.3,.8,.2,1)}
+  .stp{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;z-index:1;background:none;border:none;font-family:inherit;padding:0}
+  .stp .dot{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:14px;
+    background:#fff;border:2px solid #d7dceb;color:var(--ink-faint);transition:.28s;box-shadow:var(--sh-sm)}
+  .stp .lab{font-size:12px;font-weight:700;color:var(--ink-faint);transition:.2s;text-align:center;line-height:1.25}
+  .stp .lab small{display:block;font-family:var(--mono);font-size:9.5px;font-weight:700;opacity:.7;letter-spacing:.05em}
+  .stp .badge2{font-size:9.5px;font-weight:800;padding:1px 7px;border-radius:20px;background:#eef2fc;color:var(--brand-2);margin-top:1px}
+  .stp:hover .dot{border-color:var(--accent);transform:translateY(-2px)}
+  .stp.on .dot{background:linear-gradient(135deg,var(--brand),var(--accent));border-color:transparent;color:#fff;transform:scale(1.1);box-shadow:0 10px 22px -8px rgba(0,148,212,.6)}
+  .stp.on .lab{color:var(--ink)}
+  .stp.done .dot{background:var(--ok);border-color:transparent;color:#fff}
+  .stp.done .dot::before{content:"✓"}
+  .stp.done .dot .n{display:none}
+  @media(max-width:760px){.stp .lab{font-size:0}.stp .lab small{font-size:9.5px}.stp .badge2{display:none}.stepper .track{top:30px}}
+
+  /* content + step head */
+  .content{padding:30px 26px 60px;max-width:var(--maxw);margin:0 auto}
+  .step-head{display:flex;align-items:center;gap:15px;margin:4px 0 22px}
+  .step-head .sn{width:46px;height:46px;border-radius:14px;flex-shrink:0;display:grid;place-items:center;font-family:var(--mono);font-weight:800;font-size:16px;color:#fff;background:linear-gradient(135deg,var(--brand),var(--brand-2));box-shadow:0 10px 22px -10px rgba(29,55,139,.6)}
+  .step-head h1{font-size:25px;font-weight:800;letter-spacing:-.025em}
+  .step-head p{color:var(--ink-dim);font-size:13.5px;margin-top:2px;max-width:760px}
+  .step-head .badge2{font-size:11px;font-weight:800;padding:4px 11px;border-radius:20px;background:#eef2fc;color:var(--brand-2);margin-left:auto}
+
+  /* wizard nav */
+  .wiznav{display:flex;align-items:center;gap:10px;margin-top:24px;padding-top:18px;border-top:1px solid var(--line)}
+  .wiznav .sp{margin-left:auto}
+  .btn.ghost{background:#fff;border:1px solid var(--line);color:var(--ink-dim)}.btn.ghost:hover{border-color:#d8d3c8;color:var(--ink);transform:translateY(-1px)}
+  .btn.big{padding:13px 24px;font-size:14.5px;border-radius:13px}
+
+  /* ============ HOME (STEP 0) ============ */
+  .hero{position:relative;border-radius:26px;overflow:hidden;padding:46px 44px;margin-bottom:22px;
+    background:linear-gradient(135deg,#fdf1ec 0%,#faf7f4 55%,#ffffff 100%);color:var(--ink);border:1px solid var(--line);box-shadow:0 30px 70px -42px rgba(225,90,51,.3)}
+  .hero::before{content:"";position:absolute;inset:0;opacity:.5;
+    background:radial-gradient(520px 320px at 88% -10%, rgba(225,90,51,.16), transparent 60%),radial-gradient(440px 300px at 4% 120%, rgba(47,111,208,.1), transparent 60%)}
+  .hero::after{content:"";position:absolute;inset:0;opacity:.4;background-image:radial-gradient(rgba(255,255,255,.1) 1px,transparent 1px);background-size:26px 26px}
+  .hero>*{position:relative;z-index:1}
+  .hero .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--brand);background:rgba(225,90,51,.1);border:1px solid rgba(225,90,51,.22);padding:6px 14px;border-radius:30px;margin-bottom:18px}
+  .hero h1{font-size:42px;line-height:1.12;font-weight:800;letter-spacing:-.03em;margin-bottom:14px}
+  .hero h1 .hl{background:linear-gradient(90deg,#e15a33,#f0894f);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .hero p{font-size:15.5px;color:var(--ink-dim);max-width:600px;line-height:1.65;margin-bottom:26px}
+  .hero .cta{display:flex;gap:12px;flex-wrap:wrap}
+  .hero .btn.go{background:var(--brand);color:#fff;box-shadow:0 14px 30px -12px rgba(225,90,51,.5);font-weight:800}
+  .hero .btn.go:hover{transform:translateY(-2px)}
+  .hero .btn.glass{background:#fff;border:1px solid var(--line);color:var(--ink-dim)}
+  .hero .btn.glass:hover{background:#faf9f7;border-color:#d8d3c8;transform:translateY(-2px)}
+  .hero .stats{display:flex;gap:30px;margin-top:30px;flex-wrap:wrap}
+  .hero .stats .st .v{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums}
+  .hero .stats .st .l{font-size:11.5px;color:var(--ink-faint);font-weight:600;margin-top:2px}
+
+  /* process infographic */
+  .flowsec{margin:6px 0 22px}
+  .flow-h{font-size:14px;font-weight:800;color:var(--ink-dim);margin-bottom:16px;display:flex;align-items:center;gap:9px}
+  .flow-h::before{content:"";width:22px;height:2px;background:var(--accent);border-radius:2px}
+  .flow{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;position:relative}
+  @media(max-width:880px){.flow{grid-template-columns:repeat(2,1fr)}}
+  .fcard{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px 16px;box-shadow:var(--sh-sm);overflow:hidden;cursor:pointer;
+    opacity:0;transform:translateY(16px);animation:rev .55s cubic-bezier(.2,.7,.2,1) forwards}
+  .fcard:hover{box-shadow:var(--sh-md);transform:translateY(-3px);border-color:#cdd9f5}
+  .fcard .tag{font-family:var(--mono);font-size:10px;font-weight:800;color:var(--accent)}
+  .fcard .ic2{font-size:26px;margin:8px 0 9px;display:block}
+  .fcard h4{font-size:14px;font-weight:800;margin-bottom:5px}
+  .fcard p{font-size:11.5px;color:var(--ink-dim);line-height:1.5}
+  .fcard .num{position:absolute;right:-6px;bottom:-12px;font-size:62px;font-weight:800;color:#f0f3fa;z-index:0;font-family:var(--mono)}
+  .fcard>*{position:relative;z-index:1}
+  .fcard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,var(--brand),var(--accent))}
+  .flow .arr{display:none}
+
+  .home-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:13px;margin-top:6px}
+  @media(max-width:760px){.home-grid{grid-template-columns:1fr}}
+  .infocard{background:var(--surface);border:1px solid var(--line);border-radius:15px;padding:18px 18px;box-shadow:var(--sh-sm);transition:.2s}
+  .infocard:hover{box-shadow:var(--sh-md);transform:translateY(-2px)}
+  .infocard .ic2{font-size:22px}.infocard h4{font-size:13.5px;font-weight:800;margin:9px 0 5px}.infocard p{font-size:12px;color:var(--ink-dim);line-height:1.55}
+
+  /* ============ API modal ============ */
+  .modal-bg{position:fixed;inset:0;z-index:200;background:rgba(15,23,42,.5);backdrop-filter:blur(6px);
+    display:flex;align-items:flex-start;justify-content:center;padding:48px 18px;opacity:0;pointer-events:none;transition:.25s;overflow:auto}
+  .modal-bg.show{opacity:1;pointer-events:auto}
+  .modal{width:100%;max-width:660px;background:var(--surface);border:1px solid var(--line);border-radius:20px;box-shadow:var(--sh-lg);
+    transform:translateY(18px) scale(.98);transition:.28s cubic-bezier(.2,.8,.2,1)}
+  .modal-bg.show .modal{transform:none}
+  .modal .mhd{display:flex;align-items:center;gap:12px;padding:20px 24px;border-bottom:1px solid var(--line)}
+  .modal .mhd .mk{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,var(--brand),var(--accent));font-size:15px}
+  .modal .mhd h3{font-size:16px;font-weight:800}.modal .mhd .ms{font-size:11.5px;color:var(--ink-faint);font-weight:600}
+  .modal .mhd .x{margin-left:auto;cursor:pointer;font-size:18px;color:var(--ink-faint);border:none;background:none;width:34px;height:34px;border-radius:9px;transition:.15s}
+  .modal .mhd .x:hover{background:#f0f1f5;color:var(--ink)}
+  .modal .mbd{padding:20px 24px 24px}
+
+  /* reveal helper for step panels */
+  .panel.on{animation:fade .4s}
+  .stagger>*{opacity:0;transform:translateY(12px);animation:rev .5s cubic-bezier(.2,.7,.2,1) forwards}
+  .stagger>*:nth-child(1){animation-delay:.04s}.stagger>*:nth-child(2){animation-delay:.1s}.stagger>*:nth-child(3){animation-delay:.16s}.stagger>*:nth-child(4){animation-delay:.22s}.stagger>*:nth-child(5){animation-delay:.28s}.stagger>*:nth-child(6){animation-delay:.34s}.stagger>*:nth-child(7){animation-delay:.4s}.stagger>*:nth-child(8){animation-delay:.46s}.stagger>*:nth-child(9){animation-delay:.52s}
+
+  /* readiness ring on checklist step */
+  .ready-card{display:flex;align-items:center;gap:24px;background:linear-gradient(120deg,#fbfcff,#f1f6ff);border:1px solid var(--line);border-radius:18px;padding:20px 24px;box-shadow:var(--sh-sm);margin-bottom:16px}
+  @media(max-width:600px){.ready-card{flex-direction:column;text-align:center}}
+  .ring{position:relative;width:104px;height:104px;flex-shrink:0}
+  .ring svg{transform:rotate(-90deg)}
+  .ring .ctr{position:absolute;top:0;left:0;right:0;bottom:0}
+  .ring .ctr .v{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);font-size:27px;font-weight:800;color:var(--brand);font-variant-numeric:tabular-nums;line-height:1;text-align:center}
+  .ring .ctr .l{position:absolute;left:0;right:0;top:50%;transform:translateY(16px);font-size:10px;color:var(--ink-faint);font-weight:700;text-align:center}
+  .ready-card .rtxt h4{font-size:15px;font-weight:800;margin-bottom:5px}
+  .ready-card .rtxt p{font-size:12.5px;color:var(--ink-dim);line-height:1.6}
+
+  .uploadnote{display:flex;gap:11px;align-items:flex-start;background:#eef6fc;border:1px solid #cfe4f5;border-radius:13px;padding:13px 16px;margin-bottom:16px;font-size:12.5px;color:var(--ink-dim);line-height:1.6}
+  .uploadnote .ico{color:var(--accent);font-size:17px;flex-shrink:0}.uploadnote b{color:var(--accent)}
+
+</style>
+</head>
+<body>
+<!-- ===== TOP BAR ===== -->
+<div class="topbar">
+  <button class="logo" onclick="goHome()" title="홈으로 (STEP 0)">
+    <span style="display:grid;place-items:center;width:34px;height:34px;border-radius:9px;background:#fff;border:1px solid var(--line);box-shadow:0 1px 3px rgba(22,20,16,.08);flex-shrink:0"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADUAAAA1CAIAAABuhDQnAAARx0lEQVR4nO2ZWaxfV3XGv7X23mf6j3ewfT1cO7HjeAieMoADZHLiDFZCSyfUIiRoUQulbShlkKqqVStArYCqgVZU0AlKRUWhUDUh8ZA4jhMnEDLZseMh8Xx9Y1/f4T+fc/aw+nDTl1KpD3koD/kej3TW+e19tPbS920SEfwMi/+/Af4PvcX35vQW35vTzzqfhgAiIAsJgBLiklTXidJkgMRCWSAAIYAACogAheCKwKSNgggCgQmkPSDgAPD8G4AF2CFiGAAEK3AMC1vCGmiDKAKUBwVAAB082x5iizAyYBRAHRREIJ7gIQAIxEUgKPZAaaVhiBzQnoPWCAEXLpw/cthUKotuuAFZjBAQGbCGBCsirIw28+sunECTBjSA+c8DIOTBk1b+jb2BFFaXUMaAAB6EspcnqVKVOAAWEoGsCMOzeAggBDCgAgEEJz5IGSsQLGwPz/zk0Ne/8dwTP4qj2hWr1117+/b4jtuwbBk0I42hGARvoRRAAMGXfaUJLsBaECGKQRGIe51BpZ4KIe/naazhC/S7mJ1Bs4HIIE6hTSEUOGKArAhgGWCZXyiDlDhLav6RRShw8cKZvY/u/dPPLRnY2GkN4yTq62ho3borb7px0d13YtkSDA1BGTBDEAgIwsZDLAIAQAjCIA1hKGB+A73Fa6+cPbBv+vBB3++bar2+aMmStdfEV6/G2qucMtYGEvEWPgAKrD0gLN5RpEQs2QLW4fz5C3//L4f+84e1Tje2RVmWxqgkjvuDQbsofJYOr1sz9o4bxm+/FRs3YXgEOgZra0WLC7aEjlWs53+xeAiDNdDvI1j86EfPPPA3rz99YIH3fjCwUdYJ3Fi6YsnN71zzJ5/A2AL0HYnYAiJgBTaeIBCCCwUbVr7oHXjmma99c+6RJ0c7/bFKddCZi+sJa2nNzUSG65VqO+9P27KdJrJifNmNW9dv31697h0YHp2vB7AjFg0hhADN0AGwJYouHt/7+ANf7v7ouSt0tFBrNyhClLZy18rD1HDjHZ/91NgHfgUmfaPpAAbojZ5WaBUuNXFF0fGJiVOTE3Wta7WGdPtjlUar08pDuWBktBQ72+lk1crCOGmCumcnXz/zvTMP7lxyzbob797Ot23D2HLUm5rYE9oAGDGCdl30Bnh8/+EHvtx/6sDyoYYSf3puaqTRLPutZqXZNLrX7x7cuWts+81YvpyslA5MUEqgA4Qw8GADD29sP/KCE2dnvvvgyd1789OvcqcdE6XGeFsyAmlyzjJzCEEZDa37wfeC1fWajC1Zfd97Rzdv0WuvRrOGSgRDcCUuXu7uemzf331j+oWXVlSqEYKWkEaxd4WhgIFLbdKt1l9q6Pd/+Qt0y42US85iNPH8IWADAmAYEQBbwgc4jzxHa7r32A9f3ffE6aefS+b6ixElhSdfsmGrxUrwEpjZCLEHXChZdUzczaLamvHxDWtrY6NJtdrt5AePHBv4QMokRKrTl/OX7PkJ3elE5KUiKetqX+ViTmt+26//2srPfoa8lGJJKW0DHCAaGjAAFQ7eQysAYEAK+C6mp/CTgyd2Pn5+/zP+/MV6kJph64o4joSCLUojqqZjHcgWpQ2+TFQ/4Ym83WHy1dqyjZtvfd+v4sZ3oVYHK0zP4uRZHDl6+sfPnn7lxenZCTMYLA11g6TDJn3X9dd+9XMk3iEIWCN4aCUIgCcReCDMHwQUWAuLoNCa4S3KHIcOnt656+yefb3jJ5qDokKKSUREWJHS4qQsc81SyWqDQTkLzA41r75vx/r7P4bxcQghSiAK3sFbeI+ZSzhz8vzuR04/caA4fsF0Q7Uycnmscec/P0DiHEAIHgBsgTJHpKAIxGAFiubbuvAIDCYQQui2KgawDoePFk8+ffDhh/OJC8XMTBxEQ4K3kdLVNENRWo9OIdMmfeeHPzx6/29jpFEYckoHAF6MwFBQ4oAAb9Fu4dQZ7PvJsw/uOXXoRKuZ/cZ3vkYiHiEgL+EDDh187tFd16xfk1y9EquWIYpcQK4zwxUABASLKIDV/HwV2BwKaM9N79750kMPto8crc7Nxv1+VOaRVz6X0Bi5UK9e+2vvX/7BD2HxYsQkBq0yeB2MUhoUARwCewYFcB9lgVYBy8VjT/zwwBNb3v9eCiJkC9gSrc65v/uH//j615qRWn/DprXbb81uuA4rVyOpAll/YFVkYsMIQAlnvU6UGPgAHSyCQ7eDwy8Pnv7xxUMHO+fOuXZnYWVIavVlv/SL2Hojqg3EGUJAvQoDmCCMAiG4kOiYAzmPNvfryui8QABmZ4GABaMURMjlKAZ4fN/OP//S7LPPrWs0u+25dqTr69evuuuesW3bsXYDKhUkKIJzzlXSDP/DVElACChLiMA5XJzC+VOoKPTag8efevWlI6Fv06y6bP012dVXY8sGLBpFowkmT8RxArAF+kACJIUDC8iCBI4piCVXYGrmtS/+1f4H/vrWpeMydUnB2zie1WZCRVi0bN1Nt66+9Sba9g5UDLQCqCCtONICW4jWBIZnAEEjwFo4gc3b//6tJ7/9rekXjowGykrHQUJaKSqVeMWKJdddu/qOu3H99ahkMCqIL43xHHmg4kUxBbIMoO8pSJeKAv/x6N4//vyymVmeuWxqVJJ1xFbrPEQDp0hlRSVdcMPaDT9/D99zBxqNnKPA1VRAJeCBGL1QsPHGF1oEvXLmm//65ANfabTa2tmKYg3vXR6UUnHSGlifVW1laHTjhi2/+Au45d0YbsAoq6IApQHxwkwMwIOCdKjbO/bHXzr2T/863uktrSdTfrZgpzRp0lKyDEKsMlOtTpa9qUybzeuuec+OFbdtx5IrgBQwYKAcoKZBJWyBQTn599/a/eW/XT7XGQ2eDZMSiEVwYsvgRJOhOOuTntGmPVQ3q1Zs2nHn+L33YsFCaO2LUlXrILYeEJANAz3b2vtnXzz/4K7hyYujBioLgS2JNR6JV5FntiwOrFMXmcshn5aiNr7kbTe/a+imm7FyFRaPoTkEUpiawbFTpx/auf/b3x2x5XDII5TBKKWIAe0kE5WQQqCeLfqKqJrkmqZ7vSiJmytWrr59e237dqxbiUbVWcdZhaHJeVHBYeJid9/+iSefennvnrIzVeNQDT7ObdUjYyPEUgYuEXGkMuOUzJa9OXK8cKFesTy+etWM0ogyhsHsoOnVIkop7xb59OTkyUuvv85lWXEU57buUDORIeSuGITCa4qiSBFR4Sybk4OysXnTglu3rrr7jmj9Gixa6K2QtVIWZZYx+h202+7giyce3Xt231PFK8dXROkCk3Tasx0qa80adfuKuQzSK33QyqSZ975TFMjSC952xoY233vf1l/6VSxdiVyBGeVl+F5++OjBh3ddevb5WqffKAvudH3Zq6VJlEbOlWXpFJQS8p5g0ol+/4KiwfKlGz7wvrd/7CNSr5I4EUaHgoKtIKAo0Mlx9ERv5+4XHnq49+qpeqQ5VeWgOxqZst8LbLJKjUTlnQG7EGXpZN4tl4xs/8zH8d73oFKFyuBSMGAsXB+WkBd4+cjZ7//g+IGnZOZyxTs3PWPKsqrZgDWxiPjSxpwkzZFpoUN5vuGjH3zbp35PhuokPYFGWwfNnATHpYUtEDwMMH0537Xv2X/7wfShVxrWSafVyDKwuF5eD2oorZdOTha9zuqld37qY/Ev/xwyYx0ZUw09y0ohYcChcMgLRBG8w5lzZ/fuPbrrscGJ1yqXpkckpMFF5Dgi8cH3nRU9U0p1y5ZNf/FnuGFDqGckVsDIGQGIJah5Y0hBtA9FTznCdBuPHTi++9Gp4yemL5zL++16lFRy53qDSrVRvfLK9X/wMWy/GXFAo+YpysuyYlKEAAgIIAUgBC/WKjLwDq2u3bnn2CO7L730Qjlxtg6fRRrFICHDae10Xq65794VX/w8KonUKiTOgqVDnqEqUOh7BAMFJLAEHRx5gXUoSrx8ePbIy2dfO3Hh5PHQ7w1nlXUrVjZvuh0LFkMCFg5h8QJkCooAhg3gCM55kIoTAYKD8vPe2MFZdFp48cXXHt51ct9+Ofd6IwRlnW1Wzi1s/MpX/hKbN4EYaZ2kPQvFiAEJPvcqbqDUUJAYBb0xxiJAeYtOGxLAjF4LU5dQFDj26rEHH+lcuFwAttnIVl2x9Ibrlr79eowthRACIUug2IfglWImBeR9qxWZeb8UHAYer55pPbzn0J5H22dOnh3MvfMTv7Xxo7+BtBZ0whRT/sjO5x97fOP1myvbb0OiAEJcDaTzQMRQAAM+gH1hFOAtZmaRZugMZr76ty9+7/v5xLl6rEs78NpQ1uhxhmxo003brrjvPmy9FinDABoFnGUxMAQy804nMJwHKQRGYXHp4uu7dx459tK2+z+K5eNeFOmEA5F878GvfvLTw0myfP1Va3bcOnz3HRgagYnBsZCyLiilmAMhlIN+ZAwKj9enJr/+j/u/8c363Mx4PfV52yhyLggnJh7uBp513GtUh7Zu2bRj+9DNWzFUR8yINUi1Bv1q2pAgigwBQpgfkBmAvIf2DIaHJRCZrCxDFDHJ7v0P/f5nlnS6rckLGK1ma65cv+Ou6rVbsPFtaFRhGAAE8AJOkQtOnZv9h386+J3vxO3pekRaoSwGlST1eRgMcmViUbpkcZVkSlzPmMWrrnr73XdH227HiuWopIgiBw6sIgECfGmtcyozpNhhEIPJMgYOSQVOfEIkR0/u+cCvZy+/shBCCU0UvYuJGd2yYfzGdy7asL629iosWwKl4QhBTz79/MHvfv/YDx8Zc8WixHRbl8eaDc4LLlwUqJamMNTuzxWhNJW0H4AosdBdNumyK668+d3jd92FzRtRzaANiBECWM/HTq1BdxCFqk6rXsMp2ICEHYHkwuSrX/ji6X/59ji8hIEV3xHue5SIuFZLli5uLhytJ0lhzDkfenE8vmpFs9nszk6XUzOdE69N/uSFFWRGvFS8dUXXkY3riY+oUwwiUyn7Tjygo9xRbqLaqquGN65fed8OrFuD5UsRmbJwATpJUhAcBSBoMISd9dqo4IWkNdv5wb8//Id/dIUtom67Wc1KQlGAvRaddIlatnSRLpu193zqk+rdW7FkIRIDYky3cGkWJ8+cf2jn5PPP98+eqpI3YiXkxBCRiCIEYgEzM1QJdJ2fJoQlY80tm1bftX3BLbdg6Th07IUcJLgyiaOitKRUpHSRl0kckbQv4tLrez/y8fD8wVXCVAxaXFZGRuYudyBxc2Txa+05XrPijk/8Lu65B0kMZjABDAG8h3MoLV45Mrln99HH9vaOn6j1+8MBcRBmHSVmbtB1UlTraVHmRS+v1hqd3Pfi9KJO6tddt/XDHxq67ZZ+veqgUoiWN7IkEgAggUY1g4yu23HXowdfjtvl4jgzUXZ64uLI8GKKshfPnW1u3nD7pz+Ou25DGnsVz2eP8z0DxSoyQQd1/YbFG65efOe29r4nzx348ezhV4rJSyYvG2COMhYuCmtYRWnsi0GmYh3HrSAVzUMLFiKOGOT+u+w8Fv479KJc8th2cfL0rs9+wT/7sj93YTir9HoDE2dlrZauXXXTRz+Ie2/pBZvGw4AheaOCJ3hAAEJQKI0rIB6Fx9RUb/+BM0//eOrpF/KzExUfFmWZdLqD3pxOIjSrkxLOsVz3vl/eeP/9WLTYOxlkFa20BtRPXRZRW/KKBHYFjp7oP/vS5UOvzJw5Z6A5SpdtuKa24w6sXo6q7kMZaAUm4XnEQPAEB+QoNdhADJyCh3OwHt0Bnnn+8hNPHXp0f+vVUwuUXtgc6kt5uj0Trhi753c+krz3PUgyQCOpAuw9WAH/03eB8k4RpxFgISXEwnq0Osgt0gy1GpSC9QiENBVDjqAFJPxGGDw/BQgBcAiAU6AERBB4h6KLEHD89Pldjx/a88Spw0fiSnLl5g3bfvNDuG4TsgRCMFXAIBckBIbwT/FJKQCsywspoizjeQ8mDELwUnqfmApKAAixWAQDcMC8XQMAIusdxXo+XgoCeNGKmFCEVsYKZUAZMHHp/JNPs6Il227DUA1aQSsoA5j5FEUKRxX9v/G9dT/4ZvQW35vTW3xvTm/xvTn9FwnWrKZqwKFAAAAAAElFTkSuQmCC"
+ alt="" style="width:22px;height:22px;object-fit:contain;display:block"></span>
+    <span class="lt" style="display:flex;flex-direction:column;line-height:1.12"><span class="a" style="white-space:nowrap;font-size:14px;font-weight:700">제안 전략관리</span><span style="font-size:9.5px;font-weight:600;letter-spacing:.08em;color:var(--ink-faint)">PROPOSAL STRATEGY</span></span>
+  </button>
+  <div class="top-right">
+    <button class="apiPill off" id="apiPill" onclick="openApi()" title="API 키 설정"><span class="dot"></span><span class="apt">API 키 연결</span></button>
+    <button class="btn ghost" onclick="showDemo()" title="API 없이 강원랜드 샘플 결과 보기">▶ 데모</button>
+    <button class="btn go" id="run2" onclick="derive()">⚡ 전략 도출</button>
+  </div>
+</div>
+
+<!-- ===== STEPPER ===== -->
+<div class="stepwrap">
+  <div class="stepper">
+    <div class="track"><div id="stepfill"></div></div>
+    <button class="stp on" onclick="goStep(0)"><span class="dot"><span class="n">0</span></span><span class="lab"><small>START</small>시작</span></button>
+    <button class="stp" onclick="goStep(1)"><span class="dot"><span class="n">1</span></span><span class="lab"><small>STEP 1</small>RFP 업로드</span></button>
+    <button class="stp" onclick="goStep(2)"><span class="dot"><span class="n">2</span></span><span class="lab"><small>STEP 2</small>준비 체크</span><span class="badge2" id="m-ready">0%</span></button>
+    <button class="stp" onclick="goStep(3)"><span class="dot"><span class="n">3</span></span><span class="lab"><small>STEP 3</small>제안 준비서</span><span class="badge2" id="m-cred">신뢰도 —</span></button>
+    <button class="stp" onclick="goStep(4)"><span class="dot"><span class="n">4</span></span><span class="lab"><small>STEP 4</small>전략 대시보드</span></button>
+  </div>
+</div>
+
+<div class="main"><div class="content">
+
+  <!-- ================= STEP 0 · HOME ================= -->
+  <div class="panel on" id="t-home">
+    <div class="hero">
+      <span class="eyebrow">◆ DATA-DRIVEN WIN-THEME ENGINE</span>
+      <h1>제안 준비서 한 장으로<br><span class="hl">수주 전략</span>을 도출합니다.</h1>
+      <p>RFP·운영데이터·SWOT·고객 고민을 입력하면 복제 불가능한 차별화 전략을 도출하고, 임원용 대시보드로 채점·평가합니다. 아래 데모는 <b style="color:#fff">강원랜드 콜센터 재구축</b> 실데이터(요약본 4대 전략)로 채워져 있습니다.</p>
+      <div class="cta">
+        <button class="btn go big" onclick="goStep(1)">🚀 전략 도출 시작하기</button>
+        <button class="btn glass big" onclick="showDemo()">📊 강원랜드 데모 결과 보기</button>
+        <button class="btn glass big" onclick="startSample()">강원랜드 샘플 입력 체험</button>
+        <button class="btn glass big" onclick="openApi()">🔑 API 키 연결</button>
+      </div>
+      <div class="stats">
+        <div class="st"><div class="v">10년</div><div class="l">강원랜드 운영 자산 (2016~)</div></div>
+        <div class="st"><div class="v">200만건</div><div class="l">누적 콜 데이터</div></div>
+        <div class="st"><div class="v">10건</div><div class="l">기간계 인터페이스 검증</div></div>
+        <div class="st"><div class="v">0건</div><div class="l">마이그레이션 손실 · 분석 0일</div></div>
+      </div>
+    </div>
+
+    <div class="flowsec">
+      <div class="flow-h">진행 순서 — 위에서부터 차례대로</div>
+      <div class="flow stagger">
+        <div class="fcard" onclick="goStep(1)" style="animation-delay:.05s"><span class="tag">STEP 1</span><span class="ic2">📄</span><h4>RFP·문서 업로드</h4><p>RFP·인터뷰·고객사 정보를 올리면 RFP는 평가 근거로 자동 활용됩니다.</p><span class="num">01</span></div>
+        <div class="fcard" onclick="goStep(2)" style="animation-delay:.11s"><span class="tag">STEP 2</span><span class="ic2">✅</span><h4>준비 체크</h4><p>인터뷰·데이터 정의 체크리스트로 도출 준비도를 점검합니다.</p><span class="num">02</span></div>
+        <div class="fcard" onclick="goStep(3)" style="animation-delay:.17s"><span class="tag">STEP 3</span><span class="ic2">📝</span><h4>제안 준비서</h4><p>사업개요·솔루션·영업·운영·SWOT·초안을 입력합니다.</p><span class="num">03</span></div>
+        <div class="fcard" onclick="derive()" style="animation-delay:.23s"><span class="tag">STEP 4</span><span class="ic2">⚡</span><h4>전략 도출</h4><p>멀티 AI가 전략을 도출·채점합니다.</p><span class="num">04</span></div>
+        <div class="fcard" onclick="goStep(4)" style="animation-delay:.29s"><span class="tag">RESULT</span><span class="ic2">📊</span><h4>대시보드</h4><p>등급·레이더·복제불가성·개선까지 한 화면에서.</p><span class="num">05</span></div>
+      </div>
+    </div>
+
+    <div class="home-grid stagger">
+      <div class="infocard"><span class="ic2">🔒</span><h4>복제 불가 자산 우선</h4><p>운영통계·기간계·누적VOC 등 경쟁사가 가질 수 없는 데이터를 차별화 앵커로 삼습니다.</p></div>
+      <div class="infocard"><span class="ic2">🧭</span><h4>근거 신뢰도 가중</h4><p>출처·검증상태에 따라 전략 근거를 확정/보조/검증필요로 자동 분류합니다.</p></div>
+      <div class="infocard"><span class="ic2">🔍</span><h4>심화·개선 루프</h4><p>도출 후에도 근거 보강·예상 질문·ROI 정량화로 점수를 끌어올립니다.</p></div>
+    </div>
+
+    <div class="wiznav"><span class="sp"></span><button class="btn go big" onclick="goStep(1)">시작하기 — STEP 1 →</button></div>
+  </div>
+
+  <!-- ================= STEP 1 · RFP 업로드 ================= -->
+  <div class="panel" id="t-rfp">
+    <div class="step-head"><span class="sn">1</span><div><h1>RFP · 문서 업로드</h1><p>RFP·사전 인터뷰·고객사 정보를 올리세요. 파일별 분류만 정하면 AI가 RFP는 평가항목·배점의 1차 근거로, 인터뷰는 Hot Button으로 활용합니다.</p></div></div>
+    <div class="uploadnote"><span class="ico">💡</span><div><b>RFP는 가장 중요한 근거입니다.</b> PDF는 Claude·Gemini에서 직접 분석되며(GPT는 텍스트 권장), 업로드 후 각 파일의 분류(RFP/사전 인터뷰/고객사 정보/기타)를 확인하세요. 지금 없으면 건너뛰고 나중에 추가해도 됩니다.</div></div>
+    <div class="stagger">
+        <section class="card open" id="c-iv"><div class="card-head" onclick="toggleCard(this)"><span class="ix">03·D</span><h2>문서 업로드 — RFP · 인터뷰 · 고객사 정보</h2><span class="hint">파일별 분류 선택 → AI가 RFP는 평가 근거로</span><span class="chev">▶</span></div>
+          <div class="card-body"><div class="ownerbar"><span class="ol">인터뷰</span><input id="iv_who" placeholder="대상" style="max-width:190px"><input id="iv_when" placeholder="일자" style="max-width:100px"></div>
+            <div class="drop" id="drop" onclick="document.getElementById(&#39;filein&#39;).click()"><div class="ic">⬆</div><div class="t">RFP · 인터뷰 · 고객사 정보 업로드 (클릭/드래그)</div><div class="s">PDF · 이미지 · 텍스트 · 여러 개 가능 · 업로드 후 분류 선택 (PDF는 Claude·Gemini)</div><input type="file" id="filein" multiple="" accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.md" style="display:none" onchange="handleFiles(this.files)"></div>
+            <div class="filelist" id="filelist"></div>
+            <div class="field" style="margin-top:13px"><label>인터뷰 내용 붙여넣기</label><textarea id="iv_text" placeholder="현업/발주처 발언·불만·기대·요청" style="min-height:80px"></textarea></div>
+          </div></section>
+
+    </div>
+    <div class="wiznav"><button class="btn ghost big" onclick="goStep(0)">← 홈</button><span class="sp"></span><button class="btn brand big" onclick="goStep(2)">다음 — 준비 체크 →</button></div>
+  </div>
+
+  <!-- ================= STEP 2 · 체크리스트 ================= -->
+  <div class="panel" id="t-chk">
+    <div class="step-head"><span class="sn">2</span><div><h1>준비 체크리스트</h1><p>도출 전 확보·검증 항목을 점검합니다. 체크할수록 도출 준비도가 올라가고, 전략의 데이터 근거가 탄탄해집니다.</p></div></div>
+    <div class="ready-card">
+      <div class="ring">
+        <svg width="104" height="104" viewBox="0 0 104 104">
+          <circle cx="52" cy="52" r="44" fill="none" stroke="#e6eaf2" stroke-width="9"/>
+          <circle id="readyRing" cx="52" cy="52" r="44" fill="none" stroke="url(#rg)" stroke-width="9" stroke-linecap="round" stroke-dasharray="276.46" stroke-dashoffset="276.46" style="transition:stroke-dashoffset .8s cubic-bezier(.3,.8,.2,1)"/>
+          <defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2f6fd0"/><stop offset="1" stop-color="#5a9bef"/></linearGradient></defs>
+        </svg>
+        <div class="ctr"><div class="v" id="ready-val">0%</div><div class="l">준비도</div></div>
+      </div>
+      <div class="rtxt"><h4>도출 준비도 <span class="badge2" id="credBadge" style="font-size:11px;background:#eef2fc;color:var(--brand-2);padding:3px 9px;border-radius:20px;margin-left:4px">근거신뢰도 —</span></h4><p>아래 항목을 체크하면 준비도가 실시간으로 반영됩니다. 50% 이상에서 도출을 권장합니다. 진행률 표시줄: <span class="prog" style="display:inline-block;width:160px;vertical-align:middle;margin-left:4px"><span class="bar" id="ready-bar" style="width:0%"></span></span></p></div>
+    </div>
+    <div class="stagger">
+      <section class="card open"><div class="card-head" onclick="toggleCard(this)"><span class="ix">A</span><h2>인터뷰 전 체크리스트</h2><span class="hint">입찰 전 인터뷰 확인 항목</span><span class="chev">▶</span></div><div class="card-body" id="chk-iv"></div></section>
+      <section class="card open"><div class="card-head" onclick="toggleCard(this)"><span class="ix">B</span><h2>도출용 데이터 정의 체크리스트</h2><span class="hint">도출 전 정의·확보·검증</span><span class="chev">▶</span></div><div class="card-body" id="chk-data"></div></section>
+    </div>
+    <div class="wiznav"><button class="btn ghost big" onclick="goStep(1)">← RFP 업로드</button><span class="sp"></span><button class="btn brand big" onclick="goStep(3)">다음 — 제안 준비서 →</button></div>
+  </div>
+
+  <!-- ================= STEP 3 · 제안 준비서 ================= -->
+  <div class="panel" id="t-input">
+    <div class="step-head"><span class="sn">3</span><div><h1>제안 준비서</h1><p>사업개요·솔루션 스택·영업/PS/운영 인사이트·SWOT·기존 초안을 입력합니다. 빈 값은 무시되며, 입력이 많을수록 전략 정확도가 올라갑니다.</p></div><span class="badge2" id="m-cred-2">필수: 프로젝트명 + 데이터 2개↑</span></div>
+    <div class="stagger">
+        <section class="card open" id="c-base"><div class="card-head" onclick="toggleCard(this)"><span class="ix">01</span><h2>사업 개요</h2><span class="hint">프로젝트·일정·고객 규모·포지션</span><span class="chev">▶</span></div>
+          <div class="card-body"><div class="ownerbar"><span class="ol">제안 PM / 영업문서</span><input id="own_base" placeholder="작성자"><input id="f_dept" placeholder="사업부/팀" style="max-width:120px"></div>
+            <div class="grid c3" style="margin-bottom:12px"><div class="field"><label>프로젝트명</label><input id="f_name" placeholder="예: 강원랜드 콜시스템 재구축"></div><div class="field"><label>발주처 / 산업</label><input id="f_client" placeholder="예: 강원랜드 / 공공·레저"></div><div class="field"><label>예산 규모</label><input id="f_amount" placeholder="예: 14.9억"></div></div>
+            <div class="grid c3" style="margin-bottom:12px"><div class="field"><label>제안서 제출기한</label><input id="f_due" placeholder="예: 06.01"></div><div class="field"><label>발표일</label><input id="f_present" placeholder="예: 06.xx"></div><div class="field"><label>주요 일정</label><input id="f_sched" placeholder="예: 사전심의 / 전자공고일"></div></div>
+            <div class="grid c2" style="margin-bottom:12px"><div class="field"><label>고객사 현황 <span class="sub">(규모)</span></label><input id="f_cust_scale" placeholder="예: 상담사 OO명, PBX OO CH, IVR OO CH"></div><div class="field"><label>평가 비중</label><select id="f_eval"><option value="">선택</option><option>기술 중심</option><option>기술·가격 균형</option><option>가격 중심</option></select></div></div>
+            <div class="field" style="margin-bottom:8px"><label>우리 포지션 <span class="sub">(전략 무게중심)</span></label></div>
+            <div class="seg" id="f_position"><button data-v="운영사업자" class="on">운영사업자<small>운영데이터 70% · ROI/EX</small></button><button data-v="구축경험사">구축경험사<small>PS+영업 · AX/기술</small></button><button data-v="신규진입자">신규진입자<small>영업맥락 60% · CX</small></button></div>
+            <div class="grid c2" style="margin-top:12px"><div class="field"><label>RFP 평가항목 / 배점</label><input id="f_rfp" placeholder="예: 사업이해 20 / 기술 40 / 수행 20 / 가격 20"></div><div class="field"><label>발표 후보 / 경쟁</label><input id="f_competitor" placeholder="예: ECS / 대형 SI·통신사"></div></div>
+          </div></section>
+
+        <section class="card open" id="c-stack"><div class="card-head" onclick="toggleCard(this)"><span class="ix">02</span><h2>사업·구축 유형 / 솔루션 스택</h2><span class="hint">무엇을, 어떤 형태로, 무엇으로</span><span class="chev">▶</span></div>
+          <div class="card-body">
+            <div class="field" style="margin-bottom:10px"><label>사업 유형</label><div class="chips" id="ch_biztype"><span class="chip" data-v="IPT" onclick="this.classList.toggle(&#39;on&#39;);refresh()">IPT</span><span class="chip on" data-v="IPCC" onclick="this.classList.toggle(&#39;on&#39;);refresh()">IPCC</span><span class="chip on" data-v="AICC" onclick="this.classList.toggle(&#39;on&#39;);refresh()">AICC</span><span class="chip" data-v="보이스봇/콜봇" onclick="this.classList.toggle(&#39;on&#39;);refresh()">보이스봇/콜봇</span><span class="chip" data-v="STT/TA" onclick="this.classList.toggle(&#39;on&#39;);refresh()">STT/TA</span><span class="chip" data-v="챗봇/상담봇" onclick="this.classList.toggle(&#39;on&#39;);refresh()">챗봇/상담봇</span><span class="chip" data-v="KMS" onclick="this.classList.toggle(&#39;on&#39;);refresh()">KMS</span><span class="chip" data-v="화상회의" onclick="this.classList.toggle(&#39;on&#39;);refresh()">화상회의</span><span class="chip" data-v="SI/통합" onclick="this.classList.toggle(&#39;on&#39;);refresh()">SI/통합</span><span class="chip" data-v="기타" onclick="this.classList.toggle(&#39;on&#39;);refresh()">기타</span></div></div>
+            <div class="field" style="margin-bottom:10px"><label>구축 형태</label><div class="chips" id="ch_build"><span class="chip on" data-v="On-Premise" onclick="this.classList.toggle(&#39;on&#39;);refresh()">On-Premise</span><span class="chip" data-v="Private Cloud" onclick="this.classList.toggle(&#39;on&#39;);refresh()">Private Cloud</span><span class="chip" data-v="Public Cloud" onclick="this.classList.toggle(&#39;on&#39;);refresh()">Public Cloud</span><span class="chip" data-v="CCaaS" onclick="this.classList.toggle(&#39;on&#39;);refresh()">CCaaS</span><span class="chip" data-v="SaaS" onclick="this.classList.toggle(&#39;on&#39;);refresh()">SaaS</span><span class="chip" data-v="Hybrid" onclick="this.classList.toggle(&#39;on&#39;);refresh()">Hybrid</span></div></div>
+            <div class="grid c3"><div class="field"><label>핵심 솔루션 <span class="sub">(벤더)</span></label><textarea id="s_vendor" placeholder="예: CISCO PBX/CTI/IVR, Genesys, AVAYA, NICE"></textarea></div><div class="field"><label>ECS 자사 솔루션</label><textarea id="s_ecs" placeholder="예: ESP-i, DASOP, R32/R51 라인업"></textarea></div><div class="field"><label>외부 솔루션 연계</label><textarea id="s_ext" placeholder="예: 상담APP, 녹취, STT/TTS, TA, KMS, 상담어시스턴트"></textarea></div></div>
+          </div></section>
+
+        <section class="card open" id="c-sales"><div class="card-head" onclick="toggleCard(this)"><span class="ix">03·A</span><h2>영업 · 고객 인사이트</h2><span class="hint">왜 지금 · 고객 고민 · 숨은 Needs</span><span class="chev">▶</span></div>
+          <div class="card-body"><div class="ownerbar"><span class="ol">영업</span><input id="own_sales" placeholder="작성자"><select id="src_sales"><option value="">출처유형</option><option>실측·시스템로그</option><option>문서·계약</option><option>발주처발언</option><option>경험적추정</option><option>전언·미확인</option></select><select id="ver_sales"><option value="">검증상태</option><option>검증완료(PM확정)</option><option>교차확인</option><option>미검증</option></select><span class="credit mid" id="cr_sales">신뢰도 49</span></div>
+            <div class="grid c2"><div class="field"><label>발주 배경 · 트리거</label><textarea id="d_trigger" placeholder="EOS·예산·감사·지시 — 왜 지금"></textarea></div><div class="field"><label>주요 영업활동 (히스토리)</label><textarea id="d_history" placeholder="사전 영업 내역·타임라인. 예: 12/3 1차 협의, POC 표명"></textarea></div>
+              <div class="field"><label>고객 고민사항 <span class="pos">핵심</span></label><textarea id="d_pain" placeholder="고객의 핵심 고민. 예: OOO 개선하고 싶다, 예산 없는데 OOO 해야 한다"></textarea></div><div class="field"><label>비공개 요구사항 <span class="sub">(숨은 Needs)</span></label><textarea id="d_hidden" placeholder="RFP에 안 적힌, 우리만 알고 싶은 사항"></textarea></div>
+              <div class="field"><label>제안 현황 · 경쟁사 현황 <span class="sub">(★핵심사항)</span></label><textarea id="d_compete" placeholder="경쟁사 동향·약점, ★핵심: 예) 기존 Cisco 운영 중이나 신규는 Genesys 제안 상황"></textarea></div><div class="field"><label>의사결정 · 평가위원 성향</label><textarea id="d_decision" placeholder="결재 라인, 평가위원 성향, 영향력자"></textarea></div></div>
+          </div></section>
+
+        <section class="card open" id="c-ps"><div class="card-head" onclick="toggleCard(this)"><span class="ix">03·B</span><h2>PS · 프리세일즈 (기술 입증)</h2><span class="hint">정량 신뢰 앵커</span><span class="chev">▶</span></div>
+          <div class="card-body"><div class="ownerbar"><span class="ol">PS</span><input id="own_ps" placeholder="작성자"><select id="src_ps"><option value="">출처유형</option><option>실측·시스템로그</option><option>문서·계약</option><option>발주처발언</option><option>경험적추정</option><option>전언·미확인</option></select><select id="ver_ps"><option value="">검증상태</option><option>검증완료(PM확정)</option><option>교차확인</option><option>미검증</option></select><span class="credit hi" id="cr_ps">신뢰도 90</span></div>
+            <div class="grid c2"><div class="field"><label>동종 레퍼런스 (수치)</label><textarea id="d_ref" placeholder="유사 구축 규모·처리량·성능"></textarea></div><div class="field"><label>기술 검증·인증·PoC</label><textarea id="d_poc" placeholder="PoC, 호환성, 인증·특허"></textarea></div><div class="field"><label>공수·일정 실적</label><textarea id="d_effort" placeholder="유사 규모 실제 소요·투입"></textarea></div><div class="field"><label>재사용 자산·표준</label><textarea id="d_asset" placeholder="완성형 패키지, 표준 I/F"></textarea></div></div>
+          </div></section>
+
+        <section class="card open" id="c-ops"><div class="card-head" onclick="toggleCard(this)"><span class="ix">03·C</span><h2>유지보수·운영 — ★ 운영사업자 무기</h2><span class="hint">복제 불가 "우리만 아는 사실"</span><span class="chev">▶</span></div>
+          <div class="card-body"><div class="ownerbar"><span class="ol">운영</span><input id="own_ops" placeholder="작성자"><select id="src_ops"><option value="">출처유형</option><option>실측·시스템로그</option><option>문서·계약</option><option>발주처발언</option><option>경험적추정</option><option>전언·미확인</option></select><select id="ver_ops"><option value="">검증상태</option><option>검증완료(PM확정)</option><option>교차확인</option><option>미검증</option></select><span class="credit hi" id="cr_ops">신뢰도 100</span></div>
+            <div class="grid c2"><div class="field"><label>콜·트래픽 통계 <span class="pos">RAW</span></label><textarea id="o_stat" placeholder="인입·응답률·포기율·대기·IVR. 예: 5개월 84,989건 / 응답률 94.4%"></textarea></div><div class="field"><label>시즌·이벤트 변동</label><textarea id="o_season" placeholder="예: 시즌 2.4배 / 위기일 포기율 15.5%"></textarea></div><div class="field"><label>장애·안정성 이력</label><textarea id="o_fault" placeholder="장애·MTTR·가용성·반복 원인"></textarea></div><div class="field"><label>누적 VOC·미해결</label><textarea id="o_issue" placeholder="운영 중 발주처 미해결 요청"></textarea></div><div class="field"><label>시스템 자산 지식</label><textarea id="o_sys" placeholder="구성도·DB·I/F·라이선스. 예: 기간계 9건"></textarea></div><div class="field"><label>사용 패턴·정합성</label><textarea id="o_usage" placeholder="화면 사용/미사용, 통계 오류"></textarea></div></div>
+          </div></section>
+
+        <section class="card open" id="c-swot"><div class="card-head" onclick="toggleCard(this)"><span class="ix">04</span><h2>SWOT 분석</h2><span class="hint">강점→앵커 · 약점→방어 · 기회→Ghosting · 위협→리스크</span><span class="chev">▶</span></div>
+          <div class="card-body"><div class="swot">
+            <div class="sw-cell S"><div class="sh">▲ Strength (강점)</div><textarea id="sw_s" placeholder="예: 기존 Cisco 시스템 인프라 대비 구축 가능, 운영 데이터 보유"></textarea></div>
+            <div class="sw-cell W"><div class="sh">▼ Weakness (약점)</div><textarea id="sw_w" placeholder="예: 가격 경쟁력, 구독형 라이선스, 규모"></textarea></div>
+            <div class="sw-cell O"><div class="sh">◆ Opportunity (기회)</div><textarea id="sw_o" placeholder="예: ESP를 통한 편의성 강화, TA로 효율 향상 등 경쟁사 빈틈"></textarea></div>
+            <div class="sw-cell T"><div class="sh">■ Threat (위협)</div><textarea id="sw_t" placeholder="예: 입찰일 임박, 기술/가격 평가 비중, 특정 경험 부족"></textarea></div>
+          </div></div></section>
+
+        <section class="card" id="c-draft"><div class="card-head" onclick="toggleCard(this)"><span class="ix">05</span><h2>기존 제안 방향 (초안)</h2><span class="hint">이미 잡은 방향 → AI가 평가·개선</span><span class="chev">▶</span></div>
+          <div class="card-body">
+            <div class="field" style="margin-bottom:11px"><label>전략 상품 키워드</label><div class="chips" id="ch_kw"><span class="chip on" data-v="안정성" onclick="this.classList.toggle(&#39;on&#39;);refresh()">안정성</span><span class="chip" data-v="신뢰성" onclick="this.classList.toggle(&#39;on&#39;);refresh()">신뢰성</span><span class="chip on" data-v="효율성" onclick="this.classList.toggle(&#39;on&#39;);refresh()">효율성</span><span class="chip" data-v="확장성" onclick="this.classList.toggle(&#39;on&#39;);refresh()">확장성</span><span class="chip" data-v="무중단" onclick="this.classList.toggle(&#39;on&#39;);refresh()">무중단</span><span class="chip on" data-v="AI 혁신" onclick="this.classList.toggle(&#39;on&#39;);refresh()">AI 혁신</span><span class="chip" data-v="비용절감" onclick="this.classList.toggle(&#39;on&#39;);refresh()">비용절감</span><span class="chip" data-v="보안" onclick="this.classList.toggle(&#39;on&#39;);refresh()">보안</span><span class="chip" data-v="운영 편의" onclick="this.classList.toggle(&#39;on&#39;);refresh()">운영 편의</span><span class="chip" data-v="단계적 확장" onclick="this.classList.toggle(&#39;on&#39;);refresh()">단계적 확장</span><span class="chip on" data-v="데이터 활용" onclick="this.classList.toggle(&#39;on&#39;);refresh()">데이터 활용</span><span class="chip" data-v="고객경험" onclick="this.classList.toggle(&#39;on&#39;);refresh()">고객경험</span></div></div>
+            <div class="grid c2"><div class="field"><label>제안 개요</label><textarea id="p_overview" placeholder="제안의 큰 방향·골자"></textarea></div><div class="field"><label>기존 작성 전략 초안 <span class="sub">(있으면 — AI가 평가/개선)</span></label><textarea id="p_draft" placeholder="이미 작성한 전략 문구. 한 줄에 하나씩"></textarea></div>
+              <div class="field"><label>기대 효과</label><textarea id="p_effect" placeholder="기간 단축·리스크 최소화·효율 향상 등"></textarea></div><div class="field"><label>사업 특징 · 고려사항</label><textarea id="p_feature" placeholder="이 사업만의 특징·구축 고려사항"></textarea></div></div>
+          </div></section>
+
+        <section class="card" id="c-logi"><div class="card-head" onclick="toggleCard(this)"><span class="ix">06</span><h2>로지스틱스 · 기타</h2><span class="hint">제안 형식·분량·발표시간·제본</span><span class="chev">▶</span></div>
+          <div class="card-body"><div class="grid c3"><div class="field"><label>제안 형식</label><input id="l_format" placeholder="예: 본문 + 요약 + 발표본"></div><div class="field"><label>분량 제한</label><input id="l_pages" placeholder="예: 제안서 300p, 발표본 50p"></div><div class="field"><label>발표/심의 시간</label><input id="l_time" placeholder="예: 발표 30분, 심의 20분"></div></div>
+            <div class="grid c2" style="margin-top:12px"><div class="field"><label>제본 / 제출</label><input id="l_bind" placeholder="예: 제본 3부"></div><div class="field"><label>스토리보드 메모</label><input id="l_story" placeholder="PPT 스토리보드 방향"></div></div>
+          </div></section>
+
+        <section class="card" id="c-opt"><div class="card-head" onclick="toggleCard(this)"><span class="ix">⚙</span><h2>도출 옵션</h2><span class="hint">개수·강조</span><span class="chev">▶</span></div>
+          <div class="card-body"><div class="grid c2"><div class="field"><label>전략 개수</label><select id="opt_count"><option value="4" selected="">4개</option><option value="3">3개</option><option value="5">5개</option></select></div><div class="field"><label>추가 지시</label><input id="opt_note" placeholder="예: ROI 강조 / 규모 약점 방어"></div></div></div></section>
+
+    </div>
+    <div class="actionbar"><div class="actionbar-inner">
+      <button class="btn brand" id="run" onclick="derive()">⚡ 전략 도출</button>
+      <button class="btn line" onclick="saveJSON()">💾 저장</button>
+      <button class="btn line" onclick="document.getElementById('loadin').click()">📂 불러오기</button>
+      <input type="file" id="loadin" accept=".json" style="display:none" onchange="loadJSON(this.files[0])">
+      <input type="file" id="resin" accept=".json" style="display:none" onchange="loadResult(this.files[0])">
+      <button class="btn line" onclick="clearAll()">초기화</button>
+      <span class="readout" id="readout">준비도 <b>0%</b> · 근거신뢰도 <b>—</b><br>예상 입력 <b>~0</b> / max 5000</span>
+    </div></div>
+    <div class="wiznav"><button class="btn ghost big" onclick="goStep(2)">← 준비 체크</button><span class="sp"></span><button class="btn go big" onclick="derive()">⚡ 전략 도출 — 결과 보기 →</button></div>
+  </div>
+
+  <!-- ================= STEP 4 · 대시보드 ================= -->
+  <div class="panel" id="t-out">
+    <div class="step-head"><span class="sn">4</span><div><h1>전략 대시보드</h1><p>도출된 전략의 등급·점수·관점 커버리지·복제불가성과 개별 전략 카드를 확인하세요. 편집 ✏️ · 직접 추가 ＋ · 인사이트 심화 🔍 · 점수 향상 ⤴ 이 가능합니다.</p></div></div>
+    <div id="out"></div>
+    <div class="wiznav"><button class="btn ghost big" onclick="goStep(3)">← 제안 준비서</button><span class="sp"></span><button class="btn ghost big" onclick="goHome()">🏠 처음으로</button></div>
+  </div>
+
+</div></div>
+
+<div class="toast" id="toast">Markdown 복사</div>
+
+<!-- ===== API MODAL ===== -->
+<div class="modal-bg" id="apiModal" onclick="if(event.target===this)closeApi()">
+  <div class="modal">
+    <div class="mhd"><span class="mk">🔑</span><div><h3>AI 연결 · 토큰</h3><div class="ms">키 하나만 넣으면 프로바이더·모델 자동 인식</div></div><button class="x" onclick="closeApi()">✕</button></div>
+    <div class="mbd">
+        <section class="card open"><div class="card-head" onclick="toggleCard(this)"><span class="ix">AI</span><h2>AI 연결 — 키만 넣으면 끝</h2><span class="hint">프로바이더·모델 자동 인식</span><span class="chev">▶</span></div>
+          <div class="card-body">
+            <div class="field"><label>API 키 <span style="color:var(--crit)">*필수</span> <span class="sub">— 키 하나만 넣으면 자동 설정</span></label>
+              <div style="display:flex;gap:9px;flex-wrap:wrap"><input id="api_key" type="password" placeholder="API 키 붙여넣기 (sk-... / AIza... / sk-ant-...)" style="flex:1;min-width:240px"><button class="btn dark" type="button" id="testbtn" onclick="testConnection()">연결 테스트 · 자동 모델</button></div>
+              <div id="prov-detect" style="font-size:12.5px;color:var(--ink-faint);margin-top:8px">✓ <b style="color:var(--ok)">GPT (OpenAI)</b> 연결 성공 · 모델 <b>gpt-4o-mini</b> 자동 선택</div>
+            </div>
+            <details style="margin-top:12px"><summary style="cursor:pointer;font-size:12.5px;color:var(--ink-dim);font-weight:700">고급 옵션 (수동 지정 · 보통 불필요)</summary>
+              <div style="margin-top:13px">
+                <div class="field" style="margin-bottom:11px"><label>프로바이더 <span class="sub">(자동 감지됨)</span></label><div class="seg" id="prov-seg"><button data-v="claude">Claude<small>Anthropic</small></button><button data-v="gemini">Gemini<small>Google</small></button><button data-v="openai" class="on">GPT<small>OpenAI</small></button></div></div>
+                <div class="grid c3"><div class="field"><label>모델명 <span class="sub">(비우면 자동)</span></label><input id="api_model" list="model-sug" placeholder="자동 선택"><datalist id="model-sug"><option value="gpt-4o-mini"></option><option value="gpt-4o"></option></datalist></div><div class="field"><label>최대 출력 토큰</label><input id="api_maxtok" type="number" value="8000"></div><div class="field"><label>단가 ₩/100만 <span class="sub">(선택)</span></label><input id="api_price" type="number" placeholder="비용 추정"></div></div>
+              </div>
+            </details>
+            <label style="display:flex;align-items:center;gap:9px;margin-top:13px;font-size:13px;color:var(--ink-dim);cursor:pointer"><input type="checkbox" id="api_remember" style="width:auto" checked="" onchange="saveKeys()"> 이 브라우저에 키 기억</label>
+            <div class="warnbox">⚠ 키는 브라우저에만 저장·프로바이더 API로 직접 호출. 내부망·신뢰 PC에서만 사용. TF 공유는 서버 키 보관 백엔드 권장.</div>
+          </div></section>
+        <section class="card open"><div class="card-head" onclick="toggleCard(this)"><span class="ix">📊</span><h2>토큰 사용량 (모델별 누적)</h2><span class="hint">무변경 시 캐시 재사용</span><span class="chev">▶</span></div>
+          <div class="card-body"><table class="usage-tab"><thead><tr><th>프로바이더 · 모델</th><th>호출</th><th>입력</th><th>출력</th><th>합계</th><th>추정비용</th></tr></thead><tbody id="usage-body"><tr><td><b>openai · gpt-4o-mini</b></td><td>2</td><td>4,609</td><td>3,206</td><td><b>7,815</b></td><td>—</td></tr></tbody></table><div class="copybar" style="margin-top:11px"><button class="btn line" onclick="resetUsage()">사용량 초기화</button></div></div></section>
+
+    </div>
+  </div>
+</div>
+
+<script>
+/* ==== [2026-07-13] 외부 LLM 전송 통제: 마스킹·감사로깅·동의모달 (트랙2) ==== */
+function maskSensitive(text,opts){opts=opts||{};if(text==null)return{masked:'',map:{},counts:{}};var s=String(text),map={},counts={},oneWay=!!opts.oneWay,seen=Object.create(null);
+function token(kind,original){if(seen[original])return seen[original];counts[kind]=(counts[kind]||0)+1;var t='['+kind+'_'+counts[kind]+']';seen[original]=t;if(!oneWay)map[t]=original;return t;}
+function sub(kind,re){s=s.replace(re,function(m){return token(kind,m);});}
+function escapeRe(x){return String(x).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
+function subList(kind,list){if(!list||!list.length)return;var arr=list.filter(Boolean).map(String).sort(function(a,b){return b.length-a.length;});arr.forEach(function(name){if(name.trim().length<2)return;s=s.replace(new RegExp(escapeRe(name),'g'),function(m){return token(kind,m);});});}
+subList('고객사',opts.orgNames);subList('인명',opts.personNames);
+sub('이메일',/[\w.+-]+@[\w-]+\.[\w.-]+/g);sub('주민번호',/\b\d{6}-?[1-8]\d{6}\b/g);sub('사업자번호',/\b\d{3}-\d{2}-\d{5}\b/g);sub('전화',/\b(01[016789]|0\d{1,2})[-.\s]?\d{3,4}[-.\s]?\d{4}\b/g);sub('계좌',/\b\d{2,6}-\d{2,6}-\d{3,7}\b/g);
+return{masked:s,map:map,counts:counts};}
+var LLM_AUDIT_KEY='llmAuditLog',LLM_AUDIT_MAX=500;
+function logExternalSend(entry){var rec={ts:new Date().toISOString(),app:entry.app||'',provider:entry.provider||'',endpointHost:entry.endpointHost||'',dataKinds:entry.dataKinds||[],fieldCount:entry.fieldCount||0,charCount:entry.charCount||0,maskApplied:!!entry.maskApplied,fileBase64Included:!!entry.fileBase64Included};
+try{var arr=JSON.parse(localStorage.getItem(LLM_AUDIT_KEY)||'[]');arr.push(rec);if(arr.length>LLM_AUDIT_MAX)arr=arr.slice(arr.length-LLM_AUDIT_MAX);localStorage.setItem(LLM_AUDIT_KEY,JSON.stringify(arr));}catch(e){}
+try{console.info('[LLM-AUDIT]',rec);}catch(e){}return rec;}
+function hostOf(prov){return({claude:'api.anthropic.com',gpt:'api.openai.com',openai:'api.openai.com',gemini:'generativelanguage.googleapis.com'})[prov]||String(prov||'');}
+function confirmExternalSend(info){info=info||{};var skipKey='llmConsentSkip:'+(info.provider||'');if(sessionStorage.getItem(skipKey)==='1')return Promise.resolve(true);
+return new Promise(function(resolve){var ov=document.createElement('div');ov.className='llm-consent-overlay';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');
+function ce(x){return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+var kinds=(info.dataKinds&&info.dataKinds.length)?info.dataKinds.join(', '):'(미지정)';
+var warn=info.fileBase64Included?'<p class="llm-consent-warn">⚠ 첨부 원본(PDF/이미지)이 <b>마스킹 없이</b> 전송됩니다.</p>':'';
+ov.innerHTML='<div class="llm-consent-box"><h3 class="llm-consent-title">외부 LLM 전송 확인</h3><p class="llm-consent-desc">아래 내용이 외부 제공사 서버로 전송됩니다.</p><ul class="llm-consent-list"><li>제공사: <b>'+ce(info.provider)+'</b> ('+ce(info.endpointHost)+')</li><li>데이터 종류: '+ce(kinds)+'</li><li>필드 수: <b>'+(info.fieldCount||0)+'</b></li><li>마스킹: <b>'+(info.maskApplied?'Y':'N')+'</b></li><li>첨부 원본 포함: <b>'+(info.fileBase64Included?'Y':'N')+'</b></li></ul>'+warn+'<label class="llm-consent-remember"><input type="checkbox" class="llm-consent-skip"/> 이 세션에서 재확인 생략</label><div class="llm-consent-actions"><button type="button" class="llm-consent-cancel">취소</button><button type="button" class="llm-consent-ok">전송 동의</button></div></div>';
+function close(result){if(result&&ov.querySelector('.llm-consent-skip').checked)sessionStorage.setItem(skipKey,'1');document.removeEventListener('keydown',onKey);if(ov.parentNode)ov.parentNode.removeChild(ov);resolve(result);}
+function onKey(e){if(e.key==='Escape')close(false);}
+ov.querySelector('.llm-consent-ok').addEventListener('click',function(){close(true);});ov.querySelector('.llm-consent-cancel').addEventListener('click',function(){close(false);});ov.addEventListener('click',function(e){if(e.target===ov)close(false);});document.addEventListener('keydown',onKey);document.body.appendChild(ov);ov.querySelector('.llm-consent-ok').focus();});}
+(function(){if(document.getElementById('llm-consent-css'))return;var st=document.createElement('style');st.id='llm-consent-css';st.textContent='.llm-consent-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:99999}.llm-consent-box{background:var(--surface,#fff);color:var(--ink,#111);max-width:440px;width:90%;padding:20px 22px;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.25);font-size:14px;line-height:1.5}.llm-consent-title{margin:0 0 8px;font-size:16px}.llm-consent-list{margin:10px 0;padding-left:18px}.llm-consent-warn{color:var(--crit,#c0392b);font-weight:600;margin:8px 0}.llm-consent-remember{display:flex;gap:6px;align-items:center;margin:12px 0}.llm-consent-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}.llm-consent-actions button{padding:8px 16px;border-radius:8px;cursor:pointer;border:1px solid var(--line,#ccc)}.llm-consent-ok{background:var(--brand,#2563eb);color:#fff;border-color:transparent}.llm-consent-cancel{background:transparent}';(document.head||document.documentElement).appendChild(st);})();
+/* ==== 통제 유틸 끝 ==== */
+// 승인 #4: localStorage 저장 실패를 조용히 삼키지 않는다. 세션당 1회만 알린다.
+let __lsWarned=false;
+function lsFail(e,what){
+  console.error('[localStorage 저장 실패]', what||'', e);
+  if(__lsWarned) return; __lsWarned=true;
+  try{ toast('저장 공간이 부족해 '+(what||'설정')+'을(를) 이 브라우저에 저장하지 못했습니다. 변경 내용이 유지되지 않습니다.'); }catch(_){}
+}
+const LS={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){lsFail(e,k)}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+const STEP_PANELS=['t-home','t-rfp','t-chk','t-input','t-out'];
+function tab(id){
+  if(id==='t-api'){openApi();return;}
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.id===id));
+  const idx=STEP_PANELS.indexOf(id);
+  if(idx>=0)syncStepper(idx);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function goStep(n){if(n<0||n>STEP_PANELS.length-1)return;tab(STEP_PANELS[n]);}
+function currentStep(){const on=document.querySelector('.panel.on');return Math.max(0,STEP_PANELS.indexOf(on?on.id:''));}
+function nextStep(){const c=currentStep();if(c<STEP_PANELS.length-1)goStep(c+1);}
+function prevStep(){const c=currentStep();if(c>0)goStep(c-1);}
+function syncStepper(idx){
+  document.querySelectorAll('.stepper .stp').forEach((s,i)=>{s.classList.toggle('on',i===idx);s.classList.toggle('done',i<idx);});
+  const fill=document.getElementById('stepfill');if(fill)fill.style.width=(idx/(STEP_PANELS.length-1)*100)+'%';
+}
+function goHome(){goStep(0);}
+/* ---- API modal ---- */
+function openApi(){const m=document.getElementById('apiModal');if(m){m.classList.add('show');document.body.style.overflow='hidden';}}
+function closeApi(){const m=document.getElementById('apiModal');if(m){m.classList.remove('show');document.body.style.overflow='';}updateApiPill();}
+function updateApiPill(){const pill=document.getElementById('apiPill');if(!pill)return;const k=(PROV[activeProv]&&PROV[activeProv].key||'').trim();const m=(PROV[activeProv]&&PROV[activeProv].model||'').trim();
+  if(k){pill.classList.add('ok');pill.classList.remove('off');pill.querySelector('.apt').textContent=PROV_LABEL[activeProv].split(' ')[0]+(m?' · '+m:'');}
+  else{pill.classList.remove('ok');pill.classList.add('off');pill.querySelector('.apt').textContent='API 키 연결';}
+}
+function toggleCard(h){h.parentElement.classList.toggle('open');}
+function val(id){const e=document.getElementById(id);return e?e.value.trim():'';}
+function setVal(id,v){const e=document.getElementById(id);if(e)e.value=(v==null?'':v);}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);}
+let position='';
+document.querySelectorAll('#f_position button').forEach(b=>{b.onclick=()=>{document.querySelectorAll('#f_position button').forEach(x=>x.classList.remove('on'));b.classList.add('on');position=b.dataset.v;refresh();};});
+
+/* chips */
+const BIZTYPE=['IPT','IPCC','AICC','보이스봇/콜봇','STT/TA','챗봇/상담봇','KMS','화상회의','SI/통합','기타'];
+const BUILDFORM=['On-Premise','Private Cloud','Public Cloud','CCaaS','SaaS','Hybrid'];
+const KW=['안정성','신뢰성','효율성','확장성','무중단','AI 혁신','비용절감','보안','운영 편의','단계적 확장','데이터 활용','고객경험'];
+function buildChips(id,arr){document.getElementById(id).innerHTML=arr.map(v=>`<span class="chip" data-v="${v}" onclick="this.classList.toggle('on');refresh()">${v}</span>`).join('');}
+buildChips('ch_biztype',BIZTYPE);buildChips('ch_build',BUILDFORM);buildChips('ch_kw',KW);
+function chips(id){return [...document.querySelectorAll('#'+id+' .chip.on')].map(c=>c.dataset.v);}
+function setChips(id,a){document.querySelectorAll('#'+id+' .chip').forEach(c=>c.classList.toggle('on',(a||[]).includes(c.dataset.v)));}
+
+/* checklists */
+const CHK_IV=[{g:'발주 맥락',items:['발주 배경·트리거(왜 지금)','발주처 "성공" 정의','예산·평가 배점','제출기한·발표일']},{g:'현황·페인포인트',items:['현 시스템 최대 불만 3가지','미해결·반복 요청','시즌/피크 특수성','통계·데이터 페인포인트','고객사 규모(상담사·채널)']},{g:'정치·경쟁',items:['의사결정 구조·영향력자','평가위원 성향','경쟁사 접촉/동향','차기 로드맵·후속사업']},{g:'요건',items:['보안·규제 요건','연계·통합 대상(기간계 등)','분량·발표 시간 제한']}];
+const CHK_DATA=[{g:'영업·고객',items:['발주배경 확보','고객 고민사항','비공개 Needs','경쟁구도·★핵심사항']},{g:'PS·솔루션',items:['솔루션 스택 정의','레퍼런스 수치','기술검증·인증','공수·일정 실적']},{g:'운영',items:['콜통계 RAW','시즌·변동','장애·안정성','누적 VOC','시스템 자산','사용 패턴·정합성']},{g:'전략·검증',items:['SWOT 작성','기존 전략 초안','출처·검증상태 표기','PM 검토·확정']}];
+function buildChk(host,data,prefix){let h='';data.forEach((grp,gi)=>{h+=`<div class="chk-group"><div class="gh">${grp.g}</div>`;grp.items.forEach((it,ii)=>{h+=`<div class="chk" data-id="${prefix}_${gi}_${ii}" onclick="this.classList.toggle('done');refresh()"><div class="box">✓</div><div class="t">${it}</div></div>`;});h+='</div>';});document.getElementById(host).innerHTML=h;}
+buildChk('chk-iv',CHK_IV,'iv');buildChk('chk-data',CHK_DATA,'dt');
+function chkState(){const a=document.querySelectorAll('.chk');let d=0;a.forEach(c=>{if(c.classList.contains('done'))d++;});return{done:d,total:a.length};}
+
+/* credibility */
+const SRC_W={'실측·시스템로그':1,'문서·계약':.9,'발주처발언':.7,'경험적추정':.4,'전언·미확인':.2};
+const VER_W={'검증완료(PM확정)':1,'교차확인':.7,'미검증':.4};
+function sectionCred(f,s,v){if(!f.some(x=>val(x)))return null;return Math.round((SRC_W[val(s)]??.5)*(VER_W[val(v)]??.5)*100);}
+function credClass(sc){if(sc==null)return'none';if(sc>=70)return'hi';if(sc>=45)return'mid';return'lo';}
+function updateCred(){const secs=[{id:'cr_sales',f:['d_trigger','d_history','d_pain','d_hidden','d_compete','d_decision'],s:'src_sales',v:'ver_sales'},{id:'cr_ps',f:['d_ref','d_poc','d_effort','d_asset'],s:'src_ps',v:'ver_ps'},{id:'cr_ops',f:['o_stat','o_season','o_fault','o_issue','o_sys','o_usage'],s:'src_ops',v:'ver_ops'}];let sc=[];secs.forEach(x=>{const v=sectionCred(x.f,x.s,x.v);const el=document.getElementById(x.id);el.className='credit '+credClass(v);el.textContent=v==null?'신뢰도 —':'신뢰도 '+v;if(v!=null)sc.push(v);});return sc.length?Math.round(sc.reduce((a,b)=>a+b,0)/sc.length):null;}
+
+const DATA_FIELDS=['f_name','f_client','f_amount','f_cust_scale','f_rfp','d_trigger','d_history','d_pain','d_hidden','d_compete','d_decision','s_vendor','s_ecs','s_ext','d_ref','d_poc','d_effort','d_asset','o_stat','o_season','o_fault','o_issue','o_sys','o_usage','iv_text','sw_s','sw_w','sw_o','sw_t','p_overview','p_draft','p_effect','p_feature','opt_note'];
+function estTok(){let c=SYSTEM_PROMPT.length;DATA_FIELDS.forEach(f=>c+=val(f).length);c+=files.filter(f=>f.kind==='text').reduce((a,f)=>a+f.data.length,0);return{inTok:Math.round(c/3),attach:files.filter(f=>f.kind!=='text').length};}
+let curReady=0,curCred=null;
+function refresh(){const cs=chkState();curReady=cs.total?Math.round(cs.done/cs.total*100):0;document.getElementById('m-ready').textContent=curReady+'%';document.getElementById('ready-bar').style.width=curReady+'%';document.getElementById('ready-val').textContent=curReady+'%';curCred=updateCred();document.getElementById('m-cred').textContent='신뢰도 '+(curCred==null?'—':curCred);const e=estTok();const mt=parseInt(val('api_maxtok'))||5000;document.getElementById('readout').innerHTML=`준비도 <b>${curReady}%</b> · 근거신뢰도 <b${curCred!=null&&curCred<45?' class="w"':''}>${curCred==null?'—':curCred}</b><br>예상 입력 <b>~${e.inTok.toLocaleString()}</b>${e.attach?` <span class="w">+첨부 ${e.attach}</span>`:''} / max ${mt}`;}
+['input','change'].forEach(ev=>document.addEventListener(ev,e=>{if(e.target.matches('input,select,textarea'))refresh();}));
+
+/* files */
+let files=[];const drop=document.getElementById('drop');
+['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over');}));['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over');}));
+drop.addEventListener('drop',e=>handleFiles(e.dataTransfer.files));
+function inferCat(n){n=(n||'').toLowerCase();if(/rfp|제안요청|요청서|과업|입찰공고/.test(n))return'RFP';if(/인터뷰|interview|녹취|면담|미팅/.test(n))return'사전 인터뷰';if(/고객|회사|소개|현황|customer|company|기업/.test(n))return'고객사 정보';return'기타';}
+function handleFiles(list){Array.from(list).forEach(f=>{const ext=(f.name.split('.').pop()||'').toLowerCase();const cat=inferCat(f.name);const r=new FileReader();if(ext==='txt'||ext==='md'){r.onload=()=>{files.push({name:f.name,kind:'text',cat,data:r.result});renderFiles();};r.readAsText(f);}else if(['png','jpg','jpeg','webp'].includes(ext)){r.onload=()=>{files.push({name:f.name,kind:'image',cat,mediaType:f.type||('image/'+ext),data:r.result.split(',')[1]});renderFiles();};r.readAsDataURL(f);}else if(ext==='pdf'){r.onload=()=>{files.push({name:f.name,kind:'pdf',cat,mediaType:'application/pdf',data:r.result.split(',')[1]});renderFiles();};r.readAsDataURL(f);}else toast('지원 안 함: '+f.name);});}
+const FILE_CATS=['RFP','사전 인터뷰','고객사 정보','기타'];
+function setCat(i,v){if(files[i])files[i].cat=v;}
+function renderFiles(){document.getElementById('filelist').innerHTML=files.map((f,i)=>`<div class="fileitem"><span class="fk">${f.kind.toUpperCase()}</span><span class="fn">${esc(f.name)}</span><select class="fcat" onchange="setCat(${i},this.value)">${FILE_CATS.map(c=>`<option ${c===f.cat?'selected':''}>${c}</option>`).join('')}</select><span class="rm" onclick="rmFile(${i})">✕</span></div>`).join('');refresh();}
+function rmFile(i){files.splice(i,1);renderFiles();}
+
+/* ===== providers — key-only, auto-detect, auto-model ===== */
+const PROV={claude:{key:'',model:''},gemini:{key:'',model:''},openai:{key:'',model:''}};
+const MODEL_SUG={claude:['claude-sonnet-4-20250514','claude-3-5-haiku-latest'],gemini:['gemini-1.5-flash','gemini-2.0-flash','gemini-1.5-pro'],openai:['gpt-4o-mini','gpt-4o']};
+const PROV_LABEL={claude:'Claude (Anthropic)',gemini:'Gemini (Google)',openai:'GPT (OpenAI)'};
+let activeProv='openai';
+function detectProvider(k){if(/^sk-ant-/.test(k))return'claude';if(/^AIza/i.test(k))return'gemini';if(/^sk-/.test(k))return'openai';return null;}
+function updateDetect(){const det=document.getElementById('prov-detect');const m=PROV[activeProv].model;det.innerHTML=`프로바이더: <b style="color:var(--brand-2)">${PROV_LABEL[activeProv]}</b> · 모델 ${m?'<b>'+m+'</b>':'<span style="color:var(--ink-faint)">자동 선택 예정</span>'}`;}
+function setProviderUI(prov){activeProv=prov;document.querySelectorAll('#prov-seg button').forEach(x=>x.classList.toggle('on',x.dataset.v===prov));document.getElementById('model-sug').innerHTML=(MODEL_SUG[prov]||[]).map(m=>`<option value="${m}">`).join('');updateDetect();}
+document.querySelectorAll('#prov-seg button').forEach(b=>{b.onclick=()=>{PROV[activeProv].key=val('api_key');PROV[activeProv].model=val('api_model');activeProv=b.dataset.v;setProviderUI(activeProv);setVal('api_key',PROV[activeProv].key);setVal('api_model',PROV[activeProv].model);saveKeys();};});
+document.getElementById('api_key').addEventListener('input',()=>{const k=val('api_key');const det=detectProvider(k);if(det){activeProv=det;setProviderUI(det);}PROV[activeProv].key=k;saveKeys();});
+document.getElementById('api_model').addEventListener('input',()=>{PROV[activeProv].model=val('api_model');updateDetect();saveKeys();});
+function saveKeys(){if(document.getElementById('api_remember').checked)LS.set('ecs_prov',JSON.stringify(PROV));else LS.del('ecs_prov');}
+function restoreKeys(){const s=LS.get('ecs_prov');if(s){try{Object.assign(PROV,JSON.parse(s));}catch(e){}}
+  // 키가 있는 프로바이더를 활성으로
+  const withKey=['openai','gemini','claude'].find(p=>PROV[p].key);if(withKey)activeProv=withKey;
+  setProviderUI(activeProv);setVal('api_key',PROV[activeProv].key);setVal('api_model',PROV[activeProv].model);}
+
+async function resolveModel(prov,key){
+  try{
+    if(prov==='openai'){const r=await fetch('https://api.openai.com/v1/models',{headers:{authorization:'Bearer '+key}});if(!r.ok)return null;const ids=((await r.json()).data||[]).map(m=>m.id);
+      const pref=['gpt-4o-mini','gpt-4.1-mini','gpt-4o','gpt-4.1','o4-mini','gpt-4-turbo','gpt-3.5-turbo'];for(const p of pref)if(ids.includes(p))return p;
+      const c=ids.filter(i=>/^(gpt|o[0-9])/.test(i)&&!/embed|whisper|tts|dall|image|moderation|realtime|audio|search/.test(i)).sort();return c[0]||null;}
+    if(prov==='gemini'){const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models?key='+encodeURIComponent(key));if(!r.ok)return null;const ms=((await r.json()).models||[]).filter(m=>(m.supportedGenerationMethods||[]).includes('generateContent')).map(m=>m.name.replace('models/',''));
+      const pref=['gemini-1.5-flash','gemini-2.0-flash','gemini-2.5-flash','gemini-1.5-pro'];for(const p of pref)if(ms.includes(p))return p;const fl=ms.filter(m=>/flash/.test(m)&&!/exp|thinking/.test(m));return fl[0]||ms[0]||null;}
+    if(prov==='claude'){const r=await fetch('https://api.anthropic.com/v1/models',{headers:{'x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'}});if(!r.ok)return null;const ids=((await r.json()).data||[]).map(m=>m.id);
+      const son=ids.filter(i=>/sonnet/.test(i)).sort().reverse();const hai=ids.filter(i=>/haiku/.test(i)).sort().reverse();return son[0]||hai[0]||ids[0]||null;}
+  }catch(e){return null;}
+  return null;
+}
+async function testConnection(){const key=val('api_key').trim();if(!key){toast('API 키를 먼저 입력하세요');return;}const det=detectProvider(key);if(det){activeProv=det;setProviderUI(det);}PROV[activeProv].key=key;
+  const btn=document.getElementById('testbtn');btn.disabled=true;const det2=document.getElementById('prov-detect');det2.innerHTML=`${PROV_LABEL[activeProv]} 연결·모델 확인 중…`;
+  const m=await resolveModel(activeProv,key);btn.disabled=false;
+  if(m){PROV[activeProv].model=m;setVal('api_model',m);saveKeys();det2.innerHTML=`✓ <b style="color:var(--ok)">${PROV_LABEL[activeProv]}</b> 연결 성공 · 모델 <b>${m}</b> 자동 선택`;toast('연결 성공 — '+m);}
+  else{det2.innerHTML=`✗ <b style="color:var(--crit)">연결 실패</b> — 키가 ${PROV_LABEL[activeProv]} 키가 맞는지 확인하세요`;toast('연결 실패 — 키 확인');}}
+
+/* usage */
+let usage={};
+function logUsage(p,m,i,o){const k=p+'|'+m;if(!usage[k])usage[k]={calls:0,input:0,output:0};usage[k].calls++;usage[k].input+=i||0;usage[k].output+=o||0;renderUsage();LS.set('ecs_usage',JSON.stringify(usage));}
+function renderUsage(){const b=document.getElementById('usage-body');const ks=Object.keys(usage);if(!ks.length){b.innerHTML='<tr><td colspan="6" style="color:var(--ink-faint)">아직 호출 없음</td></tr>';return;}const pr=parseFloat(val('api_price'));b.innerHTML=ks.map(k=>{const u=usage[k];const t=u.input+u.output;return `<tr><td><b>${k.replace('|',' · ')}</b></td><td>${u.calls}</td><td>${u.input.toLocaleString()}</td><td>${u.output.toLocaleString()}</td><td><b>${t.toLocaleString()}</b></td><td>${pr?'₩'+Math.round(t/1e6*pr).toLocaleString():'—'}</td></tr>`;}).join('');}
+function resetUsage(){usage={};LS.del('ecs_usage');renderUsage();toast('초기화');}
+function restoreUsage(){const s=LS.get('ecs_usage');if(s){try{usage=JSON.parse(s);}catch(e){}}renderUsage();}
+
+/* collect */
+function collect(){const g=val;const sec=(f,s,v)=>({_출처:g(s),_검증:g(v),_신뢰도:sectionCred(f,s,v)});return{
+  base:{프로젝트명:g('f_name'),발주처산업:g('f_client'),예산규모:g('f_amount'),제출기한:g('f_due'),발표일:g('f_present'),주요일정:g('f_sched'),고객사현황:g('f_cust_scale'),평가비중:g('f_eval'),포지션:position,RFP평가항목:g('f_rfp'),경쟁후보:g('f_competitor'),사업부:g('f_dept'),제안PM:g('own_base')},
+  솔루션:{사업유형:chips('ch_biztype'),구축형태:chips('ch_build'),벤더솔루션:g('s_vendor'),ECS자사:g('s_ecs'),외부연계:g('s_ext')},
+  영업고객:Object.assign(sec(['d_trigger','d_history','d_pain','d_hidden','d_compete','d_decision'],'src_sales','ver_sales'),{작성자:g('own_sales'),발주배경:g('d_trigger'),영업활동:g('d_history'),고객고민:g('d_pain'),비공개Needs:g('d_hidden'),경쟁사현황:g('d_compete'),의사결정:g('d_decision')}),
+  PS:Object.assign(sec(['d_ref','d_poc','d_effort','d_asset'],'src_ps','ver_ps'),{작성자:g('own_ps'),레퍼런스:g('d_ref'),기술검증:g('d_poc'),공수일정:g('d_effort'),재사용자산:g('d_asset')}),
+  운영:Object.assign(sec(['o_stat','o_season','o_fault','o_issue','o_sys','o_usage'],'src_ops','ver_ops'),{작성자:g('own_ops'),콜통계:g('o_stat'),시즌변동:g('o_season'),장애:g('o_fault'),누적VOC:g('o_issue'),시스템자산:g('o_sys'),사용패턴:g('o_usage')}),
+  인터뷰:{대상:g('iv_who'),일자:g('iv_when'),내용:g('iv_text'),첨부수:files.length},
+  SWOT:{강점:g('sw_s'),약점:g('sw_w'),기회:g('sw_o'),위협:g('sw_t')},
+  기존방향:{전략키워드:chips('ch_kw'),제안개요:g('p_overview'),전략초안:g('p_draft'),기대효과:g('p_effect'),사업특징:g('p_feature')},
+  로지스틱스:{제안형식:g('l_format'),분량:g('l_pages'),발표시간:g('l_time'),제본:g('l_bind'),스토리보드:g('l_story')},
+  옵션:{전략개수:g('opt_count')||'4',추가지시:g('opt_note')}};}
+function inputHash(){return JSON.stringify(collect())+'|'+files.map(f=>f.name+f.kind).join(',');}
+
+const SYSTEM_PROMPT=`당신은 한국 공공·금융 IT 제안(콜센터/IPCC/AICC/보이스봇/IPT) 전략 도출·평가 전문가입니다. ECS텔레콤 제안 TF를 위해 일하며, 입력은 ECS의 "제안 준비서" 형식입니다.
+원칙:
+1. 모든 전략은 입력 데이터 1개 이상에 앵커링. 없는 숫자·사실 날조 금지.
+2. "검증된 역량/전문 인력 투입" 범용 문구 단독 금지 — 특정 수치·사실로만.
+3. 차별성=복제불가 데이터(운영통계·기간계·발주배경·누적VOC) 최우선.
+4. So-What: 평균이 숨긴 비자명 패턴을 메시지로.
+5. 근거 신뢰도(_신뢰도/_출처/_검증) 가중: >=70/실측+검증완료=확정앵커(evidence_status=검증완료); 45-69/교차확인=보조; <45/미검증=약하게+data_gaps 검증필요(미검증).
+6. ★SWOT 적극 활용: 강점→전략 앵커, 약점→risk_mitigation(방어+위치), 기회→competitive_moves(Ghosting), 위협→리스크/data_gaps.
+7. 고객고민·비공개Needs·인터뷰=Hot Button 1차 원천. 발주처 발언 인용. 첨부 문서 분류 활용: [RFP]는 평가항목·요구사항·배점의 1차 근거(없는 내용 추정 금지, rfp_link를 RFP에 맞춤), [고객사 정보]는 맥락, [사전 인터뷰]는 Hot Button.
+8. 솔루션 스택(벤더/ECS자사/외부연계)은 최적의솔루션·시스템안정성 전략 근거로.
+9. ★기존 전략 초안(기존방향.전략초안)이 있으면 draft_review로 각 초안을 평가(유지/개선/대체)하고, strategies에는 개선·신규 전략을 제시.
+10. consistency_check: 수치 모순·사업규모 불일치·타사업 복붙 의심 적발(입력에 있는 것만).
+11. 포지션 무게중심: 운영사업자=운영데이터(ROI/EX), 구축경험사=PS+영업(AX/기술), 신규=영업+기술(CX).
+12. 평가: 각 전략 차별성/데이터근거/RFP적합성/실행가능성(0-100)+total+코멘트. 세트는 final_evaluation(등급 A/B/C/D, score, win_likelihood 상/중/하, strengths[], weaknesses[], verdict).
+전략구분: 비즈니스이해/최적의솔루션/상담·업무효율화/시스템안정성·확장성·운영성/로드맵수립·컨설팅/수행역량/유지보수/변화관리
+관점: AX·CX·EX·ROI(세트는 서로 다른 관점 커버).
+JSON만 출력. 코드펜스·서두 금지. 한국어.
+{"set_diagnosis":{"covered_axes":["..."],"replicability_score":0-100,"evidence_confidence":0-100,"note":"1~2문장"},
+"final_evaluation":{"grade":"A|B|C|D","score":0-100,"win_likelihood":"상|중|하","strengths":[".."],"weaknesses":[".."],"verdict":"한줄"},
+"draft_review":[{"draft":"기존 초안","assessment":"평가","action":"유지|개선|대체","improved":"개선안"}],
+"consistency_check":[{"item":"","issue":"","suggestion":""}],
+"strategies":[{"no":1,"title":"헤드라인급(숫자 포함)","key_message":"한 줄 핵심 메시지/슬로건","type":"전략구분","axis":"AX|CX|EX|ROI","why_ecs":"데이터 인용·근거를 2~3문장으로 구체적으로","differentiation":"복제 불가 이유 2~3문장","data_anchors":["1~3"],"replicability":"high|mid|low","evidence_status":"검증완료|교차확인|미검증","eval":{"차별성":0-100,"데이터근거":0-100,"RFP적합성":0-100,"실행가능성":0-100,"total":0-100,"comment":""},"sub_strategies":["2~3"],"rfp_link":""}],
+"competitive_moves":[{"against":"","our_counter":"","plant_criterion":""}],
+"risk_mitigation":[{"our_weakness":"","mitigation":"","where_to_address":""}],
+"data_gaps":["검증/추가 필요"]}
+draft_review는 기존 전략 초안이 있을 때만, competitive_moves는 기회/경쟁입력시만, risk_mitigation은 약점/위협시만, 없으면 빈 배열.`;
+
+function buildUserMsg(p){return maskSensitive(`제안 준비서 기반 전략 ${p.옵션.전략개수}개 도출 + 평가.\n\n[사업개요]\n${JSON.stringify(p.base,null,1)}\n\n[솔루션 스택]\n${JSON.stringify(p.솔루션,null,1)}\n\n[영업·고객]\n${JSON.stringify(p.영업고객,null,1)}\n\n[PS]\n${JSON.stringify(p.PS,null,1)}\n\n[운영]\n${JSON.stringify(p.운영,null,1)}\n\n[인터뷰] 대상:${p.인터뷰.대상} 일자:${p.인터뷰.일자}\n${p.인터뷰.내용||'(없음)'} / 첨부 ${p.인터뷰.첨부수}\n\n[SWOT]\n${JSON.stringify(p.SWOT,null,1)}\n\n[기존 제안 방향]\n${JSON.stringify(p.기존방향,null,1)}\n\n[로지스틱스]\n${JSON.stringify(p.로지스틱스,null,1)}\n\n[추가 지시]\n${p.옵션.추가지시||'없음'}\n\n빈 값 무시. SWOT·고객고민·비공개Needs 적극 활용. 기존 전략 초안 있으면 평가·개선. _신뢰도 가중·정합성 점검·전략 채점·세트 평가 수행. JSON만.`,{orgNames:[p&&p.base&&p.base.고객사,p&&p.base&&p.base.프로젝트명].filter(Boolean),personNames:[].concat((p&&p.인터뷰&&p.인터뷰.대상)||[]),oneWay:true}).masked;}
+
+function parseModelJSON(t){let x=(t||'').replace(/```json/gi,'').replace(/```/g,'').trim();try{return JSON.parse(x);}catch(e){const a=x.indexOf('{'),b=x.lastIndexOf('}');if(a>=0&&b>a){try{return JSON.parse(x.slice(a,b+1));}catch(e2){throw new Error('JSON 파싱 실패 — 최대 출력 토큰을 늘려보세요(설정 탭). 응답이 JSON이 아니거나 잘렸을 수 있습니다.');}}throw new Error('JSON 파싱 실패 — 응답에 JSON이 없습니다. 최대 출력 토큰을 늘려보세요.');}}
+async function callModel(prov,model,key,sys,userMsg,files,maxTok){
+  if(!(await confirmExternalSend({provider:prov,endpointHost:hostOf(prov),dataKinds:['제안 준비서','인터뷰 원문',files&&files.length?'첨부 원본(base64)':null].filter(Boolean),fieldCount:1,maskApplied:true,fileBase64Included:!!(files&&files.length)}))) throw new Error('사용자가 외부 LLM 전송을 취소했습니다');
+  try{ logExternalSend({app:'ESM',provider:prov,endpointHost:hostOf(prov),dataKinds:['userMsg',files&&files.length?'files(base64)':null].filter(Boolean),charCount:(userMsg||'').length,fieldCount:files?files.length+1:1,maskApplied:true,fileBase64Included:!!(files&&files.length)}); }catch(e){}
+  if(files&&files.length)userMsg+='\n\n[첨부 문서 목록 — 분류]\n'+files.map((f,n)=>(n+1)+'. ['+(f.cat||'기타')+'] '+f.name).join('\n');
+
+/**
+ * LLM 응답이 출력 토큰 상한에서 잘렸는지 판정한다 (2026-09-28).
+ * 세 공급자 모두 알려 주는데 그 값을 버리고 있었다 —
+ *   Claude stop_reason='max_tokens' · GPT finish_reason='length' · Gemini finishReason='MAX_TOKENS'.
+ * 잘린 응답은 내용이 빠진 채 정상처럼 보인다. 사용자는 알 길이 없다.
+ * 3002 에서 같은 원인으로 배점 분석이 통째로 비었다(09-28 실측).
+ */
+function llmStopReason(p,d){ if(!d)return ''; if(p==='claude')return d.stop_reason||''; if(p==='openai')return d.choices?.[0]?.finish_reason||''; if(p==='gemini')return d.candidates?.[0]?.finishReason||''; return ''; }
+function llmTruncated(p,d){ const r=llmStopReason(p,d); return r==='max_tokens'||r==='length'||r==='MAX_TOKENS'; }
+function warnIfTruncated(p,d){ if(!llmTruncated(p,d))return false; try{ toast('⚠ 응답이 출력 상한에서 잘렸습니다. 결과 일부가 빠졌을 수 있습니다.'); }catch(e){} try{ console.warn('[LLM 출력 절단] provider='+p+' stop='+llmStopReason(p,d)); }catch(e){} return true; }
+  if(prov==='claude'){const content=[];files.forEach(f=>{if(f.kind==='pdf')content.push({type:"document",source:{type:"base64",media_type:f.mediaType,data:f.data}});else if(f.kind==='image')content.push({type:"image",source:{type:"base64",media_type:f.mediaType,data:f.data}});else if(f.kind==='text')userMsg+=`\n\n[첨부:${f.name}]\n${f.data}`;});content.push({type:"text",text:userMsg});
+    const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model,max_tokens:maxTok,system:sys,messages:[{role:"user",content}]})});
+    if(!res.ok)throw new Error("Claude "+res.status+": "+(await res.text()).slice(0,180));const d=await res.json();const cut=warnIfTruncated('claude',d);return{text:(d.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n"),truncated:cut,stopReason:llmStopReason('claude',d),inTok:d.usage?.input_tokens||0,outTok:d.usage?.output_tokens||0};}
+  if(prov==='gemini'){const parts=[{text:userMsg}];files.forEach(f=>{if(f.kind==='image'||f.kind==='pdf')parts.push({inlineData:{mimeType:f.mediaType,data:f.data}});else if(f.kind==='text')parts[0].text+=`\n\n[첨부:${f.name}]\n${f.data}`;});
+    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({systemInstruction:{parts:[{text:sys}]},contents:[{role:"user",parts}],generationConfig:{responseMimeType:"application/json",maxOutputTokens:maxTok}})});
+    if(!res.ok)throw new Error("Gemini "+res.status+": "+(await res.text()).slice(0,180));const d=await res.json();const um=d.usageMetadata||{};const cut=warnIfTruncated('gemini',d);return{text:(d.candidates?.[0]?.content?.parts||[]).map(p=>p.text).join("\n"),truncated:cut,stopReason:llmStopReason('gemini',d),inTok:um.promptTokenCount||0,outTok:um.candidatesTokenCount||0};}
+  if(prov==='openai'){const uc=[{type:"text",text:userMsg}];let sk=0;files.forEach(f=>{if(f.kind==='image')uc.push({type:"image_url",image_url:{url:`data:${f.mediaType};base64,${f.data}`}});else if(f.kind==='text')uc[0].text+=`\n\n[첨부:${f.name}]\n${f.data}`;else if(f.kind==='pdf')sk++;});if(sk)uc[0].text+=`\n\n(PDF ${sk}건 미지원 제외 — Claude/Gemini 권장)`;
+    const res=await fetch("https://api.openai.com/v1/chat/completions",{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+key},body:JSON.stringify({model,max_tokens:maxTok,response_format:{type:"json_object"},messages:[{role:"system",content:sys},{role:"user",content:uc}]})});
+    if(!res.ok)throw new Error("OpenAI "+res.status+": "+(await res.text()).slice(0,180));const d=await res.json();const cut=warnIfTruncated('openai',d);return{text:d.choices?.[0]?.message?.content||"",truncated:cut,stopReason:llmStopReason('openai',d),inTok:d.usage?.prompt_tokens||0,outTok:d.usage?.completion_tokens||0};}
+  throw new Error("알 수 없는 프로바이더");}
+
+let lastResult=null,lastHash='',lastPayload=null,lastMeta=null,editId=null;
+async function derive(){const p=collect();const cnt=[p.영업고객,p.PS,p.운영].reduce((a,o)=>a+Object.entries(o).filter(([k,v])=>!k.startsWith('_')&&k!=='작성자'&&v).length,0)+(p.인터뷰.내용?1:0)+files.length+(p.SWOT.강점||p.SWOT.약점?1:0);
+  if(!p.base.프로젝트명||cnt<2){toast('프로젝트명 + 데이터 2개 이상 입력');tab('t-input');return;}
+  const prov=activeProv,key=PROV[prov].key.trim(),maxTok=parseInt(val('api_maxtok'))||5000;
+  if(!key){toast('API 키를 입력하세요 (설정 탭)');tab('t-api');return;}
+  let model=(val('api_model')||PROV[prov].model||'').trim();
+  const btn=document.getElementById('run');btn.disabled=true;document.getElementById('run2').disabled=true;tab('t-out');
+  const out=document.getElementById('out');
+  if(!model){out.innerHTML=`<div class="loading"><div class="spinner"></div><div class="msg">모델 자동 선택 중…</div></div>`;model=await resolveModel(prov,key);if(model){PROV[prov].model=model;setVal('api_model',model);updateDetect();saveKeys();}else{out.innerHTML=`<div class="err"><b>모델 자동 선택 실패</b><br>키가 ${PROV_LABEL[prov]} 키가 맞는지 확인하세요. (설정 탭 → 연결 테스트)</div>`;btn.disabled=false;document.getElementById('run2').disabled=false;return;}}
+  const h=inputHash()+'|'+prov+'|'+model;
+  if(lastResult&&h===lastHash){render(lastResult,p);toast('입력 변경 없음 — 캐시 사용 (API 미호출)');btn.disabled=false;document.getElementById('run2').disabled=false;return;}
+  if(curReady<50&&!confirm('준비도 '+curReady+'%로 낮습니다. 그래도 도출할까요?')){btn.disabled=false;document.getElementById('run2').disabled=false;return;}
+  const msgs=["제안 준비서 분석 중…","SWOT·고객 고민 → Hot Button 추출 중…","근거 신뢰도 가중·정합성 점검 중…","기존 전략 초안 평가 중…","전략 채점·임원 대시보드 구성 중…"];
+  out.innerHTML=`<div class="loading"><div class="spinner"></div><div class="msg" id="lmsg">${msgs[0]}</div></div>`;let mi=0;const timer=setInterval(()=>{mi=(mi+1)%msgs.length;const lm=document.getElementById('lmsg');if(lm)lm.textContent=msgs[mi];},1400);
+  try{const o=await callModel(prov,model,key,SYSTEM_PROMPT,buildUserMsg(p),files,maxTok);logUsage(prov,model,o.inTok,o.outTok);lastResult=parseModelJSON(o.text);lastHash=h;improveNeedsData=[];render(lastResult,p,{prov,model,inTok:o.inTok,outTok:o.outTok});}
+  catch(e){out.innerHTML=`<div class="err"><b>도출 실패</b><br>${(e.message||e).toString()}<br><br>· 설정 탭 → 연결 테스트로 키 확인<br>· 멀티 프로바이더는 자체 호스팅/로컬 실행에서 동작<br>· JSON 아닐 경우 최대 출력 토큰을 늘려보세요.</div>`;}
+  finally{clearInterval(timer);btn.disabled=false;document.getElementById('run2').disabled=false;refresh();}}
+
+/* ===== render dashboard ===== */
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function gaugeSVG(pct,id){const r=54,len=Math.PI*r;return `<svg viewBox="0 0 128 80"><path d="M10 64 A54 54 0 0 1 118 64" fill="none" stroke="#ece9e2" stroke-width="11" stroke-linecap="round"/><path id="${id}" d="M10 64 A54 54 0 0 1 118 64" fill="none" stroke="url(#gg)" stroke-width="11" stroke-linecap="round" stroke-dasharray="${len}" stroke-dashoffset="${len}" data-off="${len*(1-pct/100)}"/><defs><linearGradient id="gg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2f6fd0"/><stop offset="1" stop-color="#5a9bef"/></linearGradient></defs></svg>`;}
+let picks={};
+function render(r,p,meta){const out=document.getElementById('out');const d=r.set_diagnosis||{};const fe=r.final_evaluation||{};const axes=['AX','CX','EX','ROI'];const cov=d.covered_axes||[];const strat=r.strategies||[];lastPayload=p;if(meta)lastMeta=meta;strat.forEach(s=>{if(s._picked===undefined)s._picked=true;});
+  const avg=strat.length?Math.round(strat.reduce((a,s)=>a+(s.eval?.total||0),0)/strat.length):0;
+  const dims=['차별성','데이터근거','RFP적합성','실행가능성'];const dimAvg={};dims.forEach(k=>dimAvg[k]=strat.length?Math.round(strat.reduce((a,s)=>a+(s.eval?.[k]||0),0)/strat.length):0);
+  const fscore=fe.score??avg;const grade=fe.grade||(fscore>=80?'A':fscore>=65?'B':fscore>=50?'C':'D');const wl=fe.win_likelihood||(fscore>=75?'상':fscore>=55?'중':'하');
+  let h=`<div class="dash-top reveal"><div class="grade-wrap"><div class="gauge">${gaugeSVG(fscore,'gmain')}<div class="center"><div class="g" style="color:${fscore>=80?'var(--ok)':fscore>=65?'var(--brand)':fscore>=50?'var(--warn)':'var(--crit)'}">${grade}</div><div class="s"><span data-count="${fscore}">0</span>/100</div></div></div><div class="verdict"><div class="vt">${esc(fe.verdict||(p.base.프로젝트명+' 전략 평가'))}</div><span class="winpill ${wl}">수주 가능성 ${wl}</span></div></div></div>`;
+  h+=`<div class="kpis"><div class="kpi reveal"><div class="kl">도출 전략</div><div class="kv"><span data-count="${strat.length}">0</span><small>개</small></div><div class="kf">${meta?meta.prov+'·'+meta.model:'캐시'}</div></div><div class="kpi cyan reveal"><div class="kl">평균 전략 점수</div><div class="kv"><span data-count="${avg}">0</span><small>/100</small></div><div class="kf">전략 품질</div></div><div class="kpi pink reveal"><div class="kl">복제 불가성</div><div class="kv"><span data-count="${d.replicability_score??0}">0</span><small>/100</small></div><div class="kf">경쟁사 복제 난이도</div></div><div class="kpi green reveal"><div class="kl">근거 신뢰도</div><div class="kv"><span data-count="${d.evidence_confidence??0}">0</span><small>/100</small></div><div class="kf">데이터 검증 수준</div></div></div>`;
+  if(fe.strengths?.length||fe.weaknesses?.length){h+=`<div class="sw-cols"><div class="sw s reveal"><h4>▲ 강점</h4><ul>${(fe.strengths||[]).map(x=>`<li>${esc(x)}</li>`).join('')||'<li>—</li>'}</ul></div><div class="sw w reveal"><h4>▼ 약점·보완</h4><ul>${(fe.weaknesses||[]).map(x=>`<li>${esc(x)}</li>`).join('')||'<li>—</li>'}</ul></div></div>`;}
+  h+=`<div class="charts"><div class="chart-card reveal"><div class="ct">📊 전략별 종합 점수</div>${strat.map(s=>`<div class="barrow"><span class="bl">${esc((s.title||'').slice(0,16))}</span><span class="bt"><span class="bf" data-w="${s.eval?.total||0}"></span></span><span class="bv">${s.eval?.total||0}</span></div>`).join('')}</div><div class="chart-card reveal"><div class="ct">🧭 평가 차원 (4축 레이더)</div>${radarSVG(dims.map(k=>dimAvg[k]))}<div class="ct" style="margin:14px 0 10px">🎯 관점 커버리지</div><div class="cov-chips">${axes.map(a=>`<div class="axc ${a} ${cov.includes(a)?'has':''}">${a}<div class="axn">${cov.includes(a)?'커버':'미커버'}</div></div>`).join('')}</div></div></div>`;
+  if(r.draft_review?.length){h+=`<div class="draftrev reveal"><div class="h">📝 기존 전략 초안 평가</div>${r.draft_review.map(x=>`<div class="di"><span class="act ${x.action||'개선'}">${esc(x.action||'개선')}</span><b>${esc(x.draft)}</b><br>${esc(x.assessment)}${x.improved?`<br><span style="color:var(--brand-2)">→ 개선: ${esc(x.improved)}</span>`:''}</div>`).join('')}</div>`;}
+  if(r.consistency_check?.length){h+=`<div class="consist reveal"><div class="h">⚠ 데이터 정합성 점검 — 확정 전 확인</div>${r.consistency_check.map(c=>`<div class="ci"><b>${esc(c.item)}</b> — ${esc(c.issue)}<br><span class="sg">→ ${esc(c.suggestion)}</span></div>`).join('')}</div>`;}
+  h+=`<div class="sec-title">🗂 도출 전략 <span style="font-size:12px;color:var(--ink-faint);font-weight:600">— 편집 ✏️ · 직접 추가 ＋ · 인사이트 심화 🔍 가능</span></div><div id="strat-list">`;
+  strat.forEach((s,i)=>{h+=renderStrategyCard(s,i);});
+  h+=`</div><div style="margin-bottom:14px"><button class="btn line" onclick="addStrategy()">＋ 전략 직접 추가</button></div>`;
+  if(r.competitive_moves?.length){h+=`<div class="blk-section"><h3><span class="tg ghost-tg">GHOSTING</span>경쟁 대응 · 평가포인트 심기</h3>${r.competitive_moves.map(m=>`<div class="move"><div class="mh">vs. ${esc(m.against)}</div><div class="mr"><b>대응:</b> ${esc(m.our_counter)}</div>${m.plant_criterion?`<div class="where">심을 포인트: ${esc(m.plant_criterion)}</div>`:''}</div>`).join('')}</div>`;}
+  if(r.risk_mitigation?.length){h+=`<div class="blk-section"><h3><span class="tg risk-tg">RED-TEAM</span>우리 약점 · 리스크 방어</h3>${r.risk_mitigation.map(m=>`<div class="move"><div class="mh">⚠ ${esc(m.our_weakness)}</div><div class="mr"><b>완화:</b> ${esc(m.mitigation)}</div>${m.where_to_address?`<div class="where">위치: ${esc(m.where_to_address)}</div>`:''}</div>`).join('')}</div>`;}
+  if(r.data_gaps?.length){h+=`<div class="gap-card"><div class="h">⚠ 추가 · 검증 필요 데이터</div><ul>${r.data_gaps.map(g=>`<li>${esc(g)}</li>`).join('')}</ul></div>`;}
+  h+=`<div id="final-eval"></div><div class="improve-panel reveal"><div class="ip-row"><div><div class="ip-h">🚀 다음 단계 — 점수 향상</div><div class="ip-s">채택 전략을 데이터 근거로 더 다듬어 평가 점수를 끌어올립니다. (개별 카드의 ⤴ 점수↑ 또는 세트 전체 보강)</div></div><button class="btn brand" id="improveBtn" onclick="improveAll()">🚀 전략 세트 보강 — 점수 향상</button></div><div id="improve-out"></div></div><div class="copybar"><button class="btn line" onclick="copyTable()">📋 표</button><button class="btn line" onclick="copyMd()">📋 Markdown</button><button class="btn line" onclick="copySheet()">📋 구글시트 형식</button><button class="btn line" onclick="saveResult()">💾 결과 저장</button><button class="btn line" onclick="document.getElementById('resin').click()">📂 결과 불러오기</button><button class="btn line" onclick="lastHash='';derive()">↻ 강제 재도출</button></div>`;
+  out.innerHTML=h;animateDash();recalcFinal();renderImproveOut();window.scrollTo({top:0,behavior:'smooth'});}
+function animateDash(){document.querySelectorAll('.reveal').forEach((el,i)=>el.style.animationDelay=(i%8*55)+'ms');document.querySelectorAll('[data-count]').forEach(el=>{const t=+el.dataset.count,from=+(el.dataset.from||0),t0=performance.now();function tick(n){const pr=Math.min((n-t0)/1100,1);el.textContent=Math.round((from+(t-from)*(1-Math.pow(1-pr,3)))).toLocaleString();if(pr<1)requestAnimationFrame(tick);}requestAnimationFrame(tick);});setTimeout(()=>{document.querySelectorAll('.bf,.ef').forEach(el=>el.style.width=(el.dataset.w||0)+'%');document.querySelectorAll('path[data-off]').forEach(el=>{el.style.transition='stroke-dashoffset 1.3s cubic-bezier(.3,.7,.2,1)';el.style.strokeDashoffset=el.dataset.off;});document.querySelectorAll('.radar-poly').forEach(p=>{p.style.transformOrigin='90px 80px';p.style.transform='scale(0.05)';p.style.opacity='0';requestAnimationFrame(()=>{p.style.transition='transform .9s cubic-bezier(.2,.85,.3,1),opacity .6s';p.style.transform='scale(1)';p.style.opacity='1';});});document.querySelectorAll('.radar-dot').forEach((d,i)=>{d.style.opacity='0';d.style.transition='opacity .4s';setTimeout(()=>d.style.opacity='1',500+i*120);});},120);}
+const DEEPEN_LENSES=[
+ {k:'근거 보강',p:'이 전략의 근거를 더 깊게 보강하라. 입력 데이터에서 추가로 끌어낼 수 있는 비자명 인사이트·정량 근거·비교 포인트를 찾아라.'},
+ {k:'예상 질문·반론',p:'평가위원/발주처가 이 전략에 던질 예상 질문과 반론, 그에 대한 데이터 기반 대응을 작성하라.'},
+ {k:'세부 과제 확장',p:'이 전략의 추진과제를 더 세분화하고 각 과제의 산출물·일정·담당 관점을 구체화하라.'},
+ {k:'슬라이드 구성',p:'이 전략을 제안서 슬라이드로 만들 때의 아웃라인(슬라이드별 헤드라인 + 핵심 불릿)을 제시하라.'},
+ {k:'발표 토킹포인트',p:'이 전략을 발표할 때의 핵심 토킹포인트(말할 순서·강조점)를 작성하라.'},
+ {k:'ROI 정량화',p:'이 전략의 투자대비 효과(ROI)를 입력 데이터 기반으로 정량 산출하는 논리와 추정치를 제시하라.'}
+];
+const DEEPEN_SYS=`당신은 ECS 제안 전략 코치다. 주어진 전략과 사업 맥락(제안 준비서)을 바탕으로 요청한 관점에서 인사이트를 구체적·데이터 기반으로 깊게 확장한다. 입력에 없는 수치·사실을 절대 날조하지 말고, 추정은 추정이라 밝힌다. 아래 JSON만 출력. {"title":"섹션 제목","items":["구체 항목 4~7개, 각 한 문장"]}`;
+async function deepen(i,lensIdx,custom){
+  if(!lastResult||!lastResult.strategies[i])return;const s=lastResult.strategies[i];const prov=activeProv,key=PROV[prov].key.trim();let model=(val('api_model')||PROV[prov].model||'').trim();
+  if(!key){toast('설정 탭에서 API 키 입력');tab('t-api');return;}
+  if(!model){model=await resolveModel(prov,key);if(model){PROV[prov].model=model;saveKeys();}else{toast('모델 자동선택 실패');return;}}
+  const lens=lensIdx!=null?DEEPEN_LENSES[lensIdx]:null;const ask=custom||(lens?lens.p:'');if(!ask){toast('질문 입력 또는 렌즈 선택');return;}
+  const card=document.getElementById('sc-'+i);if(card){const dz=card.querySelector('.deepen-status');if(dz)dz.textContent='AI가 인사이트 심화 중…';}
+  const P=lastPayload||{base:{}};
+  const ctx=`[사업 맥락]\n${JSON.stringify(P.base||{})}\n[데이터 요약] 영업:${JSON.stringify(P.영업고객||{})}\nPS:${JSON.stringify(P.PS||{})}\n운영:${JSON.stringify(P.운영||{})}\nSWOT:${JSON.stringify(P.SWOT||{})}\n\n[대상 전략]\n제목:${s.title}\n구분/관점:${s.type}/${s.axis}\nWhyECS:${s.why_ecs}\n차별화:${s.differentiation}\n앵커:${(s.data_anchors||[]).join(', ')}\n세부:${(s.sub_strategies||[]).join(' / ')}\n\n[요청]\n${ask}\n\n위 전략을 더 깊게 파고들어라. JSON만.`;
+  try{const o=await callModel(prov,model,key,DEEPEN_SYS,ctx,[],parseInt(val('api_maxtok'))||5000);logUsage(prov,model,o.inTok,o.outTok);
+    const r=parseModelJSON(o.text);
+    if(!s._deepenings)s._deepenings=[];s._deepenings.push({title:r.title||(lens?lens.k:'추가 인사이트'),items:r.items||[]});renderCurrent();toast('인사이트 추가됨 (1회 호출)');}
+  catch(e){toast('심화 실패: '+(e.message||e).toString().slice(0,60));renderCurrent();}
+}
+function deepenCustom(i){const el=document.getElementById('dq-'+i);const v=el?el.value.trim():'';if(!v){toast('질문을 입력하세요');return;}deepen(i,null,v);}
+function rmDeepen(i,j){if(lastResult?.strategies?.[i]?._deepenings){lastResult.strategies[i]._deepenings.splice(j,1);renderCurrent();}}
+function renderStrategyCard(s,i){
+  if(editId===i)return renderEditForm(s,i);
+  const ax=(s.axis||'').toUpperCase();const rep=(s.replicability||'mid').toLowerCase();const ev=s.evidence_status||'';const ec={high:'복제불가 HIGH',mid:'복제불가 MID',low:'복제불가 LOW'}[rep]||'';
+  let h=`<div class="scard ${s._picked?'picked':''} reveal" id="sc-${i}"><div class="topline"><span class="snum">전략 ${esc(s.no||i+1)}</span>${s.type?`<span class="badge type">${esc(s.type)}</span>`:''}${ax?`<span class="badge ax ${esc(ax)}">${esc(ax)}</span>`:''}${ec?`<span class="pill ${esc(rep)}">${ec}</span>`:''}${ev?`<span class="pill ${esc(ev)}">근거 ${esc(ev)}</span>`:''}<span class="ctl"><button class="iconbtn up" onclick="improveStrategy(${i})">⤴ 점수↑</button><button class="iconbtn" onclick="startEdit(${i})">✏️ 편집</button><button class="iconbtn del" onclick="deleteStrategy(${i})">🗑</button></span></div>`;
+  h+=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:9px"><label class="pick"><input type="checkbox" ${s._picked?'checked':''} onchange="togglePick(${i},this.checked)">채택</label><span class="stot"><span class="sc"><span data-count="${s.eval?.total||0}" ${s._improvement?`data-from="${s._improvement.before}"`:''}>0</span><small>/100</small></span></span>${s._improvement?`<span class="delta ${s._improvement.after>=s._improvement.before?'up':'down'}">${s._improvement.before} → ${s._improvement.after} ${s._improvement.after>=s._improvement.before?'▲':'▼'}${Math.abs(s._improvement.after-s._improvement.before)}</span>`:''}</div>`;
+  h+=`<h3>${esc(s.title)}</h3>`;
+  if(s.key_message)h+=`<div class="keymsg">“${esc(s.key_message)}”</div>`;
+  if(s.why_ecs)h+=`<div class="why"><span class="ico">▶ Why ECS</span><span>${esc(s.why_ecs)}</span></div>`;
+  if(s.eval)h+=`<div class="evalbars">${['차별성','데이터근거','RFP적합성','실행가능성'].map(k=>`<div class="eb"><span class="el">${k}</span><span class="et"><span class="ef" data-w="${s.eval[k]||0}"></span></span><span class="ev">${s.eval[k]||0}</span></div>`).join('')}</div>${s.eval.comment?`<div class="ecomment">"${esc(s.eval.comment)}"</div>`:''}`;
+  if(s._improvement?.changes?.length)h+=`<div class="impr"><div class="ih">⤴ 개선 내역 (${s._improvement.before}→${s._improvement.after})</div><ul>${s._improvement.changes.map(c=>`<li>${esc(c)}</li>`).join('')}${(s._improvement.needs_data||[]).length?`<li class="nd">더 올리려면: ${s._improvement.needs_data.map(esc).join(', ')}</li>`:''}</ul></div>`;
+  if(s.differentiation)h+=`<div class="blk"><div class="h">차별화 논리 (복제 불가)</div><div class="t">${esc(s.differentiation)}</div></div>`;
+  if(s.data_anchors?.length)h+=`<div class="blk"><div class="h">연결 데이터 앵커</div><div>${s.data_anchors.map(a=>`<span class="anchor-tag">◆ ${esc(a)}</span>`).join('')}</div></div>`;
+  if(s.sub_strategies?.length)h+=`<div class="blk"><div class="h">세부 추진과제</div><div class="subs">${s.sub_strategies.map((x,k)=>`<div class="si"><span class="b">${k+1}</span><span>${esc(x)}</span></div>`).join('')}</div></div>`;
+  if(s.rfp_link)h+=`<div class="blk"><div class="h">RFP / Hot Button 매핑</div><div class="t">${esc(s.rfp_link)}</div></div>`;
+  if(s._notes)h+=`<div class="note-blk">📝 ${esc(s._notes)}</div>`;
+  (s._deepenings||[]).forEach((dp,j)=>{h+=`<div class="dblock"><div class="dh">🔍 ${esc(dp.title)}<span class="x" onclick="rmDeepen(${i},${j})">✕</span></div><ul>${(dp.items||[]).map(it=>`<li>${esc(it)}</li>`).join('')}</ul></div>`;});
+  h+=`<div class="deepen"><div class="dl">🔍 인사이트 더 찾기 <span class="deepen-status" style="color:var(--accent);margin-left:6px"></span></div><div class="lenses">${DEEPEN_LENSES.map((l,li)=>`<span class="lens" onclick="deepen(${i},${li})">${l.k}</span>`).join('')}</div><div class="qrow"><input id="dq-${i}" placeholder="직접 질문/지시 (예: 카지노 시즌 특성을 더 반영)" onkeydown="if(event.key==='Enter')deepenCustom(${i})"><button class="btn line" onclick="deepenCustom(${i})">찾기</button></div></div>`;
+  h+=`</div>`;return h;
+}
+function renderEditForm(s,i){
+  const opts=['','비즈니스이해','최적의솔루션','상담·업무효율화','시스템안정성·확장성·운영성','로드맵수립·컨설팅','수행역량','유지보수','변화관리'];
+  return `<div class="scard" id="sc-${i}"><div class="editform">
+    <div><label>전략 제목</label><input id="e_title_${i}" value="${esc(s.title||'')}"></div>
+    <div><label>핵심 메시지</label><input id="e_key_${i}" value="${esc(s.key_message||'')}"></div>
+    <div class="ef-row"><div><label>전략 구분</label><select id="e_type_${i}">${opts.map(o=>`<option ${o===s.type?'selected':''}>${o}</option>`).join('')}</select></div><div><label>관점</label><select id="e_axis_${i}">${['','AX','CX','EX','ROI'].map(o=>`<option ${o===(s.axis||'').toUpperCase()?'selected':''}>${o}</option>`).join('')}</select></div></div>
+    <div><label>Why ECS</label><textarea id="e_why_${i}">${esc(s.why_ecs||'')}</textarea></div>
+    <div><label>차별화 논리</label><textarea id="e_diff_${i}">${esc(s.differentiation||'')}</textarea></div>
+    <div><label>데이터 앵커 (한 줄에 하나)</label><textarea id="e_anc_${i}">${esc((s.data_anchors||[]).join('\n'))}</textarea></div>
+    <div><label>세부 추진과제 (한 줄에 하나)</label><textarea id="e_sub_${i}">${esc((s.sub_strategies||[]).join('\n'))}</textarea></div>
+    <div><label>RFP / Hot Button 매핑</label><input id="e_rfp_${i}" value="${esc(s.rfp_link||'')}"></div>
+    <div><label>추가 메모</label><textarea id="e_note_${i}">${esc(s._notes||'')}</textarea></div>
+    <div class="ef-row" style="margin-top:4px"><button class="btn brand" onclick="saveEdit(${i})">저장</button><button class="btn line" onclick="cancelEdit()">취소</button></div>
+  </div></div>`;
+}
+function startEdit(i){editId=i;renderCurrent();}
+function cancelEdit(){editId=null;renderCurrent();}
+function saveEdit(i){const s=lastResult.strategies[i];const g=id=>{const e=document.getElementById(id);return e?e.value:'';};
+  s.title=g('e_title_'+i).trim();s.key_message=g('e_key_'+i).trim();s.type=g('e_type_'+i).trim();s.axis=g('e_axis_'+i).trim();s.why_ecs=g('e_why_'+i).trim();s.differentiation=g('e_diff_'+i).trim();
+  s.data_anchors=g('e_anc_'+i).split('\n').map(x=>x.trim()).filter(Boolean);s.sub_strategies=g('e_sub_'+i).split('\n').map(x=>x.trim()).filter(Boolean);s.rfp_link=g('e_rfp_'+i).trim();s._notes=g('e_note_'+i).trim();
+  editId=null;renderCurrent();toast('전략 수정 저장됨');}
+function addStrategy(){if(!lastResult){lastResult={set_diagnosis:{},strategies:[]};}lastResult.strategies.push({no:lastResult.strategies.length+1,title:'(새 전략 제목 — 편집하세요)',type:'',axis:'',why_ecs:'',differentiation:'',data_anchors:[],sub_strategies:[],eval:{차별성:0,데이터근거:0,RFP적합성:0,실행가능성:0,total:0,comment:''},evidence_status:'미검증',replicability:'mid',_picked:true});editId=lastResult.strategies.length-1;tab('t-out');renderCurrent();}
+function deleteStrategy(i){if(!lastResult)return;if(!confirm('이 전략을 삭제할까요?'))return;lastResult.strategies.splice(i,1);if(editId===i)editId=null;renderCurrent();}
+function radarSVG(vals){const cx=90,cy=80,R=58,ang=[-90,0,90,180];
+  const pt=(v,i)=>{const a=ang[i]*Math.PI/180,r=R*Math.max(0,Math.min(100,v))/100;return [cx+r*Math.cos(a),cy+r*Math.sin(a)];};
+  const ring=f=>ang.map(d=>{const a=d*Math.PI/180;return (cx+R*f*Math.cos(a)).toFixed(1)+','+(cy+R*f*Math.sin(a)).toFixed(1);}).join(' ');
+  const poly=vals.map((v,i)=>pt(v,i).map(n=>n.toFixed(1)).join(',')).join(' ');
+  const L=['차별성','데이터근거','RFP적합성','실행가능성'],lp=[[cx,cy-R-8],[cx+R+2,cy+4],[cx,cy+R+15],[cx-R-2,cy+4]];
+  return `<svg viewBox="0 0 180 172" class="radar"><g>${[0.34,0.67,1].map(f=>`<polygon points="${ring(f)}" fill="none" stroke="#ece9e2" stroke-width="1"/>`).join('')}${ang.map(d=>{const a=d*Math.PI/180;return `<line x1="${cx}" y1="${cy}" x2="${(cx+R*Math.cos(a)).toFixed(1)}" y2="${(cy+R*Math.sin(a)).toFixed(1)}" stroke="#eef0f5" stroke-width="1"/>`;}).join('')}</g><polygon class="radar-poly" points="${poly}" fill="rgba(0,148,212,.18)" stroke="#2f6fd0" stroke-width="2" stroke-linejoin="round"/>${vals.map((v,i)=>{const p=pt(v,i);return `<circle class="radar-dot" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3.2" fill="#2f6fd0"/>`;}).join('')}${L.map((l,i)=>`<text x="${lp[i][0]}" y="${lp[i][1]}" font-size="9.5" fill="#5f6675" text-anchor="middle" font-weight="700">${l}</text>`).join('')}</svg>`;}
+
+const IMPROVE_SYS=`당신은 ECS 제안 전략 평가·개선 코치다. 주어진 전략과 사업 맥락·현재 평가 점수·약점·데이터 갭을 바탕으로, 평가 점수(차별성/데이터근거/RFP적합성/실행가능성)가 더 높게 나오도록 각 전략을 개선한다. 개선은 반드시 사실/데이터에 근거하라(없는 수치 날조 금지). 점수를 올린 방법(근거 강화·메시지 선명화·RFP 적합성·실행 구체화)을 changes에 명시하고, 데이터가 더 있어야만 오를 부분은 needs_data에 적는다. JSON만 출력.`;
+let improveNeedsData=[];
+async function getModel(){const prov=activeProv,key=PROV[prov].key.trim();if(!key){toast('설정 탭에서 API 키 입력');tab('t-api');return null;}let model=(val('api_model')||PROV[prov].model||'').trim();if(!model){model=await resolveModel(prov,key);if(model){PROV[prov].model=model;saveKeys();}else{toast('모델 자동선택 실패');return null;}}return{prov,key,model};}
+function ctxStr(){const P=lastPayload||{base:{}};return `[사업 맥락]\n${JSON.stringify(P.base||{})}\n[데이터] 영업:${JSON.stringify(P.영업고객||{})} PS:${JSON.stringify(P.PS||{})} 운영:${JSON.stringify(P.운영||{})} SWOT:${JSON.stringify(P.SWOT||{})}`;}
+async function improveStrategy(i){if(!lastResult?.strategies?.[i])return;const s=lastResult.strategies[i];const m=await getModel();if(!m)return;
+  const card=document.getElementById('sc-'+i);if(card){const dz=card.querySelector('.deepen-status');if(dz)dz.textContent='점수 향상 중…';}
+  const ctx=`${ctxStr()}\n\n[개선 대상 전략]\n${JSON.stringify({title:s.title,key_message:s.key_message,type:s.type,axis:s.axis,why_ecs:s.why_ecs,differentiation:s.differentiation,data_anchors:s.data_anchors,sub_strategies:s.sub_strategies,rfp_link:s.rfp_link,current_eval:s.eval})}\n\n이 전략을 평가 점수가 더 높게 나오도록 개선하라. JSON {"strategy":{"title":"","key_message":"","type":"","axis":"","why_ecs":"","differentiation":"","data_anchors":[],"sub_strategies":[],"rfp_link":"","evidence_status":"","eval":{"차별성":0,"데이터근거":0,"RFP적합성":0,"실행가능성":0,"total":0,"comment":""}},"changes":[],"needs_data":[]}`;
+  try{const o=await callModel(m.prov,m.model,m.key,IMPROVE_SYS,ctx,[],parseInt(val('api_maxtok'))||5000);logUsage(m.prov,m.model,o.inTok,o.outTok);const r=parseModelJSON(o.text);
+    const before=s.eval?.total||0;Object.assign(s,r.strategy||{});s._improvement={before,after:s.eval?.total||0,changes:r.changes||[],needs_data:r.needs_data||[]};renderCurrent();toast(`전략 ${i+1} 개선: ${before} → ${s.eval?.total||0}`);}
+  catch(e){toast('개선 실패: '+(e.message||e).toString().slice(0,50));renderCurrent();}}
+async function improveAll(){if(!lastResult)return;const picked=lastResult.strategies.map((s,idx)=>({s,idx})).filter(o=>o.s._picked);if(!picked.length){toast('채택된 전략이 없습니다');return;}const m=await getModel();if(!m)return;
+  const btn=document.getElementById('improveBtn');if(btn){btn.disabled=true;btn.textContent='⏳ 전략 보강 중…';}
+  const fe=lastResult.final_evaluation||{};const list=picked.map(o=>({idx:o.idx,title:o.s.title,type:o.s.type,axis:o.s.axis,why_ecs:o.s.why_ecs,differentiation:o.s.differentiation,data_anchors:o.s.data_anchors,sub_strategies:o.s.sub_strategies,rfp_link:o.s.rfp_link,current_eval:o.s.eval}));
+  const ctx=`${ctxStr()}\n[현재 세트 약점]${JSON.stringify(fe.weaknesses||[])}\n[데이터 갭]${JSON.stringify(lastResult.data_gaps||[])}\n\n[개선 대상 전략들]\n${JSON.stringify(list)}\n\n각 전략을 평가 점수가 더 높게 나오도록 개선하라. JSON {"strategies":[{"idx":0,"title":"","key_message":"","type":"","axis":"","why_ecs":"","differentiation":"","data_anchors":[],"sub_strategies":[],"rfp_link":"","evidence_status":"","eval":{"차별성":0,"데이터근거":0,"RFP적합성":0,"실행가능성":0,"total":0,"comment":""},"changes":[]}],"final_evaluation":{"grade":"A|B|C|D","score":0,"win_likelihood":"상|중|하","strengths":[],"weaknesses":[],"verdict":""},"needs_data":[]}`;
+  try{const o=await callModel(m.prov,m.model,m.key,IMPROVE_SYS,ctx,[],parseInt(val('api_maxtok'))||6000);logUsage(m.prov,m.model,o.inTok,o.outTok);const r=parseModelJSON(o.text);
+    (r.strategies||[]).forEach(ns=>{const i=ns.idx;const s=lastResult.strategies[i];if(!s)return;const before=s.eval?.total||0;const ch=ns.changes||[];delete ns.idx;delete ns.changes;Object.assign(s,ns);s._improvement={before,after:s.eval?.total||0,changes:ch};});
+    if(r.final_evaluation)lastResult.final_evaluation=r.final_evaluation;improveNeedsData=r.needs_data||[];renderCurrent();toast('전략 세트 보강 완료 — 점수 향상');}
+  catch(e){toast('보강 실패: '+(e.message||e).toString().slice(0,50));}
+  finally{const b=document.getElementById('improveBtn');if(b){b.disabled=false;b.textContent='🚀 전략 세트 보강 — 점수 향상';}}}
+function renderImproveOut(){const el=document.getElementById('improve-out');if(!el)return;if(!improveNeedsData.length){el.innerHTML='';return;}el.innerHTML=`<div class="gap-card" style="margin-top:12px"><div class="h">📈 점수를 더 올리려면 — 필요한 데이터</div><ul>${improveNeedsData.map(g=>`<li>${esc(g)}</li>`).join('')}</ul></div>`;}
+function renderCurrent(){if(lastResult)render(lastResult,lastPayload||{base:{}},lastMeta);}
+function saveResult(){if(!lastResult){toast('도출 결과 없음');return;}const blob=new Blob([JSON.stringify({result:lastResult,payload:lastPayload},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(val('f_name')||'전략결과')+'_결과저장.json';a.click();toast('결과 저장 — 나중에 불러와 이어서 편집·심화');}
+function loadResult(file){if(!file)return;const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);lastResult=o.result||o;lastPayload=o.payload||lastPayload||{base:{}};lastHash='';editId=null;tab('t-out');render(lastResult,lastPayload,null);toast('결과 불러오기 — 이어서 편집·심화 가능');}catch(e){toast('JSON 파싱 실패');}};r.readAsText(file);}
+function togglePick(i,on){if(lastResult?.strategies?.[i])lastResult.strategies[i]._picked=on;const c=document.getElementById('sc-'+i);if(c)c.classList.toggle('picked',on);recalcFinal();}
+function recalcFinal(){if(!lastResult)return;const strat=(lastResult.strategies||[]).filter(s=>s._picked);const axes=['AX','CX','EX','ROI'];const cov=[...new Set(strat.map(s=>(s.axis||'').toUpperCase()))];const avg=strat.length?Math.round(strat.reduce((a,s)=>a+(s.eval?.total||0),0)/strat.length):0;const fe=lastResult.final_evaluation||{};const el=document.getElementById('final-eval');if(!el)return;
+  el.innerHTML=`<div class="dash-top" style="margin:18px 0 0"><div class="grade-wrap"><div class="gauge">${gaugeSVG(avg,'gfin')}<div class="center"><div class="g" style="color:${avg>=80?'var(--ok)':avg>=65?'var(--brand)':avg>=50?'var(--warn)':'var(--crit)'}">${avg}</div><div class="s">최종 채택</div></div></div><div class="verdict"><div class="vt">최종 채택 세트 — ${strat.length}개 전략</div><div class="vm">관점 커버리지: ${axes.filter(a=>cov.includes(a)).join(' · ')||'—'} (${cov.length}/4) · 평균 점수 ${avg}/100${fe.verdict?'<br>총평: '+esc(fe.verdict):''}</div></div></div></div>`;
+  setTimeout(()=>{const g=document.getElementById('gfin');if(g){const len=Math.PI*54;g.style.transition='stroke-dashoffset 1s';g.style.strokeDashoffset=len*(1-avg/100);}},60);}
+
+function copyTable(){if(!lastResult)return;let rows=[['전략','전략구분','관점','점수','복제불가','근거','Why ECS','차별화','세부과제','RFP']];(lastResult.strategies||[]).forEach(s=>rows.push([s.title||'',s.type||'',s.axis||'',s.eval?.total||'',s.replicability||'',s.evidence_status||'',(s.why_ecs||'').replace(/\t/g,' '),(s.differentiation||'').replace(/\t/g,' '),(s.sub_strategies||[]).join(' / '),(s.rfp_link||'').replace(/\t/g,' ')]));navigator.clipboard.writeText(rows.map(r=>r.join('\t')).join('\n')).then(()=>toast('표 복사'));}
+function copySheet(){if(!lastResult)return;const name=val('f_name');const today=new Date().toISOString().slice(0,7).replace('-','.');let rows=[['사업명','일정','전략 내용','전략 구분','관점 구분','수주 여부']];(lastResult.strategies||[]).forEach((s,i)=>rows.push([i===0?name:'',i===0?today:'',s.title||'',s.type||'',s.axis||'',i===0?'진행중':'']));navigator.clipboard.writeText(rows.map(r=>r.join('\t')).join('\n')).then(()=>toast('구글시트 형식 복사 — 시트에 붙여넣기'));}
+function copyMd(){if(!lastResult)return;const d=lastResult.set_diagnosis||{};const fe=lastResult.final_evaluation||{};let md=`# 전략 평가 — ${val('f_name')}\n\n**등급 ${fe.grade||''} (${fe.score||''}/100) · 수주가능성 ${fe.win_likelihood||''}**\n> ${fe.verdict||''}\n> 관점 ${(d.covered_axes||[]).join(', ')} · 복제불가 ${d.replicability_score}/100 · 근거신뢰도 ${d.evidence_confidence}/100\n\n`;if(fe.strengths?.length)md+=`강점: ${fe.strengths.join(' / ')}\n`;if(fe.weaknesses?.length)md+=`약점: ${fe.weaknesses.join(' / ')}\n\n`;if(lastResult.draft_review?.length){md+=`## 기존 초안 평가\n`;lastResult.draft_review.forEach(x=>md+=`- [${x.action}] ${x.draft}: ${x.assessment}${x.improved?' → '+x.improved:''}\n`);md+=`\n`;}if(lastResult.consistency_check?.length){md+=`## ⚠ 정합성 점검\n`;lastResult.consistency_check.forEach(c=>md+=`- ${c.item}: ${c.issue} → ${c.suggestion}\n`);md+=`\n`;}(lastResult.strategies||[]).forEach(s=>md+=`## ${s.no}. ${s.title} (${s.eval?.total||''}/100)\n- ${s.type} / ${s.axis} / 복제불가 ${s.replicability} / 근거 ${s.evidence_status}\n- 평가: 차별성 ${s.eval?.차별성}·데이터 ${s.eval?.데이터근거}·RFP ${s.eval?.RFP적합성}·실행 ${s.eval?.실행가능성}${s.eval?.comment?' — '+s.eval.comment:''}\n- Why ECS: ${s.why_ecs}\n- 차별화: ${s.differentiation}\n- 앵커: ${(s.data_anchors||[]).join(', ')}\n- 세부: ${(s.sub_strategies||[]).map((x,i)=>`(${i+1}) ${x}`).join(' ')}\n\n`);if(lastResult.competitive_moves?.length){md+=`### Ghosting\n`;lastResult.competitive_moves.forEach(m=>md+=`- vs.${m.against} → ${m.our_counter} [${m.plant_criterion||''}]\n`);md+=`\n`;}if(lastResult.risk_mitigation?.length){md+=`### Red-Team\n`;lastResult.risk_mitigation.forEach(m=>md+=`- ⚠${m.our_weakness} → ${m.mitigation} [${m.where_to_address||''}]\n`);md+=`\n`;}if(lastResult.data_gaps?.length)md+=`### 추가/검증 필요\n${lastResult.data_gaps.map(g=>`- ${g}`).join('\n')}\n`;navigator.clipboard.writeText(md).then(()=>toast('Markdown 복사'));}
+
+/* save/load */
+const TEXT_FIELDS=['own_base','f_dept','f_name','f_client','f_amount','f_due','f_present','f_sched','f_cust_scale','f_eval','f_rfp','f_competitor','s_vendor','s_ecs','s_ext','own_sales','src_sales','ver_sales','d_trigger','d_history','d_pain','d_hidden','d_compete','d_decision','own_ps','src_ps','ver_ps','d_ref','d_poc','d_effort','d_asset','own_ops','src_ops','ver_ops','o_stat','o_season','o_fault','o_issue','o_sys','o_usage','iv_who','iv_when','iv_text','sw_s','sw_w','sw_o','sw_t','p_overview','p_draft','p_effect','p_feature','l_format','l_pages','l_time','l_bind','l_story','opt_count','opt_note'];
+function chkSnap(){const o={};document.querySelectorAll('.chk').forEach(c=>o[c.dataset.id]=c.classList.contains('done'));return o;}
+function saveJSON(){const fields={};TEXT_FIELDS.forEach(f=>fields[f]=val(f));const blob=new Blob([JSON.stringify({position,fields,files,checklist:chkSnap(),chips:{ch_biztype:chips('ch_biztype'),ch_build:chips('ch_build'),ch_kw:chips('ch_kw')}},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(val('f_name')||'전략입력')+'_입력저장.json';a.click();toast('입력 저장 (담당자 공유 · 키 미포함)');}
+function loadJSON(file){if(!file)return;const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);if(o.fields)TEXT_FIELDS.forEach(f=>setVal(f,o.fields[f]));position=o.position||'';document.querySelectorAll('#f_position button').forEach(x=>x.classList.toggle('on',x.dataset.v===position));files=o.files||[];renderFiles();if(o.checklist)document.querySelectorAll('.chk').forEach(c=>c.classList.toggle('done',!!o.checklist[c.dataset.id]));if(o.chips){setChips('ch_biztype',o.chips.ch_biztype);setChips('ch_build',o.chips.ch_build);setChips('ch_kw',o.chips.ch_kw);}refresh();toast('불러오기 완료');}catch(e){toast('JSON 파싱 실패');}};r.readAsText(file);}
+
+function fillSample(){
+  setVal('own_base','제안 PM');setVal('f_dept','A사업부');
+  setVal('f_name','강원랜드 콜센터시스템 재구축 사업');setVal('f_client','강원랜드 / 공공·레저(카지노·호텔·리조트)');setVal('f_amount','20억원 미만 (SW진흥법 제48조 중소SW)');
+  setVal('f_due','전자입찰(조달청)');setVal('f_present','협상에 의한 계약');setVal('f_sched','착수~준공 150일 · 무손실 이관');
+  setVal('f_cust_scale','상담센터 3개소 · 통합 40좌석 · PBX/CTI/IVR/녹취 등 9종 · 기간계 10건 연동');
+  setVal('f_eval','기술 중심');setVal('f_rfp','기술 90(정량10/정성80) + 가격 10 = 100점 · 협상적격 76.5점 이상 · 차등점수 3.0');
+  setVal('f_competitor','ECS(현 10년 운영사업자) vs 대형 SI·콜인프라 경쟁사');
+  document.querySelectorAll('#f_position button').forEach(x=>{if(x.dataset.v==='운영사업자'){x.classList.add('on');position='운영사업자';}else x.classList.remove('on');});
+  setChips('ch_biztype',['IPCC','AICC','IPT']);setChips('ch_build',['On-Premise']);
+  setVal('s_vendor','Cisco One Vendor (IP-PBX·VG·CTI·IVR·IP-Phone·네트워크) — 공공/금융 86% 사용');setVal('s_ecs','통합 운영관리 GUI · 통합 모니터링 대시보드(신규) · 상담APP · 통합통계');setVal('s_ext','녹취(ODS 통합) · STT/TTS/TA 표준 I/F · 공개SW WAS(세션 클러스터링)·DB · 콜봇');
+  setVal('own_sales','영업팀');setVal('src_sales','발주처발언');setVal('ver_sales','교차확인');
+  setVal('d_trigger','2016년 도입 IP-PBX/VG의 EOS 임박(보안패치 중단·제조사 기술지원 종료) · AI 전환 공백 · 옴니채널 파편화 · ISMS-P 규제 강화 · 상담품질 제고');
+  setVal('d_history','2016년 도입 후 10년 통합유지보수 직접 수행. 강원랜드 AI 가속: 25.10 미래 성장동력 이사회 / 25.11 카지노 카운트룸 AI·로봇 자동화 / 25.12 생성형AI 스마트 감사시스템 가동');
+  setVal('d_pain','성수기 응답지연·비수기 자원낭비(시즌 2.4배) · 호전환 1콜 다회 이동 · 통합 라우팅 부재 · 고객정보 산재(내부직원·리조트·CRM·카지노)');
+  setVal('d_hidden','향후 AICC 확장 기반 확보 · 모닝콜/객실 전화등급 제어를 상담APP에서 직접 처리 · 내부 생성형AI 시스템 연계');
+  setVal('d_compete','★현 10년 운영사업자(ECS)만 운영통계·기간계 10건·DB 스키마 보유. 대형 SI·신규 진입자는 강원랜드 운영 데이터·현장 이슈 미보유');
+  setVal('d_decision','협상에 의한 계약 · 기술평가위원회(정성 80점이 승부처) · 공공·레저기관 안정성/연속성 민감');
+  setVal('own_ps','PS팀');setVal('src_ps','문서·계약');setVal('ver_ps','검증완료(PM확정)');
+  setVal('d_ref','IPCC/AICC 구축 No.1 · 누적매출 1.2조 · 26년 연속 흑자 · 고객사 500+ · 신용등급 A. 최근: 신복위·카카오뱅크·YES24·카카오페이·행정공제회·국민연금·금감원1332 등');
+  setVal('d_poc','Cisco One Vendor 글로벌 표준(공공/금융 86%) · SRTP/TLS·SIP 표준 · 교환기·네트워크 Active-Standby 이중화');
+  setVal('d_effort','150일 무결점 이행 · DB 스키마 사전 파악으로 마이그레이션 일정 30% 단축');
+  setVal('d_asset','완성형 패키지 · 표준 I/F · 26년 전문 PM 직접 수행 · 기술인력 77%·중급이상 93%(160명)');
+  setVal('own_ops','운영팀');setVal('src_ops','실측·시스템로그');setVal('ver_ops','검증완료(PM확정)');
+  setVal('o_stat','10년 누적 콜 데이터 200만건 · 성수기(1월) 피크 약 900건/일 · 비수기(4월) 약 380건/일');
+  setVal('o_season','시즌 콜량 약 2.4배 변동 → 성수기 응답지연·비수기 자원낭비');
+  setVal('o_fault','2016년 도입 IP-PBX/VG EOS 임박(보안패치 중단·기술지원 종료) · 다중 벤더 분산으로 장애 영향범위 추적 곤란');
+  setVal('o_issue','10년 운영 중 누적된 발주처 미해결 요청 사전 파악·반영 가능');
+  setVal('o_sys','기간계 인터페이스 10건 검증(모닝콜·객실전화제어·체크인·체크아웃·예약/투숙·RMS·HR·CRM·가상계좌·삼성 IP-PBX PRI) · 9종 솔루션 · DB 스키마 사전 파악(분석 0일)');
+  setVal('o_usage','녹취·통계·CTI 분리 운영으로 통계 불일치 · 산재 데이터 → 단일화·정합성 재설계 필요');
+  setVal('iv_who','강원랜드 운영현장 / 발주처');setVal('iv_when','2025~2026');
+  setVal('iv_text','"성수기에 응대가 밀린다" · "통계 숫자가 실제와 안 맞는다" · "지금 운영사가 시스템을 제일 잘 안다" · "향후 AI 컨택센터로 확장하고 싶다"');
+  setVal('sw_s','10년 통합유지보수 운영사업자 · 콜데이터 200만건 · 기간계 10건 검증 · Cisco 구축·운영 노하우 · 26년 전문 PM · IPCC/AICC No.1');
+  setVal('sw_w','가격평가 10점(비중은 작으나) 대형 SI 브랜드·규모 압박 · 신규 구축 솔루션 부담');
+  setVal('sw_o','강원랜드 AI 전환 가속(이사회·카운트룸·감사시스템) → AICC 확장 선점 · 경쟁사는 운영 데이터·기간계 미보유');
+  setVal('sw_t','협상에 의한 경쟁 · EOS 임박 일정 압박 · 차등점수제 3.0점 · 정성평가 80점 비중');
+  setChips('ch_kw',['안정성','AI 혁신','데이터 활용','무중단','운영 편의']);
+  setVal('p_overview','강원랜드 콜센터 재구축 — 10년의 운영 자산으로 완성하는 미래 10년. 이씨에스텔레콤만이 안정적인 미래 10년을 약속.');
+  setVal('p_draft','AI 확장 가능한 검증된 콜인프라로 미래 고객센터 구축 [AX]\nB옴니채널 통합운영으로 가치 창출 비즈니스 콜센터 구현 [CX]\nB선제적 장애 대응 체계로 서비스 연속성 및 안정성 확보 [ROI]\nB10년 운영 사업자의 경험을 통한 최적의 구축 설계 [EX]'.split('\nB').join(String.fromCharCode(10)));
+  setVal('p_effect','운영 일원화(단일 GUI) · 장애 사전 차단(통합 모니터링) · AI 확장 재투자 Zero · 라이선스 부담 공개SW 전환');
+  setVal('p_feature','As-Is 다중 벤더 분산 → To-Be 단일 통합 콜인프라 플랫폼 · 호텔&콘도·골프·워터파크 4대 내부환경 통합 응대 · 세부항목 276개/RFP 60개 요구사항 100% 수용');
+  setVal('l_format','본문 + 요약본 + 발표본');setVal('l_pages','RFP 기준');setVal('l_time','발표·심의 (RFP 기준)');setVal('l_bind','RFP 기준');setVal('l_story','요약본 전략 4장(AX·CX·ROI·EX) 중심');
+  setVal('opt_count','4');setVal('opt_note','운영사업자 복제불가 데이터(200만건·기간계10건·DB스키마) 최우선 · 정성평가 80점 대응 · 차기 AICC 확장성 강조 · 규모 약점은 운영 연속성·리스크 제로로 방어');
+  document.querySelectorAll('.chk').forEach(c=>c.classList.add('done'));renderFiles();refresh();toast('강원랜드 샘플 + 체크리스트 완료');}
+function clearAll(){TEXT_FIELDS.forEach(f=>setVal(f,''));setVal('opt_count','4');document.querySelectorAll('#f_position button').forEach(x=>x.classList.remove('on'));position='';setChips('ch_biztype',[]);setChips('ch_build',[]);setChips('ch_kw',[]);files=[];renderFiles();document.querySelectorAll('.chk').forEach(c=>c.classList.remove('done'));lastResult=null;lastHash='';document.getElementById('out').innerHTML='<div class="o-empty">입력 후 <b style="color:var(--accent)">전략 도출</b>을 누르면 임원용 대시보드가 표시됩니다.</div>';refresh();toast('초기화');}
+
+/* sample → jump into wizard at RFP step */
+function startSample(){fillSample();goStep(1);toast('강원랜드 샘플 로드 완료 — 순서대로 진행하세요');}
+function emptyOut(){const o=document.getElementById('out');if(o&&!lastResult)o.innerHTML='<div class="o-empty">상단의 <b style="color:var(--accent)">⚡ 전략 도출</b>을 누르면 임원용 대시보드가 여기에 표시됩니다.<br><span style="font-size:12px;color:var(--ink-faint)">STEP 0 → 1 → 2 → 3 순으로 입력하면 정확도가 올라갑니다.</span><br><button class="btn brand" style="margin-top:16px" onclick="showDemo()">📊 데모 결과 보기 — 강원랜드 샘플 (API 불필요)</button></div>';}
+function updateRing(){const ring=document.getElementById('readyRing');if(!ring)return;const C=2*Math.PI*44;const pct=Math.max(0,Math.min(100,curReady||0));ring.style.strokeDasharray=C;ring.style.strokeDashoffset=C*(1-pct/100);const rv=document.getElementById('ready-val');if(rv)rv.textContent=pct+'%';const cb=document.getElementById('credBadge');if(cb)cb.textContent='근거신뢰도 '+(curCred==null?'—':curCred);}
+/* ============ 데모 (AI 미호출) — 강원랜드 샘플 결과 · 입력 facts 기반 ============ */
+const DEMO_META={prov:'데모',model:'강원랜드 요약본 기반'};
+const DEMO_RESULT={
+ set_diagnosis:{covered_axes:['AX','CX','EX','ROI'],replicability_score:88,evidence_confidence:92,
+   note:'강원랜드 10년 운영 자산(콜데이터 200만건·기간계 10건 검증·DB 스키마)이 4대 전략 전부의 근거 — 경쟁사가 복제 불가. 실측·검증완료 데이터 중심이라 근거 신뢰도 높음.'},
+ final_evaluation:{grade:'A',score:92,win_likelihood:'상',
+   strengths:['10년·콜데이터 200만건과 기간계 10건 검증 = 경쟁사가 복제 불가능한 차별화 자산','데이터를 만든 통합유지보수 사업자의 직접 이관 → 손실 0건·분석 0일·150일 무결점','시즌 2.4배(성수기 900건/비수기 380건/일) 실측 기반 정량 설계'],
+   weaknesses:['대형 SI 대비 규모·브랜드 열위 → 운영 연속성·리스크 제로 메시지로 방어 필요','정성평가 80점 비중 → 항목별 대응 매트릭스 정교화 권장'],
+   verdict:'10년 운영 자산을 4대 전략(AX·CX·ROI·EX) 전부의 근거로 삼아 차별성·실행가능성이 모두 높다. 정성 80점 비중에 맞춰 복제 불가 데이터를 평가항목별로 정렬하면 수주 가능성 높음.'},
+ draft_review:[
+   {draft:'AI 확장 가능한 검증된 콜인프라로 미래 고객센터 구축 [AX]',assessment:'방향 타당. Cisco One Vendor·26년 PM 근거가 강함.',action:'유지',improved:''},
+   {draft:'옴니채널 통합운영으로 가치 창출 비즈니스 콜센터 구현 [CX]',assessment:'데이터 근거(200만건) 연결을 더 전면화하면 차별성 상승.',action:'개선',improved:'10년·200만건 콜 데이터 기반 IVR·캠페인 개선 후보를 정량 수치로 제시'},
+   {draft:'선제적 장애 대응 체계로 서비스 연속성 및 안정성 확보 [ROI]',assessment:'운영사업자만의 누적 이슈 사전 해소가 핵심. 타당.',action:'유지',improved:''},
+   {draft:'10년 운영 사업자의 경험을 통한 최적의 구축 설계 [EX]',assessment:'손실 0건·분석 0일을 헤드라인 수치로 부각 권장.',action:'개선',improved:'기간계 10건 검증 + 마이그레이션 손실 0건·분석 0일을 무결점 전환의 정량 근거로 제시'}],
+ consistency_check:[
+   {item:'콜데이터 200만건',issue:'10년 누적 출처·산식이 제안서에 명시되지 않으면 반박 위험.',suggestion:'산정 기간·집계 기준·출처(운영 시스템 로그)를 각주로 명시'},
+   {item:'마이그레이션 30% 단축',issue:'단축률 산식 근거 필요.',suggestion:'DB 스키마 사전 파악 → 분석 0일 기준의 비교 산식을 제시'},
+   {item:'정성 80점 vs 메시지',issue:'전략이 4개로 분산되면 정성평가 항목 매핑이 흐려질 수 있음.',suggestion:'4대 전략을 RFP 정성 평가항목에 1:1 정렬'}],
+ strategies:[
+  {no:1,title:'AI 확장 가능한 검증된 콜인프라로 미래 고객센터 구축',key_message:'Cisco One Vendor(공공/금융 86%) + 26년 전문 PM — AI 도입 시 재투자·재검증 Zero',type:'최적의솔루션',axis:'AX',
+   why_ecs:'Cisco AICC 다수 구축·운영 노하우와 26년 전문 PM의 직접 수행으로 향후 AI 도입 시 인프라 재투자·재검증 비용을 제거한다.',
+   differentiation:'글로벌 표준 Cisco One Vendor로 안정성과 차기 AI 확장성을 동시에 확보 — 신규 진입자는 통합 구축·운영 경험이 없다.',
+   data_anchors:['Cisco One Vendor 공공/금융 86% 사용','26년 전문 PM 직접 수행','IPCC/AICC 구축 No.1'],
+   replicability:'high',evidence_status:'검증완료',
+   eval:{차별성:90,데이터근거:92,RFP적합성:95,실행가능성:93,total:93,comment:'AI 확장성·안정성이 RFP 기술·사업이해 배점에 직결.'},
+   sub_strategies:['Cisco One Vendor 글로벌 표준 콜인프라 도입 (안정성·차기 AI 확장성)','26년 전문 PM 직접 수행 — AICC 경험 기반 차기 사업 컨설팅'],rfp_link:'기술·사업이해'},
+  {no:2,title:'옴니채널 통합운영으로 가치 창출 비즈니스 콜센터 구현',key_message:'10년·200만+ 콜 데이터로 입증되는 고객 만족도 향상 + 응대 시간 단축',type:'상담·업무효율화',axis:'CX',
+   why_ecs:'10년·200만건 이상 콜 데이터를 기반으로 IVR·캠페인 개선 후보를 이미 보유 — 데이터로 입증되는 CX 개선이 가능하다.',
+   differentiation:'경쟁사는 강원랜드 콜 데이터가 없어 시즌 피크 대응을 설계할 수 없다. 데이터 기반 시나리오 개선이 차별점.',
+   data_anchors:['10년·콜 데이터 200만건','시즌 2.4배(성수기 900건/비수기 380건/일)','옴니채널 2단계(카톡·게시판·이메일) 확장'],
+   replicability:'low',evidence_status:'검증완료',
+   eval:{차별성:92,데이터근거:94,RFP적합성:88,실행가능성:86,total:90,comment:'복제 불가 데이터 근거가 강력. 옴니채널 단계 확장 일정 명시 권장.'},
+   sub_strategies:['옴니채널 통합 운영 — 통합 응대 및 2단계 채널 확장','200만건 운영 데이터 기반 상담APP·IVR 시나리오 개선 (시즌 피크 대응)'],rfp_link:'기술'},
+  {no:3,title:'선제적 장애 대응 체계로 서비스 연속성 및 안정성 확보',key_message:'장애 후 대응이 아닌 사전 차단 — 운영사업자만 아는 누적 이슈 사전 해소',type:'시스템안정성·확장성·운영성',axis:'ROI',
+   why_ecs:'10년 운영 중 누적된 발주처 요청과 장애 패턴을 사전 반영해 추가 발생 비용을 막는다.',
+   differentiation:'마이그레이션 일정 30% 단축과 사전 장애 차단은 데이터를 만든 운영사업자만 가능 — 무중단 운영 확보.',
+   data_anchors:['10년 누적 발주처 요청 사전 반영','마이그레이션 일정 30% 단축','EOS 종단 리스크 사전 차단'],
+   replicability:'low',evidence_status:'검증완료',
+   eval:{차별성:88,데이터근거:90,RFP적합성:92,실행가능성:94,total:91,comment:'공공·레저기관의 안정성·연속성 민감도에 정확히 부합.'},
+   sub_strategies:['10년 누적 발주처 요청 사전 반영 — 추가 발생 비용 절감','마이그레이션 일정 30% 단축 — 이관 비용 절감·사전 장애 차단·무중단'],rfp_link:'수행·기술'},
+  {no:4,title:'10년 운영 사업자의 경험을 통한 최적의 구축 설계',key_message:'데이터를 만든 통합유지보수 사업자가 직접 이관 — 손실 0건 · 분석 0일',type:'유지보수',axis:'EX',
+   why_ecs:'데이터를 직접 만든 통합유지보수 사업자가 이관하므로 분석 기간 0일·데이터 손실 0건을 보장한다.',
+   differentiation:'기간계 인터페이스 10건(호텔·카지노·콘도·리조트)을 이미 검증 — 시행착오 ZERO 무결점 전환.',
+   data_anchors:['마이그레이션 손실 0건·분석 0일','기간계 인터페이스 10건 검증','150일 무손실 이관'],
+   replicability:'low',evidence_status:'검증완료',
+   eval:{차별성:90,데이터근거:93,RFP적합성:90,실행가능성:95,total:92,comment:'상담사 UI 흐름 유지로 운영 안정화 기간 단축 — 실행 가능성 최상.'},
+   sub_strategies:['단일 플랫폼 기반 운영 일원화 및 완성형 패키지 구축','호텔·카지노·콘도·리조트 기간계 10건 검증 — 무결점 전환'],rfp_link:'수행'}],
+ competitive_moves:[
+   {against:'대형 SI·콜인프라 경쟁사',our_counter:'강원랜드 운영통계·기간계 10건 연동 이력 부재를 평가 변별점으로 부각',plant_criterion:'기술평가에 "현 운영데이터 활용·기간계 연동 검증" 항목을 심는다'},
+   {against:'신규 진입자',our_counter:'10년 무중단 운영 연속성·150일 무손실 이관 실적을 강조',plant_criterion:'안정성·서비스 연속성 배점 비중을 강조한다'}],
+ risk_mitigation:[
+   {our_weakness:'규모·브랜드 상대 열위',mitigation:'10년 운영 연속성 + 26년 전문 PM + 손실 0건 무결점 이행으로 신뢰 확보',where_to_address:'수행 부문·발표 토킹포인트'},
+   {our_weakness:'신규 구축 솔루션 부담',mitigation:'Cisco 글로벌 표준(공공/금융 86%) + 기간계 10건 검증으로 리스크 최소화',where_to_address:'기술 부문'}],
+ data_gaps:['정성평가 80점 항목별 대응 매트릭스(4대 전략 1:1 매핑)','콜데이터 200만건 통계 정합성·산식 재검증 문서','가격 10점 TCO·라이선스 절감 산정 근거']
+};
+function showDemo(){
+  fillSample();
+  lastResult=JSON.parse(JSON.stringify(DEMO_RESULT));
+  lastPayload=collect();lastHash='';editId=null;improveNeedsData=[];
+  goStep(4);
+  render(lastResult,lastPayload,DEMO_META);
+  toast('데모 — 강원랜드 샘플 결과 (AI 미호출, 입력 facts 기반)');
+}
+['input','change','click'].forEach(ev=>document.addEventListener(ev,e=>{setTimeout(updateRing,0);}));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeApi();});
+restoreKeys();restoreUsage();emptyOut();refresh();updateRing();updateApiPill();goStep(0);
+document.getElementById('api_key').addEventListener('input',updateApiPill);
+
+</script>
+</body></html>

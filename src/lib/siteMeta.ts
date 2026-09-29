@@ -9,6 +9,7 @@ export const PUBLIC_PATHS = ['/', '/lp', '/pricing', '/terms', '/privacy', '/log
 export const DISALLOW_PREFIXES = [
   '/api/',
   '/admin',
+  '/apps',            // 제안 앱(iframe 호스트 + public/apps 원본 HTML) — 색인 금지
   '/dashboard',
   '/projects',
   '/phases',
