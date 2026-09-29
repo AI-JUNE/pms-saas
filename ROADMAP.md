@@ -20,6 +20,7 @@
 
 - [x] 404 화면(`app/not-found.tsx`) 신설 — 오타·만료 링크가 Next.js 기본 **영문** 404 로 떨어지던 구멍을 한국어 브랜드 화면으로 교체(레지스트리 기반 «혹시 이 화면?» 추천, skip-link·main 랜드마크) ✅ 야간(배치173)
 - [x] 앱 경로 정합성 가드(`lib/appRoutes.ts`) — 화면 목록이 Shell NAV·middleware P·siteMeta DISALLOW 세 곳에 흩어져 생기던 드리프트를 CI 에서 차단(실제 page.tsx·소스 3종을 매 테스트마다 대조). 발견된 실제 누락 1건 수정: `/workload` 가 robots 색인 차단에서 빠져 있었음 ✅ 야간(배치173)
+- [x] 포털 제안 앱 3종(`/apps/{quality,strategy,performance}`) 프레임 차단 수정 — 전 경로에 찍히던 `X-Frame-Options: DENY`·`frame-ancestors 'none'` 이 same-origin iframe 까지 막아 앱 내용이 아예 뜨지 않던 상태였다. `lib/securityHeaders.ts` 에 문서 단위 최소 예외(`isEmbeddableDocument` — `/apps/` + `.html` 둘 다 만족 시에만 `SAMEORIGIN`/`'self'`, 그 외 전 경로는 DENY 유지) + AppFrame src·middleware 인자 대조 회귀 가드 ✅ 야간(배치174)
 
 ## ⑩ 상용 오픈 고도화 (주간 수동 — 대형/민감, 야간 금지)
 - [ ] **세션 게이트(middleware P) 누락 화면 16개 보강** — `/mywork`·`/todos`·`/reports`·`/weekly`·`/snapshots`·`/rtm`·`/form-definitions`·`/tests`·`/test-cycles`·`/calendar`·`/workload`·`/admin`·`/admin/security`·`/audit`·`/settings`·`/settings/billing` 는 서버 리다이렉트 대상이 아니라 로그인 전에 빈 껍데기가 한 번 그려진다(데이터는 API 401 + Shell 의 `/api/auth/me` 클라이언트 리다이렉트로 보호됨 — 심층 방어 공백). 세션 경계라 야간 금지 / 목록은 `lib/appRoutes.ts` `UNGATED_SCREENS_KNOWN` 이 관리하고 테스트가 **새 누락**만 CI 실패로 잡는다(배치173)

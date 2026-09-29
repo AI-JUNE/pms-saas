@@ -16,7 +16,9 @@ export function middleware(req: NextRequest) {
     res = NextResponse.next();
   }
   // 공통 P0-6: 전 라우트 보안 응답 헤더(clickjacking·MIME 스니핑·referrer 최소화, 운영만 HSTS)
-  applySecurityHeaders(res.headers, { vercelEnv: process.env.VERCEL_ENV });
+  //   pathname 을 넘기는 이유: 제안 앱 원본 HTML 은 우리 화면이 same-origin iframe 으로
+  //   띄우는 문서인데 기본값 X-Frame-Options: DENY 가 그것까지 막는다(DENY 는 same-origin 예외 없음).
+  applySecurityHeaders(res.headers, { vercelEnv: process.env.VERCEL_ENV, pathname });
   return res;
 }
 // 정적 자산(_next)·파비콘 제외 전 경로 — 페이지 게이트는 위 P 프리픽스에서만 동작(기존과 동일)

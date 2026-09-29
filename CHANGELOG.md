@@ -3,6 +3,14 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-09-29 (배치 174 — 배포 대기, 포털 제안 앱 3종이 `X-Frame-Options: DENY` 때문에 프레임 차단되던 문제 수정)
+- ★ **COMMERCIAL_READINESS 잔여 `[ ]` 는 여전히 «복구 리허설 실시·기록»(사람 수행) 1건뿐** → 직전 포털 편입 커밋 4건(`/apps/{quality,strategy,performance,analysis}`, 랜딩 Suite 섹션)이 CHANGELOG·ROADMAP 에 기록되지 않은 채 남아 있어 그쪽을 점검했고, **방금 들어온 실제 파손 1건**을 찾아 고쳤다.
+- 🐞 **포털에 넣은 제안 앱 3종이 실제로는 화면에 뜨지 않는 상태였다** — `AppFrame` 은 `/apps/<key>/index.html` 을 same-origin iframe 으로 띄우는데, `middleware.ts` 가 **전 경로**에 `X-Frame-Options: DENY` + `Content-Security-Policy: frame-ancestors 'none'` 을 찍고 있었다. `DENY` 는 `SAMEORIGIN` 과 달리 **same-origin 프레임에도 예외가 없다** — 껍데기(제목·«새 탭에서 열기»·로딩 문구)만 그려지고 프레임 내용은 브라우저가 거부한다. matcher 가 `_next/*`·favicon 만 제외하므로 public 정적 HTML 에도 그대로 적용됐다(그 성질이 세션 게이트의 근거이기도 해서 matcher 는 손대지 않았다).
+- `lib/securityHeaders.ts`: 프레임 허용 예외를 **문서 단위로 최소 범위**만 열었다 — `EMBEDDABLE_PREFIXES=['/apps/']` + `isEmbeddableDocument()`(fail-closed: `/apps/` 접두사 **그리고** `.html`/`.htm` 확장자를 둘 다 만족해야 true. 자산(`assets/*.js`·공유 폰트)·호스트 라우트(`/apps/quality`)·경로 탈출(`..`)·비문자열 입력은 전부 거부). 해당 문서만 `SAMEORIGIN` / `frame-ancestors 'self'`, **그 외 전 경로는 기존 `DENY` / `'none'` 그대로**. 완화 대상은 클릭재킹 헤더 2종뿐이고 nosniff·Referrer-Policy·Permissions-Policy·HSTS 는 불변. `middleware.ts` 는 `pathname` 을 넘기는 1줄 변경.
+- 회귀 가드: 테스트가 **AppFrame.tsx 원문에서 iframe src 조립식을 읽어** 그 경로가 프레임 허용 판정을 받는지 대조하고, `middleware.ts` 가 `applySecurityHeaders` 에 `pathname` 을 실제로 넘기는지도 검사한다(안 넘기면 모듈은 맞는데 런타임엔 적용 0인 조용한 회귀가 된다). 예외 목록이 `/apps/` 보다 넓어지면 실패. — src/lib/securityHeaders.ts, src/middleware.ts, tests/securityHeaders.test.ts
+- 검증: `tsc --noEmit -p tsconfig.json` **rc=0·error TS 0건**, 테스트 **292/292 통과**(신규 3건), 커버리지 lines 98.83%·branches 91.56%·funcs 97.71%(securityHeaders.ts 100/100/100) — CI 임계값(90/80/85) 통과. 라이브 DB 쓰기·DDL·신규 테이블 없음, route.ts 변경 없음, 세션 게이트(P 접두사)·인증·결제 로직 변경 없음.
+- ⏭ 다음: `/apps/analysis`(제안분석 ERM)는 아직 자리만 있는 placeholder — 실제 앱 편입은 별건. 여전히 ⑩ «세션 게이트 누락 16개» 주간 수동 **[승인 필요]**, `src/src/` 옛 사본 트리와 빈 `tests/_tmp_scan.test.ts` 는 파일 삭제가 야간 금지라 보고만.
+
 ## 2026-09-28 (배치 173 — 배포 대기, 404 화면 신설 + 앱 경로 정합성 가드, 색인 차단 누락 `/workload` 수정)
 - ★ **COMMERCIAL_READINESS 잔여 `[ ]` 는 여전히 «복구 리허설 실시·기록»(사람 수행) 1건뿐** → 배치172가 남긴 다음 후보(잔여 소항목 재발굴)를 보다가 **실제 상용 구멍 2건**을 찾아 처리했다.
 - 🐞 **404 화면이 아예 없었다** — `app/not-found.tsx` 가 없어 오타·만료 링크로 들어온 방문자는 Next.js 기본 **영문** 404(`This page could not be found.`)를 봤다. 한국어 브랜드 화면으로 교체: 요청 경로 표시(쿼리·해시 제거 후 절단), 레지스트리 기반 «혹시 이 화면을 찾으셨나요?» 추천, 근거가 없으면 추천 대신 기본 진입점만 노출(**없는 화면을 지어내지 않는다**), skip-link·`main#main-content` 랜드마크(배치142·170~172 패턴).
