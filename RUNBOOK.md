@@ -44,11 +44,68 @@
 
 Vercel 환경변수는 DB 백업에 포함되지 않으므로 별도 보관한다.
 
-- 필수: `DATABASE_URL`, `SESSION_COOKIE`
-- 선택(미설정 시 기능 OFF): `SENTRY_DSN`, `ALERT_WEBHOOK_URL`, `MONITORING_ENABLED`, `LOG_LEVEL`, `APP_VERSION`
-- 결제(기본 OFF, **활성화는 승인 필요**): `PORTONE_STORE_ID`, `PORTONE_CHANNEL_KEY`, `PORTONE_API_SECRET`, `PORTONE_WEBHOOK_SECRET`, `PAYMENTS_LIVE`, `BILLING_APPLY_LIVE`
+> ⚠️ **이 목록이 복구의 전부다.** 빠진 키는 복구 후에도 오류를 내지 않고 **조용히 기본값으로 되돌아간다** —
+> 서비스는 뜨지만 확정본 약관이 「초안」으로, 고지된 수탁자가 「고지 전」으로, 정산이 계산 중단 상태로 돌아간다.
+> 그래서 목록을 코드(`lib/envRegistry.ts`)에 정본으로 두고, 테스트가 **실제 소스에서 읽는 키**와 아래 표를
+> 매번 대조한다. 어긋나면 CI 가 실패하므로 이 표는 더 이상 낡을 수 없다(자동 채움은 하지 않는다 — 사람이 적는다).
 
-절차: 값 자체는 이 저장소에 커밋하지 않는다. 키 **목록**만 안전한 비밀 보관소에 스냅샷으로 유지하고, 값은 각 발급처(Neon·PortOne 등)에서 재발급한다. 복구 후 `PAYMENTS_LIVE`·`BILLING_APPLY_LIVE`가 기본 OFF인지 반드시 재확인한다.
+#### 4-1. 필수 (없으면 동작하지 않는다)
+
+| 환경변수 | 성격 | 설명 |
+| --- | --- | --- |
+| `DATABASE_URL` | 시크릿 | Neon Postgres 연결 문자열. 유일한 상태 저장소 |
+| `SESSION_COOKIE` | 설정 | 세션 쿠키 이름(미설정 시 기본값). 바꾸면 기존 세션이 모두 무효가 된다 |
+
+#### 4-2. 관측 (미설정 시 해당 기능만 OFF, 서비스는 정상)
+
+`MONITORING_ENABLED`(스위치) · `SENTRY_DSN`(시크릿) · `ALERT_WEBHOOK_URL`(시크릿) · `LOG_LEVEL` · `APP_VERSION`
+
+#### 4-3. 결제 (기본 OFF — **활성화는 승인 필요**)
+
+`PORTONE_STORE_ID` · `PORTONE_CHANNEL_KEY` · `PORTONE_API_SECRET`(시크릿) · `PORTONE_WEBHOOK_SECRET`(시크릿) ·
+`PAYMENTS_LIVE`(스위치) · `BILLING_APPLY_LIVE`(스위치)
+
+#### 4-4. 요금제·엔타이틀먼트
+
+`ENTITLEMENTS_ENFORCE`(스위치 — 좌석·기능 제한을 관측에서 차단으로 승격) · `PRICING_FREE_TRIAL_SEATS`(미설정 시 가격 화면이 아무 약속도 하지 않는다)
+
+#### 4-5. 법적 문서 — **유실 시 고지 내용이 후퇴한다. 최우선 복구 대상**
+
+| 환경변수 | 유실되면 |
+| --- | --- |
+| `LEGAL_DOCS_FINAL` | 확정본 약관·처리방침이 운영에서 「초안」 배너로 되돌아간다 |
+| `LEGAL_TERMS_VERSION`, `LEGAL_TERMS_EFFECTIVE` | 이용약관 버전·시행일 표기가 사라진다(draft 유지 fail-safe) |
+| `LEGAL_PRIVACY_VERSION`, `LEGAL_PRIVACY_EFFECTIVE` | 처리방침 버전·시행일 표기가 사라진다 |
+| `LEGAL_CONSENT_REQUIRED` | 가입 동의 강제가 관측 모드로 내려간다 |
+| `PRIVACY_PROCESSORS` | 처리위탁 고지 목록이 「아직 고지 전」으로 되돌아간다 |
+| `PRIVACY_CROSS_BORDER` | 국외 이전 고지 절이 사라진다 |
+
+#### 4-6. 파트너 채널 (전부 기본 OFF — **활성화는 승인 필요**)
+
+`PARTNER_CHANNEL_ENABLED` · `PARTNER_ATTRIBUTION_ENABLED` · `PARTNER_ROLE_ENABLED` · `PARTNER_SETTLEMENT_ENABLED`(이상 스위치) ·
+`PARTNER_COMMISSION_RATES`(유실 시 정산이 `rate_unconfigured` 로 계산을 멈춘다) · `PARTNER_COMMISSION_ROUNDING` · `PARTNER_COMMISSION_BASIS`
+
+#### 4-7. 복구 리허설 (6절과 같은 키)
+
+`RECOVERY_REHEARSAL_INTERVAL_DAYS` · `RECOVERY_LAST_REHEARSAL` · `RECOVERY_LAST_REHEARSAL_RESULT` · `RECOVERY_LAST_REHEARSAL_KIND` — 의미는 6절 표 참조.
+
+#### 4-8. 사이트·포털
+
+`SITE_URL` · `NEXT_PUBLIC_SITE_URL` · `NEXT_PUBLIC_ERM_URL`(사내 제안분석 바로가기 — 미설정 시 링크를 만들지 않는다)
+
+※ `NEXT_PUBLIC_` 접두사는 **클라이언트 번들에 평문으로 인라인**된다. 시크릿에 이 접두사를 쓰지 않는다(테스트가 검사).
+※ `VERCEL_ENV`·`VERCEL_URL`·`VERCEL_GIT_COMMIT_SHA` 등 플랫폼이 자동 주입하는 키는 복구 대상이 아니다.
+
+#### 4-9. 절차
+
+값 자체는 이 저장소에 커밋하지 않는다. 키 **목록**만 안전한 비밀 보관소에 스냅샷으로 유지하고, 값은 각 발급처(Neon·PortOne 등)에서 재발급한다.
+복구 후 확인 순서:
+
+1. 위 4-1 두 개가 들어갔는지 → `GET /api/health` 의 `db` 체크가 `ok`.
+2. 활성화 스위치가 **의도한 상태**인지 — 특히 `PAYMENTS_LIVE`·`BILLING_APPLY_LIVE`가 기본 OFF인지 반드시 재확인한다.
+   스위치는 `true` 문자열일 때만 ON 이다(`1`·`yes`·공백은 OFF 유지).
+3. 4-5 법적 문서 키가 복구됐는지 → `/terms`·`/privacy` 에 「초안」 배너가 없고 버전·시행일이 표기되는지 눈으로 확인.
+4. 4-6 파트너 키는 계약 상태에 맞게. 미설정이면 전건 직접 계약으로 동작한다.
 
 ## 5. 배포 롤백 (코드 문제일 때)
 
