@@ -277,10 +277,10 @@ export interface MigrationDdl {
 
 /** `migrate.ts` 원문에서 MIGRATION_DDL 배열의 문장만 뽑는다(모듈을 import 하면 DB 클라이언트가 함께 뜬다) */
 export function extractMigrationStatements(migrateSrc: string): string[] {
-  const at = migrateSrc.indexOf('MIGRATION_DDL');
-  if (at < 0) return [];
-  const open = migrateSrc.indexOf('[', at);
-  if (open < 0) return [];
+  // `MIGRATION_DDL: string[] = [` — 타입 표기의 `[]` 가 아니라 대입되는 배열의 `[` 를 잡는다
+  const decl = /MIGRATION_DDL\b[\s\S]*?=\s*\[/.exec(migrateSrc);
+  if (!decl) return [];
+  const open = decl.index + decl[0].length - 1;
   const close = matchDelimiter(migrateSrc, open);
   if (close < 0) return [];
   const body = migrateSrc.slice(open + 1, close);

@@ -36,9 +36,36 @@
 4. **검증** — 복구 브랜치 연결문자열을 스테이징 환경의 `DATABASE_URL`에 넣고 기동, 핵심 데이터(조직·사용자·프로젝트·이슈 건수)를 손상 전 기대치와 대조한다.
 5. **전환** — 검증 통과 시에만 운영 `DATABASE_URL`을 복구 브랜치로 교체하고 재배포한다.
 6. **스키마 정합** — 전환 후 관리자 계정으로 `POST /api/admin/migrate` 1회 실행(멱등 DDL, `lib/migrate.ts`).
+   ※ **PITR 복구 브랜치에만 유효하다.** 아래 3-1 을 먼저 읽을 것.
 7. **사후** — `GET /api/health` 확인, 6절에 사건·조치·소요시간 기록.
 
 > 되돌린 시점 이후의 데이터는 유실된다. 손실 구간을 반드시 이해관계자에게 고지한다.
+
+### 3-1. 빈 DB(새 Neon 프로젝트·브랜치)로 복구할 때 — `migrate` 만으로는 복원되지 않는다
+
+PITR 복구 브랜치는 기존 테이블을 그대로 물려받으므로 6단계만으로 충분하다. 그러나 **Neon 프로젝트 자체를
+새로 만들어 빈 스키마에서 올라가는 경로**(계정·리전 이전, 프로젝트 삭제 등)에서는 사정이 다르다.
+
+- `MIGRATION_DDL` 은 `users`·`organizations`·`projects`·`issues` 등 **기반 테이블 25개의 `CREATE TABLE` 을 담고
+  있지 않다**(최초 1회 `drizzle-kit push` 로 만들어진 뒤 코드에 남지 않았다).
+- 더 위험한 점: 뒤따르는 `ALTER TABLE **IF EXISTS** … ADD COLUMN` 들이 대상 테이블이 없으면 **오류 없이 전부
+  건너뛴다**. `runMigrations()` 는 `failed: 0` 으로 "성공"을 보고하므로, 화면이 비어서야 알게 된다.
+
+그래서 빈 DB 경로는 **베이스라인 DDL 을 `migrate` 보다 먼저** 적용한다.
+
+1. 베이스라인 DDL 을 얻는다 — `lib/schemaBaseline.ts` 의 `baselineDdl()` 이 `src/db/schema.ts` **원문에서
+   도출**한다(사람이 손으로 적은 사본이 아니라서 낡지 않는다). 전건 `IF NOT EXISTS` 이고 FK 대상 테이블이
+   먼저 오도록 정렬되어 있다.
+   ```
+   node --input-type=module -e "import fs from 'node:fs';import {parseSchemaSource,extractMigrationStatements,parseMigrationDdl,baselineDdl} from './src/lib/schemaBaseline.ts';const {model}=parseSchemaSource(fs.readFileSync('src/db/schema.ts','utf8'));const ddl=parseMigrationDdl(extractMigrationStatements(fs.readFileSync('src/lib/migrate.ts','utf8')));console.log(baselineDdl(model,ddl).map(s=>s+';').join('\n'))"
+   ```
+2. 출력된 문장을 **눈으로 확인한 뒤** 복구 대상 DB에 순서대로 실행한다(쓰기 작업 — 담당자 승인 후 사람이 수행).
+3. 이어서 3절 6단계(`POST /api/admin/migrate`)를 실행해 이후 추가분·인덱스를 맞춘다.
+4. 검증: 로그인 → 프로젝트·이슈 조회가 **빈 목록이 아니라 실제 데이터**를 내는지 확인한다.
+
+> 베이스라인 DDL 은 의도적으로 `MIGRATION_DDL` 에 배선하지 않았다 — 부팅 시 자동으로 테이블을 만드는 것은
+> 승인 사항이다 **[승인 필요]**. `tests/schemaBaseline.test.ts` 가 실제 `schema.ts`·`migrate.ts` 를 매번 대조해
+> 위 25개 목록이 바뀌면(새 테이블을 CREATE DDL 없이 추가하면) CI 를 실패시킨다.
 
 ## 4. 환경변수·시크릿 복구
 

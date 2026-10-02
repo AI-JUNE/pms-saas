@@ -84,7 +84,7 @@ export const issues = pgTable('issues', {
 export const tests = pgTable('tests', {
   id: serial('id').primaryKey(), orgId: integer('org_id').notNull(),
   projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
-  code: text('code'), reqCode: text('req_code'), title: text('title').notNull(),
+  code: text('code'), reqCode: text('req_code'), cycle: text('cycle'), title: text('title').notNull(),
   type: text('type').default('단위').notNull(), priority: text('priority').default('medium').notNull(),
   steps: text('steps'), expected: text('expected'), assignee: text('assignee'),
   status: text('status').default('draft').notNull(), result: text('result').default('na').notNull(),

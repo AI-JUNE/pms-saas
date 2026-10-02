@@ -202,6 +202,15 @@ test('migrate 가 만드는 테이블에는 컬럼 드리프트가 없다', () =
   const audit = auditBaselineCoverage(model, ddl);
   assert.deepEqual(audit.columnsMissingInDdl, [], 'CREATE·ALTER 어디에도 없는 schema.ts 컬럼');
   assert.deepEqual(audit.ghostColumns, [], 'schema.ts 에 없는 유령 컬럼');
+
+  /**
+   * 이 점검으로 실제로 잡힌 결함(2026-10-03): MIGRATION_DDL 은 `tests.cycle` 을 만드는데
+   * drizzle `tests` 테이블에는 선언이 없었다. configs.ts 는 `cycle` 을 필드로 받고 테스트 화면은
+   * 「차수」 입력을 내주지만, drizzle insert/update 는 테이블에 없는 키를 **조용히 버린다** —
+   * 사용자가 입력한 차수가 200 OK 와 함께 사라지고 `/test-cycles` 그룹화가 늘 빈 상태였다.
+   */
+  assert.ok(model.byTable['tests'].columns.some((c) => c.name === 'cycle'), 'tests.cycle 선언이 사라지면 차수 입력이 다시 조용히 버려진다');
+  assert.ok((ddl.altered['tests'] ?? []).includes('cycle'), 'DB 쪽 컬럼은 ALTER 로 이미 존재한다(신규 DDL 불필요)');
   // drizzle 밖(원시 SQL) 테이블은 오류가 아니라 사실로 보고한다
   assert.deepEqual(audit.ddlOnlyTables, ['billing_customers', 'billing_events', 'billing_methods', 'invoices', 'subscriptions']);
 });
