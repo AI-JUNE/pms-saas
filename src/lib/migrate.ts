@@ -1,5 +1,16 @@
-import { db } from '@/db';
-import { sql as dsql } from 'drizzle-orm';
+import { db, schema } from '@/db';
+import { sql as dsql, getTableName, is } from 'drizzle-orm';
+import { PgTable } from 'drizzle-orm/pg-core';
+import {
+  PRESENT_TABLES_SQL,
+  createdTables,
+  migrationLogLine,
+  migrationReport,
+  rowsOf,
+  tableNamesFrom,
+  verifySchema,
+  type MigrationReport,
+} from '@/lib/schemaVerify';
 
 // 멱등 스키마 자가정합 DDL. 반복 실행 안전(모두 IF EXISTS/IF NOT EXISTS).
 export const MIGRATION_DDL: string[] = [
@@ -111,13 +122,40 @@ export const MIGRATION_DDL: string[] = [
   `ALTER TABLE IF EXISTS organizations ADD COLUMN IF NOT EXISTS invite_code text`,
 ];
 
-export async function runMigrations(): Promise<{ applied: number; failed: { stmt: string; error: string }[] }> {
+/** 앱이 실제로 쓰는 테이블 = drizzle 선언 ∪ MIGRATION_DDL 이 CREATE 하는 테이블 */
+function expectedTables(): string[] {
+  const declared = Object.values(schema as Record<string, unknown>)
+    .filter((v): v is PgTable => is(v, PgTable))
+    .map((t) => getTableName(t));
+  return [...declared, ...createdTables(MIGRATION_DDL)];
+}
+
+/**
+ * 실제 존재하는 테이블 — **읽기 전용 조회**. 실패하면 null 을 돌려
+ * "테이블이 없다"로 단정하지 않고 검증만 보류한다(migrate 자체는 막지 않는다).
+ */
+async function presentTables(): Promise<string[] | null> {
+  try { return tableNamesFrom(rowsOf(await db.execute(dsql.raw(PRESENT_TABLES_SQL)))); }
+  catch (e: any) { console.error('[runMigrations] 스키마 검증 조회 실패', String(e?.message || e)); return null; }
+}
+
+/**
+ * MIGRATION_DDL 을 적용한 뒤 **실제 스키마와 대조**해서 돌려준다.
+ * `applied` 는 예외를 던지지 않은 문장 수일 뿐이라(빈 DB 에서는 ALTER IF EXISTS 가 조용히
+ * 건너뛰면서도 applied 로 세어진다) 그것만으로 성공을 판단하면 안 된다 — `schema`·`silentSuccess` 를 볼 것.
+ */
+export async function runMigrations(): Promise<MigrationReport> {
   const applied: string[] = []; const failed: { stmt: string; error: string }[] = [];
   for (const stmt of MIGRATION_DDL) {
     try { await db.execute(dsql.raw(stmt)); applied.push(stmt.slice(0, 60)); }
     catch (e: any) { failed.push({ stmt: stmt.slice(0, 80), error: String(e?.message || e) }); }
   }
-  return { applied: applied.length, failed };
+  const verification = verifySchema({
+    expected: expectedTables(),
+    present: await presentTables(),
+    statements: MIGRATION_DDL,
+  });
+  return migrationReport({ applied: applied.length, failed }, verification);
 }
 
 // 서버 인스턴스당 1회만 실행(메모이즈). 절대 throw하지 않음 → 요청을 막지 않음.
@@ -125,7 +163,12 @@ let _once: Promise<void> | null = null;
 export function ensureSchema(): Promise<void> {
   if (!_once) {
     _once = runMigrations()
-      .then((r) => { if (r.failed.length) console.error('[ensureSchema] 일부 실패', r.failed); else console.log('[ensureSchema] ok, applied', r.applied); })
+      .then((r) => {
+        if (r.failed.length) console.error('[ensureSchema] 일부 실패', r.failed);
+        // failed 0 이어도 스키마가 비어 있을 수 있다 — 그 경우를 "ok" 로 적지 않는다
+        if (r.silentSuccess) console.error('[ensureSchema] 스키마 미정합', migrationLogLine(r));
+        else if (!r.failed.length) console.log('[ensureSchema]', migrationLogLine(r));
+      })
       .catch((e) => { console.error('[ensureSchema] error', e); });
   }
   return _once;

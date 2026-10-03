@@ -37,6 +37,10 @@
 5. **전환** — 검증 통과 시에만 운영 `DATABASE_URL`을 복구 브랜치로 교체하고 재배포한다.
 6. **스키마 정합** — 전환 후 관리자 계정으로 `POST /api/admin/migrate` 1회 실행(멱등 DDL, `lib/migrate.ts`).
    ※ **PITR 복구 브랜치에만 유효하다.** 아래 3-1 을 먼저 읽을 것.
+   ※ `applied`·`failed` 만 보고 넘어가지 말 것 — 응답의 `schema.verdict` 가 **`ok`** 여야 정합이다.
+   `empty`/`incomplete` 면 `schema.missingTables` 에 없는 테이블이, `schema.action` 에 할 일이 적혀 있다.
+   `failed: []` 인데 `silentSuccess: true` 라면 **적용은 다 됐지만 스키마는 복원되지 않은 상태**다(3-1 로).
+   `unverified` 는 "정합"이 아니라 "확인 못 함"이다 — DB 연결·권한을 보고 직접 대조한다.
 7. **사후** — `GET /api/health` 확인, 6절에 사건·조치·소요시간 기록.
 
 > 되돌린 시점 이후의 데이터는 유실된다. 손실 구간을 반드시 이해관계자에게 고지한다.
@@ -49,7 +53,11 @@ PITR 복구 브랜치는 기존 테이블을 그대로 물려받으므로 6단�
 - `MIGRATION_DDL` 은 `users`·`organizations`·`projects`·`issues` 등 **기반 테이블 25개의 `CREATE TABLE` 을 담고
   있지 않다**(최초 1회 `drizzle-kit push` 로 만들어진 뒤 코드에 남지 않았다).
 - 더 위험한 점: 뒤따르는 `ALTER TABLE **IF EXISTS** … ADD COLUMN` 들이 대상 테이블이 없으면 **오류 없이 전부
-  건너뛴다**. `runMigrations()` 는 `failed: 0` 으로 "성공"을 보고하므로, 화면이 비어서야 알게 된다.
+  건너뛴다**. `applied` 는 "예외를 던지지 않은 문장 수"라서 이 no-op 들까지 세고, `failed` 는 비어 있다.
+  - 그래서 `runMigrations()` 는 적용 후 **실제 테이블 목록을 읽어 대조한다**(`lib/schemaVerify.ts`, 읽기 전용
+    `information_schema` 조회). 응답의 `schema.verdict`(`ok`/`empty`/`incomplete`/`unverified`)·`schema.missingTables`·
+    `schema.skippedAlters`(조용히 건너뛴 ALTER 수)·`silentSuccess` 가 그 결과다. 빈 DB 에서는 `empty` 가 나온다.
+    부팅 자동 실행(`ensureSchema`)도 같은 판정을 로그에 `[ensureSchema] 스키마 미정합 …` 으로 남긴다.
 
 그래서 빈 DB 경로는 **베이스라인 DDL 을 `migrate` 보다 먼저** 적용한다.
 
@@ -61,7 +69,10 @@ PITR 복구 브랜치는 기존 테이블을 그대로 물려받으므로 6단�
    ```
 2. 출력된 문장을 **눈으로 확인한 뒤** 복구 대상 DB에 순서대로 실행한다(쓰기 작업 — 담당자 승인 후 사람이 수행).
 3. 이어서 3절 6단계(`POST /api/admin/migrate`)를 실행해 이후 추가분·인덱스를 맞춘다.
-4. 검증: 로그인 → 프로젝트·이슈 조회가 **빈 목록이 아니라 실제 데이터**를 내는지 확인한다.
+4. 기계 검증: 그 응답의 `schema.verdict` 가 `ok`(= `missingTables` 가 빈 배열)인지 확인한다.
+   아직 `incomplete` 면 1단계 출력 중 누락 테이블분을 다시 적용한다.
+5. 눈 검증: 로그인 → 프로젝트·이슈 조회가 **빈 목록이 아니라 실제 데이터**를 내는지 확인한다.
+   (`verdict: ok` 는 "테이블이 있다"까지만 보장한다 — 행이 복원됐는지는 보장하지 않는다.)
 
 > 베이스라인 DDL 은 의도적으로 `MIGRATION_DDL` 에 배선하지 않았다 — 부팅 시 자동으로 테이블을 만드는 것은
 > 승인 사항이다 **[승인 필요]**. `tests/schemaBaseline.test.ts` 가 실제 `schema.ts`·`migrate.ts` 를 매번 대조해
@@ -173,7 +184,7 @@ DB 손상이 아니라 배포 회귀라면 DB를 건드리지 말고 배포만 �
 - [ ] Neon 복구 브랜치 생성 성공
 - [ ] 스테이징에서 애플리케이션 기동 성공
 - [ ] 로그인·프로젝트 조회·이슈 조회 정상
-- [ ] `POST /api/admin/migrate` 멱등 실행 성공
+- [ ] `POST /api/admin/migrate` 멱등 실행 성공 — 응답 `schema.verdict` 가 `ok` 인지 확인(`failed: []` 만으로는 부족)
 - [ ] `GET /api/health` 전 항목 정상
 - [ ] 소요시간 측정 및 위 표 기록
 - [ ] 리허설 브랜치 정리
