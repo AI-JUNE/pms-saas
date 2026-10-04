@@ -23,8 +23,11 @@
 
 1. Neon 콘솔에서 백업·PITR 활성 상태와 최신 복구 가능 시점 확인.
 2. `GET /api/health` 응답에서 `db` 체크가 `ok`, `version`/`commit` 이 배포본과 일치하는지 확인.
-3. 환경변수 스냅샷이 최신인지 확인(4절).
-4. 아래 6절 리허설 표에 점검 결과 1줄 기록.
+3. **행 수 기준 스냅샷 갱신** — 슈퍼관리자로 `GET /api/admin/recovery-verify` 를 호출해
+   응답의 `data.snapshot` 문자열을 그대로 복사해 환경변수 `RECOVERY_DATA_BASELINE` 에 넣는다.
+   이것이 복구일에 3절 4단계가 대조할 **유일한 기준치**다(미설정이면 복구 검증이 `no_baseline` 로 멈춘다).
+4. 환경변수 스냅샷이 최신인지 확인(4절).
+5. 아래 6절 리허설 표에 점검 결과 1줄 기록.
 
 ## 3. DB 복구 절차 (Neon PITR)
 
@@ -33,8 +36,17 @@
 1. **중단 결정** — 데이터 손상 범위와 손상 시각 T를 특정한다. 감사로그(`/api/audit`, 슈퍼관리자는 `/api/admin/security-events`)로 T 직전 관리 작업 이력을 확인한다.
 2. **쓰기 차단** — 배포를 유지보수 상태로 전환하거나 Vercel에서 트래픽을 차단한다.
 3. **복구 브랜치 생성** — Neon에서 시점 T-ε 로 *새 브랜치*를 만든다(운영 브랜치는 그대로 둔다).
-4. **검증** — 복구 브랜치 연결문자열을 스테이징 환경의 `DATABASE_URL`에 넣고 기동, 핵심 데이터(조직·사용자·프로젝트·이슈 건수)를 손상 전 기대치와 대조한다.
-5. **전환** — 검증 통과 시에만 운영 `DATABASE_URL`을 복구 브랜치로 교체하고 재배포한다.
+4. **검증** — 복구 브랜치 연결문자열을 스테이징 환경의 `DATABASE_URL`에 넣고 기동한 뒤,
+   슈퍼관리자로 `GET /api/admin/recovery-verify` 를 호출한다(읽기 전용 — DDL·쓰기 없음).
+   핵심 테이블 12개의 행 수를 **기준 스냅샷(`RECOVERY_DATA_BASELINE`, 아래 3-2)과 기계적으로 대조**한다.
+   - `switchReady: true` 일 때만 5단계로 간다. `data.verdict` 의 뜻:
+     `ok`(기준치 이상) / `short`(기준보다 적음 — `data.shortfalls` 확인) /
+     `empty`(테이블은 있는데 전부 0건 = 스키마만 복원됨) / `incomplete`(핵심 테이블 자체가 없음 → 3-1) /
+     `no_baseline`(기준 스냅샷 미설정 — 대조 불가, 판정 보류) / `unverified`(조회 실패 — "없음"이 아니라 "모름").
+   - `short` 는 유실 확정이 아니다(정상 삭제로도 줄어든다). 감소분을 설명할 수 있을 때만 전환한다.
+   - `ok` 는 **스냅샷 시점(`data.asOf`) 이상의 행 수**까지만 보장한다. 그 이후 생긴 행의 유실(RPO 구간)은
+     이 점검으로 알 수 없다 — 손실 구간 고지는 그대로 해야 한다.
+5. **전환** — 4단계가 `switchReady: true` 일 때만 운영 `DATABASE_URL`을 복구 브랜치로 교체하고 재배포한다.
 6. **스키마 정합** — 전환 후 관리자 계정으로 `POST /api/admin/migrate` 1회 실행(멱등 DDL, `lib/migrate.ts`).
    ※ **PITR 복구 브랜치에만 유효하다.** 아래 3-1 을 먼저 읽을 것.
    ※ `applied`·`failed` 만 보고 넘어가지 말 것 — 응답의 `schema.verdict` 가 **`ok`** 여야 정합이다.
@@ -77,6 +89,24 @@ PITR 복구 브랜치는 기존 테이블을 그대로 물려받으므로 6단�
 > 베이스라인 DDL 은 의도적으로 `MIGRATION_DDL` 에 배선하지 않았다 — 부팅 시 자동으로 테이블을 만드는 것은
 > 승인 사항이다 **[승인 필요]**. `tests/schemaBaseline.test.ts` 가 실제 `schema.ts`·`migrate.ts` 를 매번 대조해
 > 위 25개 목록이 바뀌면(새 테이블을 CREATE DDL 없이 추가하면) CI 를 실패시킨다.
+
+### 3-2. 기준 스냅샷 — 없으면 4단계가 「대조」가 아니라 눈대중이 된다
+
+4단계는 행 수를 **무언가와** 비교해야 성립한다. 그 비교 대상이 `RECOVERY_DATA_BASELINE` 이다.
+미설정이면 응답이 `data.verdict: no_baseline` 으로 나오고 `switchReady` 는 **false 로 유지된다** —
+"기준이 없으니 통과"로 올려 주지 않는다(`lib/recoveryVerify.ts`).
+
+- 값 형식(둘 중 아무거나):
+  - `asOf=2026-10-01,users=12,organizations=3,projects=5,…`
+  - `{"asOf":"2026-10-01","counts":{"users":12,"projects":5}}`
+- 값은 **사람이 넣는다.** 스냅샷 문자열 자체는 점검 응답의 `data.snapshot` 에 붙여 넣을 수 있는 형태로
+  들어 있으니 그대로 복사한다(아래 2절 월 점검 3번).
+- 담당자 이름·조직명 같은 식별 정보는 들어가지 않는다 — 테이블 이름과 행 수뿐이다.
+- 핵심 테이블(12개)과 그 선정 사유는 `lib/recoveryVerify.ts` 의 `CORE_TABLE_ROLES` 에 있고,
+  테스트가 실제 `src/db/schema.ts` 선언과 매번 대조한다(없는 테이블을 넣어 두면 CI 실패).
+
+> 한계를 숨기지 않는다: 이 엔드포인트는 로그인을 요구하므로 **`users` 조차 없는 빈 DB 경로에서는 닿을 수 없다**.
+> 그 경로의 판정은 `POST /api/admin/migrate` 의 `schema.verdict` 와 부팅 로그가 담당한다(위 3-1).
 
 ## 4. 환경변수·시크릿 복구
 
@@ -126,6 +156,8 @@ Vercel 환경변수는 DB 백업에 포함되지 않으므로 별도 보관한�
 #### 4-7. 복구 리허설 (6절과 같은 키)
 
 `RECOVERY_REHEARSAL_INTERVAL_DAYS` · `RECOVERY_LAST_REHEARSAL` · `RECOVERY_LAST_REHEARSAL_RESULT` · `RECOVERY_LAST_REHEARSAL_KIND` — 의미는 6절 표 참조.
+`RECOVERY_DATA_BASELINE` — 핵심 테이블 행 수 기준 스냅샷(위 3-2). **유실되면 복구일에 대조 기준이 사라져
+`data.verdict` 가 `no_baseline` 로 떨어지고 `switchReady` 가 올라가지 않는다.** 2절 월 점검에서 갱신한다.
 
 #### 4-8. 사이트·포털
 
@@ -185,6 +217,8 @@ DB 손상이 아니라 배포 회귀라면 DB를 건드리지 말고 배포만 �
 - [ ] 스테이징에서 애플리케이션 기동 성공
 - [ ] 로그인·프로젝트 조회·이슈 조회 정상
 - [ ] `POST /api/admin/migrate` 멱등 실행 성공 — 응답 `schema.verdict` 가 `ok` 인지 확인(`failed: []` 만으로는 부족)
+- [ ] `GET /api/admin/recovery-verify` 의 `switchReady` 가 `true` — `schema.verdict: ok` 만으로는 부족하다
+      (스키마만 복원되고 행이 비어 있어도 `ok` 가 나온다). `no_baseline` 이면 3-2 를 먼저 설정한다
 - [ ] `GET /api/health` 전 항목 정상
 - [ ] 소요시간 측정 및 위 표 기록
 - [ ] 리허설 브랜치 정리

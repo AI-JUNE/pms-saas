@@ -123,7 +123,7 @@ export const MIGRATION_DDL: string[] = [
 ];
 
 /** 앱이 실제로 쓰는 테이블 = drizzle 선언 ∪ MIGRATION_DDL 이 CREATE 하는 테이블 */
-function expectedTables(): string[] {
+export function expectedTables(): string[] {
   const declared = Object.values(schema as Record<string, unknown>)
     .filter((v): v is PgTable => is(v, PgTable))
     .map((t) => getTableName(t));
