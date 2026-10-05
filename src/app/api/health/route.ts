@@ -4,7 +4,7 @@ import { db } from '@/db';
 import { billingStatus } from '@/lib/portone';
 import { buildHealthBody, sanitizeError, statusCode, type Checks } from '@/lib/health';
 import { rateLimitResponse, RL } from '@/lib/ratelimit';
-import { recoveryCheck } from '@/lib/recovery';
+import { recoveryReadinessCheck } from '@/lib/recoveryVerify';
 
 // ★ route.ts에서는 HTTP 메서드와 Next 설정 외 export 금지(Vercel 빌드 실패 원인).
 export const dynamic = 'force-dynamic';
@@ -55,9 +55,10 @@ export async function GET(req: Request) {
     },
   };
 
-  // 백업·복구 리허설 신선도(정보성). 미실시·기한초과는 degraded(200)로만 드러내고
-  // 서비스를 down 처리하지 않는다(required: false). 담당자 등 PII 는 publicRehearsal 로 제거된다.
-  checks.recovery = recoveryCheck();
+  // 백업·복구 준비도(정보성): 리허설 신선도 + **기준 스냅샷 신선도**.
+  // 미실시·기한초과·낡은 스냅샷은 degraded(200)로만 드러내고 서비스를 down 처리하지 않는다
+  // (required: false). 담당자 등 PII 는 publicRehearsal 로 제거되고, 행 수는 담지 않는다.
+  checks.recovery = recoveryReadinessCheck();
 
   const body = buildHealthBody({ checks, uptimeSec: (Date.now() - startedAt) / 1000 });
 

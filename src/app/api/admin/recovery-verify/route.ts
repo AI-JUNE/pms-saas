@@ -6,6 +6,7 @@ import { ADMIN_AUDIT_ENTITY, accessMeta, adminAccessEvent } from '@/lib/auditAcc
 import { handle, ok, ApiError, ERROR } from '@/lib/http';
 import { MIGRATION_DDL, expectedTables } from '@/lib/migrate';
 import { PRESENT_TABLES_SQL, normalizeTableNames, rowsOf, tableNamesFrom, verifySchema } from '@/lib/schemaVerify';
+import { baselineMaxAgeDays } from '@/lib/recoveryBaseline';
 import {
   CORE_TABLES, baselineFromEnv, coreCountSql, countsFrom,
   recoveryVerification, recoveryVerifyLogLine, verifyRowCounts,
@@ -50,7 +51,13 @@ export async function GET(req: Request) {
     const schema = verifySchema({ expected: expectedTables(), present, statements: MIGRATION_DDL });
     // 없는 테이블을 세려 하면 조회 전체가 실패하므로 실존 목록으로 걸러서 넘긴다.
     const countable = present ? CORE_TABLES.filter((t) => present.includes(t)) : [...CORE_TABLES];
-    const data = verifyRowCounts({ counts: await coreCounts(countable), present, baseline: baselineFromEnv() });
+    // maxAgeDays 를 넘기지 않으면 스냅샷이 낡았는지 판정하지 않는다(테스트가 이 배선을 검사한다).
+    const data = verifyRowCounts({
+      counts: await coreCounts(countable),
+      present,
+      baseline: baselineFromEnv(),
+      maxAgeDays: baselineMaxAgeDays(),
+    });
     const result = recoveryVerification(schema, data);
 
     console.log('[recovery-verify]', recoveryVerifyLogLine(result));
@@ -64,6 +71,7 @@ export async function GET(req: Request) {
         dataVerdict: data.verdict,
         switchReady: result.switchReady,
         rows: data.totalRows,
+        baselineAge: data.age.status,
       },
     });
     return ok(result);

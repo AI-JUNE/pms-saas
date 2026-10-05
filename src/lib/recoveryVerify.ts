@@ -27,7 +27,11 @@
  * - 식별자는 화이트리스트 정규식을 통과한 것만 SQL 에 넣는다(문자열 보간 지점이므로).
  */
 
-import { parseRehearsalDate } from './recovery.ts';
+import { parseRehearsalDate, recoveryCheck } from './recovery.ts';
+import {
+  assessBaselineAge, baselineAgeLine, baselineMaxAgeDays, snapshotAdoption,
+  type BaselineAge, type BaselineStamp, type SnapshotAdoption,
+} from './recoveryBaseline.ts';
 import { normalizeTableNames, type SchemaVerification } from './schemaVerify.ts';
 
 /* ───────────────────────────── 핵심 테이블 ───────────────────────────── */
@@ -190,6 +194,15 @@ export function baselineFromEnv(env: Record<string, string | undefined> = proces
 }
 
 /**
+ * 신선도 판정에 넘길 요약 — **기준일과 테이블 수만** 담는다(행 수는 넘기지 않는다).
+ * 공개 `/api/health` 로도 나가는 값이라 수치 노출면을 좁혀 둔다.
+ */
+export function baselineStamp(baseline: CountBaseline | null): BaselineStamp | null {
+  if (!baseline) return null;
+  return { asOf: baseline.asOf, tables: Object.keys(baseline.counts).length };
+}
+
+/**
  * 다음 점검에 쓸 스냅샷 한 줄 — `RECOVERY_DATA_BASELINE` 에 **그대로 붙여 넣을 수 있는** 형식.
  * 이것은 「사람이 채우는 RUNBOOK 표」를 자동으로 채우는 게 아니라, 사람이 복사할 문자열을 주는 것이다.
  * `asOf` 가 실존 날짜가 아니면 **날짜를 지어내지 않고 생략**한다.
@@ -206,7 +219,11 @@ export function snapshotLine(counts: Record<string, number>, asOf?: unknown): st
 
 /* ───────────────────────────── 판정 ───────────────────────────── */
 
-export type DataVerdict = 'ok' | 'short' | 'empty' | 'incomplete' | 'no_baseline' | 'unverified';
+/**
+ * `stale`·`undated` 는 **DB 가 아니라 기준치가 자격을 잃은** 상태다.
+ * 수치는 기준치 이상이지만 그 기준치가 「손상 전」인지 알 수 없어 `ok` 로 올리지 않는다.
+ */
+export type DataVerdict = 'ok' | 'short' | 'empty' | 'incomplete' | 'no_baseline' | 'stale' | 'undated' | 'unverified';
 export type CountState = 'ok' | 'short' | 'zero' | 'missing' | 'unreadable' | 'unjudged';
 
 export interface CountRow {
@@ -227,7 +244,8 @@ export const ACTION_DATA_EMPTY =
 export const ACTION_DATA_SHORT =
   '기준 스냅샷보다 적은 테이블이 있다 — 정상 삭제분인지 유실인지 확인한 뒤에만 전환할 것(RUNBOOK §3 4단계)';
 export const ACTION_DATA_NO_BASELINE =
-  '기준 스냅샷(RECOVERY_DATA_BASELINE)이 없어 대조하지 못했다 — 아래 snapshot 값을 env 에 넣어 두면 다음 복구에서 자동 대조된다(RUNBOOK §2)';
+  '기준 스냅샷(RECOVERY_DATA_BASELINE)이 없거나 핵심 테이블을 덜 덮어 대조하지 못했다 — 전환하지 말 것(uncovered 참고). ' +
+  'snapshot 값은 **정상 운영 중**(RUNBOOK §2 월 점검)에만 기준치로 넣는다 — 복구 검증 중에 넣으면 복구 대상 DB 를 자기 자신과 비교하게 된다';
 
 /** `ok` 가 무엇을 보장하지 **않는지**. 응답·로그에 함께 내보내 과신을 막는다 */
 export const DATA_CAVEAT =
@@ -248,14 +266,20 @@ export interface DataVerification {
   unreadable: string[];
   /** 기준 스냅샷에만 있고 핵심 목록에 없는 이름(무시하되 알린다) */
   unknownInBaseline: string[];
+  /** 기준 스냅샷이 **덮지 않은** 핵심 테이블 — 이 테이블들은 대조 자체가 되지 않았다 */
+  uncovered: string[];
   /** 스냅샷에서 해석하지 못한 토큰 */
   invalidBaseline: string[];
   /** 판독된 행 수 합계(조회 실패 시 null) */
   totalRows: number | null;
+  /** 기준 스냅샷의 신선도 — 낡거나 날짜 없는 기준치는 `ok` 를 만들지 못한다 */
+  age: BaselineAge;
   action: string | null;
   caveat: string;
   /** `RECOVERY_DATA_BASELINE` 에 붙여 넣을 현재 스냅샷(조회 실패 시 null) */
   snapshot: string | null;
+  /** 위 `snapshot` 을 기준치로 채택해도 되는 조건 — 복구일에 덮어쓰는 사고를 막는다 */
+  snapshotUse: { adopt: SnapshotAdoption; note: string };
 }
 
 /**
@@ -268,18 +292,32 @@ export function verifyRowCounts(input: {
   present?: readonly string[] | null;
   baseline?: CountBaseline | null;
   tables?: readonly string[];
-  /** snapshot 문자열의 기준일 */
+  /** snapshot 문자열의 기준일 + 스냅샷 신선도 판정의 기준 시각 */
   now?: Date;
+  /**
+   * 스냅샷 갱신 기한(일). 호출부가 `baselineMaxAgeDays(env)` 로 읽어 넘긴다.
+   * 넘기지 않으면 낡음 판정을 **보류**한다(임의 주기를 만들지 않는다).
+   */
+  maxAgeDays?: number | null;
 }): DataVerification {
   const tables = normalizeTableNames(input.tables ?? CORE_TABLES);
   const baseline = input.baseline ?? null;
   const present = input.present == null ? null : new Set(normalizeTableNames(input.present));
+  const age = assessBaselineAge({
+    stamp: baselineStamp(baseline),
+    now: input.now,
+    maxAgeDays: input.maxAgeDays ?? null,
+  });
   const base = {
     asOf: baseline?.asOf ?? null,
     invalidBaseline: baseline?.invalid ?? [],
     unknownInBaseline: baseline
       ? Object.keys(baseline.counts).filter((t) => !tables.includes(t)).sort()
       : [],
+    uncovered: baseline
+      ? tables.filter((t) => !Object.prototype.hasOwnProperty.call(baseline.counts, t))
+      : [...tables],
+    age,
     caveat: DATA_CAVEAT,
   };
 
@@ -288,6 +326,7 @@ export function verifyRowCounts(input: {
       ...base, verdict: 'unverified', ok: false, rows: [], shortfalls: [],
       missingTables: [], unreadable: [...tables], totalRows: null,
       action: ACTION_DATA_UNVERIFIED, snapshot: null,
+      snapshotUse: snapshotAdoption('unverified'),
     };
   }
 
@@ -316,7 +355,10 @@ export function verifyRowCounts(input: {
     totalRows += actual;
     if (actual === 0) zeros++;
     let state: CountState;
-    if (b === null) { state = actual === 0 ? 'zero' : 'unjudged'; if (actual !== 0) unjudged++; }
+    // 기준치가 없는 테이블은 **행 수가 0이어도** 판정되지 않은 것이다.
+    // 예전에는 0건을 'zero' 로만 적고 미판정에서 빼서, 기준 스냅샷이 일부 테이블만 덮으면
+    // 「11개 테이블이 전부 비었는데 ok」가 나왔다(empty 는 전건 0일 때만 걸리므로).
+    if (b === null) { state = 'unjudged'; unjudged++; }
     else if (actual < b) { state = 'short'; shortfalls.push({ table, baseline: b, actual, missing: b - actual }); }
     else state = actual === 0 ? 'zero' : 'ok';
     rows.push({ table, baseline: b, actual, delta: b === null ? null : actual - b, state });
@@ -332,12 +374,19 @@ export function verifyRowCounts(input: {
     totalRows, snapshot: snapshot || null,
   };
 
-  if (missingTables.length) return { ...common, verdict: 'incomplete', ok: false, action: ACTION_DATA_INCOMPLETE };
-  if (counted === 0) return { ...common, verdict: 'unverified', ok: false, action: ACTION_DATA_UNVERIFIED };
-  if (zeros === counted) return { ...common, verdict: 'empty', ok: false, action: ACTION_DATA_EMPTY };
-  if (shortfalls.length) return { ...common, verdict: 'short', ok: false, action: ACTION_DATA_SHORT };
-  if (!baseline || unjudged > 0) return { ...common, verdict: 'no_baseline', ok: false, action: ACTION_DATA_NO_BASELINE };
-  return { ...common, verdict: 'ok', ok: true, action: null };
+  const out = (verdict: DataVerdict, action: string | null): DataVerification =>
+    ({ ...common, verdict, ok: verdict === 'ok', action, snapshotUse: snapshotAdoption(verdict) });
+
+  // 순서가 뜻을 만든다 — 더 심각한 판정을 기준치 문제로 덮지 않는다.
+  if (missingTables.length) return out('incomplete', ACTION_DATA_INCOMPLETE);
+  if (counted === 0) return out('unverified', ACTION_DATA_UNVERIFIED);
+  if (zeros === counted) return out('empty', ACTION_DATA_EMPTY);
+  if (shortfalls.length) return out('short', ACTION_DATA_SHORT);
+  if (!baseline || unjudged > 0) return out('no_baseline', ACTION_DATA_NO_BASELINE);
+  // 수치는 기준치 이상이다. 그 기준치를 「손상 전」으로 믿을 수 있는지가 마지막 관문이다.
+  if (age.status === 'stale') return out('stale', age.action);
+  if (age.status === 'undated' || age.status === 'future') return out('undated', age.action);
+  return out('ok', null);
 }
 
 function isoDay(d: Date): string {
@@ -381,11 +430,38 @@ export function recoveryVerifyLogLine(v: RecoveryVerification): string {
     `rows=${v.data.totalRows ?? '?'}`,
     `switch_ready=${v.switchReady}`,
   ];
-  if (v.data.asOf) parts.push(`baseline_as_of=${v.data.asOf}`);
+  parts.push(baselineAgeLine(v.data.age));
+  if (v.data.uncovered.length) parts.push(`uncovered=${v.data.uncovered.join('|')}`);
   if (v.data.shortfalls.length) parts.push(`short=${v.data.shortfalls.map((s) => s.table).join('|')}`);
   if (v.data.missingTables.length) parts.push(`missing=${v.data.missingTables.join('|')}`);
   if (v.data.unreadable.length) parts.push(`unreadable=${v.data.unreadable.length}`);
   return parts.join(' ');
+}
+
+/**
+ * `/api/health` 용 복구 준비도 체크 — 리허설 신선도(`lib/recovery.ts`)에 **기준 스냅샷
+ * 신선도**를 더한다. RUNBOOK §2 는 스냅샷을 월 1회 갱신하라고 지시하지만 그 갱신이 빠진 것을
+ * 알려 주는 장치가 없었고, 낡은 스냅샷은 복구일에 조용히 `ok` 를 만든다.
+ *
+ * **required: false** — 리허설·스냅샷 문제로 서비스를 down(503) 처리하지 않는다(degraded 200).
+ * 공개 엔드포인트라 **행 수는 담지 않는다** — 기준일·경과일수·덮은 테이블 수뿐이다.
+ */
+export function recoveryReadinessCheck(args?: {
+  env?: Record<string, string | undefined>;
+  now?: Date;
+}): { ok: boolean; required: false; detail: Record<string, unknown> } {
+  const env = args?.env ?? process.env;
+  const rehearsal = recoveryCheck({ env, now: args?.now });
+  const age = assessBaselineAge({
+    stamp: baselineStamp(baselineFromEnv(env)),
+    now: args?.now,
+    maxAgeDays: baselineMaxAgeDays(env),
+  });
+  return {
+    ok: rehearsal.ok && age.trusted,
+    required: false,
+    detail: { ...rehearsal.detail, baseline: age },
+  };
 }
 
 /** 설정 상태 요약(화면·문서용) */

@@ -184,7 +184,10 @@ test('verifyRowCounts: 전부 0건이면 empty — 기준치가 없어도 판정
   assert.equal(v.ok, false);
   assert.equal(v.totalRows, 0);
   assert.equal(v.action, ACTION_DATA_EMPTY);
-  assert.ok(v.rows.every((r) => r.state === 'zero'));
+  // 기준치가 없는 테이블의 행 상태는 0건이어도 'zero'(= 판정했다)가 아니라 'unjudged' 다.
+  // 전건 0 이라는 사실은 verdict 가 말하고, 행 단위로는 「대조하지 않았다」가 사실이다.
+  assert.ok(v.rows.every((r) => r.state === 'unjudged'), JSON.stringify(v.rows));
+  assert.deepEqual(v.uncovered, SORTED, '기준 스냅샷이 덮지 않은 테이블을 전부 알린다');
 });
 
 test('verifyRowCounts: 기준치보다 적으면 short, 0건도 부족분으로 센다', () => {
@@ -232,10 +235,18 @@ test('verifyRowCounts: 전 테이블이 기준치 이상이면 ok — 한계를 
   // 기준 스냅샷에만 있는 이름은 무시하되 알린다
   const extra = verifyRowCounts({
     counts: fill(5), present: presentAll,
-    baseline: parseCountBaseline(`${ALL.map((t) => `${t}=5`).join(',')},legacy_table=1`),
+    baseline: parseCountBaseline(`asOf=2026-10-01,${ALL.map((t) => `${t}=5`).join(',')},legacy_table=1`),
   });
   assert.deepEqual(extra.unknownInBaseline, ['legacy_table']);
   assert.equal(extra.verdict, 'ok');
+
+  // 같은 스냅샷에서 asOf 만 빼면 ok 가 아니다 — 시점을 모르는 수치는 「손상 전 기대치」가 아니다
+  const undated = verifyRowCounts({
+    counts: fill(5), present: presentAll,
+    baseline: parseCountBaseline(ALL.map((t) => `${t}=5`).join(',')),
+  });
+  assert.equal(undated.verdict, 'undated');
+  assert.equal(undated.ok, false);
 });
 
 test('verifyRowCounts: 실존 목록을 모르면 없는 테이블을 missing 으로 단정하지 않는다', () => {

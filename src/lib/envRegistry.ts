@@ -99,6 +99,7 @@ export const ENV_VARS: EnvVar[] = [
   { key: 'RECOVERY_LAST_REHEARSAL_RESULT', kind: 'config', group: '복구 리허설', note: '마지막 리허설 결과(정상/부분 통과/실패)' },
   { key: 'RECOVERY_LAST_REHEARSAL_KIND', kind: 'config', group: '복구 리허설', note: '마지막 리허설 유형(정기/사건). 선택' },
   { key: 'RECOVERY_DATA_BASELINE', kind: 'config', group: '복구 리허설', note: '핵심 테이블 행수 기준 스냅샷. 유실 시 복구 후 행 복원을 대조할 기준이 사라진다(no_baseline)' },
+  { key: 'RECOVERY_BASELINE_MAX_AGE_DAYS', kind: 'config', group: '복구 리허설', note: '위 스냅샷의 갱신 기한(일). 미설정 시 낡음 판정 보류 — 임의 기본 주기 없음' },
 
   // ── 사이트·포털 ──
   { key: 'SITE_URL', kind: 'config', group: '사이트', note: 'canonical·robots·sitemap 의 정본 origin' },

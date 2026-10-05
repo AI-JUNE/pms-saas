@@ -26,8 +26,16 @@
 3. **행 수 기준 스냅샷 갱신** — 슈퍼관리자로 `GET /api/admin/recovery-verify` 를 호출해
    응답의 `data.snapshot` 문자열을 그대로 복사해 환경변수 `RECOVERY_DATA_BASELINE` 에 넣는다.
    이것이 복구일에 3절 4단계가 대조할 **유일한 기준치**다(미설정이면 복구 검증이 `no_baseline` 로 멈춘다).
+   - ⚠️ **이 복사는 「정상 운영 중」인 지금만 한다.** 복구 검증 중에 같은 값을 넣으면 복구 대상 DB 를
+     자기 자신과 비교하게 되어 이후 모든 판정이 `ok` 가 된다. 응답의 `data.snapshotUse.adopt` 가
+     `forbidden` 이면 이번 응답의 수치는 기준치로 쓸 수 없다는 뜻이다(3-2 참조).
+   - 이 단계를 거르면 스냅샷이 낡는다. 낡은 수치는 현재 규모보다 낮으므로 **행을 잃은 DB 도
+     「기준치 이상」을 만족**시킨다 — 그래서 갱신 기한을 `RECOVERY_BASELINE_MAX_AGE_DAYS` 로 두고
+     기한을 넘기면 `data.verdict` 가 `stale` 로 떨어져 `switchReady` 가 올라가지 않는다.
 4. 환경변수 스냅샷이 최신인지 확인(4절).
-5. 아래 6절 리허설 표에 점검 결과 1줄 기록.
+5. `GET /api/health` 의 `checks.recovery.detail.baseline.status` 가 `ok` 인지 확인
+   (`stale`/`undated`/`absent` 면 위 3번이 밀린 것이다. `unjudged` 는 기한 미설정 상태).
+6. 아래 6절 리허설 표에 점검 결과 1줄 기록.
 
 ## 3. DB 복구 절차 (Neon PITR)
 
@@ -42,10 +50,16 @@
    - `switchReady: true` 일 때만 5단계로 간다. `data.verdict` 의 뜻:
      `ok`(기준치 이상) / `short`(기준보다 적음 — `data.shortfalls` 확인) /
      `empty`(테이블은 있는데 전부 0건 = 스키마만 복원됨) / `incomplete`(핵심 테이블 자체가 없음 → 3-1) /
-     `no_baseline`(기준 스냅샷 미설정 — 대조 불가, 판정 보류) / `unverified`(조회 실패 — "없음"이 아니라 "모름").
+     `no_baseline`(기준 스냅샷이 없거나 핵심 테이블을 덜 덮음 — `data.uncovered` 확인, 대조 불가) /
+     `stale`(기준 스냅샷이 갱신 기한을 넘김 → 3-2) / `undated`(기준일이 없거나 미래 → 3-2) /
+     `unverified`(조회 실패 — "없음"이 아니라 "모름").
    - `short` 는 유실 확정이 아니다(정상 삭제로도 줄어든다). 감소분을 설명할 수 있을 때만 전환한다.
    - `ok` 는 **스냅샷 시점(`data.asOf`) 이상의 행 수**까지만 보장한다. 그 이후 생긴 행의 유실(RPO 구간)은
-     이 점검으로 알 수 없다 — 손실 구간 고지는 그대로 해야 한다.
+     이 점검으로 알 수 없다 — 그 구간이 며칠인지는 `data.age.blindWindow` 에 수치로 적혀 있다.
+     손실 구간 고지는 그대로 해야 한다.
+   - ⚠️ **여기서 `data.snapshot` 을 `RECOVERY_DATA_BASELINE` 에 넣지 않는다.** 지금 세고 있는 DB 가
+     바로 의심 대상이므로, 그 수치를 기준치로 삼으면 손상이 「정상」으로 굳는다
+     (`data.snapshotUse` 에 같은 경고가 들어 있다). 스냅샷 갱신은 §2 월 점검에서만 한다.
 5. **전환** — 4단계가 `switchReady: true` 일 때만 운영 `DATABASE_URL`을 복구 브랜치로 교체하고 재배포한다.
 6. **스키마 정합** — 전환 후 관리자 계정으로 `POST /api/admin/migrate` 1회 실행(멱등 DDL, `lib/migrate.ts`).
    ※ **PITR 복구 브랜치에만 유효하다.** 아래 3-1 을 먼저 읽을 것.
@@ -100,10 +114,28 @@ PITR 복구 브랜치는 기존 테이블을 그대로 물려받으므로 6단�
   - `asOf=2026-10-01,users=12,organizations=3,projects=5,…`
   - `{"asOf":"2026-10-01","counts":{"users":12,"projects":5}}`
 - 값은 **사람이 넣는다.** 스냅샷 문자열 자체는 점검 응답의 `data.snapshot` 에 붙여 넣을 수 있는 형태로
-  들어 있으니 그대로 복사한다(아래 2절 월 점검 3번).
+  들어 있으니 그대로 복사한다(위 2절 월 점검 3번).
 - 담당자 이름·조직명 같은 식별 정보는 들어가지 않는다 — 테이블 이름과 행 수뿐이다.
 - 핵심 테이블(12개)과 그 선정 사유는 `lib/recoveryVerify.ts` 의 `CORE_TABLE_ROLES` 에 있고,
   테스트가 실제 `src/db/schema.ts` 선언과 매번 대조한다(없는 테이블을 넣어 두면 CI 실패).
+
+**기준치가 자격을 잃는 세 가지** — 수치가 기준치 이상이어도 `ok` 로 올라가지 않는다(`lib/recoveryBaseline.ts`).
+
+| `data.verdict` | 뜻 | 무엇을 해야 하나 |
+| --- | --- | --- |
+| `no_baseline` | 스냅샷이 없거나 **핵심 테이블을 덜 덮었다**(`data.uncovered`) | 덮이지 않은 테이블은 대조 자체가 안 된 것이다. 복구일이라면 눈대중이 아니라 다른 근거로 판단한다 |
+| `undated` | 기준일(`asOf`)이 없거나 **미래 일자**다 | 시점을 모르는 수치는 「손상 전 기대치」가 아니다. §2 에서 `asOf=` 를 포함해 다시 설정한다 |
+| `stale` | 기준일이 `RECOVERY_BASELINE_MAX_AGE_DAYS` 를 넘겼다 | 낡은 수치는 유실된 DB 도 통과시킨다. §2 월 점검 주기를 지킨다 |
+
+> **복구일에 스냅샷을 다시 뜨는 것이 이 절의 유일한 금기다.** `stale`·`undated`·`no_baseline` 을 만난
+> 담당자가 가장 하기 쉬운 행동이 「그럼 지금 다시 떠서 넣자」인데, 그러면 복구 대상 DB 를 자기 자신과 비교
+> 하게 되어 **그 뒤 모든 판정이 영구히 `ok`** 가 된다. 손상 전 수치는 이전 월 점검 기록·모니터링
+> 이력·Neon 원본 브랜치 조회로 확인하고, §3 4단계는 사람이 판단한다.
+
+- 갱신이 밀린 것을 잊지 않도록 `GET /api/health` → `checks.recovery.detail.baseline` 에
+  `status`(ok/stale/undated/future/unjudged/absent)·`asOf`·`ageDays`·`dueDate`·`action` 이 노출된다.
+  리허설 체크와 같은 **required: false** 라 서비스를 down 시키지 않고 `degraded`(200)로만 드러난다.
+  행 수는 담지 않는다(공개 엔드포인트) — 기준일과 덮은 테이블 **수**뿐이다.
 
 > 한계를 숨기지 않는다: 이 엔드포인트는 로그인을 요구하므로 **`users` 조차 없는 빈 DB 경로에서는 닿을 수 없다**.
 > 그 경로의 판정은 `POST /api/admin/migrate` 의 `schema.verdict` 와 부팅 로그가 담당한다(위 3-1).
@@ -158,6 +190,8 @@ Vercel 환경변수는 DB 백업에 포함되지 않으므로 별도 보관한�
 `RECOVERY_REHEARSAL_INTERVAL_DAYS` · `RECOVERY_LAST_REHEARSAL` · `RECOVERY_LAST_REHEARSAL_RESULT` · `RECOVERY_LAST_REHEARSAL_KIND` — 의미는 6절 표 참조.
 `RECOVERY_DATA_BASELINE` — 핵심 테이블 행 수 기준 스냅샷(위 3-2). **유실되면 복구일에 대조 기준이 사라져
 `data.verdict` 가 `no_baseline` 로 떨어지고 `switchReady` 가 올라가지 않는다.** 2절 월 점검에서 갱신한다.
+`RECOVERY_BASELINE_MAX_AGE_DAYS` — 위 스냅샷의 갱신 기한(일, 예: `35`). **미설정이면 낡음 판정을 하지 않는다** —
+임의 기본 주기를 쓰지 않는다(리허설 주기와 같은 규율). 설정하면 기한을 넘긴 스냅샷이 `stale` 로 떨어진다 `[확인 필요]`
 
 #### 4-8. 사이트·포털
 
@@ -218,7 +252,8 @@ DB 손상이 아니라 배포 회귀라면 DB를 건드리지 말고 배포만 �
 - [ ] 로그인·프로젝트 조회·이슈 조회 정상
 - [ ] `POST /api/admin/migrate` 멱등 실행 성공 — 응답 `schema.verdict` 가 `ok` 인지 확인(`failed: []` 만으로는 부족)
 - [ ] `GET /api/admin/recovery-verify` 의 `switchReady` 가 `true` — `schema.verdict: ok` 만으로는 부족하다
-      (스키마만 복원되고 행이 비어 있어도 `ok` 가 나온다). `no_baseline` 이면 3-2 를 먼저 설정한다
+      (스키마만 복원되고 행이 비어 있어도 `ok` 가 나온다). `no_baseline`·`stale`·`undated` 면 3-2 를 본다
+- [ ] 리허설 중에는 `data.snapshot` 을 `RECOVERY_DATA_BASELINE` 에 **넣지 않았다**(기준치를 덮으면 안 된다)
 - [ ] `GET /api/health` 전 항목 정상
 - [ ] 소요시간 측정 및 위 표 기록
 - [ ] 리허설 브랜치 정리
