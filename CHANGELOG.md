@@ -3,6 +3,20 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-10-06 (배치 180 — 배포 대기, RUNBOOK §3 **2단계(쓰기 차단)** 가 수행도 확인도 불가능한 문장이었다)
+- ★ **COMMERCIAL_READINESS 잔여 `[ ]` 는 여전히 «복구 리허설 실시·기록»(사람 수행) 1건뿐** → 배치176~179가 §3 의 **4·6단계**(스키마·행 수 검증)를 기계화했다. 그 앞단인 **2단계**가 이번 대상이다.
+- 🐞 **「유지보수 상태로 전환」이 코드에 없었다** — §3 2단계는 「배포를 유지보수 상태로 전환하거나 Vercel에서 트래픽을 차단한다」고 지시하지만, 읽기전용 모드가 구현된 적이 없다. 남은 선택지인 Vercel 트래픽 차단은 **복구 자신을 막는다**(4단계 `/api/admin/recovery-verify`·6단계 `/api/admin/migrate`·확인용 `/api/health` 가 전부 같은 배포 뒤에 있다). 그래서 실제로는 차단 없이 3~5단계를 진행하게 된다.
+- 🐞 **차단이 빠지면 복구는 「성공」으로 보이면서 데이터가 사라진다** — 3단계에서 시점 T-ε 복구 브랜치를 뜬 뒤에도 사용자 쓰기가 운영 DB 로 계속 들어오는데, 4단계 검증은 **복구 브랜치**를 세므로 그 쓰기를 전혀 보지 못한다(배치178의 기준 스냅샷 대조도 운영 DB 가 그 사이 커지는 것을 볼 수 없다 — 대조 대상이 브랜치다). 5단계에서 `DATABASE_URL` 을 교체하는 순간 그 쓰기가 전부 사라지지만 `switchReady: true`·전환 성공이었으므로 **유실량이 어디에도 기록되지 않는다.**
+- 🐞 **차단 여부를 확인할 방법도, 해제 단계도 없었다** — 2단계는 리허설 체크리스트에도 없어 리허설로 검증되지 않았고, 절차에 「해제」가 없어 켠 채로 끝나면 복구된 서비스가 **읽기전용으로 남는다**(503 이 아니라 degraded 라 업타임 모니터는 조용하다).
+- 신규 `lib/writeFreeze.ts`(순수 — DB·DDL·파일시스템 미접근): 메서드 분류 `methodKind`(목록 밖·빈 값은 `unknown` → **「읽기」로 가정하지 않고 차단**), 예외 경로 정본 `FREEZE_EXEMPT`(migrate·login·logout·client-errors — 전건 사유 + 「그래도 쓰기라는 사실」을 적는다), 경로 정규화·우회 차단 `exemptFor`(`..`·`%2e`·중복 슬래시·비절대경로는 예외로 보지 않는다), 판정 `freezeDecision` → `off`/`read`/`exempt`/`blocked`/`blocked_unknown_method`(+ 503 `WRITE_FROZEN`·`Retry-After`), 표준 에러 본문 `freezeResponseBody`, 로그 `freezeLogLine`(메서드·경로·판정만 — 본문·쿠키·쿼리스트링 미기록), `/api/health` 체크 `writeFreezeCheck`, 사각지대 목록 `FREEZE_LIMITS`, 배선 정적 점검 `auditFreezeWiring`·`auditMatcherCoverage`, 요약 `writeFreezeStatus`.
+- `src/middleware.ts` 가 유일한 적용 지점 — 라우트 38곳 중 `handle(fn, req)` 로 req 를 넘기는 곳이 **13곳뿐**이어서 `lib/http.ts` 는 메서드·경로를 모르는 호출이 많고 게이트가 될 수 없다. matcher 가 전 경로를 덮으므로 설정기반 CRUD 40개 라우트와 앞으로 생길 라우트까지 함께 걸린다. 차단 응답에도 보안 헤더가 그대로 붙고(`applySecurityHeaders` 뒤), 조회(`GET`/`HEAD`/`OPTIONS`)와 세션 게이트 동작은 **기존과 동일**하다. 스위치는 Edge 런타임의 빌드 시 치환 때문에 미들웨어에서 직접 읽는다.
+- `app/api/health/route.ts` 에 `checks.writeFreeze` 추가 — 2단계의 **유일한 기계적 확인 수단**이다. 차단 중이면 `ok:false`(degraded 200)이고 **required: false** 라 503 을 만들지 않는다. 행 수·연결정보는 담지 않는다.
+- **새 거짓 ok 를 만들지 않는다**: 차단이 막지 **못하는** 것(`DATABASE_URL` 직접 접속·같은 DB 를 쓰는 다른 배포·예외 경로·켠 순간 처리 중이던 요청·외부 웹훅 재시도 만료분)을 `FREEZE_LIMITS` 로 응답·RUNBOOK 에 함께 내보낸다. 복구 검증 응답에 차단 상태를 합치지 않은 이유도 명시 — 검증은 스테이징, 차단은 운영 배포라 두 상태를 합치면 거짓 보증이 된다.
+- `RUNBOOK.md`: §3 2단계를 실행 가능한 절차로 재작성(+health 확인·Vercel 차단 금지 경고), **§3-3 신설**(켜는 법·범위·예외 표·사각지대·끄는 법), **§3 7단계 「쓰기 차단 해제」 신설**(기존 7단계는 8단계로), §4-7·§4-9 2번에 `RECOVERY_WRITE_FREEZE`, 리허설 체크리스트에 ON·실제 거절 1건 확인·해제 3항목 추가. 신규 env 1건은 `lib/envRegistry.ts` 에 등록(테스트가 소스↔레지스트리↔RUNBOOK 3자 대조).
+- 회귀 가드: **실제 `src/middleware.ts` 원문**을 매번 점검해 게이트 호출이 빠지거나(판정만 하고 분기하지 않는 경우 포함) 스위치를 느슨하게 읽거나 판정이 통과 뒤로 밀리면 CI 실패, **matcher 가 `/api` 를 제외하게 바뀌면 CI 실패**(화면은 그대로 돌기 때문에 사람 눈으로는 알아챌 수 없는 회귀다), 차단 응답이 보안 헤더를 건너뛰지 않는지, health 라우트의 배선과 `route.ts` export 2개, 모듈에 DB·DDL 접근이 없는지, RUNBOOK 의 2단계·3-3·7단계·체크리스트 문구와 예외 경로 목록이 코드와 일치하는지를 검사. — src/lib/writeFreeze.ts, src/middleware.ts, src/lib/health.ts, src/lib/envRegistry.ts, src/app/api/health/route.ts, tests/writeFreeze.test.ts, RUNBOOK.md, COMMERCIAL_READINESS.md
+- 검증: `tsc --noEmit -p tsconfig.json` **rc=0·error TS 0건**, 테스트 **395/395 통과**(신규 20건), 커버리지 lines 99.20%·branches 92.13%·funcs 98.15%(writeFreeze.ts lines 100%·branches 94.25%·funcs 100%) — CI 임계값(90/80/85) 통과. 라이브 DB 쓰기·DDL 실행·신규 테이블 없음.
+- ⏭ 다음: `RECOVERY_WRITE_FREEZE` 는 **기본 OFF** — 실제로 켜 보는 것은 복구/리허설 시점의 사람 판단이다 **[활성화 승인 필요]**. 복구 리허설 실시·기록, RTO/RPO 확정은 여전히 **[사람 수행 필요]**.
+
 ## 2026-10-05 (배치 179 — 배포 대기, 기준 스냅샷이 **언제 기준인지** 보지 않아 생긴 거짓 `ok`)
 - ★ **COMMERCIAL_READINESS 잔여 `[ ]` 는 여전히 «복구 리허설 실시·기록»(사람 수행) 1건뿐** → 배치178이 §3 4단계에 「행 수 ↔ 기준 스냅샷」 대조를 붙였다. 그 대조가 **기준 스냅샷의 날짜를 전혀 보지 않았다**는 것이 이번 대상이다.
 - 🐞 **낡은 기준치가 유실된 DB 를 통과시켰다** — RUNBOOK §2 는 스냅샷을 **월 1회 갱신**하라고 지시하지만, 갱신이 밀린 것을 알려 주는 장치가 어디에도 없었다(`/api/health` 의 `checks.recovery` 는 리허설 신선도만 본다). 스냅샷이 반년 묵으면 그 수치는 현재 규모보다 한참 낮으므로 **행을 대량으로 잃은 DB 도 「전 테이블이 기준치 이상」을 만족**해 `verdict: ok` → `switchReady: true` → §3 5단계(운영 `DATABASE_URL` 교체)로 넘어간다.

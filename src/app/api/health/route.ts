@@ -5,6 +5,7 @@ import { billingStatus } from '@/lib/portone';
 import { buildHealthBody, sanitizeError, statusCode, type Checks } from '@/lib/health';
 import { rateLimitResponse, RL } from '@/lib/ratelimit';
 import { recoveryReadinessCheck } from '@/lib/recoveryVerify';
+import { writeFreezeCheck } from '@/lib/writeFreeze';
 
 // ★ route.ts에서는 HTTP 메서드와 Next 설정 외 export 금지(Vercel 빌드 실패 원인).
 export const dynamic = 'force-dynamic';
@@ -59,6 +60,12 @@ export async function GET(req: Request) {
   // 미실시·기한초과·낡은 스냅샷은 degraded(200)로만 드러내고 서비스를 down 처리하지 않는다
   // (required: false). 담당자 등 PII 는 publicRehearsal 로 제거되고, 행 수는 담지 않는다.
   checks.recovery = recoveryReadinessCheck();
+
+  // 쓰기 차단(RUNBOOK §3 2단계) 상태. 2단계는 「유지보수 상태로 전환」을 지시하면서도
+  // 그것이 걸렸는지 확인할 방법이 없었다 — 여기서 드러내 확인 가능한 단계로 만든다.
+  // 차단 중이면 ok:false(degraded 200)지만 required:false 라 503 이 되지는 않는다.
+  // 이 값은 **이 배포 자신의** 차단 상태만 뜻한다(스테이징 검증과 운영 차단은 별개 배포다).
+  checks.writeFreeze = writeFreezeCheck();
 
   const body = buildHealthBody({ checks, uptimeSec: (Date.now() - startedAt) / 1000 });
 

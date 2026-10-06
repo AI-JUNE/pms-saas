@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { applySecurityHeaders } from './lib/securityHeaders';
+import { freezeDecision, freezeLogLine, freezeResponseBody } from './lib/writeFreeze';
 const COOKIE = process.env.SESSION_COOKIE || 'pms_session';
 // ⚠️ 세션 게이트 접두사. 여기서 **빼면** 그 화면이 로그인 없이 열린다 — 추가는 안전, 삭제는 위험.
 //   '/apps' 는 제안 앱(2026-09-29 편입). matcher 가 제외하는 건 _next/static·_next/image·favicon 뿐이라
@@ -10,7 +11,27 @@ const P = ['/dashboard','/projects','/phases','/members','/requirements','/issue
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   let res: NextResponse;
-  if (P.some((p) => pathname.startsWith(p)) && !req.cookies.get(COOKIE)) {
+  // RUNBOOK §3 2단계(쓰기 차단) — 복구 작업 중 운영 DB 에 들어오는 쓰기를 막는다.
+  //   미들웨어가 유일한 적용 지점이다: 라우트 38곳 중 handle(fn, req) 로 req 를 넘기는 곳은
+  //   13곳뿐이라 lib/http.ts 는 메서드·경로를 모르는 호출이 많다. 여기는 matcher 가 전 경로를
+  //   덮으므로 설정기반 CRUD 40개 라우트와 앞으로 생길 라우트까지 함께 걸린다.
+  //   스위치를 여기서 직접 읽는 이유: Edge 런타임은 process.env.KEY 를 빌드 시 리터럴로
+  //   치환하므로 env 객체를 통째로 넘기면 키가 비어 올 수 있다(writeFreeze.ts 주석 참고).
+  const freeze = freezeDecision({
+    method: req.method,
+    path: pathname,
+    enabled: process.env.RECOVERY_WRITE_FREEZE === 'true',
+  });
+  if (freeze.blocked) {
+    console.warn('[write-freeze]', freezeLogLine(freeze));
+    res = NextResponse.json(freezeResponseBody(freeze), {
+      status: freeze.status ?? 503,
+      headers: {
+        'Retry-After': String(freeze.retryAfterSec ?? 120),
+        'Cache-Control': 'no-store',
+      },
+    });
+  } else if (P.some((p) => pathname.startsWith(p)) && !req.cookies.get(COOKIE)) {
     const url = req.nextUrl.clone(); url.pathname = '/login'; res = NextResponse.redirect(url);
   } else {
     res = NextResponse.next();
