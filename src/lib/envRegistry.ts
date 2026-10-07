@@ -101,6 +101,7 @@ export const ENV_VARS: EnvVar[] = [
   { key: 'RECOVERY_DATA_BASELINE', kind: 'config', group: '복구 리허설', note: '핵심 테이블 행수 기준 스냅샷. 유실 시 복구 후 행 복원을 대조할 기준이 사라진다(no_baseline)' },
   { key: 'RECOVERY_BASELINE_MAX_AGE_DAYS', kind: 'config', group: '복구 리허설', note: '위 스냅샷의 갱신 기한(일). 미설정 시 낡음 판정 보류 — 임의 기본 주기 없음' },
   { key: 'RECOVERY_WRITE_FREEZE', kind: 'switch', group: '복구 리허설', note: 'RUNBOOK §3 2단계 쓰기 차단(읽기전용 모드). 평상시 반드시 OFF — 켜진 채 복구되면 전 사용자의 저장이 503 으로 거절된다' },
+  { key: 'RECOVERY_EXPECTED_DB', kind: 'config', group: '복구 리허설', note: 'RUNBOOK §3 5단계 전환 확인용 **연결 대상 지문**(12자리 16진수, 연결 문자열 아님). 미설정이 평상시 — 유실 시 전환 반영 여부를 기계적으로 확인할 수 없다' },
 
   // ── 메일·첨부 저장소·감사 보존(배치181, 전부 기본 미연동 — 활성화는 승인) ──
   { key: 'MAIL_PROVIDER', kind: 'config', group: '메일·첨부·보존', note: '메일 발송 제공자. 미설정 = log 스텁(실발송 0, 비밀번호 재설정 메일이 나가지 않는다) [활성화 승인 필요]', indirectIn: 'src/lib/passwordReset.ts' },

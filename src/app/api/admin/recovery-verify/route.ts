@@ -3,6 +3,7 @@ import { db } from '@/db';
 import { requireUser } from '@/lib/auth';
 import { auditSecurity } from '@/lib/audit';
 import { ADMIN_AUDIT_ENTITY, accessMeta, adminAccessEvent } from '@/lib/auditAccess';
+import { compareIdentity, gateSwitchReady, identityFromEnv, identityLogLine } from '@/lib/dbIdentity';
 import { handle, ok, ApiError, ERROR } from '@/lib/http';
 import { MIGRATION_DDL, expectedTables } from '@/lib/migrate';
 import { PRESENT_TABLES_SQL, normalizeTableNames, rowsOf, tableNamesFrom, verifySchema } from '@/lib/schemaVerify';
@@ -58,9 +59,14 @@ export async function GET(req: Request) {
       baseline: baselineFromEnv(),
       maxAgeDays: baselineMaxAgeDays(),
     });
-    const result = recoveryVerification(schema, data);
+    // 지금 세고 있는 DB 가 **어느 DB 인가**. 이 전제가 깨지면(스테이징에 운영 연결문자열을
+    // 잘못 넣는 실수) 행 수가 기준치를 넘어도 그것은 다른 DB 에 대한 판정이다.
+    // 기준 지문과 불일치일 때만 switchReady 를 내린다(미설정은 기존 판정을 끌어내리지 않는다).
+    const identity = identityFromEnv();
+    const idDecision = compareIdentity({ identity, expected: process.env.RECOVERY_EXPECTED_DB });
+    const result = gateSwitchReady(recoveryVerification(schema, data), identity, idDecision);
 
-    console.log('[recovery-verify]', recoveryVerifyLogLine(result));
+    console.log('[recovery-verify]', recoveryVerifyLogLine(result), identityLogLine(idDecision));
     // 열람 이력 — 조직 컨텍스트가 없는 슈퍼관리자 작업이므로 보안 이벤트로 남긴다(수치·판정만).
     await auditSecurity(adminAccessEvent(new URL(req.url).pathname, req.method), {
       userId: u.id,
@@ -72,6 +78,9 @@ export async function GET(req: Request) {
         switchReady: result.switchReady,
         rows: data.totalRows,
         baselineAge: data.age.status,
+        // 어느 DB 를 세었는지 — 지문·판정만(연결 문자열·자격증명은 담지 않는다)
+        dbIdentity: idDecision.verdict,
+        dbFingerprint: idDecision.actual.fingerprint,
       },
     });
     return ok(result);

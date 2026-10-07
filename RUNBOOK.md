@@ -32,7 +32,9 @@
    - 이 단계를 거르면 스냅샷이 낡는다. 낡은 수치는 현재 규모보다 낮으므로 **행을 잃은 DB 도
      「기준치 이상」을 만족**시킨다 — 그래서 갱신 기한을 `RECOVERY_BASELINE_MAX_AGE_DAYS` 로 두고
      기한을 넘기면 `data.verdict` 가 `stale` 로 떨어져 `switchReady` 가 올라가지 않는다.
-4. 환경변수 스냅샷이 최신인지 확인(4절).
+4. 환경변수 스냅샷이 최신인지 확인(4절). `RECOVERY_EXPECTED_DB` 를 남겨 두었다면
+   `checks.dbIdentity.detail.verdict` 가 `match` 인지 함께 본다 — `mismatch` 면 연결 대상이
+   바뀐 것이다(의도한 변경이면 지문을 갱신한다. 3-4).
 5. `GET /api/health` 의 `checks.recovery.detail.baseline.status` 가 `ok` 인지 확인
    (`stale`/`undated`/`absent` 면 위 3번이 밀린 것이다. `unjudged` 는 기한 미설정 상태).
 6. 아래 6절 리허설 표에 점검 결과 1줄 기록.
@@ -64,10 +66,22 @@
    - `ok` 는 **스냅샷 시점(`data.asOf`) 이상의 행 수**까지만 보장한다. 그 이후 생긴 행의 유실(RPO 구간)은
      이 점검으로 알 수 없다 — 그 구간이 며칠인지는 `data.age.blindWindow` 에 수치로 적혀 있다.
      손실 구간 고지는 그대로 해야 한다.
+   - **무엇을 세고 있는지 먼저 본다** — 응답의 `identity.fingerprint`·`identity.hostMasked` 가
+     3단계에서 만든 **복구 브랜치**인지 확인한다(아래 3-4 의 산출 명령과 대조). 스테이징에
+     운영 연결문자열을 잘못 넣으면 **손상된 운영 DB 의 행 수**를 세고 `ok` 가 나온다.
+     `identity.verdict` 가 `mismatch` 면 `switchReady` 는 자동으로 false 가 된다.
    - ⚠️ **여기서 `data.snapshot` 을 `RECOVERY_DATA_BASELINE` 에 넣지 않는다.** 지금 세고 있는 DB 가
      바로 의심 대상이므로, 그 수치를 기준치로 삼으면 손상이 「정상」으로 굳는다
      (`data.snapshotUse` 에 같은 경고가 들어 있다). 스냅샷 갱신은 §2 월 점검에서만 한다.
-5. **전환** — 4단계가 `switchReady: true` 일 때만 운영 `DATABASE_URL`을 복구 브랜치로 교체하고 재배포한다.
+5. **전환** — 4단계가 `switchReady: true` 일 때만 운영 `DATABASE_URL`을 복구 브랜치로 교체하고,
+   같은 스코프(Production)에 **기준 지문** `RECOVERY_EXPECTED_DB` 를 함께 넣은 뒤 **재배포한다**(아래 3-4).
+   - 확인: `GET /api/health` → `checks.dbIdentity.detail.verdict` 가 **`match`** 인지 본다.
+     `mismatch` 면 **교체가 이 배포에 반영되지 않았다** — 운영은 아직 손상된 DB 를 보고 있다.
+   - ⚠️ **환경변수 저장만으로는 바뀌지 않는다.** Vercel 환경변수는 **재배포 전까지** 기존 배포에
+     반영되지 않고, Preview·Development 스코프에만 넣으면 Production 은 옛 값을 그대로 쓴다.
+     이 확인을 거르면 6단계 `schema.verdict` 는 손상된 DB 에도 테이블이 다 있으므로 **`ok`** 가 나오고,
+     7단계에서 차단을 풀면 서비스가 정상으로 보인다 — **복구는 「성공」으로 끝나고 복구된 데이터는
+     아무도 쓰지 않는다.** 그 뒤의 쓰기는 손상된 DB 에 쌓여 두 번째 복구 기회까지 줄어든다.
 6. **스키마 정합** — 전환 후 관리자 계정으로 `POST /api/admin/migrate` 1회 실행(멱등 DDL, `lib/migrate.ts`).
    ※ **PITR 복구 브랜치에만 유효하다.** 아래 3-1 을 먼저 읽을 것.
    ※ `applied`·`failed` 만 보고 넘어가지 말 것 — 응답의 `schema.verdict` 가 **`ok`** 여야 정합이다.
@@ -195,6 +209,51 @@ PITR 복구 브랜치는 기존 테이블을 그대로 물려받으므로 6단�
   빠지거나 `matcher` 가 `/api` 를 제외하게 바뀌면 CI 가 실패한다(화면은 그대로 돌기 때문에
   사람 눈으로는 알아챌 수 없는 회귀다).
 
+### 3-4. 연결 대상 확인 — 5단계 「전환」이 실제로 반영됐는지 보는 유일한 수단
+
+5단계는 오랫동안 **확인할 수 없는 문장**이었다. 「운영 `DATABASE_URL` 을 교체하고 재배포한다」고만
+적혀 있고, 그 교체가 **이 배포에 반영됐는지** 보는 수단이 없었다. 뒤따르는 확인은 전부 통과한다 —
+`checks.db` 는 `select 1` 이라 어느 DB 든 ok, 6단계 `schema.verdict` 는 손상된 운영 DB 에도 테이블이
+다 있으므로 `ok`, 7단계에서 차단을 풀면 화면도 정상이다. **복구는 「성공」으로 끝나고 복구된
+데이터는 아무도 쓰지 않는다.**
+
+- 지문(fingerprint) = 연결 문자열에서 **자격증명을 버리고** 호스트(Neon 엔드포인트)와 DB 이름만
+  남겨 만든 12자리 16진수다(`lib/dbIdentity.ts`). 비밀번호·사용자명은 애초에 들어가지 않는다.
+- 복구 브랜치의 지문 산출 — Neon 이 보여 주는 복구 브랜치 연결문자열을 **환경변수로 넘겨** 실행한다
+  (명령행에 붙여넣으면 셸 히스토리에 비밀번호가 남는다):
+  ```
+  DB=<복구 브랜치 연결문자열> node --input-type=module -e "import {dbFingerprint} from './src/lib/dbIdentity.ts';console.log(dbFingerprint(process.env.DB))"
+  ```
+- 4단계(스테이징): 응답의 `identity.fingerprint` 가 위 값과 같은지 본다. 다르면 스테이징이 다른 DB
+  (흔한 실수는 **운영 연결문자열**)를 보고 있다 — 행 수 대조는 그 DB 에 대한 판정이므로 의미가 없다.
+- 5단계(운영): `DATABASE_URL` 과 함께 `RECOVERY_EXPECTED_DB=<위 지문>` 을 **같은 스코프
+  (Production)** 에 넣고 재배포한 뒤 `GET /api/health` → `checks.dbIdentity.detail.verdict` 를 본다.
+
+| `verdict` | 뜻 | 무엇을 해야 하나 |
+| --- | --- | --- |
+| `match` | 이 배포가 기준 지문의 DB 를 본다 | 전환이 반영됐다. 6단계로 간다 |
+| `mismatch` | **다른 DB 를 보고 있다** | 재배포를 했는지, 스코프가 Production 인지, 값이 잘려 들어가지 않았는지 본다. 운영은 아직 손상된 DB 를 보고 있을 수 있다 |
+| `unset` | 기준 지문 미설정(**평상시 상태**) | 복구 중이라면 위 지문을 넣는다. 평상시에는 이 상태가 정상이며 degraded 로 만들지 않는다 |
+| `invalid_expected` | 값을 읽을 수 없다 | 12자리 16진수만 넣는다. **연결 문자열을 넣지 않는다**(비밀번호가 한 벌 더 복제된다 — 그런 값은 비교하지 않고 거절한다) |
+| `unknown_actual` | `DATABASE_URL` 자체를 읽을 수 없다 | 대조가 성립하지 않는다. 「일치」로 올리지 않는다 |
+
+> **지문이 맞았다는 것이 「복구 성공」을 뜻하지는 않는다.** 보장하지 못하는 것을 그대로 적어 둔다
+> (`checks.dbIdentity.detail.limits`·4단계 응답 `identity.limits` 에도 같은 목록이 나온다):
+> 지문은 「**어느 DB 를 보도록 설정됐는가**」까지만 말하고 그 DB 의 데이터가 옳은지는 4단계가 본다 ·
+> Neon 에서 운영 브랜치를 **제자리 복구**하면 엔드포인트가 그대로여서 **지문이 바뀌지 않는다**
+> (그 경로는 지문으로 확인할 수 없다) · pooled(`-pooler`)와 직결은 같은 브랜치이므로 **같은 지문**이다 ·
+> 컴퓨트 재생성·엔드포인트 변경은 같은 데이터인데도 `mismatch` 를 만든다(기준 지문을 다시 산출한다) ·
+> 이 값은 **그 배포 자신의** 설정만 말한다 · 기준 지문은 사람이 넣는 값이라 전환과 함께 갱신하지
+> 않으면 옛 기준으로 `mismatch` 가 난다.
+
+- 복구가 끝난 뒤 `RECOVERY_EXPECTED_DB` 는 **지워도 되고 남겨도 된다.** 남겨 두면 이후 누군가
+  `DATABASE_URL` 을 바꿨을 때 `mismatch` 로 드러난다(연결 대상 고정). 엔드포인트를 의도적으로
+  바꿀 때 함께 갱신하는 것을 잊으면 거짓 경고가 나므로, 그때는 §2 월 점검에서 같이 본다.
+- 신규 조회·쓰기 0 — 판정은 환경변수 해석만으로 한다. `tests/dbIdentity.test.ts` 가 실제
+  `src/db/index.ts` 원문을 점검해 **DB 클라이언트가 다른 연결 키로 옮겨 가면 CI 를 실패시킨다**
+  (지문이 엉뚱한 DB 를 가리키면서 계속 `match` 를 내는 것이 가장 조용한 회귀다). `/api/health`·
+  4단계 라우트의 배선도 원문으로 함께 고정한다.
+
 ## 4. 환경변수·시크릿 복구
 
 Vercel 환경변수는 DB 백업에 포함되지 않으므로 별도 보관한다.
@@ -250,6 +309,9 @@ Vercel 환경변수는 DB 백업에 포함되지 않으므로 별도 보관한�
 `RECOVERY_WRITE_FREEZE` — 쓰기 차단(읽기전용 모드) 스위치. 위 3-3. **평상시에는 반드시 없어야 한다** —
 복구 때 켠 뒤 지우지 않으면 복구가 끝난 서비스가 읽기전용으로 남는다(`/api/health` 가 `degraded`로만 드러낸다).
 복구 후 확인 순서 2번에서 `PAYMENTS_LIVE`·`BILLING_APPLY_LIVE` 와 함께 OFF 인지 재확인한다.
+`RECOVERY_EXPECTED_DB` — 전환 확인용 **연결 대상 지문**(12자리 16진수. 위 3-4). 연결 문자열이 아니다 —
+그런 값은 비교하지 않고 `invalid_expected` 로 거절한다. **미설정이 평상시 상태**이고, 유실되면
+5단계 전환이 반영됐는지 기계적으로 확인할 수 없게 된다(눈으로는 어느 DB 를 보는지 알 수 없다).
 
 #### 4-8. 메일·첨부 저장소·감사 보존 (전부 기본 미연동 — **활성화는 승인 필요**, 2026-10-07 배치181)
 
@@ -279,6 +341,8 @@ Vercel 환경변수는 DB 백업에 포함되지 않으므로 별도 보관한�
    기본 OFF인지 반드시 재확인한다. 스위치는 `true` 문자열일 때만 ON 이다(`1`·`yes`·공백은 OFF 유지).
 3. 4-5 법적 문서 키가 복구됐는지 → `/terms`·`/privacy` 에 「초안」 배너가 없고 버전·시행일이 표기되는지 눈으로 확인.
 4. 4-6 파트너 키는 계약 상태에 맞게. 미설정이면 전건 직접 계약으로 동작한다.
+5. 전환 직후라면 `checks.dbIdentity.detail.verdict` 가 `match` 인지 → **어느 DB 를 보고 있는지** 확인(위 3-4).
+   `checks.db` 의 `ok` 는 어느 DB 든 통과하므로 1번만으로는 전환 반영을 알 수 없다.
 
 ## 5. 배포 롤백 (코드 문제일 때)
 
@@ -318,13 +382,17 @@ DB 손상이 아니라 배포 회귀라면 DB를 건드리지 말고 배포만 �
 
 - [ ] 쓰기 차단(§3 2단계) ON — `GET /api/health` 의 `checks.writeFreeze.detail.frozen` 이 `true`
 - [ ] 차단 중 쓰기가 실제로 거절되는지 1건 확인(예: `PATCH` 아무 자원 → `503` + `code: WRITE_FROZEN`)
-- [ ] Neon 복구 브랜치 생성 성공
+- [ ] Neon 복구 브랜치 생성 성공 — 그 브랜치의 **지문**을 §3-4 명령으로 산출해 적어 둔다
 - [ ] 스테이징에서 애플리케이션 기동 성공
+- [ ] 스테이징이 보는 DB 가 복구 브랜치인지 — `GET /api/admin/recovery-verify` 의
+      `identity.fingerprint` 가 위 지문과 같다(운영 연결문자열을 잘못 넣으면 손상된 DB 를 센다)
 - [ ] 로그인·프로젝트 조회·이슈 조회 정상
 - [ ] `POST /api/admin/migrate` 멱등 실행 성공 — 응답 `schema.verdict` 가 `ok` 인지 확인(`failed: []` 만으로는 부족)
 - [ ] `GET /api/admin/recovery-verify` 의 `switchReady` 가 `true` — `schema.verdict: ok` 만으로는 부족하다
       (스키마만 복원되고 행이 비어 있어도 `ok` 가 나온다). `no_baseline`·`stale`·`undated` 면 3-2 를 본다
 - [ ] 리허설 중에는 `data.snapshot` 을 `RECOVERY_DATA_BASELINE` 에 **넣지 않았다**(기준치를 덮으면 안 된다)
+- [ ] 전환(§3 5단계) 리허설이라면 `RECOVERY_EXPECTED_DB` 를 넣고 재배포 후
+      `checks.dbIdentity.detail.verdict` 가 `match` 인지 확인 — **재배포 없이는 반영되지 않는다**(§3-4)
 - [ ] 쓰기 차단 **해제**(§3 7단계) — `checks.writeFreeze.detail.frozen` 이 `false` 로 돌아왔다
 - [ ] `GET /api/health` 전 항목 정상
 - [ ] 소요시간 측정 및 위 표 기록

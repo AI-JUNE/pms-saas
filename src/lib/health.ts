@@ -2,7 +2,7 @@
 // 라우트(route.ts)에는 HTTP 메서드만 두고, 조립·판정 로직은 전부 여기 둔다(테스트 대상).
 // 공개 엔드포인트이므로 민감정보(연결 문자열·자격증명·키·내부 호스트)는 절대 노출하지 않는다.
 
-export type CheckName = 'db' | 'billing' | 'monitoring' | 'recovery' | 'writeFreeze';
+export type CheckName = 'db' | 'billing' | 'monitoring' | 'recovery' | 'writeFreeze' | 'dbIdentity';
 
 export interface CheckResult {
   ok: boolean;

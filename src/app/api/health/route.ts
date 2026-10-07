@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { sql } from 'drizzle-orm';
 import { db } from '@/db';
 import { billingStatus } from '@/lib/portone';
+import { dbIdentityCheck } from '@/lib/dbIdentity';
 import { buildHealthBody, sanitizeError, statusCode, type Checks } from '@/lib/health';
 import { rateLimitResponse, RL } from '@/lib/ratelimit';
 import { recoveryReadinessCheck } from '@/lib/recoveryVerify';
@@ -66,6 +67,13 @@ export async function GET(req: Request) {
   // 차단 중이면 ok:false(degraded 200)지만 required:false 라 503 이 되지는 않는다.
   // 이 값은 **이 배포 자신의** 차단 상태만 뜻한다(스테이징 검증과 운영 차단은 별개 배포다).
   checks.writeFreeze = writeFreezeCheck();
+
+  // 연결 대상(RUNBOOK §3 5단계·§3-4). `checks.db` 의 `select 1` 은 **어느 DB 든** 통과하므로
+  // 「운영 DATABASE_URL 을 복구 브랜치로 교체했다」가 실제로 이 배포에 반영됐는지 알 수 없었다
+  // (Vercel 환경변수는 재배포 전까지 반영되지 않는다). 지문으로 그것을 확인 가능하게 만든다.
+  // 공개 응답이므로 지문·provider·pooled·region 만 담는다 — 호스트·DB 이름·자격증명 제외.
+  // 기준 지문(RECOVERY_EXPECTED_DB) 미설정이 평상시 상태이고, 불일치는 degraded(200)로만 드러난다.
+  checks.dbIdentity = dbIdentityCheck();
 
   const body = buildHealthBody({ checks, uptimeSec: (Date.now() - startedAt) / 1000 });
 
