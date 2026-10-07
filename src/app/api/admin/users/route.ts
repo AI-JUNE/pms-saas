@@ -6,11 +6,14 @@ import { requireTenant } from '@/lib/tenant';
 import { handle, ok, ApiError, ERROR } from '@/lib/http';
 import { auditAdminAccess } from '@/lib/audit';
 import { adminChangeKind } from '@/lib/auditAccess';
+import { assertScreenAccess } from '@/lib/rbac';
 export const dynamic = 'force-dynamic';
 const genTemp = () => 'pms-' + Math.random().toString(36).slice(2, 8);
 export async function GET(req: Request) {
   return handle(async () => {
     const ctx = await requireTenant(await requireUser());
+    // 화면 정책(/admin = 관리자 등급)과 같은 경계 — 구성원 전원의 이메일 목록이라 읽기도 관리자만(배치181)
+    assertScreenAccess(ctx, '/admin');
     const rows = await db.select({
       membershipId: memberships.id, userId: users.id, name: users.name, email: users.email,
       role: memberships.role, isOrgAdmin: memberships.isOrgAdmin, isActive: users.isActive, createdAt: users.createdAt,

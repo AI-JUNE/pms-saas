@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Logo } from './Logo';
 import { GowonMark } from './GowonMark';
+import { filterNav, canAccessScreen, type Principal } from '@/lib/screenAccess';
 
 const NAV = [
   { group: '현황', items: [
@@ -61,7 +62,6 @@ const NAV = [
     { href: '/settings', label: '설정', icon: Settings },
   ]},
 ];
-const ALL = NAV.flatMap((g) => g.items);
 const nfmt = (n: number) => n.toLocaleString('ko-KR');
 let SHELL_CACHE: { me?: any; projects?: any[]; notifs?: any[] } = {};
 
@@ -119,10 +119,14 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
   async function logout() { await fetch('/api/auth/logout', { method: 'POST' }); router.push('/login'); }
   const unread = notifs.filter((n) => !n.isRead).length;
   const curProj = projects.find((p) => p.id === pid);
+  // 역할 등급(lib/screenAccess) — /api/auth/me 가 오기 전(null)에는 관리 화면을 숨긴다(업무 화면은 그대로).
+  //   서버 레이아웃(ScreenGate)·API(assertScreenAccess) 가 같은 정책을 쓰므로 메뉴 숨김은 편의이고 경계는 서버다.
+  const principal: Principal | null = me?.org ? { role: me.org.role, isOrgAdmin: !!me.org.isOrgAdmin, isSuperadmin: !!me.user?.isSuperadmin } : (me?.user?.isSuperadmin ? { isSuperadmin: true } : null);
+  const visibleNav = NAV.map((g) => ({ ...g, items: filterNav(g.items, principal) })).filter((g) => g.items.length > 0);
   const TYPE_ICON: any = { project: FolderKanban, issue: Bug, requirement: ClipboardList, risk: ShieldAlert, task: ListTodo, document: FileCheck2, member: Users, meeting: CalendarClock };
   const TYPE_KO: any = { project: '프로젝트', issue: '이슈', requirement: '요구사항', risk: '리스크', task: '업무', document: '산출물', member: '인력', meeting: '회의' };
   const _q = cq.trim();
-  const navItems = ALL.filter((n) => n.label.toLowerCase().includes(_q.toLowerCase())).map((n) => ({ kind: 'nav', href: n.href, label: n.label, icon: n.icon, tag: '' }));
+  const navItems = visibleNav.flatMap((g) => g.items).filter((n) => n.label.toLowerCase().includes(_q.toLowerCase())).map((n) => ({ kind: 'nav', href: n.href, label: n.label, icon: n.icon, tag: '' }));
   const recItems = recs.map((r: any) => ({ kind: 'rec', href: r.href, label: (r.code ? r.code + ' · ' : '') + (r.title || ''), icon: TYPE_ICON[r.type] || Search, tag: TYPE_KO[r.type] || r.type }));
   const cmdResults = _q.length >= 1 ? [...navItems, ...recItems] : navItems;
 
@@ -131,7 +135,7 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
       <a href="#main-content" className="skip-link">본문으로 건너뛰기</a>
       <aside className={`sidebar ${menuOpen ? 'open' : ''}`}>
         <Logo />
-        {NAV.map((g) => (
+        {visibleNav.map((g) => (
           <div key={g.group}>
             <div className="nav-group">{g.group}</div>
             {g.items.map((n) => { const Icon = n.icon; const active = path === n.href || (n.href !== '/dashboard' && path.startsWith(n.href));
@@ -196,7 +200,7 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
                 <Link href="/mywork" className="menu-item" onClick={() => setOpenMenu(null)}><UserCheck style={{ width: 16 }} />내 작업</Link>
                 <Link href="/notifications" className="menu-item" onClick={() => setOpenMenu(null)}><Bell style={{ width: 16 }} />알림{unread > 0 && <span className="nav-badge" style={{ marginLeft: 'auto' }} title={`안 읽은 알림 ${nfmt(unread)}건`}>{nfmt(unread)}</span>}</Link>
                 <Link href="/settings" className="menu-item" onClick={() => setOpenMenu(null)}><Settings style={{ width: 16 }} />내 계정·설정</Link>
-                <Link href="/audit" className="menu-item" onClick={() => setOpenMenu(null)}><Activity style={{ width: 16 }} />감사 로그</Link>
+                {canAccessScreen(principal, '/audit') && <Link href="/audit" className="menu-item" onClick={() => setOpenMenu(null)}><Activity style={{ width: 16 }} />감사 로그</Link>}
                 <div className="menu-sep" />
                 <button className="menu-item" onClick={logout}><LogOut style={{ width: 16 }} />로그아웃</button>
               </div>
