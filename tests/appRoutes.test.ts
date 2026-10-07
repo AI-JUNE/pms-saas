@@ -138,6 +138,19 @@ test('세션 게이트: 알려진 미결 목록 밖의 새 미게이트 화면�
   // 알려진 목록은 실제 미게이트 화면의 부분집합이어야 한다(고쳐 놓고 목록을 안 지운 상태 방지).
   const fixed = UNGATED_SCREENS_KNOWN.filter((h) => !ungated.includes(h));
   assert.deepEqual(fixed, [], `이미 게이트된 경로가 미결 목록에 남아 있다: ${fixed.join(', ')}`);
+  // 배치181(2026-10-07): 누락 16개를 전부 편입했다 — 이제 앱 화면은 **전건** 서버 게이트 뒤에 있어야 한다.
+  assert.deepEqual(ungated, [], `세션 게이트 밖 앱 화면: ${ungated.join(', ')}`);
+  assert.deepEqual([...UNGATED_SCREENS_KNOWN], [], '미결 목록은 비어 있어야 한다(새 화면은 middleware P 에 넣는다)');
+});
+
+test('세션 게이트: 공개 화면은 게이트에 걸리지 않는다(로그인·공개 페이지·재설정 화면이 막히면 아무도 못 들어온다)', () => {
+  const prefixes = parseGatedPrefixes(read(path.join('src', 'middleware.ts')));
+  for (const s of PUBLIC_SCREENS) assert.equal(isGatedBy(s.href, prefixes), false, `공개 화면이 게이트에 걸림: ${s.href}`);
+  for (const p of ['/api/auth/login', '/api/health', '/favicon.ico', '/_next/static/x.js']) assert.equal(isGatedBy(p, prefixes), false, p);
+  // 접두사 충돌 점검: /tests 가 /test-cycles 를 덮지 않고(별도 등재), /admin·/settings 는 하위 화면을 덮는다
+  assert.ok(prefixes.includes('/tests') && prefixes.includes('/test-cycles'));
+  assert.equal(isGatedBy('/admin/security', prefixes), true);
+  assert.equal(isGatedBy('/settings/billing', prefixes), true);
 });
 
 test('레지스트리 자체 무결성: href 중복 없음, 라벨·형식 규약', () => {

@@ -79,16 +79,11 @@ export const PUBLIC_SCREENS: AppScreen[] = [
 
 /**
  * 세션 게이트(middleware P)에 아직 들어 있지 않은 화면 — **알려진 미결 사항**.
- * 이 화면들도 Shell 이 `/api/auth/me` 응답을 보고 클라이언트에서 /login 으로 보내지만,
- * 서버 리다이렉트가 없어 로그인 전에 빈 껍데기가 한 번 그려진다(심층 방어 공백).
- * middleware 는 세션 경계라 야간 자동 개발이 건드리지 않는다 — **주간 수동 처리 대기**.
- * 테스트는 "이 목록 밖의 새 미게이트 화면"만 실패로 본다(고치면 목록에서 지우면 된다).
+ * 2026-10-07(배치181, 주간 수동) 누락 16개를 전부 middleware P 에 편입해 **비었다**. 비어 있어야 정상이다 —
+ * 새 화면을 만들며 P 에 안 넣으면 테스트가 바로 실패하므로, 임시로 여기에 적어 CI 를 통과시키지 말고 P 에 넣어라.
+ * (middleware 는 세션 경계라 야간 자동 개발이 건드리지 않는다 — 주간 수동.)
  */
-export const UNGATED_SCREENS_KNOWN: readonly string[] = [
-  '/mywork', '/todos', '/reports', '/weekly', '/snapshots', '/rtm', '/form-definitions',
-  '/tests', '/test-cycles', '/calendar', '/workload', '/admin', '/admin/security',
-  '/audit', '/settings', '/settings/billing',
-] as const;
+export const UNGATED_SCREENS_KNOWN: readonly string[] = [] as const;
 
 /** 404 화면에서 추천거리가 없을 때 보여줄 안전한 진입점. */
 export const ENTRY_HREFS: readonly string[] = ['/dashboard', '/projects', '/mywork', '/login'] as const;

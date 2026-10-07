@@ -7,7 +7,12 @@ const COOKIE = process.env.SESSION_COOKIE || 'pms_session';
 //   '/apps' 는 제안 앱(2026-09-29 편입). matcher 가 제외하는 건 _next/static·_next/image·favicon 뿐이라
 //   이 한 줄이 라우트(/apps/quality)와 원본 HTML(/apps/quality/index.html)을 **함께** 막는다.
 //   원본 HTML 은 public/ 정적 파일이라 별도 가드가 없다 — 이 접두사가 유일한 경계다.
-const P = ['/dashboard','/projects','/phases','/members','/requirements','/issues','/risks','/tasks','/backlog','/documents','/interfaces','/infra','/firewall','/procurement','/boards','/meetings','/notifications','/apps'];
+//   2026-10-07(배치181, 주간 수동): 누락 16개 화면(/mywork·/todos·/reports·/weekly·/snapshots·/rtm·/form-definitions·
+//   /tests·/test-cycles·/calendar·/workload·/admin·/audit·/settings) 편입 — 이전에는 로그인 전에 빈 껍데기가 한 번 그려졌다.
+//   '/admin' 은 '/admin/security', '/settings' 는 '/settings/billing' 을 함께 덮는다(startsWith). '/tests' 는 '/test-cycles' 와 겹치지 않는다.
+//   공개 경로(/, /lp, /pricing, /login, /reset-password, /terms, /privacy)·/api·/health 는 여기 넣지 않는다 — lib/appRoutes PUBLIC_SCREENS 가 정본.
+const P = ['/dashboard','/projects','/phases','/members','/requirements','/issues','/risks','/tasks','/backlog','/documents','/interfaces','/infra','/firewall','/procurement','/boards','/meetings','/notifications','/apps',
+  '/mywork','/todos','/reports','/weekly','/snapshots','/rtm','/form-definitions','/tests','/test-cycles','/calendar','/workload','/admin','/audit','/settings'];
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   let res: NextResponse;
