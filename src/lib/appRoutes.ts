@@ -73,6 +73,7 @@ export const PUBLIC_SCREENS: AppScreen[] = [
   { href: '/lp', label: '서비스 소개', access: 'public' },
   { href: '/pricing', label: '요금제', aliases: ['plan', '가격'], access: 'public' },
   { href: '/login', label: '로그인', aliases: ['login', 'signin', '가입'], access: 'public' },
+  { href: '/reset-password', label: '비밀번호 재설정', aliases: ['reset', 'password', '비밀번호'], access: 'public' },
   { href: '/terms', label: '이용약관', access: 'public' },
   { href: '/privacy', label: '개인정보 처리방침', access: 'public' },
 ];

@@ -102,7 +102,7 @@ test('parseColumnExpr 는 drizzle 컬럼 표현식을 읽고, 모르는 꼴은 n
 
 test('실제 schema.ts 가 빠짐없이 파싱된다', () => {
   assert.deepEqual(unparsed, [], `해석 못한 컬럼이 있으면 대조가 무의미하다: ${JSON.stringify(unparsed)}`);
-  assert.equal(model.tables.length, 33);
+  assert.equal(model.tables.length, 37); // 배치181: +password_reset_tokens·attachments·issue_links·form_entries
   // 복합 PK·유니크 인덱스 같은 무결성 장치가 실제로 읽혔는지
   assert.deepEqual(model.byTable['role_permissions'].compositePk, ['orgId', 'role', 'permissionId']);
   assert.deepEqual(model.byTable['counters'].compositePk, ['orgId', 'scope']);
@@ -186,7 +186,7 @@ test('빈 DB 에 migrate 만 돌리면 기반 테이블 25개가 만들어지지
     KNOWN_WITHOUT_CREATE.slice().sort(),
     '목록이 바뀌었다 — 새 테이블에 CREATE DDL 을 빠뜨렸거나 베이스라인을 승격했다. RUNBOOK §3 도 함께 고쳐라',
   );
-  assert.equal(audit.createdByMigration.length, 8, 'migrate 가 만드는 schema.ts 테이블');
+  assert.equal(audit.createdByMigration.length, 12, 'migrate 가 만드는 schema.ts 테이블(배치181 +4)');
   assert.equal(audit.createdByMigration.length + audit.tablesWithoutCreate.length, model.tables.length);
 
   // 조용한 실패의 증거: 대상 테이블이 없는데 IF EXISTS 때문에 오류조차 안 나는 ALTER
@@ -270,8 +270,8 @@ test('RUNBOOK §3 이 migrate 단독 복구를 더 이상 약속하지 않는다
 
 test('schemaBaselineStatus 가 현재 상태를 숫자로 요약한다', () => {
   const s = schemaBaselineStatus(model, ddl);
-  assert.equal(s.schemaTables, 33);
-  assert.equal(s.createdByMigration, 8);
+  assert.equal(s.schemaTables, 37);
+  assert.equal(s.createdByMigration, 12);
   assert.equal(s.tablesWithoutCreate, 25);
   assert.equal(s.migrateAloneRestoresSchema, false, '지금은 migrate 단독으로 복원되지 않는다');
   assert.equal(s.drift, 0, '만들어지는 테이블 범위에는 드리프트가 없다');

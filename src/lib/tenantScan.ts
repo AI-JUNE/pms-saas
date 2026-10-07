@@ -41,7 +41,8 @@ export interface ScanReport {
   allowed: Finding[];
 }
 
-export const GLOBAL_TABLES = new Set(['users', 'sessions', 'permissions']);
+// password_reset_tokens(배치181): 사용자 스코프(user_id FK) — org 컬럼이 없고 토큰 해시로만 조회한다.
+export const GLOBAL_TABLES = new Set(['users', 'sessions', 'permissions', 'passwordResetTokens', 'password_reset_tokens']);
 export const ORG_ROOT_TABLE = 'organizations';
 export const ALLOW_RE = /\/\/\s*tenant-scan:\s*allow\((.+?)\)/;
 

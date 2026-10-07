@@ -102,6 +102,14 @@ export const ENV_VARS: EnvVar[] = [
   { key: 'RECOVERY_BASELINE_MAX_AGE_DAYS', kind: 'config', group: '복구 리허설', note: '위 스냅샷의 갱신 기한(일). 미설정 시 낡음 판정 보류 — 임의 기본 주기 없음' },
   { key: 'RECOVERY_WRITE_FREEZE', kind: 'switch', group: '복구 리허설', note: 'RUNBOOK §3 2단계 쓰기 차단(읽기전용 모드). 평상시 반드시 OFF — 켜진 채 복구되면 전 사용자의 저장이 503 으로 거절된다' },
 
+  // ── 메일·첨부 저장소·감사 보존(배치181, 전부 기본 미연동 — 활성화는 승인) ──
+  { key: 'MAIL_PROVIDER', kind: 'config', group: '메일·첨부·보존', note: '메일 발송 제공자. 미설정 = log 스텁(실발송 0, 비밀번호 재설정 메일이 나가지 않는다) [활성화 승인 필요]', indirectIn: 'src/lib/passwordReset.ts' },
+  { key: 'PASSWORD_RESET_TTL_MIN', kind: 'config', group: '메일·첨부·보존', note: '비밀번호 재설정 링크 유효시간(분, 5~1440). 미설정 시 30분', indirectIn: 'src/lib/passwordReset.ts' },
+  { key: 'STORAGE_PROVIDER', kind: 'config', group: '메일·첨부·보존', note: '첨부 파일 저장소. 미설정 = 메타데이터 전용(파일 본문 미보관) [활성화 승인 필요]', indirectIn: 'src/lib/attachments.ts' },
+  { key: 'ATTACHMENT_MAX_MB', kind: 'config', group: '메일·첨부·보존', note: '첨부 기록 상한(MB, 1~500). 미설정 시 20', indirectIn: 'src/lib/attachments.ts' },
+  { key: 'ATTACHMENT_RETENTION_DAYS', kind: 'config', group: '메일·첨부·보존', note: '첨부 기록 보존 일수(만료일 계산). 미설정 시 365 — 운영 확정 전 기본값 [확인 필요]', indirectIn: 'src/lib/attachments.ts' },
+  { key: 'AUDIT_RETENTION_DAYS', kind: 'config', group: '메일·첨부·보존', note: '감사로그 보존 일수(30~3650). 미설정 시 365 를 쓰되 화면·응답에 「운영 확정 전 기본값」으로 표기. 자동 삭제는 없다 [확인 필요]', indirectIn: 'src/lib/auditQuery.ts' },
+
   // ── 사이트·포털 ──
   { key: 'SITE_URL', kind: 'config', group: '사이트', note: 'canonical·robots·sitemap 의 정본 origin' },
   { key: 'NEXT_PUBLIC_SITE_URL', kind: 'config', group: '사이트', note: 'SITE_URL 대체값. 클라이언트 번들에 인라인된다' },

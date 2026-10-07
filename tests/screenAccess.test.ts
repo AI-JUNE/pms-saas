@@ -133,7 +133,7 @@ test('[실제 소스] 관리 화면 3곳에 서버 레이아웃 게이트가 있
   }
   const gate = read('src', 'components', 'ScreenGate.tsx');
   assert.ok(gate.includes('screenDecision(') && gate.includes("redirect('/login')"), 'ScreenGate 가 판정·리다이렉트를 하지 않는다');
-  assert.ok(!gate.includes("'use client'"), 'ScreenGate 는 서버 컴포넌트여야 한다(세션 쿠키를 서버에서 읽는다)');
+  assert.ok(!/^\s*(['"])use client\1/.test(gate), 'ScreenGate 는 서버 컴포넌트여야 한다(세션 쿠키를 서버에서 읽는다)');
 });
 
 test('[실제 소스] 화면이 부르는 API 도 같은 정책으로 403 을 낸다 ⬅ UI 우회 차단', () => {

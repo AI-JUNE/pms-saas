@@ -1,15 +1,12 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { ResourceView } from '@/components/ResourceView';
+import { parseFieldDefs, FIELD_TYPE_LABEL } from '@/lib/formRender';
 
 type DocStat = { total: number; approved: number; review: number; draft: number; rejected: number };
 
-// 양식 항목(fields)은 줄바꿈 구분 텍스트로 저장 — 목록 표시용으로 파싱
-const parseItems = (v: any): string[] =>
-  String(v ?? '')
-    .split(/\r?\n/)
-    .map((s) => s.trim())
-    .filter(Boolean);
+// 양식 항목(fields): 옛 줄바꿈 텍스트와 빌더가 저장하는 JSON 정의(타입·필수·선택지) 둘 다 읽는다(lib/formRender)
+const parseItems = (v: any): string[] => parseFieldDefs(v).defs.map((d) => `${d.label}${d.required ? ' *' : ''}${d.type !== 'text' ? ` (${FIELD_TYPE_LABEL[d.type]})` : ''}`);
 
 const nfmt = (n: number) => n.toLocaleString('ko-KR');
 
@@ -79,7 +76,7 @@ export default function Page() {
       {key:'name',label:'양식명',required:true,placeholder:'예: 단위테스트 결과서 양식'},
       {key:'targetType',label:'대상 산출물 유형',type:'combo',half:true,options:['요구사항정의서','설계서','테스트결과서','회의록','점검표','매뉴얼','기타']},
       {key:'status',label:'상태',type:'select',half:true,options:[{value:'draft',label:'작성중'},{value:'active',label:'사용'},{value:'archived',label:'보관'}]},
-      {key:'fields',label:'양식 항목(줄바꿈으로 구분)',type:'textarea',placeholder:'항목1\n항목2\n항목3'},
+      {key:'fields',label:'양식 항목(줄바꿈으로 구분 — 타입·필수·선택지는 상세의 「양식 빌더」에서)',type:'textarea',placeholder:'항목1\n항목2\n항목3',hint:'저장 후 상세 패널의 양식 빌더로 항목 타입(텍스트·숫자·날짜·선택·여러 줄·체크)과 필수 여부를 지정할 수 있습니다. 빌더가 저장하면 JSON 정의로 바뀝니다.'},
       {key:'note',label:'설명·작성지침',type:'textarea'},
     ]} />;
 }

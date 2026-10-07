@@ -231,3 +231,40 @@ export const issueWatchers = pgTable('issue_watchers', {
   userId: integer('user_id').notNull(), userName: text('user_name').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({ i: index('issue_watchers_idx').on(t.orgId, t.issueId), u: uniqueIndex('issue_watchers_uniq').on(t.orgId, t.issueId, t.userId) }));
+
+// ── 2026-10-07 배치181(주간 수동) 신규 4종 — DDL 은 lib/migrate.ts MIGRATION_DDL(멱등, 부팅 자동) 에 같은 컬럼으로 선언 ──
+// 비밀번호 재설정 토큰 — 원문은 저장하지 않고 sha256 해시만. 사용자 스코프(org 없음) → tenantScan GLOBAL_TABLES 에 등재
+export const passwordResetTokens = pgTable('password_reset_tokens', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  tokenHash: text('token_hash').notNull(), expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  usedAt: timestamp('used_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({ h: uniqueIndex('password_reset_tokens_hash_idx').on(t.tokenHash), u: index('password_reset_tokens_user_idx').on(t.userId) }));
+// 첨부(메타데이터) — 산출물·이슈. STORAGE_PROVIDER 미설정이면 본문 없이 파일명·크기·형식·만료일만(status=metadata_only)
+export const attachments = pgTable('attachments', {
+  id: serial('id').primaryKey(), orgId: integer('org_id').notNull(),
+  entity: text('entity').notNull(), entityId: integer('entity_id').notNull(),
+  filename: text('filename').notNull(), size: integer('size').default(0).notNull(), mime: text('mime'),
+  provider: text('provider').default('none').notNull(), storageKey: text('storage_key'), status: text('status').default('metadata_only').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }),
+  uploadedBy: integer('uploaded_by').notNull(), uploaderName: text('uploader_name').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({ i: index('attachments_entity_idx').on(t.orgId, t.entity, t.entityId) }));
+// 이슈 관계(차단함·연관·중복) — blocks 만 방향 있음(src 가 dst 를 차단)
+export const issueLinks = pgTable('issue_links', {
+  id: serial('id').primaryKey(), orgId: integer('org_id').notNull(),
+  srcIssueId: integer('src_issue_id').notNull().references(() => issues.id, { onDelete: 'cascade' }),
+  dstIssueId: integer('dst_issue_id').notNull().references(() => issues.id, { onDelete: 'cascade' }),
+  kind: text('kind').default('relates').notNull(), createdBy: integer('created_by'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({ s: index('issue_links_src_idx').on(t.orgId, t.srcIssueId), d: index('issue_links_dst_idx').on(t.orgId, t.dstIssueId) }));
+// 커스텀 양식 입력 — form_definitions.fields 정의대로 검증된 값(JSON). document_id 는 선택(산출물에 매인 입력)
+export const formEntries = pgTable('form_entries', {
+  id: serial('id').primaryKey(), orgId: integer('org_id').notNull(),
+  projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  formDefinitionId: integer('form_definition_id').notNull().references(() => formDefinitions.id, { onDelete: 'cascade' }),
+  documentId: integer('document_id'), data: text('data'),
+  createdBy: integer('created_by').notNull(), authorName: text('author_name').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => ({ i: index('form_entries_def_idx').on(t.orgId, t.formDefinitionId) }));

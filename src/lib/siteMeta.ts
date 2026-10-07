@@ -3,7 +3,7 @@
 // 주의: 여기서 결정하는 것은 색인(robots/sitemap) 뿐이며, 접근 제어는 middleware/requireUser 가 담당한다.
 
 /** 검색 색인을 허용하는 공개 경로(마케팅·법적고지). 이 목록에 없으면 색인 대상이 아니다. */
-export const PUBLIC_PATHS = ['/', '/lp', '/pricing', '/terms', '/privacy', '/login'] as const;
+export const PUBLIC_PATHS = ['/', '/lp', '/pricing', '/terms', '/privacy', '/login', '/reset-password'] as const;
 
 /** 색인/크롤 금지 경로 접두사. 인증 뒤 앱 화면 + 모든 API + 관리자. */
 export const DISALLOW_PREFIXES = [
@@ -51,6 +51,7 @@ const SITEMAP_HINTS: Record<string, { priority: number; changeFrequency: 'daily'
   '/terms': { priority: 0.3, changeFrequency: 'yearly' },
   '/privacy': { priority: 0.3, changeFrequency: 'yearly' },
   '/login': { priority: 0.2, changeFrequency: 'yearly' },
+  '/reset-password': { priority: 0.1, changeFrequency: 'yearly' },
 };
 
 const DEFAULT_SITE_URL = 'https://pms.example.com';

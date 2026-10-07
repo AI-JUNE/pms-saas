@@ -184,7 +184,7 @@ textarea.in{min-height:84px;resize:vertical}
 .auth{min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(130% 130% at 50% -10%,#e7ecff 0%,var(--bg) 52%)}
 .auth-card{width:412px;background:#fff;border:1px solid var(--border);border-radius:22px;box-shadow:var(--sh-lg);padding:36px 34px}
 .auth-tabs{display:flex;gap:4px;background:var(--surface-3);padding:4px;border-radius:12px;margin-bottom:22px}
-.auth-tab{flex:1;text-align:center;padding:9px;border-radius:9px;font-weight:700;font-size:13px;color:var(--text-2)}
+.auth-tab{flex:1;text-align:center;padding:9px;border-radius:9px;font-weight:700;font-size:13px;color:var(--text-2);border:0;background:transparent;cursor:pointer;font-family:inherit;line-height:inherit}
 .auth-tab.on{background:#fff;color:var(--text-1);box-shadow:var(--sh-sm)}
 
 /* v4 additions */

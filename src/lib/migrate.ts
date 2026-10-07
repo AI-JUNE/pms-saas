@@ -120,6 +120,21 @@ export const MIGRATION_DDL: string[] = [
   `CREATE INDEX IF NOT EXISTS form_definitions_project_idx ON form_definitions (org_id, project_id)`,
   // 조직 초대 코드(팀원 합류)
   `ALTER TABLE IF EXISTS organizations ADD COLUMN IF NOT EXISTS invite_code text`,
+  // ── 2026-10-07 배치181(주간 수동) 신규 4종 — schema.ts 선언과 컬럼이 1:1(테스트가 원문을 대조한다) ──
+  // 비밀번호 재설정 토큰(해시만 저장)
+  `CREATE TABLE IF NOT EXISTS password_reset_tokens (id serial PRIMARY KEY, user_id integer NOT NULL REFERENCES users(id) ON DELETE CASCADE, token_hash text NOT NULL, expires_at timestamptz NOT NULL, used_at timestamptz, created_at timestamptz DEFAULT now() NOT NULL)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS password_reset_tokens_hash_idx ON password_reset_tokens (token_hash)`,
+  `CREATE INDEX IF NOT EXISTS password_reset_tokens_user_idx ON password_reset_tokens (user_id)`,
+  // 첨부 메타데이터(산출물·이슈)
+  `CREATE TABLE IF NOT EXISTS attachments (id serial PRIMARY KEY, org_id integer NOT NULL, entity text NOT NULL, entity_id integer NOT NULL, filename text NOT NULL, size integer DEFAULT 0 NOT NULL, mime text, provider text DEFAULT 'none' NOT NULL, storage_key text, status text DEFAULT 'metadata_only' NOT NULL, expires_at timestamptz, uploaded_by integer NOT NULL, uploader_name text NOT NULL, created_at timestamptz DEFAULT now() NOT NULL)`,
+  `CREATE INDEX IF NOT EXISTS attachments_entity_idx ON attachments (org_id, entity, entity_id)`,
+  // 이슈 관계
+  `CREATE TABLE IF NOT EXISTS issue_links (id serial PRIMARY KEY, org_id integer NOT NULL, src_issue_id integer NOT NULL REFERENCES issues(id) ON DELETE CASCADE, dst_issue_id integer NOT NULL REFERENCES issues(id) ON DELETE CASCADE, kind text DEFAULT 'relates' NOT NULL, created_by integer, created_at timestamptz DEFAULT now() NOT NULL)`,
+  `CREATE INDEX IF NOT EXISTS issue_links_src_idx ON issue_links (org_id, src_issue_id)`,
+  `CREATE INDEX IF NOT EXISTS issue_links_dst_idx ON issue_links (org_id, dst_issue_id)`,
+  // 커스텀 양식 입력
+  `CREATE TABLE IF NOT EXISTS form_entries (id serial PRIMARY KEY, org_id integer NOT NULL, project_id integer NOT NULL REFERENCES projects(id) ON DELETE CASCADE, form_definition_id integer NOT NULL REFERENCES form_definitions(id) ON DELETE CASCADE, document_id integer, data text, created_by integer NOT NULL, author_name text NOT NULL, created_at timestamptz DEFAULT now() NOT NULL)`,
+  `CREATE INDEX IF NOT EXISTS form_entries_def_idx ON form_entries (org_id, form_definition_id)`,
 ];
 
 /** 앱이 실제로 쓰는 테이블 = drizzle 선언 ∪ MIGRATION_DDL 이 CREATE 하는 테이블 */

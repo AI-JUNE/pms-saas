@@ -46,19 +46,36 @@ export default function LoginPage() {
     <div className="auth"><div className="auth-card">
       <div style={{ display: 'flex', justifyContent: 'center' }}><Logo /></div>
       <p className="muted" style={{ textAlign: 'center', margin: '6px 0 24px' }}>프로젝트 관리 시스템</p>
-      <div className="auth-tabs">
-        <div className={`auth-tab ${mode === 'login' ? 'on' : ''}`} onClick={() => setMode('login')}>로그인</div>
-        <div className={`auth-tab ${mode === 'register' ? 'on' : ''}`} onClick={() => setMode('register')}>회원가입</div>
+      {/* 탭 접근성(배치181, 주간 수동): tablist/tab 시맨틱 + 로빙 tabIndex + 화살표·Home/End 이동. 포커스 링은 전역 [role="tab"]:focus-visible */}
+      <div className="auth-tabs" role="tablist" aria-label="로그인 또는 회원가입 선택" onKeyDown={(e) => {
+        const order: Array<'login' | 'register'> = ['login', 'register'];
+        const i = order.indexOf(mode);
+        let next: 'login' | 'register' | null = null;
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = order[(i + 1) % order.length];
+        else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = order[(i - 1 + order.length) % order.length];
+        else if (e.key === 'Home') next = order[0];
+        else if (e.key === 'End') next = order[order.length - 1];
+        if (!next) return;
+        e.preventDefault(); setMode(next); setErr('');
+        document.getElementById(`auth-tab-${next}`)?.focus();
+      }}>
+        {(['login', 'register'] as const).map((m) => (
+          <button key={m} type="button" id={`auth-tab-${m}`} role="tab" aria-selected={mode === m} aria-controls="auth-panel" tabIndex={mode === m ? 0 : -1} className={`auth-tab ${mode === m ? 'on' : ''}`} onClick={() => { setMode(m); setErr(''); }}>
+            {m === 'login' ? '로그인' : '회원가입'}
+          </button>
+        ))}
       </div>
-      {err && <div className="err" style={{ margin: '0 0 14px' }}>{err}</div>}
-      <form onSubmit={submit}>
+      {err && <div className="err" role="alert" style={{ margin: '0 0 14px' }}>{err}</div>}
+      <form onSubmit={submit} id="auth-panel" role="tabpanel" aria-labelledby={`auth-tab-${mode}`}>
         {mode === 'register' && (<>
           <div className="field"><label>이름</label><input className="in" value={form.name} onChange={set('name')} placeholder="홍길동" /></div>
           <div className="field"><label>조직명 <span style={{fontWeight:400,color:'var(--text-3)'}}>(초대 코드로 합류 시 생략 가능)</span></label><input className="in" value={form.orgName} onChange={set('orgName')} placeholder="우리 회사" /></div>
           <div className="field"><label>초대 코드 <span style={{fontWeight:400,color:'var(--text-3)'}}>(선택 · 팀 합류 시)</span></label><input className="in" value={form.inviteCode} onChange={set('inviteCode')} placeholder="관리자에게 받은 코드" style={{textTransform:'uppercase'}} /></div>
         </>)}
         <div className="field"><label>이메일</label><input className="in" type="email" value={form.email} onChange={set('email')} placeholder="you@company.com" /></div>
-        <div className="field"><label>비밀번호</label><input className="in" type="password" value={form.password} onChange={set('password')} placeholder="8자 이상" /></div>
+        <div className="field"><label>비밀번호</label><input className="in" type="password" value={form.password} onChange={set('password')} placeholder="8자 이상" />
+          {mode === 'login' && <a href="/reset-password" style={{ display: 'inline-block', marginTop: 6, fontSize: 12.5, color: 'var(--brand-600)', fontWeight: 700 }}>비밀번호를 잊으셨나요?</a>}
+        </div>
         {mode === 'register' && (
           <div className="field" style={{ display: 'grid', gap: 6, marginTop: 4 }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 400, fontSize: 13 }}>

@@ -7,6 +7,7 @@ import { handle, ok } from '@/lib/http';
 import { PLANS } from '@/lib/billing';
 import { summarizeEntitlements } from '@/lib/entitlements';
 import { billingStatus } from '@/lib/portone';
+import { assertScreenAccess } from '@/lib/rbac';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,6 +17,7 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   return handle(async () => {
     const ctx = await requireTenant(await requireUser());
+    assertScreenAccess(ctx, '/settings/billing');
     const org = (await db.select({
       id: organizations.id,
       name: organizations.name,

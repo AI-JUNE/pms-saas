@@ -73,6 +73,7 @@ export const RL = {
   authLogin: { key: 'auth:login', limit: 8, windowMs: 60_000 },       // 로그인 시도 분당 8회
   authRegister: { key: 'auth:register', limit: 5, windowMs: 60_000 }, // 가입 분당 5회
   authAuto: { key: 'auth:auto', limit: 20, windowMs: 60_000 },
+  authReset: { key: 'auth:reset', limit: 5, windowMs: 60_000 },     // 비밀번호 재설정 요청·확인 분당 5회(계정 열거·토큰 추측 방어)
   // 공개(인증 불필요) API — 남용 방어용. 정상 사용/모니터링을 막지 않도록 넉넉히 잡는다.
   publicHealth: { key: 'public:health', limit: 120, windowMs: 60_000 },   // 업타임 모니터 여유분
   publicPlans: { key: 'public:plans', limit: 60, windowMs: 60_000 },      // 랜딩 요금제 조회
