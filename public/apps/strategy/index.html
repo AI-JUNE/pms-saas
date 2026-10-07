@@ -327,6 +327,19 @@
   .uploadnote{display:flex;gap:11px;align-items:flex-start;background:#eef6fc;border:1px solid #cfe4f5;border-radius:13px;padding:13px 16px;margin-bottom:16px;font-size:12.5px;color:var(--ink-dim);line-height:1.6}
   .uploadnote .ico{color:var(--accent);font-size:17px;flex-shrink:0}.uploadnote b{color:var(--accent)}
 
+
+/* ---------- 최근 분석 결과 (브라우저 보관) — 2026-09-30 ---------- */
+.saved-results{margin:18px 0;padding:14px 16px;border:1px solid #e6eaf2;border-radius:12px;background:#fff;font-size:13px;color:#1a2233}
+.saved-results .sr-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.saved-results .sr-head span{color:#69738c;font-size:12px}
+.saved-results .sr-head .sr-clear{margin-left:auto}
+.saved-results .sr-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid #eef1f8;flex-wrap:wrap}
+.saved-results .sr-t{font-weight:700;min-width:6em;overflow-wrap:anywhere}
+.saved-results .sr-d,.saved-results .sr-c{color:#69738c;font-size:12px;font-variant-numeric:tabular-nums}
+.saved-results button{border:1px solid #d8dde8;background:#fafbfe;border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer;color:#1a2233}
+.saved-results button:hover{background:#eef2fb}
+.saved-results button:focus-visible{outline:2px solid #3b6fe0;outline-offset:1px}
+.saved-results .sr-row button:first-of-type{margin-left:auto}
 </style>
 </head>
 <body>
@@ -765,6 +778,91 @@ function warnIfTruncated(p,d){ if(!llmTruncated(p,d))return false; try{ toast('�
   throw new Error("알 수 없는 프로바이더");}
 
 let lastResult=null,lastHash='',lastPayload=null,lastMeta=null,editId=null;
+
+/* ---------- 분석 결과 보관 (이 브라우저에만) — 2026-09-30 ----------
+ * 왜: 지금은 새로고침하면 분석 결과가 사라진다. 서버·클라우드 없이 **이 브라우저에만** 둔다.
+ * 저장하는 것: 도출 결과(lastResult)·표시 메타(lastMeta)·**프로젝트명 하나**.
+ * 저장하지 않는 것: 입력 원본(lastPayload) — 영업 정보·고객 고민·**콜통계·장애·VOC**·인터뷰 내용이 들어 있다. 화면은 이 중 프로젝트명만 쓴다.
+ * 한도: 최근 10건 · 90일. 넘치면 오래된 것부터 버린다. 용량이 모자라면 오래된 것부터 줄여 다시 시도한다.
+ * 데모 결과는 저장하지 않는다 — _resultId 가 없으면 저장하지 않는다.
+ * 키 이름을 앱별로 나눈다(ecs_results_v1). PMS 포털 안에서는 3003·3004 가 **같은 오리진**이라
+ * 같은 이름을 쓰면 서로 덮어쓴다. */
+const RES_KEY='ecs_results_v1', RES_MAX=10, RES_TTL=90*864e5;
+let _resultId=null;
+function resList(){
+  try{
+    const a=JSON.parse(localStorage.getItem(RES_KEY)||'[]');
+    if(!Array.isArray(a)) return [];
+    const now=Date.now();
+    // 다른 스크립트가 같은 키를 망가뜨렸을 수 있다 — 모양이 맞는 것만 받는다.
+    return a.filter(x=>x&&typeof x.id==='string'&&/^r\d+$/.test(x.id)&&x.result&&typeof x.result==='object'&&(now-(+x.ts||0))<RES_TTL);
+  }catch(e){ return []; }
+}
+function resWrite(a){
+  try{ localStorage.setItem(RES_KEY, JSON.stringify(a.slice(0,RES_MAX))); return true; }
+  catch(e){ lsFail(e,'분석 결과'); return false; }
+}
+function persistResult(){
+  if(!lastResult||!_resultId) return;
+  const name=String((lastPayload&&lastPayload.base&&lastPayload.base['프로젝트명'])||'').slice(0,80);
+  const fe=lastResult.final_evaluation||{};
+  const a=resList().filter(x=>x.id!==_resultId);
+  a.unshift({id:_resultId, ts:Date.now(), name:name, grade:String(fe.grade||'').slice(0,4), score:fe.score, result:lastResult, meta:lastMeta||null});
+  // 용량이 모자라면 오래된 것부터 버려 가며 다시 쓴다. 한 건도 못 남기면 그때 알린다.
+  while(a.length){
+    try{ localStorage.setItem(RES_KEY, JSON.stringify(a.slice(0,RES_MAX))); return; }
+    catch(e){ if(a.length<=1){ lsFail(e,'분석 결과'); return; } a.pop(); }
+  }
+}
+let __persistT=null;
+function persistSoon(){ if(!_resultId) return; clearTimeout(__persistT); __persistT=setTimeout(persistResult,400); }
+function deleteResult(id){ resWrite(resList().filter(x=>x.id!==id)); if(_resultId===id) _resultId=null; renderSavedResults(); }
+function clearResults(){
+  if(!confirm('이 브라우저에 보관된 분석 결과를 모두 지웁니다. 되돌릴 수 없습니다.')) return;
+  try{ localStorage.removeItem(RES_KEY); }catch(e){}
+  _resultId=null; renderSavedResults(); toast('보관된 결과를 모두 지웠습니다');
+}
+function renderSavedResults(){
+  const box=document.getElementById('savedResults'); if(!box) return;
+  const a=resList();
+  box.textContent='';
+  if(!a.length) return;
+  const fmt=t=>{ const d=new Date(+t); return (d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); };
+  // DOM 으로 만든다 — 문자열 HTML 이 아니므로 이스케이프에 기대지 않는다(textContent·dataset 은 그 자체로 안전).
+  const mk=(tag,cls,text)=>{ const n=document.createElement(tag); if(cls) n.className=cls; if(text!=null) n.textContent=String(text); return n; };
+  const btn=(act,label,id)=>{ const b=mk('button',act==='rclear'?'sr-clear':'',label); b.type='button'; b.dataset.act=act; if(id) b.dataset.id=id; return b; };
+  const wrap=mk('div','saved-results'), head=mk('div','sr-head');
+  head.append(mk('b',null,'최근 분석 결과'), mk('span',null,'이 브라우저에만 보관 · 최근 '+RES_MAX+'건 · 90일'), btn('rclear','모두 지우기'));
+  wrap.append(head);
+  for(const x of a){
+    const row=mk('div','sr-row');
+    row.append(mk('span','sr-t',x.name||'(프로젝트명 없음)'), mk('span','sr-d',fmt(x.ts)), mk('span','sr-c',(x.grade?'등급 '+x.grade:'')+(Number.isFinite(+x.score)?' · '+Math.round(+x.score)+'점':'')), btn('rload','불러오기',x.id), btn('rdel','삭제',x.id));
+    wrap.append(row);
+  }
+  box.append(wrap);
+}
+function mountSavedResults(el){
+  if(!el) return;
+  let box=el.querySelector('#savedResults');
+  if(!box){ box=document.createElement('div'); box.id='savedResults'; el.appendChild(box); }
+  renderSavedResults();
+}
+// 위임 — 데이터가 들어가는 버튼에 인라인 핸들러를 쓰지 않는다(08-12 규약: data-act + 위임).
+document.addEventListener('click',e=>{
+  const b=e.target&&e.target.closest&&e.target.closest('#savedResults [data-act]'); if(!b) return;
+  const act=b.getAttribute('data-act'), id=b.getAttribute('data-id')||'';
+  if(act==='rload') restoreResult(id); else if(act==='rdel') deleteResult(id); else if(act==='rclear') clearResults();
+});
+
+function restoreResult(id){
+  const x=resList().find(y=>y.id===id);
+  if(!x){ toast('보관된 결과를 찾지 못했습니다.'); renderSavedResults(); return; }
+  lastResult=x.result; lastPayload={base:{'프로젝트명':x.name||''}}; lastMeta=x.meta||null;
+  lastHash=''; editId=null; improveNeedsData=[]; _resultId=x.id;
+  goStep(4); render(lastResult,lastPayload,lastMeta);
+  toast('보관된 결과를 불러왔습니다 · 입력 내용은 보관하지 않으므로 다시 도출하려면 입력을 채워 주세요');
+}
+
 async function derive(){const p=collect();const cnt=[p.영업고객,p.PS,p.운영].reduce((a,o)=>a+Object.entries(o).filter(([k,v])=>!k.startsWith('_')&&k!=='작성자'&&v).length,0)+(p.인터뷰.내용?1:0)+files.length+(p.SWOT.강점||p.SWOT.약점?1:0);
   if(!p.base.프로젝트명||cnt<2){toast('프로젝트명 + 데이터 2개 이상 입력');tab('t-input');return;}
   const prov=activeProv,key=PROV[prov].key.trim(),maxTok=parseInt(val('api_maxtok'))||5000;
@@ -778,7 +876,7 @@ async function derive(){const p=collect();const cnt=[p.영업고객,p.PS,p.운�
   if(curReady<50&&!confirm('준비도 '+curReady+'%로 낮습니다. 그래도 도출할까요?')){btn.disabled=false;document.getElementById('run2').disabled=false;return;}
   const msgs=["제안 준비서 분석 중…","SWOT·고객 고민 → Hot Button 추출 중…","근거 신뢰도 가중·정합성 점검 중…","기존 전략 초안 평가 중…","전략 채점·임원 대시보드 구성 중…"];
   out.innerHTML=`<div class="loading"><div class="spinner"></div><div class="msg" id="lmsg">${msgs[0]}</div></div>`;let mi=0;const timer=setInterval(()=>{mi=(mi+1)%msgs.length;const lm=document.getElementById('lmsg');if(lm)lm.textContent=msgs[mi];},1400);
-  try{const o=await callModel(prov,model,key,SYSTEM_PROMPT,buildUserMsg(p),files,maxTok);logUsage(prov,model,o.inTok,o.outTok);lastResult=parseModelJSON(o.text);lastHash=h;improveNeedsData=[];render(lastResult,p,{prov,model,inTok:o.inTok,outTok:o.outTok});}
+  try{const o=await callModel(prov,model,key,SYSTEM_PROMPT,buildUserMsg(p),files,maxTok);logUsage(prov,model,o.inTok,o.outTok);lastResult=parseModelJSON(o.text);_resultId='r'+Date.now();persistSoon();lastHash=h;improveNeedsData=[];render(lastResult,p,{prov,model,inTok:o.inTok,outTok:o.outTok});}
   catch(e){out.innerHTML=`<div class="err"><b>도출 실패</b><br>${(e.message||e).toString()}<br><br>· 설정 탭 → 연결 테스트로 키 확인<br>· 멀티 프로바이더는 자체 호스팅/로컬 실행에서 동작<br>· JSON 아닐 경우 최대 출력 토큰을 늘려보세요.</div>`;}
   finally{clearInterval(timer);btn.disabled=false;document.getElementById('run2').disabled=false;refresh();}}
 
@@ -869,7 +967,7 @@ function saveEdit(i){const s=lastResult.strategies[i];const g=id=>{const e=docum
   s.title=g('e_title_'+i).trim();s.key_message=g('e_key_'+i).trim();s.type=g('e_type_'+i).trim();s.axis=g('e_axis_'+i).trim();s.why_ecs=g('e_why_'+i).trim();s.differentiation=g('e_diff_'+i).trim();
   s.data_anchors=g('e_anc_'+i).split('\n').map(x=>x.trim()).filter(Boolean);s.sub_strategies=g('e_sub_'+i).split('\n').map(x=>x.trim()).filter(Boolean);s.rfp_link=g('e_rfp_'+i).trim();s._notes=g('e_note_'+i).trim();
   editId=null;renderCurrent();toast('전략 수정 저장됨');}
-function addStrategy(){if(!lastResult){lastResult={set_diagnosis:{},strategies:[]};}lastResult.strategies.push({no:lastResult.strategies.length+1,title:'(새 전략 제목 — 편집하세요)',type:'',axis:'',why_ecs:'',differentiation:'',data_anchors:[],sub_strategies:[],eval:{차별성:0,데이터근거:0,RFP적합성:0,실행가능성:0,total:0,comment:''},evidence_status:'미검증',replicability:'mid',_picked:true});editId=lastResult.strategies.length-1;tab('t-out');renderCurrent();}
+function addStrategy(){if(!lastResult){lastResult={set_diagnosis:{},strategies:[]};_resultId='r'+Date.now();}lastResult.strategies.push({no:lastResult.strategies.length+1,title:'(새 전략 제목 — 편집하세요)',type:'',axis:'',why_ecs:'',differentiation:'',data_anchors:[],sub_strategies:[],eval:{차별성:0,데이터근거:0,RFP적합성:0,실행가능성:0,total:0,comment:''},evidence_status:'미검증',replicability:'mid',_picked:true});editId=lastResult.strategies.length-1;tab('t-out');renderCurrent();}
 function deleteStrategy(i){if(!lastResult)return;if(!confirm('이 전략을 삭제할까요?'))return;lastResult.strategies.splice(i,1);if(editId===i)editId=null;renderCurrent();}
 function radarSVG(vals){const cx=90,cy=80,R=58,ang=[-90,0,90,180];
   const pt=(v,i)=>{const a=ang[i]*Math.PI/180,r=R*Math.max(0,Math.min(100,v))/100;return [cx+r*Math.cos(a),cy+r*Math.sin(a)];};
@@ -898,10 +996,10 @@ async function improveAll(){if(!lastResult)return;const picked=lastResult.strate
   catch(e){toast('보강 실패: '+(e.message||e).toString().slice(0,50));}
   finally{const b=document.getElementById('improveBtn');if(b){b.disabled=false;b.textContent='🚀 전략 세트 보강 — 점수 향상';}}}
 function renderImproveOut(){const el=document.getElementById('improve-out');if(!el)return;if(!improveNeedsData.length){el.innerHTML='';return;}el.innerHTML=`<div class="gap-card" style="margin-top:12px"><div class="h">📈 점수를 더 올리려면 — 필요한 데이터</div><ul>${improveNeedsData.map(g=>`<li>${esc(g)}</li>`).join('')}</ul></div>`;}
-function renderCurrent(){if(lastResult)render(lastResult,lastPayload||{base:{}},lastMeta);}
+function renderCurrent(){if(lastResult)render(lastResult,lastPayload||{base:{}},lastMeta);persistSoon();}
 function saveResult(){if(!lastResult){toast('도출 결과 없음');return;}const blob=new Blob([JSON.stringify({result:lastResult,payload:lastPayload},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(val('f_name')||'전략결과')+'_결과저장.json';a.click();toast('결과 저장 — 나중에 불러와 이어서 편집·심화');}
-function loadResult(file){if(!file)return;const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);lastResult=o.result||o;lastPayload=o.payload||lastPayload||{base:{}};lastHash='';editId=null;tab('t-out');render(lastResult,lastPayload,null);toast('결과 불러오기 — 이어서 편집·심화 가능');}catch(e){toast('JSON 파싱 실패');}};r.readAsText(file);}
-function togglePick(i,on){if(lastResult?.strategies?.[i])lastResult.strategies[i]._picked=on;const c=document.getElementById('sc-'+i);if(c)c.classList.toggle('picked',on);recalcFinal();}
+function loadResult(file){if(!file)return;const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);lastResult=o.result||o;_resultId='r'+Date.now();persistSoon();lastPayload=o.payload||lastPayload||{base:{}};lastHash='';editId=null;tab('t-out');render(lastResult,lastPayload,null);toast('결과 불러오기 — 이어서 편집·심화 가능');}catch(e){toast('JSON 파싱 실패');}};r.readAsText(file);}
+function togglePick(i,on){persistSoon();if(lastResult?.strategies?.[i])lastResult.strategies[i]._picked=on;const c=document.getElementById('sc-'+i);if(c)c.classList.toggle('picked',on);recalcFinal();}
 function recalcFinal(){if(!lastResult)return;const strat=(lastResult.strategies||[]).filter(s=>s._picked);const axes=['AX','CX','EX','ROI'];const cov=[...new Set(strat.map(s=>(s.axis||'').toUpperCase()))];const avg=strat.length?Math.round(strat.reduce((a,s)=>a+(s.eval?.total||0),0)/strat.length):0;const fe=lastResult.final_evaluation||{};const el=document.getElementById('final-eval');if(!el)return;
   el.innerHTML=`<div class="dash-top" style="margin:18px 0 0"><div class="grade-wrap"><div class="gauge">${gaugeSVG(avg,'gfin')}<div class="center"><div class="g" style="color:${avg>=80?'var(--ok)':avg>=65?'var(--brand)':avg>=50?'var(--warn)':'var(--crit)'}">${avg}</div><div class="s">최종 채택</div></div></div><div class="verdict"><div class="vt">최종 채택 세트 — ${strat.length}개 전략</div><div class="vm">관점 커버리지: ${axes.filter(a=>cov.includes(a)).join(' · ')||'—'} (${cov.length}/4) · 평균 점수 ${avg}/100${fe.verdict?'<br>총평: '+esc(fe.verdict):''}</div></div></div></div>`;
   setTimeout(()=>{const g=document.getElementById('gfin');if(g){const len=Math.PI*54;g.style.transition='stroke-dashoffset 1s';g.style.strokeDashoffset=len*(1-avg/100);}},60);}
@@ -959,11 +1057,11 @@ function fillSample(){
   setVal('l_format','본문 + 요약본 + 발표본');setVal('l_pages','RFP 기준');setVal('l_time','발표·심의 (RFP 기준)');setVal('l_bind','RFP 기준');setVal('l_story','요약본 전략 4장(AX·CX·ROI·EX) 중심');
   setVal('opt_count','4');setVal('opt_note','운영사업자 복제불가 데이터(200만건·기간계10건·DB스키마) 최우선 · 정성평가 80점 대응 · 차기 AICC 확장성 강조 · 규모 약점은 운영 연속성·리스크 제로로 방어');
   document.querySelectorAll('.chk').forEach(c=>c.classList.add('done'));renderFiles();refresh();toast('강원랜드 샘플 + 체크리스트 완료');}
-function clearAll(){TEXT_FIELDS.forEach(f=>setVal(f,''));setVal('opt_count','4');document.querySelectorAll('#f_position button').forEach(x=>x.classList.remove('on'));position='';setChips('ch_biztype',[]);setChips('ch_build',[]);setChips('ch_kw',[]);files=[];renderFiles();document.querySelectorAll('.chk').forEach(c=>c.classList.remove('done'));lastResult=null;lastHash='';document.getElementById('out').innerHTML='<div class="o-empty">입력 후 <b style="color:var(--accent)">전략 도출</b>을 누르면 임원용 대시보드가 표시됩니다.</div>';refresh();toast('초기화');}
+function clearAll(){TEXT_FIELDS.forEach(f=>setVal(f,''));setVal('opt_count','4');document.querySelectorAll('#f_position button').forEach(x=>x.classList.remove('on'));position='';setChips('ch_biztype',[]);setChips('ch_build',[]);setChips('ch_kw',[]);files=[];renderFiles();document.querySelectorAll('.chk').forEach(c=>c.classList.remove('done'));lastResult=null;_resultId=null;lastHash='';document.getElementById('out').innerHTML='<div class="o-empty">입력 후 <b style="color:var(--accent)">전략 도출</b>을 누르면 임원용 대시보드가 표시됩니다.</div>';refresh();toast('초기화');}
 
 /* sample → jump into wizard at RFP step */
 function startSample(){fillSample();goStep(1);toast('강원랜드 샘플 로드 완료 — 순서대로 진행하세요');}
-function emptyOut(){const o=document.getElementById('out');if(o&&!lastResult)o.innerHTML='<div class="o-empty">상단의 <b style="color:var(--accent)">⚡ 전략 도출</b>을 누르면 임원용 대시보드가 여기에 표시됩니다.<br><span style="font-size:12px;color:var(--ink-faint)">STEP 0 → 1 → 2 → 3 순으로 입력하면 정확도가 올라갑니다.</span><br><button class="btn brand" style="margin-top:16px" onclick="showDemo()">📊 데모 결과 보기 — 강원랜드 샘플 (API 불필요)</button></div>';}
+function emptyOut(){const o=document.getElementById('out');if(o&&!lastResult)o.innerHTML='<div class="o-empty">상단의 <b style="color:var(--accent)">⚡ 전략 도출</b>을 누르면 임원용 대시보드가 여기에 표시됩니다.<br><span style="font-size:12px;color:var(--ink-faint)">STEP 0 → 1 → 2 → 3 순으로 입력하면 정확도가 올라갑니다.</span><br><button class="btn brand" style="margin-top:16px" onclick="showDemo()">📊 데모 결과 보기 — 강원랜드 샘플 (API 불필요)</button></div>';if(o&&!lastResult)mountSavedResults(o);}
 function updateRing(){const ring=document.getElementById('readyRing');if(!ring)return;const C=2*Math.PI*44;const pct=Math.max(0,Math.min(100,curReady||0));ring.style.strokeDasharray=C;ring.style.strokeDashoffset=C*(1-pct/100);const rv=document.getElementById('ready-val');if(rv)rv.textContent=pct+'%';const cb=document.getElementById('credBadge');if(cb)cb.textContent='근거신뢰도 '+(curCred==null?'—':curCred);}
 /* ============ 데모 (AI 미호출) — 강원랜드 샘플 결과 · 입력 facts 기반 ============ */
 const DEMO_META={prov:'데모',model:'강원랜드 요약본 기반'};
@@ -1022,7 +1120,7 @@ const DEMO_RESULT={
 };
 function showDemo(){
   fillSample();
-  lastResult=JSON.parse(JSON.stringify(DEMO_RESULT));
+  lastResult=JSON.parse(JSON.stringify(DEMO_RESULT));_resultId=null;
   lastPayload=collect();lastHash='';editId=null;improveNeedsData=[];
   goStep(4);
   render(lastResult,lastPayload,DEMO_META);
