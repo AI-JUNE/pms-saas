@@ -42,6 +42,9 @@ export default function Page() {
   const router = useRouter();
   const [rows, setRows] = useState<any[]>([]);
   const [retention, setRetention] = useState<{ days: number; decided: boolean; cutoff: string; note: string } | null>(null);
+  // 결과 절단 판정(lib/incidentEvidence) — 'truncated' 면 **오래된 쪽**이 빠져 있다(RUNBOOK §3 1단계).
+  const [capture, setCapture] = useState<{ verdict: string; nextCursor: number | null; action: string; caveats?: string[] } | null>(null);
+  const [more, setMore] = useState(false);
   const [problems, setProblems] = useState<string[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [f, setF] = useState<Filters>(EMPTY);
@@ -58,21 +61,25 @@ export default function Page() {
     setF(init); setApplied(init);
   }, []);
 
-  const load = useCallback((flt: Filters) => {
-    setLoaded(false);
+  // cursor 가 있으면 **이어 받기**(잘린 오래된 쪽) — 기존 행에 덧붙인다.
+  const load = useCallback((flt: Filters, cursor?: number | null) => {
+    if (cursor) setMore(true); else setLoaded(false);
     const sp = new URLSearchParams();
     for (const [k, v] of Object.entries(flt)) if (v) sp.set(k, v);
     sp.set('limit', '200');
+    if (cursor) sp.set('cursor', String(cursor));
     const qs = sp.toString();
     if (typeof window !== 'undefined') { const u = new URL(window.location.href); u.search = new URLSearchParams(Object.entries(flt).filter(([, v]) => v)).toString(); window.history.replaceState(null, '', u.toString()); }
     fetch('/api/audit' + (qs ? `?${qs}` : ''))
       .then((r) => { if (r.status === 401) return Promise.reject('unauth'); if (r.status === 403) return r.json().then((d) => Promise.reject(d?.message || '권한이 없습니다')); return r.ok ? r.json() : Promise.reject('error'); })
       .then((d) => {
         const list = Array.isArray(d) ? d : Array.isArray(d?.rows) ? d.rows : [];
-        setRows(list); setRetention(d?.retention ?? null); setProblems(Array.isArray(d?.problems) ? d.problems : []); setLoaded(true);
+        setRows((cur) => (cursor ? [...cur, ...list] : list));
+        setRetention(d?.retention ?? null); setCapture(d?.capture ?? null);
+        setProblems(Array.isArray(d?.problems) ? d.problems : []); setLoaded(true); setMore(false);
         setActors((cur) => { const n = { ...cur }; for (const r of list) if (r.userId && r.userName) n[String(r.userId)] = r.userName; return n; });
       })
-      .catch((e) => { if (e === 'unauth') router.push('/login'); else { setRows([]); setLoaded(true); setProblems([typeof e === 'string' ? e : '감사 로그를 불러오지 못했습니다']); } });
+      .catch((e) => { setMore(false); if (e === 'unauth') router.push('/login'); else { if (!cursor) setRows([]); setLoaded(true); setProblems([typeof e === 'string' ? e : '감사 로그를 불러오지 못했습니다']); } });
   }, [router]);
   useEffect(() => { load(applied); }, [applied, load]);
 
@@ -120,9 +127,21 @@ export default function Page() {
         <div className="sp" />
         <span className="sr-only" role="status">{!loaded ? '감사 로그 목록을 불러오는 중' : `감사 로그 ${nfmt(rows.length)}건 표시${filtered ? ' (검색 조건 적용)' : ''}`}</span>
         {loaded && todayCount > 0 && <span className="muted" style={{ marginRight: 4 }} title={`오늘 발생한 이력 ${nfmt(todayCount)}건입니다.`}>오늘 <b style={{ color: 'var(--brand)' }}>{nfmt(todayCount)}</b>건</span>}
-        <span className="muted" title={filtered ? `검색 조건에 맞는 최근 ${nfmt(rows.length)}건을 표시합니다(최대 200건).` : `최근 ${nfmt(rows.length)}건(최대 200건)`}>{nfmt(rows.length)}건</span>
+        <span className="muted" title={capture?.verdict === 'truncated' ? `표시한 ${nfmt(rows.length)}건 뒤에 더 오래된 기록이 남아 있습니다(1회 200건씩 이어 받습니다).` : `${filtered ? '검색 조건에 맞는 ' : ''}${nfmt(rows.length)}건을 모두 표시했습니다.`}>{nfmt(rows.length)}건{capture?.verdict === 'truncated' && <span style={{ color: '#be5535' }}>+</span>}</span>
       </form>
       {problems.length > 0 && <div className="muted" role="alert" style={{ fontSize: 12.5, color: '#be5535', marginBottom: 8 }}>{problems.join(' · ')}</div>}
+      {loaded && capture?.verdict === 'truncated' && (
+        <div className="card" role="alert" style={{ padding: '10px 12px', marginBottom: 8, borderColor: '#be5535', fontSize: 12.5, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <b style={{ color: '#be5535' }}>결과가 잘렸습니다</b>
+          <span className="muted">{capture.action}</span>
+          <div className="sp" />
+          {capture.nextCursor != null && (
+            <button type="button" className="btn btn-sm" disabled={more} onClick={() => load(applied, capture.nextCursor)}>
+              {more ? '불러오는 중…' : '이전 기록 더 불러오기'}
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="card tbl-wrap" aria-busy={!loaded}>
         <table className="tbl">
@@ -151,6 +170,10 @@ export default function Page() {
           </tbody>
         </table>
       </div>
+
+      {loaded && (capture?.verdict === 'empty' || capture?.verdict === 'unreadable') && (
+        <p className="muted" role="status" style={{ fontSize: 12, marginTop: 10 }}>{capture.action}</p>
+      )}
 
       {retention && (
         <p className="muted" style={{ fontSize: 12, marginTop: 10 }} title={retention.note}>
