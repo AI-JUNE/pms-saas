@@ -6,6 +6,7 @@ import { dbIdentityCheck } from '@/lib/dbIdentity';
 import { buildHealthBody, sanitizeError, statusCode, type Checks } from '@/lib/health';
 import { rateLimitResponse, RL } from '@/lib/ratelimit';
 import { recoveryReadinessCheck } from '@/lib/recoveryVerify';
+import { pitrWindowCheck } from '@/lib/recoveryWindow';
 import { writeFreezeCheck } from '@/lib/writeFreeze';
 
 // ★ route.ts에서는 HTTP 메서드와 Next 설정 외 export 금지(Vercel 빌드 실패 원인).
@@ -61,6 +62,12 @@ export async function GET(req: Request) {
   // 미실시·기한초과·낡은 스냅샷은 degraded(200)로만 드러내고 서비스를 down 처리하지 않는다
   // (required: false). 담당자 등 PII 는 publicRehearsal 로 제거되고, 행 수는 담지 않는다.
   checks.recovery = recoveryReadinessCheck();
+
+  // PITR 보존 창(RUNBOOK §3 3단계·§3-6) 설정 상태. 보존기간은 §1 에 `[확인 필요]` 로 비어 있어
+  // 복구일 3단계에서야 「그 시점으로 브랜치를 만들 수 없다」가 드러났다 — 그때는 2단계 쓰기 차단으로
+  // 서비스가 이미 멈춘 뒤다. 평상시에 미설정을 드러내 그 순서를 뒤집는다.
+  // 사건별 손상 시각 T 는 여기서 판정하지 않는다(설정 여부·보존 시간만, required: false).
+  checks.recoveryWindow = pitrWindowCheck();
 
   // 쓰기 차단(RUNBOOK §3 2단계) 상태. 2단계는 「유지보수 상태로 전환」을 지시하면서도
   // 그것이 걸렸는지 확인할 방법이 없었다 — 여기서 드러내 확인 가능한 단계로 만든다.
