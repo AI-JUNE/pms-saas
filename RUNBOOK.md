@@ -67,6 +67,11 @@
 2. **쓰기 차단** — 운영 배포의 환경변수 `RECOVERY_WRITE_FREEZE=true` 로 **읽기전용 모드**를 켠다(아래 3-3).
    조회는 그대로 열려 있고 저장·수정·삭제만 503 으로 거절된다.
    - 확인: `GET /api/health` → `checks.writeFreeze.detail.frozen` 이 **`true`** 인지 본다.
+   - ⚠️ **그 `frozen` 이 `true` 로 바뀐 시각을 같은 스코프의 `RECOVERY_WRITE_FREEZE_AT` 에 적어 둔다**
+     (타임존을 붙인 ISO 시각. 환경변수를 **저장한** 시각이 아니라 **실효된** 시각이다).
+     이 값이 8단계에서 고지할 **유실 구간의 끝**이고, 7단계에서 차단을 풀면 그 시각을 아는 수단이
+     어디에도 남지 않는다 — 지금이 기록할 수 있는 유일한 시점이다(아래 3-7).
+     확인: `checks.incidentClosure.detail.state` 가 **`recorded`** 인지 본다(`frozen_unrecorded` 면 비어 있다).
      이 확인을 거르면 「차단한 줄 알았는데 안 걸린」 상태로 3~5단계를 진행하게 되고,
      그 사이 들어온 쓰기는 5단계 전환에서 **조용히 사라진다**(4단계 검증은 복구 브랜치를 보므로
      운영 DB 로 계속 들어오는 쓰기를 전혀 보지 못한다).
@@ -120,10 +125,22 @@
    ※ 이 단계를 잊으면 복구가 끝난 서비스가 **읽기전용으로 남는다** — 사용자에게는 저장이
    되지 않는 장애로 보이고, `/api/health` 는 `degraded` 로만 표시된다(503 이 아니므로
    업타임 모니터는 조용하다). 그래서 해제 확인을 절차에 넣어 둔다.
-8. **사후** — `GET /api/health` 확인, 6절에 사건·조치·소요시간 기록.
+8. **사후** — 다음 네 가지를 **순서대로** 한다. 「`/api/health` 보고 표에 적는다」로 끝내지 않는다.
+   1. `GET /api/health` 전 항목 확인 — 특히 `checks.writeFreeze.detail.frozen` 이 `false`(7단계 완료),
+      `checks.dbIdentity.detail.verdict` 가 `match`(5단계 반영).
+   2. **유실 구간을 확정해 고지한다** — 아래 **3-7 의 1줄 명령**으로 산출한다. 눈대중으로 적지 않고,
+      §3-6 의 `lossMinutes` 를 그대로 쓰지도 않는다(그 값은 **산출한 순간까지**라 1단계에서 산출하면
+      조사·근거 보존·승인에 쓴 시간이 빠져 **실제보다 작다**). 구간의 끝은 2단계에서 적어 둔
+      `RECOVERY_WRITE_FREEZE_AT` 이다. 끝을 모르면 판정이 `end_unrecorded` 로 남는다 —
+      그때는 **구간을 수치로 단정하지 말고** 모른다는 사실을 고지에 적는다.
+   3. 6절 표에 사건·조치·소요시간 기록 — 소요시간은 **1단계 중단 결정 ~ 7단계 차단 해제**다
+      (3-7 의 `assessDuration`). 표 초안 한 줄은 3-7 이 만들어 주지만 **붙여 넣는 것은 사람**이다.
+   4. `RECOVERY_WRITE_FREEZE_AT` 를 **지운다.** 남겨 두면 다음 사건에서 **옛 시각이 구간의 끝**으로
+      쓰인다. 평상시에 남아 있으면 `checks.incidentClosure.detail.state` 가 `stale_record` 로 드러난다.
 
 > 되돌린 시점 이후의 데이터는 유실된다. 손실 구간을 반드시 이해관계자에게 고지한다.
-> 2단계 차단을 **언제** 걸었는지가 그 구간의 끝이다(차단 이후의 쓰기는 애초에 없다).
+> 2단계 차단을 **언제** 걸었는지가 그 구간의 끝이다(차단 이후의 쓰기는 애초에 없다) — 그래서
+> 그 시각을 2단계에서 `RECOVERY_WRITE_FREEZE_AT` 에 적어 두고 8단계에서 구간을 확정한다(아래 3-7).
 
 ### 3-1. 빈 DB(새 Neon 프로젝트·브랜치)로 복구할 때 — `migrate` 만으로는 복원되지 않는다
 
@@ -357,8 +374,11 @@ node --input-type=module -e "import {restorePointStatus,restorePointText} from '
 | `invalid_epsilon` | ε 가 없거나 범위 밖이다 | 위 규칙으로 ε 를 정한다. 임의 기본값을 쓰지 않는다 |
 | `unknown_window` | 보존 창을 몰라 **판정하지 않았다** | 「창 밖」이 아니다. `RECOVERY_PITR_RETENTION_HOURS` 를 넣고, 이번 복구는 콘솔 표기를 정본으로 판단한다 |
 
-- 함께 나오는 수치: `restorePoint`(Neon 콘솔에 넣을 T-ε) · `lossMinutes`(이 시점 이후 유실 구간 =
-  고지 대상) · `deadline`(이 시점으로 브랜치를 만들 수 있는 **마지막 시각**) · `remainingMinutes`.
+- 함께 나오는 수치: `restorePoint`(Neon 콘솔에 넣을 T-ε) · `lossMinutes`(유실 구간의 **산출 시각 기준
+  참고값**) · `deadline`(이 시점으로 브랜치를 만들 수 있는 **마지막 시각**) · `remainingMinutes`.
+- ⚠️ **`lossMinutes` 를 고지 수치로 쓰지 않는다.** 그 값은 `복구 시점 ~ 이 명령을 실행한 순간`이다 —
+  위 순서대로 1단계에서 산출하면 조사·근거 보존(§3-5)·승인에 쓴 시간이 **빠져 실제보다 작고**,
+  3단계 이후에 산출하면 차단 이후까지 세어 크다. 고지할 구간은 8단계에서 **아래 3-7** 로 확정한다.
 - ⚠️ **마감은 계속 당겨진다.** 보존 창의 하한은 현재 시각과 함께 전진하므로, 같은 T 가 어제는 창
   안이었어도 오늘은 밖이다. 조사·승인에 시간을 쓸 때 `deadline` 을 먼저 적어 두고 그 안에 3단계를 끝낸다.
 
@@ -372,6 +392,56 @@ node --input-type=module -e "import {restorePointStatus,restorePointText} from '
 - `tests/recoveryWindow.test.ts` 가 실제 `RUNBOOK.md` 와 `app/api/health/route.ts` 원문을 매번 점검한다 —
   3단계가 「T-ε 로 브랜치를 만든다」 한 문장으로 되돌아가거나, `checks.recoveryWindow` 배선이 빠지면
   CI 가 실패한다(화면·응답은 그대로 돌기 때문에 사람 눈으로는 알아챌 수 없는 회귀다).
+
+### 3-7. 유실 구간 확정 — 8단계의 고지와 §6 표 기록
+
+§3 말미는 「손실 구간을 반드시 이해관계자에게 고지한다. **2단계 차단을 언제 걸었는지가 그 구간의
+끝이다**」라고 적어 두었는데, 정작 그 「언제」가 **어디에도 기록되지 않았다**. 쓰기 차단은
+`RECOVERY_WRITE_FREEZE` 불리언 하나이고 `/api/health` 는 현재 상태(`frozen`)만 말하며, **7단계는 그
+스위치를 지우라고 지시한다** — 해제한 뒤에는 차단이 걸려 있었다는 사실조차 응답에 남지 않는다.
+그래서 8단계의 고지 구간은 사람 기억에 의존했고, 손에 든 유일한 수치(§3-6 의 `lossMinutes`)는
+**산출한 순간까지**라 고지 수치가 아니었다(1단계에서 산출하면 실제보다 작다).
+
+**유실 구간 산출** (읽기·계산뿐 — DB·네트워크 접근 0)
+
+```
+node --input-type=module -e "import {lossWindowStatus,closureText} from './src/lib/incidentClosure.ts';console.log(closureText(lossWindowStatus({restorePoint:'2026-10-09T12:55:00+09:00',frozenAt:'2026-10-09T13:40:00+09:00'})))"
+```
+
+- `restorePoint` = **실제로** 브랜치를 만든 시점(3단계). §3-6 산출값과 다를 수 있다(창 밖이라 더 이른
+  시점을 썼거나 제자리 복구를 했을 때) — 그때는 **실제 적용한 시점**을 쓴다.
+- `frozenAt` = 2단계에서 적어 둔 `RECOVERY_WRITE_FREEZE_AT`(차단이 **실효된** 시각).
+  차단을 걸지 않았다면 대신 `switchedAt`(5단계 전환 시각)을 넘긴다 — 그때는 전환 직전까지가 유실 대상이다.
+- 소요시간(§6 표)은 `assessDuration({startedAt, endedAt})` — **1단계 중단 결정 ~ 7단계 차단 해제**.
+  §6 표 한 줄 초안은 `incidentRecordDraft({...})` 가 만든다(`row`·`missing`). **표는 사람이 채운다.**
+
+| `verdict` | 뜻 | 무엇을 해야 하나 |
+| --- | --- | --- |
+| `ok` | 구간이 확정됐다 | `notice` 를 고지에 쓰고 같은 수치를 §6 표 비고에 남긴다 |
+| `end_unrecorded` | **끝이 기록되지 않았다** | 구간을 추정하지 않는다. 차단 당시의 배포 로그·`/api/health` 보관본·§3-5 보존본에서 「마지막으로 받아들인 쓰기」 시각을 찾는다. 끝내 모르면 **구간을 단정하지 말고 그 사실을 고지에 적는다** |
+| `invalid_restore_point` | 복구 시점을 읽을 수 없다 | 타임존을 붙인 ISO 시각으로 적는다 |
+| `invalid_end` | 끝 시각을 읽을 수 없다 | 같다 — 못 읽는 값으로 구간을 세지 않는다 |
+| `end_before_restore` | 끝이 복구 시점보다 앞이다 | 정상적으로는 없는 일이다. 두 값을 확인한다(타임존 누락이 제1 용의자). **음수를 0 으로 바꿔 「유실 없음」으로 적지 않는다** |
+| `future_end` | 끝이 현재보다 미래다 | 오타·타임존 확인 |
+
+- 평상시 점검: `GET /api/health` → `checks.incidentClosure.detail.state` —
+  `normal`(차단 OFF·미기록, 평상시) / `recorded`(차단 중·기록됨) /
+  **`frozen_unrecorded`**(차단 중인데 시각이 비어 있다 — **지금** 넣어야 한다) /
+  `invalid_record`(값을 못 읽는다) / **`stale_record`**(차단은 풀렸는데 값이 남아 있다 → 8단계 4번).
+  `required: false` 라 어느 경우에도 503 이 되지 않는다(degraded 200).
+- 사건 기록을 마치면 `RECOVERY_WRITE_FREEZE_AT` 를 **지운다** — 남으면 다음 사건의 구간 끝이 된다.
+
+> **구간을 확정했다는 것이 「이만큼만 유실됐다」는 뜻이 아니다.** 보장하지 못하는 것(응답 `limits`):
+> 구간은 **시간 범위**일 뿐이고 유실 **건수·대상**은 §3-5 보존본과 대조해야 한다(보존본이 없으면
+> 전환으로 사라져 사후 재구성이 불가능하다) · 차단이 막지 못한 경로(`DATABASE_URL` 직접 접속·같은 DB 를
+> 쓰는 다른 배포·예외 경로·외부 웹훅, 응답 `freezeLimits`)의 쓰기는 **구간 끝 이후에도** 들어왔을 수 있다 ·
+> 차단을 켠 순간 처리 중이던 요청은 끝까지 진행되므로 경계가 그 초에 정확히 끊기지 않는다 ·
+> 이 수치는 한 사건의 실측이고 **RPO 약속이 아니다**(§1 의 RTO/RPO 는 여전히 `[확인 필요]`) ·
+> 4단계의 `blindWindow`(스냅샷 이후)와는 **다른 구간**이다.
+
+- `tests/incidentClosure.test.ts` 가 실제 `RUNBOOK.md` 와 `app/api/health/route.ts` 원문을 매번 점검한다 —
+  8단계가 「health 확인하고 6절에 기록」 한 줄로 되돌아가거나, 2단계에서 `RECOVERY_WRITE_FREEZE_AT`
+  기록 지시가 빠지거나, `checks.incidentClosure` 배선이 사라지면 CI 가 실패한다.
 
 ## 4. 환경변수·시크릿 복구
 
@@ -432,6 +502,9 @@ Vercel 환경변수는 DB 백업에 포함되지 않으므로 별도 보관한�
 `RECOVERY_WRITE_FREEZE` — 쓰기 차단(읽기전용 모드) 스위치. 위 3-3. **평상시에는 반드시 없어야 한다** —
 복구 때 켠 뒤 지우지 않으면 복구가 끝난 서비스가 읽기전용으로 남는다(`/api/health` 가 `degraded`로만 드러낸다).
 복구 후 확인 순서 2번에서 `PAYMENTS_LIVE`·`BILLING_APPLY_LIVE` 와 함께 OFF 인지 재확인한다.
+`RECOVERY_WRITE_FREEZE_AT` — 위 차단이 **실효된** 시각(타임존 붙인 ISO. 위 3-7). **유실 구간의 끝**이고
+사후에는 복원할 수 없는 값이다 — 2단계에서 차단과 **함께** 넣고, 8단계 기록을 마치면 **지운다**
+(남겨 두면 다음 사건에서 옛 시각이 구간의 끝으로 쓰인다). 평상시에는 없어야 한다.
 `RECOVERY_EXPECTED_DB` — 전환 확인용 **연결 대상 지문**(12자리 16진수. 위 3-4). 연결 문자열이 아니다 —
 그런 값은 비교하지 않고 `invalid_expected` 로 거절한다. **미설정이 평상시 상태**이고, 유실되면
 5단계 전환이 반영됐는지 기계적으로 확인할 수 없게 된다(눈으로는 어느 DB 를 보는지 알 수 없다).
@@ -508,6 +581,8 @@ DB 손상이 아니라 배포 회귀라면 DB를 건드리지 말고 배포만 �
 - [ ] 복구 시점을 §3-6 명령으로 산출했다 — `verdict` 가 `ok` 이고 ε 의 근거(원인 작업 직전 기록)를 적었다
 - [ ] 산출한 `deadline` 을 적어 두고 그 안에 브랜치를 만들었다(보존 창 하한은 시간과 함께 전진한다)
 - [ ] 쓰기 차단(§3 2단계) ON — `GET /api/health` 의 `checks.writeFreeze.detail.frozen` 이 `true`
+- [ ] 그 `true` 를 확인한 시각을 `RECOVERY_WRITE_FREEZE_AT` 에 적었다 —
+      `checks.incidentClosure.detail.state` 가 `recorded`(§3-7. 해제 후에는 이 시각을 알 수 없다)
 - [ ] 차단 중 쓰기가 실제로 거절되는지 1건 확인(예: `PATCH` 아무 자원 → `503` + `code: WRITE_FROZEN`)
 - [ ] Neon 복구 브랜치 생성 성공 — 그 브랜치의 **지문**을 §3-4 명령으로 산출해 적어 둔다
 - [ ] 스테이징에서 애플리케이션 기동 성공
@@ -522,5 +597,8 @@ DB 손상이 아니라 배포 회귀라면 DB를 건드리지 말고 배포만 �
       `checks.dbIdentity.detail.verdict` 가 `match` 인지 확인 — **재배포 없이는 반영되지 않는다**(§3-4)
 - [ ] 쓰기 차단 **해제**(§3 7단계) — `checks.writeFreeze.detail.frozen` 이 `false` 로 돌아왔다
 - [ ] `GET /api/health` 전 항목 정상
-- [ ] 소요시간 측정 및 위 표 기록
+- [ ] 유실 구간을 §3-7 명령으로 산출했다 — `verdict` 가 `ok` 이고 `notice` 를 기록했다
+      (리허설이라면 고지 대상은 없지만 **구간을 산출할 수 있는지**가 점검 대상이다)
+- [ ] 소요시간 측정(§3-7 `assessDuration`: 1단계 중단 결정 ~ 7단계 차단 해제) 및 위 표 기록
+- [ ] `RECOVERY_WRITE_FREEZE_AT` 를 지웠다 — `checks.incidentClosure.detail.state` 가 `normal`
 - [ ] 리허설 브랜치 정리

@@ -4,6 +4,7 @@ import { db } from '@/db';
 import { billingStatus } from '@/lib/portone';
 import { dbIdentityCheck } from '@/lib/dbIdentity';
 import { buildHealthBody, sanitizeError, statusCode, type Checks } from '@/lib/health';
+import { closureCheck } from '@/lib/incidentClosure';
 import { rateLimitResponse, RL } from '@/lib/ratelimit';
 import { recoveryReadinessCheck } from '@/lib/recoveryVerify';
 import { pitrWindowCheck } from '@/lib/recoveryWindow';
@@ -81,6 +82,13 @@ export async function GET(req: Request) {
   // 공개 응답이므로 지문·provider·pooled·region 만 담는다 — 호스트·DB 이름·자격증명 제외.
   // 기준 지문(RECOVERY_EXPECTED_DB) 미설정이 평상시 상태이고, 불일치는 degraded(200)로만 드러난다.
   checks.dbIdentity = dbIdentityCheck();
+
+  // 유실 구간을 확정할 수 있는 상태인지(RUNBOOK §3 8단계·§3-7). §3 말미는 「손실 구간을 반드시
+  // 고지한다 — 2단계 차단을 **언제** 걸었는지가 그 구간의 끝이다」라고 하는데, 그 시각이 어디에도
+  // 기록되지 않았고 7단계는 스위치를 지우라고 지시한다 — 해제 뒤에는 끝을 확정할 수 없다.
+  // 그래서 **차단이 걸려 있는 동안**(= 아직 기록할 수 있는 동안) 미기록을 드러낸다.
+  // 시각·상태만 담고(행 수·담당자 없음) required:false 라 503 이 되지는 않는다.
+  checks.incidentClosure = closureCheck();
 
   const body = buildHealthBody({ checks, uptimeSec: (Date.now() - startedAt) / 1000 });
 

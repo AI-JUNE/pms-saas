@@ -166,7 +166,12 @@ export function parseInstant(v: unknown): Date | null {
   const d = new Date(norm);
   if (Number.isNaN(d.getTime())) return null;
   // 비실존 날짜(2026-02-30 등)를 Date 가 굴려서 받아 주는 것을 막는다.
-  if (norm.slice(0, 10) !== d.toISOString().slice(0, 10)) return null;
+  // ※ 판정은 **표기된 날짜 자체**로 한다 — UTC 변환 결과와 비교하면 타임존이 붙은 정상 시각
+  //   (`2026-10-09T03:05:00+09:00` → UTC 로는 전날)을 「비실존」으로 잘못 거절한다.
+  //   RUNBOOK 은 타임존을 붙여 적으라고 지시하므로 그 쪽이 정상 입력이다.
+  const [y, mo, da] = norm.slice(0, 10).split('-').map(Number);
+  const probe = new Date(Date.UTC(y, mo - 1, da));
+  if (probe.getUTCFullYear() !== y || probe.getUTCMonth() + 1 !== mo || probe.getUTCDate() !== da) return null;
   return d;
 }
 

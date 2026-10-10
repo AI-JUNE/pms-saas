@@ -9,7 +9,8 @@ export type CheckName =
   | 'recovery'
   | 'recoveryWindow'
   | 'writeFreeze'
-  | 'dbIdentity';
+  | 'dbIdentity'
+  | 'incidentClosure';
 
 export interface CheckResult {
   ok: boolean;

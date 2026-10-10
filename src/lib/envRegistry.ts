@@ -102,6 +102,7 @@ export const ENV_VARS: EnvVar[] = [
   { key: 'RECOVERY_BASELINE_MAX_AGE_DAYS', kind: 'config', group: '복구 리허설', note: '위 스냅샷의 갱신 기한(일). 미설정 시 낡음 판정 보류 — 임의 기본 주기 없음' },
   { key: 'RECOVERY_PITR_RETENTION_HOURS', kind: 'config', group: '복구 리허설', note: 'Neon PITR 보존 창 길이(시간). 미설정 시 복구 시점이 창 안인지 판정 보류 — 임의 기본 보존기간 없음. 유실 시 복구일 3단계에서야 복구 불가가 드러난다' },
   { key: 'RECOVERY_WRITE_FREEZE', kind: 'switch', group: '복구 리허설', note: 'RUNBOOK §3 2단계 쓰기 차단(읽기전용 모드). 평상시 반드시 OFF — 켜진 채 복구되면 전 사용자의 저장이 503 으로 거절된다' },
+  { key: 'RECOVERY_WRITE_FREEZE_AT', kind: 'config', group: '복구 리허설', note: 'RUNBOOK §3 2단계 쓰기 차단이 **실효된** 시각(ISO). 유실 구간의 끝이고 사후에는 복원할 수 없는 값이다 — 미기록이면 §3 8단계의 고지 구간을 사람 기억으로 적게 된다. 평상시에는 없어야 한다(남으면 다음 사건의 구간 끝으로 쓰인다)' },
   { key: 'RECOVERY_EXPECTED_DB', kind: 'config', group: '복구 리허설', note: 'RUNBOOK §3 5단계 전환 확인용 **연결 대상 지문**(12자리 16진수, 연결 문자열 아님). 미설정이 평상시 — 유실 시 전환 반영 여부를 기계적으로 확인할 수 없다' },
 
   // ── 메일·첨부 저장소·감사 보존(배치181, 전부 기본 미연동 — 활성화는 승인) ──
