@@ -118,6 +118,9 @@ export const ENV_VARS: EnvVar[] = [
   { key: 'NEXT_PUBLIC_SITE_URL', kind: 'config', group: '사이트', note: 'SITE_URL 대체값. 클라이언트 번들에 인라인된다' },
   { key: 'NEXT_PUBLIC_ERM_URL', kind: 'config', group: '사이트', note: '사내 제안분석(ERM) 바로가기. 미설정 시 링크를 만들지 않는다(주소를 지어내지 않는다)' },
 
+  // ── 배포 롤백(RUNBOOK §5·§5-1) ──
+  { key: 'DEPLOY_PINNED_COMMIT', kind: 'config', group: '배포 롤백', note: 'RUNBOOK §5 롤백 대상 커밋(7~40자리 16진수). 평상시 미설정이 정상 — 적어 두면 롤백이 AutoPush 에 밀려 풀린 사실이 /api/health 의 checks.deployPin 에 drifted 로 남는다. 수정 배포 후에는 지운다' },
+
   // ── 플랫폼 자동 주입(복구 대상 아님) ──
   { key: 'NODE_ENV', kind: 'platform', group: '플랫폼', note: 'Node 실행 모드' },
   { key: 'NEXT_RUNTIME', kind: 'platform', group: '플랫폼', note: 'Next 런타임 구분(nodejs/edge)' },

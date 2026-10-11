@@ -540,13 +540,95 @@ Vercel 환경변수는 DB 백업에 포함되지 않으므로 별도 보관한�
 5. 전환 직후라면 `checks.dbIdentity.detail.verdict` 가 `match` 인지 → **어느 DB 를 보고 있는지** 확인(위 3-4).
    `checks.db` 의 `ok` 는 어느 DB 든 통과하므로 1번만으로는 전환 반영을 알 수 없다.
 
+#### 4-11. 배포 롤백 고정 (5절)
+
+`DEPLOY_PINNED_COMMIT` — 5절 롤백 대상 커밋(7~40자리 16진수). **평상시 미설정이 정상**이고 복구 대상도 아니다.
+롤백 중에만 넣어 두면 롤백이 풀린 사실이 `GET /api/health` 의 `checks.deployPin` 에 `drifted` 로 남는다(아래 5-1).
+수정 배포를 마친 뒤에는 **지운다** — 남겨 두면 이후 정상 배포가 전부 `drifted` 로 보인다.
+
 ## 5. 배포 롤백 (코드 문제일 때)
 
-DB 손상이 아니라 배포 회귀라면 DB를 건드리지 말고 배포만 되돌린다.
+DB 손상이 아니라 배포 회귀라면 배포만 되돌린다. 다만 **이 배포 환경에서는 「배포만」이 저절로 성립하지 않는다** —
+먼저 아래 5-1 의 두 함정(AutoPush·환경변수 스냅샷)을 읽고 수단을 고른다.
 
-1. Vercel 배포 목록에서 직전 정상 배포를 Promote(롤백).
-2. `GET /api/health` 의 `commit` 이 롤백 대상과 일치하는지 확인.
-3. 원인 커밋을 수정 후 재배포. AutoPush(20분 주기)가 자동 반영한다.
+0. **선행 확인** — 지금이 3절 복구 중인가:
+   `GET /api/health` 의 `checks.deployPin.detail.phase` 가 `normal` 이 아니면(`frozen`/`after_switch`)
+   **Promote 를 쓰지 않는다**. `checks.deployPin.detail.atRisk` 에 되돌아갈 환경변수 이름이 적혀 있다.
+   AutoPush(Windows 작업 스케줄러, 20분 주기)를 **먼저 멈춘다** — 멈추지 않으면 롤백은 최대 20분짜리다.
+1. 되돌릴 커밋을 고르고, **그 전체 해시를 `DEPLOY_PINNED_COMMIT` 에 넣는다**(4-11).
+   `main` 이 회귀 커밋에 머물러 있는 동안은 롤백이 풀려도 아무 오류가 나지 않으므로, 이 고정이
+   「풀렸다」를 알려 주는 유일한 수단이다.
+2. 되돌린다 — **수단은 둘이고 성질이 다르다**(아래 5-1 표):
+   - `git revert <회귀 커밋>` 후 재배포 — **기본 수단**. `main` 을 고치므로 AutoPush 와 싸우지 않고,
+     새 배포이므로 **현재 환경변수**를 받는다. 3절 복구 중에는 이 수단만 쓴다.
+   - Vercel 배포 목록에서 직전 정상 배포를 Promote(Instant Rollback) — 빌드가 없어 즉시 반영되지만
+     `main` 을 고치지 않고 **그 배포의 환경변수 스냅샷**으로 돈다. 긴급 지연 단축용이고, 쓰면
+     곧바로 revert 를 뒤따라 보낸다.
+3. 확인: `GET /api/health` 의 `commit` 이 롤백 대상과 일치하는지, 그리고
+   `checks.deployPin.detail.verdict` 가 `held` 인지 본다.
+   ※ `commit` 을 한 번 보는 것으로 끝내지 않는다 — 그 값은 **그 순간**만 말한다.
+   ※ Promote 로 되돌린 경우 그 **옛 배포 자신은 고정 값을 보지 못해** 판정이 `off` 로 나온다
+   (env 스냅샷에 그 키가 없다). 그래도 고정은 그대로 둔다 — 새 배포가 올라와 롤백을 밀어내는
+   순간 그 배포가 `drifted` 로 알려 준다. 그것이 이 고정의 목적이다.
+4. 원인 커밋을 수정해 배포한다. AutoPush(20분 주기)가 자동 반영한다.
+5. **`DEPLOY_PINNED_COMMIT` 를 지운다.** 남겨 두면 정상 배포가 전부 `drifted` 로 보여
+   다음 사건에서 이 체크를 아무도 믿지 않게 된다.
+
+### 5-1. 롤백이 조용히 풀리는 두 경로 — 수단 선택과 확인
+
+**(1) AutoPush 가 롤백을 밀어낸다.** 이 저장소의 배포 경로는 「Windows AutoPush(20분 주기) →
+git push → Vercel 자동 배포(main)」다(1절 표·`docs/OPERATIONS.md`). Promote 는 **운영 alias 만**
+옛 배포로 옮기고 `main` 은 회귀 커밋에 그대로 있으므로, 다음 push 가 들어오는 순간 Vercel 이
+main HEAD 로 새 Production 배포를 만들고 옛 배포는 서비스에서 빠진다. AutoPush 는 **미커밋 변경까지
+자동 커밋**하므로 사람이 아무것도 하지 않아도 그 push 는 일어난다 — 즉 Promote 만 한 롤백은
+**최대 20분짜리**이고, 위 3단계에서 `commit` 을 눈으로 확인한 직후 조용히 회귀 커밋으로 돌아간다.
+
+**(2) 롤백은 환경변수를 함께 되돌린다.** Promote 되는 옛 배포는 **그 배포가 만들어질 때의 환경변수
+스냅샷**으로 돈다(3절 5단계가 적어 둔 「Vercel 환경변수는 재배포 전까지 기존 배포에 반영되지 않는다」의
+뒷면이다). 그래서 3절 복구 중·직후에 Promote 를 쓰면 — 이 절 머리말이 약속하는 「DB를 건드리지 않는다」가
+**성립하지 않는다**:
+
+| 되돌아가는 값 | 결과 | 어떻게 보이는가 |
+| --- | --- | --- |
+| `DATABASE_URL`(3절 5단계 교체분) | 운영이 **다시 손상된 DB** 를 본다 | `checks.db` 는 `ok`(어느 DB 든 통과), `checks.dbIdentity` 는 기준 지문도 함께 사라져 `unset` — degraded 조차 아니다 |
+| `RECOVERY_WRITE_FREEZE`(2단계 차단) | 차단한 줄 알고 3~5단계를 진행하는데 운영은 쓰기를 계속 받는다 | `checks.writeFreeze.detail.frozen` 이 `false` — 7단계를 끝낸 모습과 같다 |
+| `RECOVERY_WRITE_FREEZE_AT` | 유실 구간의 끝을 확정할 수 없다(3-7) | `checks.incidentClosure.detail.state` 가 `normal` — 평상시와 같다 |
+
+→ **복구 중(`RECOVERY_WRITE_FREEZE` ON)이거나 전환 이후(`RECOVERY_EXPECTED_DB` 설정)에는 Promote 를 쓰지 않는다.**
+코드 회귀가 복구를 막고 있다면 `git revert` 로 **새 배포**를 만든다(현재 env 가 그대로 유지된다).
+복구 자체를 되돌려야 한다면 배포가 아니라 `DATABASE_URL` 을 직접 되돌리고 재배포한다.
+
+수단 비교(`lib/deployRollback.ts` `ROLLBACK_METHODS` 와 같은 내용):
+
+| 수단 | 속도 | AutoPush 를 견디는가 | 현재 env 를 받는가 |
+| --- | --- | --- | --- |
+| Promote(Instant Rollback) | 즉시(빌드 없음) | **아니다** — `main` 을 고치지 않는다 | **아니다** — 그 배포의 스냅샷 |
+| `git revert` 후 재배포 | 빌드 1회 | 그렇다 | 그렇다 |
+
+**판정 산출(1줄)** — 현재 배포가 고정 커밋을 서비스하고 있는지, 롤백하면 무엇이 함께 되돌아가는지:
+
+```bash
+node --input-type=module -e "import {deployRollbackStatus,rollbackText} from './src/lib/deployRollback.ts'; console.log(rollbackText(deployRollbackStatus(process.env)))"
+```
+
+판정 표:
+
+| `verdict` | 뜻 | 할 일 |
+| --- | --- | --- |
+| `off` | 고정 미설정(평상시). Promote 로 롤백 중인 옛 배포에서도 같은 값이 나온다 | 롤백할 때 `DEPLOY_PINNED_COMMIT` 를 넣는다 |
+| `held` | 고정한 커밋이 서비스되고 있다 | 유지. 수정 배포 후 고정을 지운다 |
+| `drifted` | 고정과 현재 배포가 **다르다** | 롤백이 풀렸는지(AutoPush) / 수정 배포 후 고정을 안 지웠는지 `commit` 으로 구분 |
+| `invalid_pin` | 고정 값을 커밋으로 읽을 수 없다 | 7~40자리 16진수로 다시 넣는다 |
+| `unknown_actual` | 현재 배포 커밋을 모른다(플랫폼 주입값이 없다) | 「다르다」가 아니다 — 배포 메타를 확인한다 |
+
+사각지대(`ROLLBACK_LIMITS` — 응답에 함께 실려 나간다):
+
+- 커밋 대조는 「어느 코드가 서비스되고 있는가」까지만 말한다. 그 커밋이 **정상**이라는 뜻이 아니다.
+- **환경변수는 커밋으로 알 수 없다** — 같은 커밋을 다시 배포해도 env 는 그 배포 시점의 값이 들어간다.
+- Promote 된 옛 배포 자신은 고정을 보지 못한다(위 3단계 ※).
+- 이 판정은 **이 배포 자신**만 말한다 — Preview 배포·다른 alias 는 보지 않는다.
+- 7자리 접두사 비교다 — 서로 다른 커밋이 같은 접두사를 가지면 구분하지 못한다.
+- 롤백은 `main` 을 고치지 않는다 — 원인 커밋이 `main` 에 남아 있는 동안 AutoPush 는 계속 그 코드를 배포하려 한다.
 
 ## 6. 복구 리허설 기록
 
@@ -601,4 +683,8 @@ DB 손상이 아니라 배포 회귀라면 DB를 건드리지 말고 배포만 �
       (리허설이라면 고지 대상은 없지만 **구간을 산출할 수 있는지**가 점검 대상이다)
 - [ ] 소요시간 측정(§3-7 `assessDuration`: 1단계 중단 결정 ~ 7단계 차단 해제) 및 위 표 기록
 - [ ] `RECOVERY_WRITE_FREEZE_AT` 를 지웠다 — `checks.incidentClosure.detail.state` 가 `normal`
+- [ ] 리허설 중 **배포 롤백(Promote)을 쓰지 않았다** — 쓰면 차단·DB 교체가 함께 되돌아간다(5-1).
+      코드 회귀가 끼어들면 `git revert` 재배포로 처리한다
+- [ ] 리허설 중 AutoPush 가 새 배포를 만들었어도 `checks.writeFreeze.detail.frozen` 이 `true` 로
+      유지됐다(재배포는 **현재** env 를 받는다 — 유지되지 않으면 스코프를 잘못 넣은 것이다)
 - [ ] 리허설 브랜치 정리

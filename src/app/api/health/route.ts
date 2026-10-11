@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import { db } from '@/db';
 import { billingStatus } from '@/lib/portone';
 import { dbIdentityCheck } from '@/lib/dbIdentity';
+import { deployPinCheck } from '@/lib/deployRollback';
 import { buildHealthBody, sanitizeError, statusCode, type Checks } from '@/lib/health';
 import { closureCheck } from '@/lib/incidentClosure';
 import { rateLimitResponse, RL } from '@/lib/ratelimit';
@@ -89,6 +90,14 @@ export async function GET(req: Request) {
   // 그래서 **차단이 걸려 있는 동안**(= 아직 기록할 수 있는 동안) 미기록을 드러낸다.
   // 시각·상태만 담고(행 수·담당자 없음) required:false 라 503 이 되지는 않는다.
   checks.incidentClosure = closureCheck();
+
+  // 배포 롤백이 유지되고 있는지(RUNBOOK §5·§5-1). §5 2단계는 「`commit` 이 롤백 대상과 일치하는지
+  // 확인」인데 그 눈 확인은 **그 순간**만 말한다 — 이 배포 경로는 AutoPush(20분) → push →
+  // Vercel 자동 배포(main)이고, Promote 는 `main` 을 고치지 않으므로 롤백은 주기 안에 저절로 풀린다.
+  // 고정 커밋(DEPLOY_PINNED_COMMIT)을 적어 두면 풀린 사실이 `drifted` 로 응답에 남는다.
+  // 미설정이 평상시 상태이고 required: false 라 어느 경우에도 503 이 되지 않는다.
+  // 커밋 접두사·env 키 이름·판정만 담는다(설정값 없음).
+  checks.deployPin = deployPinCheck();
 
   const body = buildHealthBody({ checks, uptimeSec: (Date.now() - startedAt) / 1000 });
 
