@@ -11,6 +11,7 @@ export type CheckName =
   | 'writeFreeze'
   | 'dbIdentity'
   | 'incidentClosure'
+  | 'postRestoreSecurity'
   | 'deployPin';
 
 export interface CheckResult {

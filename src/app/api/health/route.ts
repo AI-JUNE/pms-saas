@@ -6,6 +6,7 @@ import { dbIdentityCheck } from '@/lib/dbIdentity';
 import { deployPinCheck } from '@/lib/deployRollback';
 import { buildHealthBody, sanitizeError, statusCode, type Checks } from '@/lib/health';
 import { closureCheck } from '@/lib/incidentClosure';
+import { securityReapplyCheck } from '@/lib/postRestoreSecurity';
 import { rateLimitResponse, RL } from '@/lib/ratelimit';
 import { recoveryReadinessCheck } from '@/lib/recoveryVerify';
 import { pitrWindowCheck } from '@/lib/recoveryWindow';
@@ -90,6 +91,14 @@ export async function GET(req: Request) {
   // 그래서 **차단이 걸려 있는 동안**(= 아직 기록할 수 있는 동안) 미기록을 드러낸다.
   // 시각·상태만 담고(행 수·담당자 없음) required:false 라 503 이 되지는 않는다.
   checks.incidentClosure = closureCheck();
+
+  // 복구가 되돌린 **보안 상태**를 다시 적용했는지(RUNBOOK §3 6-1단계·§3-8). 시점 복구는 업무 데이터만
+  // 되돌리는 것이 아니다 — 끊은 세션(sessions 행 삭제)·바꾼 비밀번호(users.password_hash)·잠근 계정·
+  // 회수한 권한이 전부 T-ε 상태로 돌아온다. 4단계 행 수 대조도 6단계 스키마 확인도 이것을 잡지 못해
+  // (되돌아온 행은 「기준치 이상」이다) 복구는 「성공」으로 끝나고 사건의 접근 수단이 되살아난 채 열린다.
+  // 그래서 **차단이 걸려 있는 동안**(= 아직 아무도 들어오지 못하는 동안) 재적용 미기록을 드러낸다.
+  // 상태·키 이름·시각만 담고(계정·토큰·행 수 없음) required:false 라 503 이 되지는 않는다.
+  checks.postRestoreSecurity = securityReapplyCheck();
 
   // 배포 롤백이 유지되고 있는지(RUNBOOK §5·§5-1). §5 2단계는 「`commit` 이 롤백 대상과 일치하는지
   // 확인」인데 그 눈 확인은 **그 순간**만 말한다 — 이 배포 경로는 AutoPush(20분) → push →
