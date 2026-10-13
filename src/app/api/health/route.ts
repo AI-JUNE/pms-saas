@@ -7,6 +7,7 @@ import { deployPinCheck } from '@/lib/deployRollback';
 import { buildHealthBody, sanitizeError, statusCode, type Checks } from '@/lib/health';
 import { closureCheck } from '@/lib/incidentClosure';
 import { securityReapplyCheck } from '@/lib/postRestoreSecurity';
+import { periodicCheckHealth } from '@/lib/periodicCheck';
 import { rateLimitResponse, RL } from '@/lib/ratelimit';
 import { recoveryReadinessCheck } from '@/lib/recoveryVerify';
 import { pitrWindowCheck } from '@/lib/recoveryWindow';
@@ -71,6 +72,13 @@ export async function GET(req: Request) {
   // 서비스가 이미 멈춘 뒤다. 평상시에 미설정을 드러내 그 순서를 뒤집는다.
   // 사건별 손상 시각 T 는 여기서 판정하지 않는다(설정 여부·보존 시간만, required: false).
   checks.recoveryWindow = pitrWindowCheck();
+
+  // §2 정기 점검(월 1회)이 밀렸는지와, 그 점검만이 갱신하는 **날짜 없는 설정값**의 신선도.
+  // 위 recoveryWindow 는 보존 시간이 설정돼 있으면 영구히 ok 다 — 플랜·보존 설정을 바꾼 뒤
+  // 점검이 밀리면 옛 수치로 창을 계산해 **창 밖 시점에 ok 와 deadline 을 돌려준다**.
+  // 그러면 §3 2단계 쓰기 차단(전 사용자 저장 503)을 건 뒤 3단계에서야 복구 불가를 알게 된다.
+  // 점검 일자 하나로 그 순서를 뒤집는다. 날짜·일수·키 이름만 담고(설정값 없음) required: false.
+  checks.periodicCheck = periodicCheckHealth();
 
   // 쓰기 차단(RUNBOOK §3 2단계) 상태. 2단계는 「유지보수 상태로 전환」을 지시하면서도
   // 그것이 걸렸는지 확인할 방법이 없었다 — 여기서 드러내 확인 가능한 단계로 만든다.

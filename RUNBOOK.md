@@ -46,6 +46,52 @@
 5. `GET /api/health` 의 `checks.recovery.detail.baseline.status` 가 `ok` 인지 확인
    (`stale`/`undated`/`absent` 면 위 3번이 밀린 것이다. `unjudged` 는 기한 미설정 상태).
 6. 아래 6절 리허설 표에 점검 결과 1줄 기록.
+7. **점검을 마친 날짜를 `RECOVERY_LAST_CHECK` 에 적는다**(`YYYY-MM-DD`).
+   이 날짜가 위 1·4번이 다루는 **날짜 없는 설정값들의 유일한 확인 시점**이다(아래 2-1).
+   적지 않으면 반년 거른 배포와 지난주 점검한 배포가 `GET /api/health` 에서 똑같이 보인다.
+
+### 2-1. 점검이 밀렸는지 드러내기 — 날짜 없는 설정값의 신선도
+
+§3·§5 의 기계적 판정이 「대조」하는 기준값은 **전부 위 §2 한 곳에서만** 공급된다.
+그런데 공급되는 값 중 **자기 날짜를 품는 것은 `RECOVERY_DATA_BASELINE`(3번) 하나뿐**이다 —
+`RECOVERY_PITR_RETENTION_HOURS`(1번)와 `RECOVERY_EXPECTED_DB`(4번)는 수치·지문만 있고
+언제 확인한 값인지가 없어서, **한 번 넣으면 영구히 신뢰된다**(`checks.recoveryWindow` 는
+설정돼 있으면 `ok`, `checks.dbIdentity` 는 접두사가 같으면 `match`).
+
+그 둘이 합쳐지면 3-6 이 막으려고 만든 상태가 되돌아온다 — Neon 플랜을 내리거나 보존 설정을
+바꾼 뒤 이 점검이 밀리면 옛 수치(예: `720`)가 그대로 남아 3-6 은 `windowStart = 현재 - 720시간`
+으로 창을 계산하고, **실제로는 창 밖인 T 에 `ok` 와 넉넉한 `deadline` 을 돌려준다.** 담당자는
+§3 1단계 선행 확인을 통과하고 **2단계 쓰기 차단(전 사용자 저장 503)** 을 건 뒤, 3단계에서
+콘솔을 열고서야 그 시점으로 브랜치를 만들 수 없음을 안다 — **복구는 불가능한데 서비스는 멈춘
+상태**다. 어느 단계도 오류를 내지 않는다.
+
+- `GET /api/health` → `checks.periodicCheck` (`lib/periodicCheck.ts`, **required: false**)
+
+| 환경변수 | 값 | 설명 |
+| --- | --- | --- |
+| `RECOVERY_CHECK_INTERVAL_DAYS` | 예: `35` | 점검 주기(일). **미설정이면 밀렸는지 판정하지 않는다** — 「월 1회」를 코드가 수치로 들고 오지 않는다 `[확인 필요]` |
+| `RECOVERY_LAST_CHECK` | `YYYY-MM-DD` | 마지막 점검 일자. 형식 밖·비실존 날짜는 `invalid_date`, 미래 날짜는 `future` — 「점검했다」로 세지 않는다 |
+
+| `verdict` | 뜻 | 할 일 |
+| --- | --- | --- |
+| `absent` | 점검 일자가 없다 | 점검을 수행하고 7번으로 날짜를 적는다 |
+| `invalid_date` | 적혀 있으나 읽을 수 없다 | `YYYY-MM-DD` 로 바로잡는다(없는 것과 구분해 보고한다) |
+| `future` | 일자가 미래다 | 오타·시계 확인. 미래 일자를 「최근 확인」으로 쓰지 않는다 |
+| `overdue` | 주기를 넘겼다 | 1·4번을 콘솔과 다시 대조해 갱신한다. 그 전까지 3-6 판정은 **옛 수치 기준**이다 |
+| `unjudged` | 주기 미설정 | 기한을 모르는 상태다 — 기존 판정을 끌어내리지 않는다 |
+| `ok` | 주기 안이다 | `dueDate` 가 다음 기한이다 |
+
+`detail.settings[]` 에 키별 신선도가 `not_set`/`unconfirmed`/`stale`/`unjudged`/`confirmed` 로
+나오고, 믿을 수 없는 키 이름만 `detail.untrusted` 에 모인다. **설정값 자체는 담지 않는다**(공개
+엔드포인트다). 값이 없는 키는 `not_set` 이고 `stale` 로 중복 보고하지 않는다 — 미설정은 각 체크가
+이미 드러낸다.
+
+※ 이 판정이 보장하지 **못하는** 것(`detail.limits` 로 함께 나온다):
+점검 일자는 **「점검했다고 적었다」**는 뜻이다(각 단계를 실제로 수행했는지는 확인하지 않는다) ·
+보존 창 길이의 **정본은 Neon 콘솔**이고 설정값은 옮겨 적은 사본이라 오기는 걸러지지 않는다 ·
+이 판정은 **기준값의 자격**만 말하고 복구 대상 DB 의 상태는 §3 4·6단계가 본다 — 그래서 점검이
+밀렸다는 사실로 `switchReady` 를 내리지 않는다 · 이 배포의 env 만 본다 · 점검 일자 하나가 1·4번
+두 값의 확인 시점을 대표한다(그중 하나만 확인한 점검도 같은 날짜로 적힌다).
 
 ## 3. DB 복구 절차 (Neon PITR)
 
@@ -64,6 +110,10 @@
      순서를 바꾸면 **복구는 불가능한데 서비스는 멈춘 상태**가 되고 그때는 선택지가 남지 않는다.
      보존 창의 하한은 **시간과 함께 전진하므로** 조사·근거 보존에 쓰는 시간만큼 T 가 창 밖으로 밀려난다.
      3-6 의 `deadline`(이 시점으로 브랜치를 만들 수 있는 마지막 시각)을 먼저 적어 두고 조사한다.
+   - ⚠️ **그 판정에 쓰이는 보존 창 길이가 언제 확인된 값인지 함께 본다** — `GET /api/health` 의
+     `checks.periodicCheck.detail.verdict` 가 `overdue`/`absent`/`unconfirmed` 면 설정값이 옛 플랜
+     기준일 수 있고, 그때 3-6 은 **창 밖 시점에도 `ok`** 를 낸다(위 2-1). 그 상태에서는 설정값을
+     믿지 말고 Neon 콘솔의 「복구 가능 시점」을 정본으로 직접 확인한 뒤 2단계로 넘어간다.
 2. **쓰기 차단** — 운영 배포의 환경변수 `RECOVERY_WRITE_FREEZE=true` 로 **읽기전용 모드**를 켠다(아래 3-3).
    조회는 그대로 열려 있고 저장·수정·삭제만 503 으로 거절된다.
    - 확인: `GET /api/health` → `checks.writeFreeze.detail.frozen` 이 **`true`** 인지 본다.
@@ -555,6 +605,10 @@ Vercel 환경변수는 DB 백업에 포함되지 않으므로 별도 보관한�
 #### 4-7. 복구 리허설 (6절과 같은 키)
 
 `RECOVERY_REHEARSAL_INTERVAL_DAYS` · `RECOVERY_LAST_REHEARSAL` · `RECOVERY_LAST_REHEARSAL_RESULT` · `RECOVERY_LAST_REHEARSAL_KIND` — 의미는 6절 표 참조.
+`RECOVERY_CHECK_INTERVAL_DAYS` · `RECOVERY_LAST_CHECK` — **2절 정기 점검**의 주기(일)와 마지막 점검 일자(위 2-1).
+점검 일자는 **날짜를 품지 않는 설정값**(`RECOVERY_PITR_RETENTION_HOURS`·`RECOVERY_EXPECTED_DB`)의
+**유일한 확인 시점**이다 — 유실되면 그 값들이 언제 기준인지 알 수 없어지고(`unconfirmed`),
+밀린 점검이 `GET /api/health` 의 `checks.periodicCheck` 에 드러나지 않는다. 주기는 미설정 시 판정 보류 `[확인 필요]`
 `RECOVERY_DATA_BASELINE` — 핵심 테이블 행 수 기준 스냅샷(위 3-2). **유실되면 복구일에 대조 기준이 사라져
 `data.verdict` 가 `no_baseline` 로 떨어지고 `switchReady` 가 올라가지 않는다.** 2절 월 점검에서 갱신한다.
 `RECOVERY_BASELINE_MAX_AGE_DAYS` — 위 스냅샷의 갱신 기한(일, 예: `35`). **미설정이면 낡음 판정을 하지 않는다** —
@@ -728,6 +782,8 @@ node --input-type=module -e "import {deployRollbackStatus,rollbackText} from './
 
 - [ ] 손상 구간 감사로그를 기간 지정으로 조회해 `capture.verdict` 가 `complete` 가 될 때까지 받았다(§3-5)
 - [ ] 받은 기록을 **복구 대상 DB 밖**에 보관했다 — 전환하면 그 구간은 사라진다
+- [ ] 보존 창 길이가 **최근 확인된 값**인지 — `checks.periodicCheck.detail.verdict` 가 `ok` 이고
+      `detail.untrusted` 가 비어 있다(`overdue`·`absent` 면 §3-6 판정이 옛 플랜 기준이다. 2-1)
 - [ ] 복구 시점을 §3-6 명령으로 산출했다 — `verdict` 가 `ok` 이고 ε 의 근거(원인 작업 직전 기록)를 적었다
 - [ ] 산출한 `deadline` 을 적어 두고 그 안에 브랜치를 만들었다(보존 창 하한은 시간과 함께 전진한다)
 - [ ] 쓰기 차단(§3 2단계) ON — `GET /api/health` 의 `checks.writeFreeze.detail.frozen` 이 `true`
