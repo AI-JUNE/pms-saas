@@ -741,6 +741,13 @@ input{font-family:var(--font);outline:none}
     <button class="btn btn-primary" onclick="analyzeFiles()">데이터 분석 →</button>
   </div>
   <div class="page-body">
+    <div class="card" id="open-month-card" style="padding:14px 18px;margin-bottom:12px;display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+      <label style="display:flex;gap:8px;align-items:center;font-weight:700;font-size:13px">오픈(도입) 월
+        <input type="month" id="open-month" class="form-input" style="width:170px" onchange="setOpenMonth(this.value)"></label>
+      <div style="flex:1;min-width:240px;font-size:12px;color:var(--text3);line-height:1.5">설정하면 날짜·월이 있는 콜통계를 <b>오픈 전 / 오픈 월 / 오픈 후</b>로 자동으로 나눠 도입 성과를 비교합니다.
+        비워 두면 파일명(오픈전·안정화·최근)으로 구분합니다.</div>
+    </div>
+    <div id="upload-guide"></div>
     <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
       <div class="drop-icon">⊕</div>
       <div class="drop-title">파일을 드래그하거나 클릭해서 업로드</div>
@@ -753,8 +760,9 @@ input{font-family:var(--font);outline:none}
         <span class="ext-tag">.txt</span>
         <span class="ext-tag">.pptx</span>
         <span class="ext-tag">.pdf</span>
+        <span class="ext-tag" title="콜통계 캡처·사진 — 설정의 AI 키로 표 판독">.jpg·.png</span>
       </div>
-      <input type="file" id="file-input" style="display:none" multiple accept=".xlsx,.xls,.csv,.zip,.docx,.txt,.pptx,.pdf" onchange="handleFiles(this.files)">
+      <input type="file" id="file-input" style="display:none" multiple accept=".xlsx,.xls,.csv,.zip,.docx,.txt,.pptx,.pdf,.jpg,.jpeg,.png,.webp" onchange="handleFiles(this.files)">
     </div>
     <div class="card" id="file-list-card">
       <div style="color:var(--text4);font-size:12px;padding:4px 0">파일을 업로드하거나 데모 버튼을 눌러주세요.</div>
@@ -1941,9 +1949,16 @@ function renderClientList(){
       +(info.type==='callbot'?'<span class="client-tag">봇</span>':'')
       +'</div>';
   }).join('');
+  if(typeof syncOpenMonthInput==='function')syncOpenMonthInput();
 }
 
-function switchClient(key){ if(typeof fileObjs!=='undefined')fileObjs.length=0; var _fl=document.getElementById('file-list'); if(_fl)_fl.innerHTML='';
+function switchClient(key){
+  if(analyzing&&key!==activeClientKey){ toastMsg('분석이 진행 중입니다 — 끝난 뒤 고객사를 바꿔 주세요'); return; } /* 바꾸면 결과가 다른 고객사에 저장됐다 */
+  if(typeof fileObjs!=='undefined')fileObjs.length=0; var _fl=document.getElementById('file-list'); if(_fl)_fl.innerHTML='';
+  if(typeof uploadedFiles!=='undefined'){ uploadedFiles.length=0; if(typeof renderFiles==='function')renderFiles(); }
+  var _lr=document.getElementById('local-result'); if(_lr)_lr.innerHTML=''; /* 이전 고객사의 분석 결과·인터뷰 원문이 남아 보였다 */
+  var _lb=document.getElementById('log-box'); if(_lb)_lb.textContent='';
+  if(typeof LAST_DIAG!=='undefined')LAST_DIAG=null;
   activeClientKey=key;
   loadClientData(key);
   renderClientList();
@@ -1958,6 +1973,9 @@ function switchClient(key){ if(typeof fileObjs!=='undefined')fileObjs.length=0; 
     chip.textContent=CLIENTS.woori.jobId?'분석 완료':'분석 대기';
     btn.textContent='▶ 데모 분석';
     btn.onclick=startDemo;
+    if(key!=='woori'){ var _sd=clientStore()[key]; /* 상태 표시는 그 고객사의 저장 결과 기준 */
+      chip.className='chip '+(_sd&&_sd.metrics?'chip-ok':(_sd&&_sd.lastError?'chip-err':'chip-wait'));
+      chip.textContent=_sd&&_sd.metrics?'분석 완료':(_sd&&_sd.lastError?'검증 실패':'분석 대기'); }
     if(key==='woori'){ nav('dashboard'); }
     else { var _st=clientStore(); nav(_st[key]&&_st[key].metrics?'dashboard':'upload'); }
 }
@@ -2508,13 +2526,25 @@ function warnIfTruncated(p,d){
 
 /* ---------- 업로드 ---------- */
 var fileObjs=[];
-function handleFiles(files){ for(var i=0;i<files.length;i++){ fileObjs.push(files[i]); if(typeof uploadedFiles!=='undefined') uploadedFiles.push(files[i].name); } if(typeof renderFiles==='function') renderFiles(); analyzeFiles(); }
+function handleFiles(files){ var skipped=[];
+  for(var i=0;i<files.length;i++){ var f=files[i];
+    /* 같은 파일(이름·크기·수정시각)을 다시 고르면 건너뛴다 — 예전엔 누적돼 건수가 2배로 집계됐다 */
+    if(fileObjs.some(function(o){return o.name===f.name&&o.size===f.size&&o.lastModified===f.lastModified;})){ skipped.push(f.name); continue; }
+    fileObjs.push(f); if(typeof uploadedFiles!=='undefined') uploadedFiles.push(f.name); }
+  if(skipped.length) toastMsg('이미 올린 파일은 다시 넣지 않았습니다: '+skipped.join(', '));
+  if(typeof renderFiles==='function') renderFiles(); analyzeFiles(); }
 function handleDrop(e){ e.preventDefault(); var dz=document.getElementById('drop-zone'); if(dz)dz.classList.remove('drag'); if(e.dataTransfer&&e.dataTransfer.files.length) handleFiles(e.dataTransfer.files); }
 
 /* ---------- 파싱: 파일 → {sheets:[{path,rows}], docx:[{name,text}]} ---------- */
 function numf(x){ if(x==null||x==='')return null; var n=parseFloat(String(x).replace(/,/g,'').replace(/[^\d.\-]/g,'')); return isNaN(n)?null:n; }
 function tsec(v){ if(v==null||v==='')return null; var s=String(v); var _dm=s.match(/^(\d+)\s*days?,\s*(.*)$/i); var _dadd=0; if(_dm){ _dadd=parseInt(_dm[1],10)*86400; s=_dm[2].trim(); } var m=s.match(/(\d+):(\d{2}):(\d{2})/); if(m)return _dadd+(+m[1])*3600+(+m[2])*60+(+m[3]); m=s.match(/^(\d+):(\d{2})$/); if(m)return _dadd+(+m[1])*60+(+m[2]); var n=parseFloat(s); if(isNaN(n))return null; return _dadd+n; }
 function hourOf(v){ var s=String(v||''); var m=s.match(/\d{4}-\d{1,2}-\d{1,2}[ T]+(\d{1,2})/); if(m)return +m[1]; m=s.match(/(\d{1,2})\s*시/); if(m)return +m[1]; return null; }
+/* "%" 가 붙은 셀은 이미 퍼센트다 — pctv 의 "1.5 이하는 비율" 추정을 적용하면 "0.8%" 가 80% 가 된다(10-07 메르츠 9월 포기율) */
+function pctCell(v){ var s=String(v==null?'':v), n=numf(s); if(n==null)return null; return /%/.test(s)?+n.toFixed(1):pctv(n); }
+/* 월만 있는 날짜("2025-11", "2025.11", "2025년 11월", "2025-11 소계") → "YYYY-MM" */
+function monthOfCell(v){ var m=String(v==null?'':v).match(/(\d{4})\s*[-./년]\s*(\d{1,2})(?!\d)/); if(!m)return null; var mo=+m[2]; return (mo>=1&&mo<=12)?(m[1]+'-'+('0'+mo).slice(-2)):null; }
+/* 합계·총계 행(전체 기간) — 소계(월계·주계 등)와 구분. 소계만 있는 시트는 소계를 상세로 쓰되 합계는 대조에만 쓴다 */
+function isGrandTotalRow(row){ return (row||[]).some(function(c){ return /^(합계|총계|총합계|전체|전체합계|누계|일평균|평균|total|sum|grandtotal)$/i.test(String(c==null?'':c).replace(/\s+/g,'')); }); }
 function pctv(x){ if(x==null)return null; return +( (x<=1.5? x*100 : x).toFixed(1) ); }
 function aiCfg(){ try{return JSON.parse(localStorage.getItem('cx_ai_cfg')||'{}');}catch(e){return {};} }
 function b64FromBuf(buf){ var u=new Uint8Array(buf), s='', CH=32768;
@@ -2526,33 +2556,240 @@ function pdfCachePut(k,tables){ try{ var c=JSON.parse(localStorage.getItem(PDF_C
   c[k]={ts:Date.now(),tables:tables};
   var ks=Object.keys(c); if(ks.length>6){ ks.sort(function(a,b){return c[a].ts-c[b].ts;}); delete c[ks[0]]; }
   localStorage.setItem(PDF_CACHE_KEY,JSON.stringify(c)); }catch(e){} }
+/* 응답 본문·사용량 — 세 공급자 공통 */
+function llmText(prov,j){ if(prov==='claude')return (j.content||[]).map(function(c){return c.text||'';}).join('');
+  if(prov==='gemini')return ((((j.candidates||[])[0]||{}).content||{}).parts||[]).map(function(p){return p.text||'';}).join('');
+  return ((((j.choices||[])[0]||{}).message||{}).content||''); }
+function llmUsageAdd(prov,j,cfg){ var u=prov==='claude'?[(j.usage||{}).input_tokens,(j.usage||{}).output_tokens]:prov==='gemini'?[(j.usageMetadata||{}).promptTokenCount,((j.usageMetadata||{}).candidatesTokenCount||0)+((j.usageMetadata||{}).thoughtsTokenCount||0)]:[(j.usage||{}).prompt_tokens,(j.usage||{}).completion_tokens];
+  var usd=((u[0]||0)/1e6*(cfg.inPrice||0))+((u[1]||0)/1e6*(cfg.outPrice||0)); AIUSAGE.inTok+=u[0]||0; AIUSAGE.outTok+=u[1]||0; AIUSAGE.usd+=usd; AIUSAGE.calls++; try{ renderUsage(); }catch(e){} return usd; }
+var PDF_PROMPT='이 PDF는 콜센터 실적 통계 보고서입니다. 문서의 모든 데이터 표를 추출해 아래 JSON 형식으로만 출력하세요. 설명·마크다운·코드펜스 금지, JSON만.\n'
+  +'{"tables":[{"title":"표 제목(없으면 내용 기반 추정)","headers":["컬럼명",...],"rows":[["셀값",...],...]}]}\n'
+  +'규칙: 숫자는 보이는 표기 그대로(콤마 포함), 시간도 보이는 형식 그대로(h:mm:ss, N초, N분 등), 빈 칸은 빈 문자열, 합계행 포함, 헤더는 정확히 옮길 것. 모든 행은 headers 와 같은 개수의 칸. 읽기 불확실한 셀은 빈 문자열 ""로 — 값을 지어내지 마세요.';
+/* PDF 문서 입력 — Claude: document 블록 · Gemini: inline_data(application/pdf) · OpenAI: file 파트 */
+function docRequest(prov,model,key,b64,prompt){
+  if(prov==='claude') return {url:'https://api.anthropic.com/v1/messages',headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:{model:model,max_tokens:8192,messages:[{role:'user',content:[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},{type:'text',text:prompt}]}]}};
+  if(prov==='gemini') return {url:'https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent?key='+encodeURIComponent(key),headers:{'content-type':'application/json'},
+    body:{contents:[{parts:[{inline_data:{mime_type:'application/pdf',data:b64}},{text:prompt}]}],generationConfig:{responseMimeType:'application/json'}}};
+  return {url:'https://api.openai.com/v1/chat/completions',headers:{'content-type':'application/json','authorization':'Bearer '+key},
+    body:{model:model,response_format:{type:'json_object'},messages:[{role:'user',content:[{type:'text',text:prompt},{type:'file',file:{filename:'stats.pdf',file_data:'data:application/pdf;base64,'+b64}}]}]}}; }
 async function extractPdfTablesAI(name,b64){
-  var cfg=aiCfg(); if(cfg.provider!=='claude'||!cfg.key)return {skip:true,tables:[]};
-  if(!(await confirmExternalSend({provider:'claude',endpointHost:'api.anthropic.com',dataKinds:['콜통계 PDF 원본(base64)'],fieldCount:1,maskApplied:false,fileBase64Included:true}))) throw new Error('사용자가 외부 LLM 전송을 취소했습니다');
-  try{ logExternalSend({app:'EPM',provider:'claude',endpointHost:'api.anthropic.com',dataKinds:['PDF base64'],charCount:(b64||'').length,fieldCount:1,maskApplied:false,fileBase64Included:true}); }catch(e){}
-  var ck=name+'|'+b64.length; var hit=pdfCacheGet(ck);
-  if(hit){ return {tables:hit.tables,cached:true}; } /* 캐시 — API 토큰 0 사용 */
-  var model=cfg.model||'claude-sonnet-4-20250514';
-  var prompt='이 PDF는 콜센터 실적 통계 보고서입니다. 문서의 모든 데이터 표를 추출해 아래 JSON 형식으로만 출력하세요. 설명·마크다운·코드펜스 금지, JSON만.\n'
-   +'{"tables":[{"title":"표 제목(없으면 내용 기반 추정)","headers":["컬럼명",...],"rows":[["셀값",...],...]}]}\n'
-   +'규칙: 숫자는 보이는 표기 그대로(콤마 포함), 시간도 보이는 형식 그대로(h:mm:ss, N초, N분 등), 빈 칸은 빈 문자열, 합계행 포함, 헤더는 정확히 옮길 것. 읽기 불확실한 셀은 "?"로.';
-  var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
-    headers:{'content-type':'application/json','x-api-key':cfg.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({model:model,max_tokens:8192,messages:[{role:'user',content:[
-      {type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},
-      {type:'text',text:prompt}]}]})});
+  var cfg=aiCfg(); if(!cfg.key)return {skip:true,tables:[],why:'AI API 키 미등록 — 설정에서 키를 등록하면 스캔 PDF 의 표를 추출합니다'};
+  var prov=cfg.provider||detectProv(cfg.key)||'claude', model=String(cfg.model||AI_DEFAULTS[prov].model).replace(/^models\//,''), lp=prov==='gpt'?'openai':prov;
+  var ck=name+'|'+b64.length, hit=pdfCacheGet(ck);
+  if(hit){ return {tables:hit.tables,cached:true}; } /* 캐시 — 토큰 0 */
+  if(!(await confirmExternalSend({provider:prov,endpointHost:hostOf(prov),dataKinds:['콜통계 PDF 원본(base64)'],fieldCount:1,maskApplied:false,fileBase64Included:true}))) throw new Error('사용자가 외부 LLM 전송을 취소했습니다');
+  try{ logExternalSend({app:'EPM',provider:prov,endpointHost:hostOf(prov),dataKinds:['PDF base64'],charCount:(b64||'').length,fieldCount:1,maskApplied:false,fileBase64Included:true}); }catch(e){}
+  var rq=docRequest(prov,model,cfg.key,b64,PDF_PROMPT);
+  var r=await fetch(rq.url,{method:'POST',headers:rq.headers,body:JSON.stringify(rq.body)});
   var j=await r.json(); if(!r.ok)throw new Error((j.error&&j.error.message)||('HTTP '+r.status));
-  warnIfTruncated('claude', j);
-  var text=(j.content||[]).map(function(c){return c.text||'';}).join('');
-  var clean=text.replace(/```json|```/g,'').trim();
-  var s=clean.indexOf('{'), e=clean.lastIndexOf('}');
-  if(s<0||e<=s)throw new Error('응답에서 JSON을 찾지 못함');
-  var data=JSON.parse(clean.slice(s,e+1));
-  var tabs=(data.tables||[]).filter(function(t){return t&&t.headers&&t.headers.length&&t.rows&&t.rows.length;});
-  pdfCachePut(ck,tabs);
-  return {tables:tabs};
-}
-function decodeText(buf){ // utf-8 → cp949(euc-kr) 폴백
+  warnIfTruncated(lp, j);
+  llmUsageAdd(prov,j,cfg);
+  if(llmTruncated(lp,j)) throw new Error('응답이 출력 한도에서 잘림 — 표가 너무 커 일부만 왔습니다(집계에 쓰지 않음)');
+  var v=validateVisionTables(parseLLMJson(llmText(prov,j)));
+  if(!v.ok) throw new Error(v.errors.length?('추출 결과 검증 실패: '+v.errors.slice(0,3).join(' / ')):'PDF 에서 데이터 표를 찾지 못함');
+  pdfCachePut(ck,v.tables);
+  return {tables:v.tables,blanks:v.blanks,errors:v.errors}; }
+/* ---------- 콜통계 이미지 → AI 판독(Vision) → 집계 가능한 표 (2026-10-07) ----------
+   이미지는 표 형식이 아니어서 SheetJS 폴백이 바이너리를 CSV 로 읽어 쓰레기 행만 만들었다 → 정량 0 (메르츠화재).
+   ① canvas 로 줄여 공급자 한도(Anthropic 이미지 5MB) 안에 넣고 ② 보이는 표만 JSON 으로 옮기게 한 뒤
+   ③ 스키마 검증 — 못 읽은 칸은 빈칸, 열 수가 어긋난 표는 통째로 버린다(값을 지어내 메우지 않는다)
+   ④ fromAI 표로 기존 정량 집계(aggAI 슬롯)에 넣는다 — 신용회복위원회가 성공한 스캔 PDF 경로와 같은 자리. */
+var IMG_EXT_RE=/\.(jpe?g|png|webp|gif|bmp)$/i;
+var IMG_LLM_MAX_EDGE=2000, IMG_LLM_MAX_B64=3900000; /* base64 문자 수 — Anthropic 5MB 한도에 여유 */
+var IMG_CACHE_KEY='cx_img_tbl_cache_v1';
+function imgMime(name){ var x=(String(name||'').toLowerCase().match(/\.([a-z0-9]+)$/)||[])[1]||'';
+  return ({jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',gif:'image/gif',bmp:'image/bmp'})[x]||'application/octet-stream'; }
+function planImageResize(w,h,maxEdge){ w=+w||0; h=+h||0; if(!(w>0&&h>0))return null;
+  var s=Math.min(1,maxEdge/Math.max(w,h)); return {w:Math.max(1,Math.round(w*s)),h:Math.max(1,Math.round(h*s)),scale:s}; }
+async function decodeImage(buf,mime){ var blob=new Blob([buf],{type:mime});
+  if(typeof createImageBitmap==='function'){ try{ return await createImageBitmap(blob,{imageOrientation:'from-image'}); }catch(e){ try{ return await createImageBitmap(blob); }catch(e2){} } }
+  return await new Promise(function(res,rej){ var u=URL.createObjectURL(blob), im=new Image();
+    im.onload=function(){ URL.revokeObjectURL(u); res(im); }; im.onerror=function(){ URL.revokeObjectURL(u); rej(new Error('이미지를 열지 못함(손상·미지원 형식)')); }; im.src=u; }); }
+async function shrinkImageForLLM(buf,mime,o){ o=o||{}; var maxEdge=o.maxEdge||IMG_LLM_MAX_EDGE, maxB64=o.maxB64||IMG_LLM_MAX_B64;
+  var bmp=await decodeImage(buf,mime), W=bmp.width||bmp.naturalWidth, H=bmp.height||bmp.naturalHeight;
+  var p=planImageResize(W,H,maxEdge); if(!p)throw new Error('이미지 크기를 읽지 못함');
+  /* 이미 작고 한도 안이면 원본 그대로 — 재압축으로 작은 글자가 뭉개지지 않게 */
+  if(p.scale===1&&/^image\/(jpeg|png|webp|gif)$/.test(mime)&&Math.ceil(buf.byteLength/3)*4<=maxB64) return {b64:b64FromBuf(buf),mime:mime,w:W,h:H,srcW:W,srcH:H,resized:false};
+  var w=p.w, h=p.h, QS=[0.85,0.72,0.6];
+  for(var pass=0;pass<6;pass++){ var cv=document.createElement('canvas'); cv.width=w; cv.height=h; var cx=cv.getContext('2d');
+    cx.fillStyle='#fff'; cx.fillRect(0,0,w,h); cx.drawImage(bmp,0,0,w,h);
+    for(var qi=0;qi<QS.length;qi++){ var url=cv.toDataURL('image/jpeg',QS[qi]), b64=url.slice(url.indexOf(',')+1);
+      if(b64.length<=maxB64) return {b64:b64,mime:'image/jpeg',w:w,h:h,srcW:W,srcH:H,resized:true,quality:QS[qi]}; }
+    w=Math.max(1,Math.round(w*0.8)); h=Math.max(1,Math.round(h*0.8)); }
+  throw new Error('이미지를 전송 한도('+(maxB64/1e6).toFixed(1)+'MB) 이하로 줄이지 못함'); }
+function imgCacheGet(k){ try{ var c=JSON.parse(localStorage.getItem(IMG_CACHE_KEY)||'{}'); return c[k]||null; }catch(e){ return null; } }
+function imgCachePut(k,v){ try{ var c=JSON.parse(localStorage.getItem(IMG_CACHE_KEY)||'{}'); v.ts=Date.now(); c[k]=v;
+  var ks=Object.keys(c); if(ks.length>6){ ks.sort(function(a,b){return c[a].ts-c[b].ts;}); delete c[ks[0]]; }
+  localStorage.setItem(IMG_CACHE_KEY,JSON.stringify(c)); }catch(e){} }
+function parseLLMJson(text){ var clean=String(text||'').replace(/```json|```/g,'').trim();
+  var s=clean.indexOf('{'), e=clean.lastIndexOf('}'); if(s<0||e<=s)throw new Error('응답에서 JSON을 찾지 못함');
+  try{ return JSON.parse(clean.slice(s,e+1)); }catch(x){ throw new Error('응답 JSON 형식 오류'); } }
+/* 판독 결과 스키마: {tables:[{title, headers:[str], rows:[[str|number|null]]}]}
+   - 못 읽은 칸 표기("?", "판독불가", null …)는 빈칸으로 바꾼다 → numf() 가 null 로 보고 집계에서 빠진다
+   - 행의 칸 수가 헤더와 다르면 열이 어긋난 것이다 → 그 표는 버린다(어긋난 채 집계하면 엉뚱한 지표에 더해진다) */
+var BLANK_CELL_RE=/^(\?+|판독\s*불가|읽을\s*수\s*없음|불명|unreadable|illegible|unknown|n\/?a|null|undefined)$/i;
+function validateVisionTables(obj){ var errs=[], out=[], blanks=0;
+  if(!obj||typeof obj!=='object'||!Array.isArray(obj.tables)) return {ok:false,tables:[],errors:['스키마 불일치: tables 배열 없음'],blanks:0};
+  obj.tables.slice(0,20).forEach(function(t,ti){ var tag='표'+(ti+1);
+    if(!t||typeof t!=='object'||Array.isArray(t)){ errs.push(tag+': 객체 아님'); return; }
+    if(!Array.isArray(t.headers)||!t.headers.length||t.headers.length>40){ errs.push(tag+': headers 없음 또는 40열 초과'); return; }
+    if(!t.headers.every(function(h){return typeof h==='string'||typeof h==='number';})){ errs.push(tag+': headers 형식 오류'); return; }
+    var hd=t.headers.map(function(h){return String(h).trim();});
+    if(!hd.some(Boolean)){ errs.push(tag+': 헤더가 모두 빈칸'); return; }
+    if(!Array.isArray(t.rows)){ errs.push(tag+': rows 없음'); return; }
+    var rows=[], bad=null, nb=0;
+    t.rows.slice(0,3000).forEach(function(r,ri){ if(bad)return;
+      if(!Array.isArray(r)){ bad='행 '+(ri+1)+' 형식 오류'; return; }
+      if(r.length!==hd.length){ bad='행 '+(ri+1)+' 칸 수('+r.length+')≠헤더('+hd.length+') — 열 어긋남'; return; }
+      var cells=[];
+      for(var ci=0;ci<r.length;ci++){ var v=r[ci];
+        if(v!=null&&typeof v!=='string'&&typeof v!=='number'){ bad='행 '+(ri+1)+' 칸 형식 오류'; return; }
+        var s=v==null?'':String(v).trim(); if(BLANK_CELL_RE.test(s))s=''; cells.push(s); }
+      if(cells.some(Boolean)){ rows.push(cells); nb+=cells.filter(function(x){return !x;}).length; } });
+    if(bad){ errs.push(tag+': '+bad+' → 표 제외'); return; }
+    if(!rows.length){ errs.push(tag+': 데이터 행 없음'); return; }
+    blanks+=nb; out.push({title:typeof t.title==='string'?t.title.trim().slice(0,60):'',headers:hd,rows:rows}); });
+  return {ok:out.length>0,tables:out,errors:errs,blanks:blanks}; }
+var VISION_PROMPT='이 이미지는 콜센터 콜 통계(표 또는 차트) 화면·사진입니다. 이미지에 보이는 데이터 표를 그대로 옮겨 아래 JSON으로만 출력하세요. 설명·마크다운·코드펜스 금지.\n'
+  +'{"tables":[{"title":"표 제목(보이는 기간·인바운드/아웃바운드 표기 포함, 없으면 빈 문자열)","headers":["열 이름",...],"rows":[["셀",...],...]}]}\n'
+  +'규칙:\n- 헤더는 이미지 표기 그대로(예: 인입콜, 응답콜, 포기콜, 응답률, 평균통화시간). 바꾸거나 번역하지 마세요.\n'
+  +'- 숫자·시간은 보이는 표기 그대로(콤마·%·h:mm:ss 포함). 계산·추정·보정 금지.\n'
+  +'- 읽을 수 없거나 가려진 칸은 빈 문자열 ""로 두세요. 값을 지어내지 마세요.\n'
+  +'- 모든 행은 headers와 같은 개수의 칸을 가져야 합니다. 합계행이 있으면 그대로 포함하세요.\n'
+  +'- 막대·선 차트는 데이터 레이블(숫자)이 보일 때만 표로 옮기고, 축 눈금으로 값을 어림하지 마세요.\n'
+  +'- 표가 없으면 {"tables":[]}.';
+function visionRequest(prov,model,key,img,prompt){
+  if(prov==='claude') return {url:'https://api.anthropic.com/v1/messages',headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:{model:model,max_tokens:8192,messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:img.mime,data:img.b64}},{type:'text',text:prompt}]}]}};
+  if(prov==='gemini') return {url:'https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent?key='+encodeURIComponent(key),headers:{'content-type':'application/json'},
+    body:{contents:[{parts:[{inline_data:{mime_type:img.mime,data:img.b64}},{text:prompt}]}],generationConfig:{responseMimeType:'application/json'}}};
+  return {url:'https://api.openai.com/v1/chat/completions',headers:{'content-type':'application/json','authorization':'Bearer '+key},
+    body:{model:model,response_format:{type:'json_object'},messages:[{role:'user',content:[{type:'text',text:prompt},{type:'image_url',image_url:{url:'data:'+img.mime+';base64,'+img.b64,detail:'high'}}]}]}}; }
+async function extractImageTablesAI(name,img){
+  var cfg=aiCfg(); if(!cfg.key) return {skip:true,why:'AI API 키 미등록 — 설정에서 키를 등록하면 이미지 표를 판독합니다'};
+  var prov=cfg.provider||detectProv(cfg.key)||'claude', model=String(cfg.model||AI_DEFAULTS[prov].model).replace(/^models\//,''), lp=prov==='gpt'?'openai':prov;
+  var ck=name+'|'+img.b64.length, hit=imgCacheGet(ck);
+  if(hit) return {tables:hit.tables,blanks:hit.blanks||0,errors:hit.errors||[],cached:true}; /* 캐시 — 토큰 0 */
+  if(!(await confirmExternalSend({provider:prov,endpointHost:hostOf(prov),dataKinds:['콜통계 이미지 원본(축소본, base64)'],fieldCount:1,maskApplied:false,fileBase64Included:true}))) throw new Error('사용자가 외부 LLM 전송을 취소했습니다');
+  try{ logExternalSend({app:'EPM',provider:prov,endpointHost:hostOf(prov),dataKinds:['image base64'],charCount:img.b64.length,fieldCount:1,maskApplied:false,fileBase64Included:true}); }catch(e){}
+  var rq=visionRequest(prov,model,cfg.key,img,VISION_PROMPT);
+  var r=await fetch(rq.url,{method:'POST',headers:rq.headers,body:JSON.stringify(rq.body)});
+  var j=await r.json(); if(!r.ok)throw new Error((j.error&&j.error.message)||('HTTP '+r.status));
+  warnIfTruncated(lp, j);
+  var usd=llmUsageAdd(prov,j,cfg);
+  if(llmTruncated(lp,j)) throw new Error('응답이 출력 한도에서 잘림 — 표가 너무 커 일부만 왔습니다(집계에 쓰지 않음)');
+  var v=validateVisionTables(parseLLMJson(llmText(prov,j)));
+  if(!v.ok) throw new Error(v.errors.length?('판독 결과 검증 실패: '+v.errors.slice(0,3).join(' / ')):'이미지에서 데이터 표를 찾지 못함');
+  imgCachePut(ck,{tables:v.tables,blanks:v.blanks,errors:v.errors});
+  return {tables:v.tables,blanks:v.blanks,errors:v.errors,usd:usd}; }
+/* 한 이미지 안의 여러 표는 같은 콜을 다른 축(시간대·일자·요약)으로 본 경우가 많다 — 다 더하면 2~3배로 부풀려진다.
+   (이미지·기간·방향)마다 콜 지표가 인식된 표 중 건수가 가장 큰 표 1개만 집계한다. */
+function pickImageTables(sheets){ var groups={}, order=[], keep=[], checks=[], unrec=[];
+  sheets.forEach(function(sh){ if(!sh.fromImage){ keep.push(sh); return; }
+    var d=dirOfV2(sh.path), st=sheetStatsV3(sh.rows,d), k=sh.srcGroup+'|'+periodOfV2(sh.path)+'|'+d;
+    if(!st){ unrec.push({file:sh.srcGroup,title:sh.path.split('#AI:').pop()}); keep.push(sh); return; }
+    if(!groups[k]){ groups[k]=[]; order.push(k); }
+    groups[k].push({sh:sh,score:(st.tot||0)||((st.ans||0)+(st.abd||0))}); });
+  order.forEach(function(k){ var g=groups[k].slice().sort(function(a,b){return b.score-a.score;}); keep.push(g[0].sh);
+    if(g.length>1) checks.push({name:'이미지 표 중복 합산 방지',ok:true,detail:'"'+g[0].sh.srcGroup+'" 에서 콜 지표 표 '+g.length+'개를 읽었습니다 — 같은 콜을 다른 축으로 본 표일 수 있어 건수가 가장 큰 1개만 집계하고 '+(g.length-1)+'개는 제외했습니다'}); });
+  /* 같은 이미지에서 집계된 표가 하나라도 있으면 나머지 미인식 표(요약·메모 등)는 실패가 아니다 */
+  var okImg={}; order.forEach(function(k){ okImg[groups[k][0].sh.srcGroup]=1; });
+  return {sheets:keep,checks:checks,unrecognized:unrec.filter(function(u){return !okImg[u.file];})}; }
+/* ---------- 오픈(도입) 월 기준 기간 분할 (2026-10-07) ----------
+   기간은 파일명(오픈전·안정화·최근)으로만 나뉘어, 한 파일에 여러 달이 든 보고서는 전부 "최근"이 됐다.
+   고객사별 오픈 월을 정하면 날짜·월 컬럼으로 행을 오픈 전 / 오픈 월(안정화) / 오픈 후(최근)로 나눈다. */
+function rowMonth(v){ var ds=cellDateStr(v), m=ds.match(/(\d{4})[-./](\d{1,2})[-./]\d{1,2}/); if(m)return m[1]+'-'+('0'+m[2]).slice(-2); return monthOfCell(ds); }
+function splitByOpenMonth(sheets,om){ if(!/^\d{4}-\d{2}$/.test(String(om||'')))return {sheets:sheets,checks:[]};
+  var out=[], checks=[];
+  sheets.forEach(function(sh){
+    if(sh.fromDoc||/오픈\s*전|open전|안정화|최근/i.test(sh.path)){ out.push(sh); return; } /* 파일명에 기간이 있으면 그대로 */
+    var H=findHeaderV2(sh.rows); if(!H||H.map.date==null){ out.push(sh); return; }
+    var start=H.i+(H.twoRow?2:1), head=sh.rows.slice(0,start), parts={before:[],mid:[],after:[]}, none=0;
+    for(var r=start;r<sh.rows.length;r++){ var row=sh.rows[r]; if(!row||!row.length)continue;
+      var mk=rowMonth(row[H.map.date]); if(!mk){ none++; continue; } /* 월이 없는 행(전체 합계 등)은 기간에 넣지 않는다 */
+      parts[mk<om?'before':(mk===om?'mid':'after')].push(row); }
+    var made=[[ 'before','오픈전'],['mid','안정화·오픈월'],['after','최근·오픈후']].filter(function(P){return parts[P[0]].length;});
+    if(!made.length){ out.push(sh); return; }
+    made.forEach(function(P){ out.push(Object.assign({},sh,{path:sh.path+' ['+P[1]+']',rows:head.concat(parts[P[0]])})); });
+    checks.push({name:'오픈 월 기준 기간 분할',ok:true,detail:'"'+String(sh.path).split('/').pop()+'" 를 오픈 월 '+om+' 기준으로 나눔 — 오픈 전 '+parts.before.length+'행 · 오픈 월 '+parts.mid.length+'행 · 오픈 후 '+parts.after.length+'행'+(none?' (월 정보 없는 합계 등 '+none+'행 제외)':'')}); });
+  return {sheets:out,checks:checks}; }
+/* 업로드 화면의 필수·권장 자료 안내 (2026-10-07) — 무엇을 올려야 어떤 분석이 되는지, 이 고객사가 이미 갖춘 것은 ✅ */
+var UPLOAD_GUIDE=[
+  {req:1,k:'quant',t:'콜 통계 (인바운드)',f:'엑셀(.xlsx)·CSV 원본 — 콜센터 시스템에서 내려받은 파일',c:'날짜(일 또는 월) · 인입 · 응답 · 포기 건수 (+ 평균 통화·대기 시간)',p:'오픈 전 3개월 ~ 현재',m:'대시보드 · KPI · 모든 솔루션 메뉴'},
+  {req:1,k:'period',t:'오픈(도입) 월',f:'위 입력칸에 선택 (또는 파일명에 "오픈전"/"최근")',c:'시스템을 연 달',p:'—',m:'도입 성과 · 시점별 비교'},
+  {req:1,k:'qual',t:'인터뷰 결과',f:'워드(.docx)·한글(.hwpx)·PPT(.pptx)·텍스트(.txt)',c:'현업 인터뷰·회의록·VOC',p:'—',m:'정성 분석'},
+  {req:0,k:'hour',t:'시간대별 통계',f:'엑셀·CSV',c:'시간대(0~23시) · 인입 · 응답 · 포기',p:'오픈 전 3개월 · 오픈 월 · 오픈 후 3개월',m:'히트맵 · 피크/황금시간 · 인력 배치'},
+  {req:0,k:'agent',t:'상담사별 통계',f:'엑셀·CSV',c:'상담사명(또는 사번) · 처리 건수 · 평균 통화시간',p:'위와 같음',m:'상담사 분석'},
+  {req:0,k:'ob',t:'아웃바운드 통계',f:'엑셀·CSV (파일명에 "아웃바운드" 또는 "OB")',c:'발신 · 연결 건수',p:'위와 같음',m:'OB 전략 · 디지털 ARS'},
+  {req:0,k:'type',t:'상담유형별 통계',f:'엑셀·CSV',c:'문의유형 · 건수 · 평균 처리시간',p:'위와 같음',m:'챗봇 적합 업무'}];
+function uploadGuideStatus(d,cl){ var q=d&&d.quant, m=(q&&q.current)||(d&&d.metrics)||{};
+  var periods=q?['before','mid','after'].filter(function(p){return q[p];}).length:0;
+  return { quant:!!(m&&(m.inb!=null||m.answerRate!=null)), period:periods>=2||!!(cl&&cl.openMonth), qual:!!(d&&d.qual),
+    hour:!!(m.byHour&&Object.keys(m.byHour).length), agent:!!(q&&q.agentDetail), ob:!!(q&&q.ob&&q.ob.current),
+    type:!!(m.byType&&Object.keys(m.byType).length>=2) }; }
+function renderUploadGuide(){ var el=document.getElementById('upload-guide'); if(!el)return;
+  var cl=(typeof CLIENTS!=='undefined'&&CLIENTS[activeClientKey])||{}, demo=activeClientKey==='woori';
+  var d=demo?null:clientStore()[activeClientKey], st=demo?{}:uploadGuideStatus(d,cl);
+  function row(g){ var ok=st[g.k];
+    return '<tr style="border-top:1px solid var(--surface2)"><td style="padding:6px 8px;white-space:nowrap">'+(demo?'':(ok?'✅':'⬜'))+' <b>'+g.t+'</b></td>'
+     +'<td style="padding:6px 8px;color:var(--text2)">'+g.f+'<div style="font-size:11px;color:var(--text3)">'+g.c+'</div></td>'
+     +'<td style="padding:6px 8px;color:var(--text3);white-space:nowrap">'+g.p+'</td><td style="padding:6px 8px;color:var(--text3)">'+g.m+'</td></tr>'; }
+  function block(title,arr){ return '<tr><td colspan="4" style="padding:10px 8px 4px;font-weight:800;font-size:12.5px">'+title+'</td></tr>'+arr.map(row).join(''); }
+  var need=UPLOAD_GUIDE.filter(function(g){return g.req&&!st[g.k];}).length;
+  el.innerHTML='<details class="card" style="padding:12px 18px;margin-bottom:12px"'+(demo||need?' open':'')+'><summary style="cursor:pointer;font-weight:800;font-size:13.5px">📋 올려야 할 자료'
+   +(demo?'':(need?' <span style="color:var(--red);font-size:12px">— 필수 '+need+'건 부족</span>':' <span style="color:var(--green);font-size:12px">— 필수 자료 완료</span>'))+'</summary>'
+   +'<table style="width:100%;border-collapse:collapse;font-size:12.3px;margin-top:6px"><tr style="color:var(--text3);font-size:11.5px"><td style="padding:4px 8px">자료</td><td style="padding:4px 8px">파일 형식 · 필요한 내용</td><td style="padding:4px 8px">기간</td><td style="padding:4px 8px">열리는 분석</td></tr>'
+   +block('필수',UPLOAD_GUIDE.filter(function(g){return g.req;}))+block('권장 — 있으면 해당 메뉴가 채워집니다',UPLOAD_GUIDE.filter(function(g){return !g.req;}))+'</table>'
+   +'<div style="font-size:11.5px;color:var(--text3);margin-top:8px;line-height:1.6">· 화면 캡처·사진·스캔 PDF 는 설정의 AI 키로 판독합니다(비용 발생·오인식 가능) — <b>엑셀 원본을 권장</b>합니다.<br>'
+   +'· 여러 파일은 한 번에 함께 올리세요. 같은 파일을 다시 골라도 중복 집계되지 않으며, 콜통계만·인터뷰만 다시 올려도 나머지 결과는 유지됩니다.</div></details>'; }
+function syncOpenMonthInput(){ renderUploadGuide(); var e=document.getElementById('open-month'); if(!e)return; var c=(typeof CLIENTS!=='undefined'&&CLIENTS[activeClientKey])||{}; e.value=c.openMonth||''; }
+function setOpenMonth(v){ var c=CLIENTS[activeClientKey]; if(!c)return; v=/^\d{4}-\d{2}$/.test(v||'')?v:'';
+  if(v)c.openMonth=v; else delete c.openMonth;
+  try{ persistClients(); }catch(e){}
+  if(typeof fileObjs!=='undefined'&&fileObjs.length){ toastMsg('오픈 월 '+(v||'해제')+' — 올린 파일로 다시 분석합니다'); analyzeFiles(); }
+  else toastMsg(v?('오픈 월 '+v+' 저장 — 콜통계를 올리면 오픈 전·후로 나눠 비교합니다'):'오픈 월을 해제했습니다'); }
+/* ---------- 인터뷰 → AI 구조화 (핵심 니즈 · Pain point · VOC · 개선 과제) ----------
+   원문(마스킹)에 실제로 있는 근거 구절(evidence)이 확인된 항목만 남긴다 — 근거 없는 항목은 지어낸 것으로 보고 버린다. */
+var IV_MAX_CHARS=12000, IV_CACHE_KEY='cx_iv_struct_cache_v1', IV_CATS=['needs','pains','voc','actions'];
+function strHash(s){ s=String(s||''); var h=5381; for(var i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0; return (h>>>0).toString(36); }
+function normEv(s){ return String(s==null?'':s).replace(/[\s"'“”‘’`.,·…\-–—:;!?()\[\]「」『』<>]/g,'').toLowerCase(); }
+function interviewPrompt(masked){
+  return '당신은 컨택센터 컨설턴트입니다. 아래는 고객사 인터뷰·발표자료 원문입니다(개인정보는 [종류_번호]로 마스킹됨). 원문에 근거한 내용만 4개 범주로 구조화해 JSON으로만 출력하세요. 설명·마크다운·코드펜스 금지.\n'
+   +'{"needs":[{"text":"핵심 니즈(80자 이내)","evidence":"원문에서 그대로 복사한 근거 구절(40자 이내)"}],"pains":[{"text":"Pain point","evidence":"..."}],'
+   +'"voc":[{"text":"현업·고객의 말(원문 표현 유지)","evidence":"..."}],"actions":[{"text":"개선 과제","priority":"P0|P1|P2","evidence":"..."}]}\n'
+   +'규칙: 범주마다 최대 6개. evidence는 원문에 실제로 있는 문자열을 그대로 복사(요약·의역 금지). 근거가 원문에 없으면 그 항목을 만들지 마세요. 해당 내용이 없으면 빈 배열.\n\n[원문]\n'+masked; }
+function validateInterviewStruct(obj,src){
+  if(!obj||typeof obj!=='object'||Array.isArray(obj)) return {ok:false,errors:['스키마 불일치: 객체 아님'],dropped:0,total:0};
+  var S=normEv(src), out={}, dropped=0, errs=[], total=0;
+  IV_CATS.forEach(function(c){ var arr=obj[c]; out[c]=[];
+    if(arr==null)return; if(!Array.isArray(arr)){ errs.push(c+' 배열 아님'); return; }
+    arr.slice(0,6).forEach(function(it){
+      if(!it||typeof it!=='object'||typeof it.text!=='string'||!it.text.trim()){ dropped++; return; }
+      var ev=typeof it.evidence==='string'?it.evidence.trim():'', ne=normEv(ev);
+      if(ne.length<4||S.indexOf(ne)<0){ dropped++; return; } /* 원문에 없는 근거 */
+      var o={text:it.text.trim().slice(0,160),evidence:ev.slice(0,80)};
+      if(c==='actions')o.priority=/^P[012]$/.test(String(it.priority||''))?it.priority:'';
+      out[c].push(o); total++; }); });
+  return {ok:total>0,result:out,dropped:dropped,errors:errs,total:total}; }
+async function structureInterviewsAI(full,orgName){
+  var cfg=aiCfg(); if(!cfg.key) return {skip:true,why:'AI API 키 미등록 — 규칙 기반 분류만 표시합니다'};
+  var src=String(full||''), cut=src.length>IV_MAX_CHARS; src=src.slice(0,IV_MAX_CHARS);
+  var mk=maskSensitive(src,{orgNames:[orgName||curClientName()]});
+  function unmask(s){ return String(s).replace(/\[[^\]\[]{1,12}_\d+\]/g,function(t){ return mk.map[t]!=null?mk.map[t]:t; }); }
+  var ck=mk.masked.length+'|'+strHash(mk.masked), cache={}; try{ cache=JSON.parse(localStorage.getItem(IV_CACHE_KEY)||'{}'); }catch(e){}
+  if(cache[ck]) return {result:cache[ck].result,cached:true};
+  var res=await callAI(interviewPrompt(mk.masked),{dataKinds:['인터뷰·발표자료 원문(마스킹)'],logKind:'interview-structure',maxTokens:4096});
+  var v=validateInterviewStruct(parseLLMJson(res.text),mk.masked);
+  if(!v.ok) throw new Error(v.errors.length?('구조화 결과 검증 실패: '+v.errors.join(' / ')):('원문에서 근거가 확인된 항목이 없음'+(v.dropped?' ('+v.dropped+'개 제외)':'')));
+  var out={dropped:v.dropped,truncated:cut,ts:Date.now()};
+  IV_CATS.forEach(function(c){ out[c]=v.result[c].map(function(o){ var x={text:unmask(o.text),evidence:unmask(o.evidence)}; if(o.priority!=null)x.priority=o.priority; return x; }); });
+  try{ cache[ck]={ts:Date.now(),result:out}; var ks=Object.keys(cache); if(ks.length>6){ ks.sort(function(a,b){return cache[a].ts-cache[b].ts;}); delete cache[ks[0]]; } localStorage.setItem(IV_CACHE_KEY,JSON.stringify(cache)); }catch(e){}
+  return {result:out,usd:res.usd}; }
+function decodeText(buf){ // utf-8 → cp949(euc-kr) 폴백 · UTF-16(BOM) 지원
+  var u8=new Uint8Array(buf.buffer?buf.buffer.slice(buf.byteOffset||0,(buf.byteOffset||0)+buf.byteLength):buf);
+  if(u8.length>=2&&u8[0]===0xFF&&u8[1]===0xFE){ try{ return new TextDecoder('utf-16le').decode(u8.subarray(2)); }catch(e){} }
+  if(u8.length>=2&&u8[0]===0xFE&&u8[1]===0xFF){ try{ return new TextDecoder('utf-16be').decode(u8.subarray(2)); }catch(e){} }
   try{ var t=new TextDecoder('utf-8',{fatal:true}).decode(buf); return t; }catch(e){}
   try{ return new TextDecoder('euc-kr').decode(buf); }catch(e){}
   return new TextDecoder('utf-8').decode(buf); }
@@ -2581,14 +2818,60 @@ async function pptxText(buf){ var z=await JSZip.loadAsync(buf); var out=[];
   for(var i=0;i<names.length;i++){ var xml=await z.files[names[i]].async('string');
     var ts=xmlTexts(xml,'a:t').join('\n').trim(); if(ts)out.push('[슬라이드 '+(i+1)+']\n'+ts); }
   return out.join('\n'); }
+/* ---- PPT 안의 표(a:tbl)·차트 수치(차트 XML 캐시값) — 그림(캡처) 속 수치는 여기서 못 읽는다(이미지 판독 대상) ---- */
+function pptxCellText(x){ return (x.match(/<a:p(?:\s[^>]*)?>[\s\S]*?<\/a:p>/g)||[x]).map(function(p){return xmlTexts(p,'a:t').join('');}).join('\n').replace(/\n{2,}/g,'\n').trim(); }
+function pptxTblRows(xml){ var out=[], tblRe=/<a:tbl(?:\s[^>]*)?>[\s\S]*?<\/a:tbl>/g, tm;
+  while((tm=tblRe.exec(xml))){ var rows=[], trRe=/<a:tr(?:\s[^>]*)?>[\s\S]*?<\/a:tr>/g, rm;
+    while((rm=trRe.exec(tm[0]))){ var cells=[], tcRe=/<a:tc(?:\s[^>]*)?>[\s\S]*?<\/a:tc>/g, cm;
+      while((cm=tcRe.exec(rm[0]))) cells.push(pptxCellText(cm[0]));
+      if(cells.some(function(c){return c;}))rows.push(cells); }
+    if(rows.length>=2)out.push(rows.slice(0,500)); }
+  return out; }
+function pptxPts(x){ var a=[], re=/<c:pt\s+idx="(\d+)"[^>]*>[\s\S]*?<\/c:pt>/g, m; /* 성긴 배열 — 빈 점은 비워 둔다 */
+  while((m=re.exec(x))){ var v=xmlTexts(m[0],'c:v'); if(v.length&&+m[1]<5000)a[+m[1]]=v[0]; }
+  return a; }
+function pptxNum(v,fc){ if(v==null)return ''; var s=String(v).trim(), n=Number(s); if(s===''||!isFinite(n))return s;
+  if(/%/.test(fc||''))return (+(n*100).toFixed(2))+'%'; /* 차트 서식이 백분율이면 0.853 → 85.3% */
+  return String(+n.toFixed(4)); }
+function pptxChartTable(xml){ /* 차트 XML → {title, rows:[['항목',계열…],[분류,값…]…]} · 계열이 없으면 null */
+  var tm=xml.match(/<c:chart>\s*<c:title>([\s\S]*?)<\/c:title>/), title=tm?xmlTexts(tm[1],'a:t').join('').trim():'';
+  var sers=(xml.match(/<c:ser(?:\s[^>]*)?>[\s\S]*?<\/c:ser>/g)||[]).slice(0,20); if(!sers.length)return null;
+  var names=[], cats=[], vals=[], n=0;
+  sers.forEach(function(sx,si){ var tx=(sx.match(/<c:tx>[\s\S]*?<\/c:tx>/)||[''])[0];
+    names.push((xmlTexts(tx,'c:v')[0]||'').trim()||('계열'+(si+1)));
+    var cb=(sx.match(/<c:(cat|xVal)>[\s\S]*?<\/c:\1>/)||[''])[0], lv=cb.match(/<c:lvl>[\s\S]*?<\/c:lvl>/); if(lv)cb=lv[0]; /* 다단 분류는 첫 단만 */
+    var vb=(sx.match(/<c:(val|yVal)>[\s\S]*?<\/c:\1>/)||[''])[0], fc=(vb.match(/<c:formatCode>([\s\S]*?)<\/c:formatCode>/)||['',''])[1];
+    var c=pptxPts(cb), v=pptxPts(vb).map(function(x){return pptxNum(x,fc);});
+    cats.push(c); vals.push(v); n=Math.max(n,c.length,v.length); });
+  var rows=[['항목'].concat(names)];
+  for(var k=0;k<n&&rows.length<=500;k++){ var lab=''; for(var s=0;s<cats.length&&!lab;s++)lab=String(cats[s][k]==null?'':cats[s][k]).trim();
+    var row=[lab||String(k+1)].concat(vals.map(function(v){return v[k]==null?'':v[k];}));
+    if(row.slice(1).some(function(x){return x!=='';}))rows.push(row); }
+  return rows.length>=2?{title:title,rows:rows}:null; }
+async function pptxParse(buf){ /* 슬라이드 텍스트(pptxText 와 같음) + 표 + 슬라이드에 걸린 차트의 수치 */
+  var z=await JSZip.loadAsync(buf), text=[], tables=[], charts=0, pics=0;
+  var names=Object.keys(z.files).filter(function(n){return /^ppt\/slides\/slide\d+\.xml$/.test(n);})
+    .sort(function(a,b){return (+a.match(/\d+/)[0])-(+b.match(/\d+/)[0]);});
+  for(var i=0;i<names.length;i++){ var xml=await z.files[names[i]].async('string'), sl='슬라이드 '+(i+1);
+    var ts=xmlTexts(xml,'a:t').join('\n').trim(); if(ts)text.push('['+sl+']\n'+ts);
+    pptxTblRows(xml).forEach(function(r,k){ tables.push({title:sl+' 표'+(k+1),rows:r}); });
+    pics+=(xml.match(/<p:pic>/g)||[]).length;
+    var rel=z.file(names[i].replace(/slides\/(slide\d+\.xml)$/,'slides/_rels/$1.rels')); if(!rel)continue;
+    var rx=await rel.async('string'), tg=[], re=/<Relationship\b[^>]*>/g, m, seen={};
+    while((m=re.exec(rx))){ var ty=(m[0].match(/Type="([^"]*)"/)||['',''])[1], t=(m[0].match(/Target="([^"]*)"/)||['',''])[1]; if(/\/chart$/.test(ty)&&t)tg.push(t); }
+    for(var k=0;k<tg.length&&tables.length<60;k++){ var p='ppt/'+tg[k].replace(/^(\.\.\/)+/,'').replace(/^\/?ppt\//,''); if(seen[p])continue; seen[p]=1;
+      var cf=z.file(p); if(!cf)continue; var ct=pptxChartTable(await cf.async('string'));
+      if(ct){ charts++; tables.push({title:sl+' 차트'+(ct.title?(' '+ct.title.slice(0,30)):''),rows:ct.rows,chart:true}); } } }
+  return {text:text.join('\n'),tables:tables.slice(0,60),charts:charts,pics:pics}; }
 function pdfHasText(buf){ // 텍스트 레이어 존재 추정 (스캔본 감지)
   try{ var u=new Uint8Array(buf), n=Math.min(u.length,400000), s='';
     for(var i=0;i<n;i++)s+=String.fromCharCode(u[i]);
     var fonts=(s.match(/\/Font/g)||[]).length, imgs=(s.match(/\/Image/g)||[]).length;
     return fonts>0&&fonts>=imgs; }catch(e){ return false; } }
 async function handleOneEntry(out,name,low,buf){
-  if(low.endsWith('.xlsx')||low.endsWith('.xls')){ try{ wbPush(out,XLSX.read(buf,{type:'array'}),name); }catch(e){ out.others.push({name:name,kind:'오류',note:'엑셀 읽기 실패'}); } }
-  else if(low.endsWith('.csv')){ out.sheets.push({path:name,rows:csvRows(decodeText(buf))}); }
+  if(/\.(xlsx|xls|xlsm|xlsb|ods)$/.test(low)){ try{ wbPush(out,XLSX.read(buf,{type:'array'}),name); }catch(e){
+      out.others.push({name:name,kind:'오류',note:/password|encrypt|암호/i.test(String(e&&e.message))?'암호(또는 DRM)가 걸린 엑셀 — 암호를 풀고 다시 저장해 올려 주세요':'엑셀 읽기 실패 ('+String(e&&e.message||e).slice(0,60)+')'}); } }
+  else if(low.endsWith('.csv')||low.endsWith('.tsv')){ out.sheets.push({path:name,rows:csvRows(decodeText(buf),low.endsWith('.tsv')?'\t':null),srcGroup:name}); }
   else if(low.endsWith('.docx')){ try{ var d=await docxParse(buf);
       if(d.text||(d.tables&&d.tables.length))out.docx.push({name:name.split('/').pop(),text:d.text,tables:d.tables});
       d.tables.forEach(function(t,ix){ out.sheets.push({path:name+'#표'+(ix+1),rows:t,fromDoc:true}); });
@@ -2596,36 +2879,66 @@ async function handleOneEntry(out,name,low,buf){
     }catch(e){ out.others.push({name:name,kind:'오류',note:'워드 읽기 실패'}); } }
   else if(low.endsWith('.txt')||low.endsWith('.md')){ var tx=decodeText(buf);
     if(tx.trim()){ out.docx.push({name:name.split('/').pop(),text:tx}); out.others.push({name:name,kind:'텍스트',note:(tx.length)+'자 — 인터뷰/정성 분석 반영'}); } }
-  else if(low.endsWith('.pptx')){ try{ var pt=await pptxText(buf);
-      if(pt){ out.docx.push({name:name.split('/').pop(),text:pt}); out.others.push({name:name,kind:'발표자료',note:'슬라이드 텍스트 추출 — 정성 분석 반영'}); } }catch(e){ out.others.push({name:name,kind:'오류',note:'PPT 읽기 실패'}); } }
+  else if(low.endsWith('.pptx')){ try{ var pp=await pptxParse(buf), pt=pp.text, ptb=pp.tables, nCh=ptb.filter(function(t){return t.chart;}).length;
+      /* 표·차트는 extraTables — 원문(AI 진단 입력)에는 붙이되 인터뷰 분류기(tables)에는 넣지 않는다(차트 머리글 "포기율" 등이 이슈로 오분류되지 않게) */
+      if(pt||ptb.length){ out.docx.push({name:name.split('/').pop(),text:pt,extraTables:ptb.map(function(t){return t.rows;})});
+        ptb.forEach(function(t){ out.sheets.push({path:name+'#'+t.title,rows:t.rows,fromDoc:true}); });
+        out.others.push({name:name,kind:'발표자료',note:'슬라이드 텍스트'+(ptb.length?(' + 표 '+(ptb.length-nCh)+'개 · 차트 수치 '+nCh+'개'):'')+' 추출 — 정성 분석 반영'+(pp.pics?(' · 그림 '+pp.pics+'개 안의 수치는 읽지 못함(캡처는 이미지 파일로 올리면 판독)'):'')}); } }catch(e){ out.others.push({name:name,kind:'오류',note:'PPT 읽기 실패'}); } }
   else if(low.endsWith('.pdf')){ var hasTx=pdfHasText(buf);
-    var cfgP=aiCfg(), aiReady=(cfgP.provider==='claude'&&cfgP.key);
+    var cfgP=aiCfg(), aiReady=!!cfgP.key;
     if(buf.byteLength<=28*1024*1024){ out.pdfs.push({name:name.split('/').pop(), b64:b64FromBuf(buf), scanned:!hasTx}); }
-    out.others.push({name:name,kind:'PDF',note:(hasTx?'텍스트형':'스캔 이미지')+' PDF — '+(aiReady?'AI 표 추출 시도 예정 (Claude)':'설정에서 AI 제공자 Claude + API 키 등록 시 표 자동 추출 가능')}); }
+    out.others.push({name:name,kind:'PDF',note:(hasTx?'텍스트형':'스캔 이미지')+' PDF — '+(aiReady?'AI 표 추출 시도 예정':'설정에서 AI API 키(Claude·OpenAI·Gemini)를 등록하면 표를 자동 추출합니다')}); }
+  else if(IMG_EXT_RE.test(low)){ var cfgI=aiCfg(); /* 콜통계 캡처·사진 — 표 형식이 아니므로 Vision 판독 대기열로 (SheetJS 폴백에 넣지 않는다) */
+    out.images.push({name:name.split('/').pop(),buf:buf,mime:imgMime(low)});
+    out.others.push({name:name,kind:'이미지',note:'콜통계 이미지 — '+(cfgI.key?'AI 판독(Vision)으로 표 추출 예정':'설정에서 AI API 키를 등록해야 표를 판독할 수 있습니다(미등록 시 정량 집계 불가)')}); }
   else if(low.endsWith('.hwp')){ out.others.push({name:name,kind:'한글(HWP)',note:'HWP 바이너리는 미지원 — HWPX 또는 워드/텍스트 변환 후 업로드 권장'}); }
   else if(low.endsWith('.hwpx')){ try{ var hz=await JSZip.loadAsync(buf); var sec=Object.keys(hz.files).filter(function(n){return /Contents\/section\d+\.xml/i.test(n);});
-      var htx=''; for(var si=0;si<sec.length;si++){ htx+=xmlTexts(await hz.files[sec[si]].async('string'),'hp:t').join('\n')+'\n'; }
+      var htx=''; for(var si=0;si<sec.length;si++){ var sx=await hz.files[sec[si]].async('string'), paras=sx.match(/<hp:p[\s>][\s\S]*?<\/hp:p>/g)||[sx];
+        /* 문단 단위로 잇는다 — 예전엔 글자 묶음(run)마다 줄이 바뀌어 문장이 쪼개졌다 */
+        htx+=paras.map(function(pp){ return xmlTexts(pp,'hp:t').join('').replace(/<[^>]+>/g,' ').replace(/\s{2,}/g,' ').trim(); }).filter(Boolean).join('\n')+'\n'; }
       if(htx.trim()){ out.docx.push({name:name.split('/').pop(),text:htx}); out.others.push({name:name,kind:'한글(HWPX)',note:'텍스트 추출 — 정성 분석 반영'}); } }catch(e){ out.others.push({name:name,kind:'오류',note:'HWPX 읽기 실패'}); } }
+  else if(/\.(doc|ppt|hwp)$/.test(low)&&!low.endsWith('.hwp')){ out.others.push({name:name,kind:'미지원',note:'구형 오피스 형식 — 워드(.docx)·PPT(.pptx)로 다시 저장해 올려 주세요'}); }
+  else if(!low.endsWith('.hwp')&&!IMG_EXT_RE.test(low)&&!low.endsWith('.pdf')&&!/\.(docx|pptx|txt|md|hwpx)$/.test(low)) out.unknown=(out.unknown||[]).concat([name]);
 }
 async function parseFileObj(file){
   var name=file.name, low=name.toLowerCase(), buf=await file.arrayBuffer();
-  var out={sheets:[],docx:[],others:[],pdfs:[]};
+  var out={sheets:[],docx:[],others:[],pdfs:[],images:[]};
   if(low.endsWith('.zip')){
     if(typeof JSZip==='undefined') throw new Error('zip 모듈 미로딩');
-    var zip=await JSZip.loadAsync(buf), ns=Object.keys(zip.files);
+    /* 윈도우 탐색기로 만든 zip 은 한글 파일명이 CP949 — UTF-8 로 읽으면 깨져 "오픈전" 같은 기간 표시를 못 읽었다 */
+    var zip=await JSZip.loadAsync(buf,{decodeFileName:function(b){ var u=b instanceof Uint8Array?b:new Uint8Array(b); try{ return new TextDecoder('utf-8',{fatal:true}).decode(u); }catch(e){ try{ return new TextDecoder('euc-kr').decode(u); }catch(e2){ return new TextDecoder('utf-8').decode(u); } } }}), ns=Object.keys(zip.files);
     for(var i=0;i<ns.length;i++){ var zn=ns[i], ent=zip.files[zn]; if(ent.dir)continue;
       if(/__MACOSX|\.DS_Store/i.test(zn))continue;
       var zl=zn.toLowerCase();
       var ab=await ent.async('arraybuffer');
       await handleOneEntry(out,zn,zl,ab); }
+    (out.unknown||[]).forEach(function(n){ out.others.push({name:n,kind:'미지원',note:'zip 안의 읽을 수 없는 형식 — 건너뜀'}); }); delete out.unknown;
     return out;
   }
   await handleOneEntry(out,name,low,buf);
   if(!out.sheets.length&&!out.docx.length&&!out.others.length){ try{ wbPush(out,XLSX.read(buf,{type:'array'}),name); }catch(e){} }
+  if(out.unknown&&out.unknown.length){ out.unknown.forEach(function(n){ if(!out.sheets.some(function(s){return s.srcGroup===n||s.path===n;}))out.others.push({name:n,kind:'미지원',note:'읽을 수 없는 형식 — 엑셀·CSV·워드·PPT·HWPX·PDF·이미지로 올려 주세요'}); }); delete out.unknown; }
   return out;
 }
-function wbPush(out,wb,base){ wb.SheetNames.forEach(function(sn){ out.sheets.push({path:base,rows:XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:''})}); }); }
-function csvRows(t){ return t.split(/\r?\n/).filter(function(l){return l.trim();}).map(function(l){return l.split(',');}); }
+/* 시트마다 경로에 시트명을 붙인다 — 예전엔 모든 시트가 같은 경로로 들어가 일별·시간대별·상담사별 시트가 전부 더해졌다(3배).
+   srcGroup(원본 파일)은 같은 파일 안의 표끼리 중복 합산을 막는 데 쓴다(analyzeCallDataV2 · combineSameFile) */
+function wbPush(out,wb,base){ var many=wb.SheetNames.length>1;
+  wb.SheetNames.forEach(function(sn){ var rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:''});
+    if(!rows.some(function(r){return r&&r.some(function(c){return String(c).trim();});}))return; /* 빈 시트 */
+    out.sheets.push({path:many?(base+'#'+sn):base,rows:rows,srcGroup:base}); }); }
+/* CSV — 따옴표 안의 쉼표("1,234")를 지키고, 구분자(쉼표·세미콜론·탭)를 자동 판별한다. 예전엔 split(',') 이라 천단위 쉼표가 칸을 밀었다 */
+function csvDelim(t){ var lines=t.split(/\r?\n/).filter(function(l){return l.trim();}).slice(0,10), best=',', bc=-1;
+  [',',';','\t'].forEach(function(d){ var c=0; lines.forEach(function(l){ var q=false; for(var i=0;i<l.length;i++){ var ch=l[i]; if(ch==='"')q=!q; else if(!q&&ch===d)c++; } }); if(c>bc){bc=c;best=d;} });
+  return best; }
+function csvRows(t,delim){ t=String(t||'').replace(/^﻿/,''); var d=delim||csvDelim(t), rows=[], row=[], cell='', q=false;
+  for(var i=0;i<t.length;i++){ var ch=t[i];
+    if(q){ if(ch==='"'){ if(t[i+1]==='"'){cell+='"';i++;} else q=false; } else cell+=ch; }
+    else if(ch==='"'&&cell==='') q=true;
+    else if(ch===d){ row.push(cell); cell=''; }
+    else if(ch==='\n'||ch==='\r'){ if(ch==='\r'&&t[i+1]==='\n')i++; row.push(cell); cell=''; if(row.some(function(c){return String(c).trim();}))rows.push(row); row=[]; }
+    else cell+=ch; }
+  row.push(cell); if(row.some(function(c){return String(c).trim();}))rows.push(row);
+  return rows; }
 
 
 
@@ -2639,13 +2952,15 @@ function csvRows(t){ return t.split(/\r?\n/).filter(function(l){return l.trim();
          ACW(문서작업/후처리) 별도 지표화, ASA/AHT/ACW 정상범위 검증 후 표출, 포기율 단순 폴백 */
 function nrmH(h){ return String(h||'').toLowerCase().replace(/\s| /g,''); }
 function periodOfV2(p){ p=String(p||'');
-  if(/오픈\s*전|open전/i.test(p)) return 'before';
+  if(/오픈\s*전|open전|도입\s*전|구축\s*전|개통\s*전|as-?is|(^|[^a-z])before([^a-z]|$)/i.test(p)) return 'before';
   if(/안정화/.test(p)) return 'mid';
-  if(/최근/.test(p)) return 'after';
+  if(/최근|오픈\s*후|도입\s*후|개통\s*후|to-?be|(^|[^a-z])after([^a-z]|$)/i.test(p)) return 'after';
   return 'after'; }
 function dirOfV2(p){ p=String(p||'').toLowerCase();
-  if(/아웃바운드|발신|outbound|(^|[^a-z])ob([^a-z]|$)/.test(p)) return 'ob';
-  return 'ib'; }
+  if(/\[ib\]$/.test(p)) return 'ib'; if(/\[ob\]$/.test(p)) return 'ob'; /* splitByDirection 이 붙인 표지가 우선 */
+  var ob=/아웃바운드|아웃콜|발신|해피콜|(^|[^a-z])tm([^a-z]|$)|outbound|(^|[^a-z])ob([^a-z]|$)/.test(p), ib=/인바운드|수신|inbound|(^|[^a-z])ib([^a-z]|$)/.test(p);
+  if(ob&&!ib) return 'ob';
+  return 'ib'; /* 둘 다 있으면("IB_OB_통합") 구분 열로 나눈다 — 파일명만으로 전부 OB 로 보던 문제 */ }
 function classifyHeader(h){ h=nrmH(h); if(!h) return null;
   var isRate=/[률율]|%|rate/.test(h), isTime=/시간|[(（]초|초[)）]|^초$|aht|asa|속도|duration|sec/.test(h);
   var isAvg=/평균|avg|건당|콜당|호당/.test(h);
@@ -2708,9 +3023,10 @@ function findHeaderV2(rows){
             mode:hasAgg?'agg':'log'}; } }
   return best; }
 function isSummaryRow(row){
-  return (row||[]).some(function(c){ var s=String(c||'').trim();
+  return (row||[]).some(function(c){ var s=String(c||'').trim(), z=s.replace(/\s+/g,''); /* "합 계" "총 계" 처럼 띄어 쓴 표기 */
     return /(^|[\s\)\]\(])(소계|합계|총계|중간\s*합계|부분합|월계|주계|누계|subtotal)$/i.test(s)
-        || /^(합계|소계|총계|계|평균|월집계|월평균|total|sum)$/i.test(s); }); }
+        || /(소계|합계|총계|누계)$/.test(z)&&z.length<=12&&!/\d{4}/.test(z)
+        || /^(합계|소계|총계|계|평균|월집계|월평균|일평균|전체|전체합계|총합계|누계|total|sum|grandtotal)$/i.test(z); }); }
 function statusKind(v){ var s=String(v||'').toLowerCase().trim();
   if(!s)return null;
   if(s==='o'||s==='y'||s==='성공'||s==='1'||s==='true')return 'ans';
@@ -2721,13 +3037,33 @@ function statusKind(v){ var s=String(v||'').toLowerCase().trim();
 function durOf(v){ if(v==null||v==='')return null; var s=String(v);
   if(/\d{4}[-./]\d{1,2}[-./]\d{1,2}/.test(s))return null;
   return tsec(s); }
+/* 시간대 셀: "09", "9시", "09:00~10:00", "오후 2시", 엑셀 시각(0.375) */
+function hourCell(v){ if(v==null||v==='')return null;
+  if(typeof v==='number'){ if(v>=0&&v<1)return Math.floor(v*24+1e-6); if(v>=0&&v<=23&&v===Math.floor(v))return v; return null; }
+  var s=String(v).trim(), m=s.match(/(오전|오후|am|pm)?\s*(\d{1,2})\s*시/i);
+  if(m){ var h=+m[2]; if(m[1]&&/오후|pm/i.test(m[1])&&h<12)h+=12; if(m[1]&&/오전|am/i.test(m[1])&&h===12)h=0; return h<=23?h:null; }
+  m=s.match(/^(\d{1,2})(?::\d{2})?(?:\s*[~\-]|$)/); if(m&&+m[1]<=23)return +m[1];
+  return null; }
+/* 시간 열의 단위 배율 — 헤더가 "(분)"이면 60, 숫자 값이 모두 0~1 이면 엑셀 시각(×86400) */
+function timeColScale(rows,H,col){ var hd=String((rows[H.i]||[])[col]||'')+' '+String(H.twoRow?((rows[H.i+1]||[])[col]||''):'');
+  if(/\(\s*분\s*\)|분\)|\[분\]|\bmin/i.test(hd)) return 60;
+  var start=H.i+(H.twoRow?2:1), nums=0, frac=0;
+  for(var r=start;r<Math.min(rows.length,start+300);r++){ var v=(rows[r]||[])[col]; if(typeof v==='number'||/^\s*\d+(\.\d+)?\s*$/.test(String(v==null?'':v))){ var n=+v; if(n>0){ nums++; if(n<1)frac++; } } }
+  return (nums>=1&&frac===nums)?86400:1; }
+/* 시간 값 → 초. 숫자만 있는 칸에만 배율을 곱한다(“0:03:20” 같은 표기는 그대로) · "3분 20초" 형식 지원 */
+function tval(v,scale){ if(v==null||v==='')return null;
+  if(typeof v==='number')return v*(scale||1);
+  var s=String(v).trim(); if(/^\d+(\.\d+)?$/.test(s))return (+s)*(scale||1);
+  var m=s.match(/^(?:(\d+)\s*시간)?\s*(?:(\d+)\s*분)?\s*(?:(\d+(?:\.\d+)?)\s*초)?$/);
+  if(m&&(m[1]||m[2]||m[3]))return (+(m[1]||0))*3600+(+(m[2]||0))*60+(+(m[3]||0));
+  return tsec(v); }
 function cellDateStr(v){
   if(v==null||v==='')return '';
   if(typeof v==='number'||(/^\d+(\.\d+)?$/.test(String(v).trim())&&+v>20000&&+v<80000)){
     var n=+v;
     if(n>20000&&n<80000){ var ms=Math.round((n-25569)*86400*1000); var d=new Date(ms);
       var p=function(x){return ('0'+x).slice(-2);};
-      return d.getUTCFullYear()+'-'+p(d.getUTCMonth()+1)+'-'+p(d.getUTCDate())+' '+p(d.getUTCHours())+':'+p(d.getUTCMinutes()); } }
+      return d.getUTCFullYear()+'-'+p(d.getUTCMonth()+1)+'-'+p(d.getUTCDate())+(n%1?(' '+p(d.getUTCHours())+':'+p(d.getUTCMinutes())):''); } }
   return String(v); }
 function durMedian(vals){ if(!vals.length)return null; var v=vals.slice().sort(function(a,b){return a-b;}); return v[Math.floor(v.length/2)]; }
 function fixUnit(vals,kindLabel){
@@ -2818,32 +3154,43 @@ function aggStatsV2(rows,H){
     waitAvgS:0,waitAvgW:0,waitTotS:0,waitPlainS:0,waitPlainW:0,
     acwAvgS:0,acwAvgW:0,acwTotS:0,acwPlainS:0,acwPlainW:0,
     slSum:0,slW:0,byHour:{},byDate:{},byMonth:{},byType:{},agents:{},summaryRows:[],notes:[]};
+  var subs=[];
+  /* 날짜 열의 시각이 행마다 다를 때만 시간대로 쓴다 (일별 표의 날짜 → 시간대 오인 방지) */
+  var dateHasTime=false; if(ix.date!=null&&ix.hour==null){ var hs0={}; for(var r0=start;r0<Math.min(rows.length,start+400);r0++){ var hh=rows[r0]?hourOf(cellDateStr(rows[r0][ix.date])):null; if(hh!=null)hs0[hh]=1; } dateHasTime=Object.keys(hs0).length>=2; }
+  /* 시간 열 단위 — 헤더 "(분)"이면 분, 값이 모두 1 미만이면 엑셀 시간(하루의 비율) */
+  var TS={}; ['talkAvg','talkTot','talk','waitAvg','waitTot','wait','acwAvg','acwTot','acw'].forEach(function(k){ if(ix[k]!=null)TS[k]=timeColScale(rows,H,ix[k]); });
   for(var r=start;r<rows.length;r++){
     var row=rows[r]; if(!row||!row.length)continue;
+    if(isSummaryRow(row)){ st.summaryRows.push({tot:ix.total!=null?numf(row[ix.total]):null,ans:ix.answered!=null?numf(row[ix.answered]):null,abd:ix.abandoned!=null?numf(row[ix.abandoned]):null});
+      if(!isGrandTotalRow(row))subs.push(row); continue; }
+    addRow(row); }
+  /* 상세행 없이 소계만 있는 시트(그룹을 접은 채 복사·내보낸 보고서) — 소계를 상세로 쓴다. 합계행은 대조에만 */
+  if(!st.rows&&subs.length){ subs.forEach(addRow); if(st.rows)st.fromSubtotal=true; }
+  return st.rows?st:null;
+  function addRow(row){
     var tot=ix.total!=null?numf(row[ix.total]):null;
     var ans=ix.answered!=null?numf(row[ix.answered]):null;
     var abd=ix.abandoned!=null?numf(row[ix.abandoned]):null;
-    if(isSummaryRow(row)){ st.summaryRows.push({tot:tot,ans:ans,abd:abd}); continue; }
-    if(tot==null&&ans==null&&abd==null)continue;
-    var w=tot!=null?tot:(ans!=null?ans:1); if(w<0)continue;
+    if(tot==null&&ans==null&&abd==null)return;
+    var w=tot!=null?tot:(ans!=null?ans:1); if(w<0)return;
     if(tot!=null)st.tot+=tot; if(ans!=null)st.ans+=ans; if(abd!=null)st.abd+=abd;
     st.rows++;
-    if(ix.ansRate!=null){ var ar=pctv(numf(row[ix.ansRate])); if(ar!=null&&w>0){st.wAnsRate+=ar*w;st.wAnsW+=w;} }
-    if(ix.abdRate!=null){ var br=pctv(numf(row[ix.abdRate])); if(br!=null&&w>0){st.wAbdRate+=br*w;st.wAbdW+=w;} }
+    if(ix.ansRate!=null){ var ar=pctCell(row[ix.ansRate]); if(ar!=null&&w>0){st.wAnsRate+=ar*w;st.wAnsW+=w;} }
+    if(ix.abdRate!=null){ var br=pctCell(row[ix.abdRate]); if(br!=null&&w>0){st.wAbdRate+=br*w;st.wAbdW+=w;} }
     var tw=(ans!=null&&ans>0)?ans:w; st.callS+=tw;
-    if(ix.talkAvg!=null){ var ta=tsec(row[ix.talkAvg]); if(ta!=null&&tw>0){st.talkAvgS+=ta*tw;st.talkAvgW+=tw;} }
-    if(ix.talkTot!=null){ var tt=tsec(row[ix.talkTot]); if(tt!=null)st.talkTotS+=tt; }
-    if(ix.talk!=null){ var tp=tsec(row[ix.talk]); if(tp!=null&&tw>0){st.talkPlainS+=tp*tw;st.talkPlainW+=tw;} }
-    if(ix.waitAvg!=null){ var wa=tsec(row[ix.waitAvg]); if(wa!=null&&tw>0){st.waitAvgS+=wa*tw;st.waitAvgW+=tw;} }
-    if(ix.waitTot!=null){ var wt=tsec(row[ix.waitTot]); if(wt!=null)st.waitTotS+=wt; }
-    if(ix.wait!=null){ var wp=tsec(row[ix.wait]); if(wp!=null&&tw>0){st.waitPlainS+=wp*tw;st.waitPlainW+=tw;} }
-    if(ix.acwAvg!=null){ var ca=tsec(row[ix.acwAvg]); if(ca!=null&&tw>0){st.acwAvgS+=ca*tw;st.acwAvgW+=tw;} }
-    if(ix.acwTot!=null){ var ct=tsec(row[ix.acwTot]); if(ct!=null)st.acwTotS+=ct; }
-    if(ix.acw!=null){ var cp=tsec(row[ix.acw]); if(cp!=null&&tw>0){st.acwPlainS+=cp*tw;st.acwPlainW+=tw;} }
-    if(ix.sl!=null){ var sv=pctv(numf(row[ix.sl])); if(sv!=null&&w>0){st.slSum+=sv*w;st.slW+=w;} }
+    if(ix.talkAvg!=null){ var ta=tval(row[ix.talkAvg],TS.talkAvg); if(ta!=null&&tw>0){st.talkAvgS+=ta*tw;st.talkAvgW+=tw;} }
+    if(ix.talkTot!=null){ var tt=tval(row[ix.talkTot],TS.talkTot); if(tt!=null)st.talkTotS+=tt; }
+    if(ix.talk!=null){ var tp=tval(row[ix.talk],TS.talk); if(tp!=null&&tw>0){st.talkPlainS+=tp*tw;st.talkPlainW+=tw;} }
+    if(ix.waitAvg!=null){ var wa=tval(row[ix.waitAvg],TS.waitAvg); if(wa!=null&&tw>0){st.waitAvgS+=wa*tw;st.waitAvgW+=tw;} }
+    if(ix.waitTot!=null){ var wt=tval(row[ix.waitTot],TS.waitTot); if(wt!=null)st.waitTotS+=wt; }
+    if(ix.wait!=null){ var wp=tval(row[ix.wait],TS.wait); if(wp!=null&&tw>0){st.waitPlainS+=wp*tw;st.waitPlainW+=tw;} }
+    if(ix.acwAvg!=null){ var ca=tval(row[ix.acwAvg],TS.acwAvg); if(ca!=null&&tw>0){st.acwAvgS+=ca*tw;st.acwAvgW+=tw;} }
+    if(ix.acwTot!=null){ var ct=tval(row[ix.acwTot],TS.acwTot); if(ct!=null)st.acwTotS+=ct; }
+    if(ix.acw!=null){ var cp=tval(row[ix.acw],TS.acw); if(cp!=null&&tw>0){st.acwPlainS+=cp*tw;st.acwPlainW+=tw;} }
+    if(ix.sl!=null){ var sv=pctCell(row[ix.sl]); if(sv!=null&&w>0){st.slSum+=sv*w;st.slW+=w;} }
     var hr=null;
-    if(ix.hour!=null){ var hs=String(row[ix.hour]||''); var hm=hs.match(/^(\d{1,2})/); if(hm)hr=+hm[1]; }
-    if(hr==null&&ix.date!=null)hr=hourOf(cellDateStr(row[ix.date]));
+    if(ix.hour!=null)hr=hourCell(row[ix.hour]);
+    if(hr==null&&ix.date!=null&&dateHasTime)hr=hourOf(cellDateStr(row[ix.date])); /* 날짜에 시각이 실제로 있을 때만 — 날짜만 있으면 전부 0시·9시로 몰렸다 */
     if(hr!=null&&hr>=0&&hr<=23){ st.byHour[hr]=st.byHour[hr]||{calls:0,abd:0,ans:0};
       if(tot!=null)st.byHour[hr].calls+=tot; if(abd!=null)st.byHour[hr].abd+=abd; if(ans!=null)st.byHour[hr].ans+=ans; }
     if(ix.date!=null){ var ds=cellDateStr(row[ix.date]);
@@ -2852,15 +3199,17 @@ function aggStatsV2(rows,H){
       if(dk){ st.byDate[dk]=st.byDate[dk]||{calls:0,abd:0,ans:0};
         if(tot!=null)st.byDate[dk].calls+=tot; if(abd!=null)st.byDate[dk].abd+=abd; if(ans!=null)st.byDate[dk].ans+=ans;
         var mk=monthKey(dk); if(mk){ st.byMonth[mk]=st.byMonth[mk]||{calls:0,abd:0,ans:0};
-          if(tot!=null)st.byMonth[mk].calls+=tot; if(abd!=null)st.byMonth[mk].abd+=abd; if(ans!=null)st.byMonth[mk].ans+=ans; } } }
+          if(tot!=null)st.byMonth[mk].calls+=tot; if(abd!=null)st.byMonth[mk].abd+=abd; if(ans!=null)st.byMonth[mk].ans+=ans; } }
+      else { var mo=monthOfCell(ds); /* 월별 보고서 — 일자 없이 월만 있다 */
+        if(mo){ st.byMonth[mo]=st.byMonth[mo]||{calls:0,abd:0,ans:0};
+          if(tot!=null)st.byMonth[mo].calls+=tot; if(abd!=null)st.byMonth[mo].abd+=abd; if(ans!=null)st.byMonth[mo].ans+=ans; } } }
     if(ix.agent!=null){ var nm=String(row[ix.agent]||'').trim();
       if(nm){ st.agents[nm]=st.agents[nm]||{calls:0,sec:0,ansN:0};
         st.agents[nm].calls+=(tot!=null?tot:(ans||0));
         var avgcol=ix.talkAvg!=null?ix.talkAvg:ix.talk;
-        if(avgcol!=null){ var at=tsec(row[avgcol]); var aw=(ans!=null&&ans>0?ans:(tot||1));
+        if(avgcol!=null){ var at=tval(row[avgcol],ix.talkAvg!=null?TS.talkAvg:TS.talk); var aw=(ans!=null&&ans>0?ans:(tot||1));
           if(at!=null){st.agents[nm].sec+=at*aw;st.agents[nm].ansN+=aw;} } } }
-  }
-  return st.rows?st:null; }
+  } }
 function sheetStatsV3(rows,dir){
   var H=findHeaderV2(rows); if(!H)return null;
   return H.mode==='log'?logStatsV2(rows,H,dir):aggStatsV2(rows,H); }
@@ -2872,6 +3221,7 @@ var MERGE_KEYS=['tot','ans','abd','rows','unk','abd3m','callS',
    'wAnsRate','wAnsW','wAbdRate','wAbdW','slSum','slW'];
 function mergeStatsV3(a,b){ if(!a)return b; if(!b)return a;
   if(a.mode!==b.mode){ a.mixedMode=true; }
+  if(b.fromSubtotal)a.fromSubtotal=true;
   MERGE_KEYS.forEach(function(k){ if(b[k]!=null)a[k]=(a[k]||0)+b[k]; });
   ['byHour','byDate','byMonth'].forEach(function(k){ if(!b[k])return; a[k]=a[k]||{};
     Object.keys(b[k]).forEach(function(x){ a[k][x]=a[k][x]||{calls:0,abd:0,ans:0};
@@ -2964,25 +3314,59 @@ function metricsFromV3(st,checks,label){
     m.aht=deriveTimeMetric(st,'talk',KPI_BAND.aht,callBase,checks,label,'AHT(평균통화)');
     m.asa=deriveTimeMetric(st,'wait',KPI_BAND.asa,callBase,checks,label,'ASA(평균응답대기)');
     m.acw=deriveTimeMetric(st,'acw',KPI_BAND.acw,callBase,checks,label,'ACW(후처리)');
+    if(st.fromSubtotal)checks.push({name:label+' 소계행 집계',ok:true,detail:'상세행 없이 소계행만 있는 표 — 소계 '+st.rows+'행을 집계하고 합계행은 대조에만 사용'});
     if(st.slW>0)m.sl=+(st.slSum/st.slW).toFixed(1);
   }
   m.byHour=st.byHour||{}; m.byDate=st.byDate||{}; m.byMonth=st.byMonth||{}; m.byType=st.byType||{}; m.byTeam=st.byTeam||{};
   return (m.inb||m.answerRate!=null)?m:null; }
+/* 같은 파일(srcGroup)·기간·방향의 표가 여럿일 때 — 날짜·월이 서로 겹치지 않으면(1월 시트·2월 시트) 합하고,
+   겹치거나 날짜가 없으면(일별·시간대별·상담사별 시트) 같은 콜을 다른 축으로 본 것이라 건수가 가장 큰 1개만 집계한다.
+   버린 표에만 있는 시간대·상담사·유형 정보는 대표 표로 옮겨 히트맵·상담사 분석은 살린다. */
+function combineSameFile(arr,checks){ if(arr.length<2)return arr;
+  function keys(st){ var k=Object.keys(st.byDate||{}); return k.length?k:Object.keys(st.byMonth||{}); }
+  var ks=arr.map(function(x){return keys(x.st);}), allDated=ks.every(function(k){return k.length>0;}), seen={}, overlap=false;
+  if(allDated){ ks.forEach(function(k){ k.forEach(function(x){ if(seen[x])overlap=true; seen[x]=1; }); }); if(!overlap)return arr; }
+  var sorted=arr.slice().sort(function(a,b){ return ((b.st.tot||0)||((b.st.ans||0)+(b.st.abd||0)))-((a.st.tot||0)||((a.st.ans||0)+(a.st.abd||0)))||(b.st.rows-a.st.rows); });
+  var P=sorted[0], borrowed=[];
+  sorted.slice(1).forEach(function(x){ var st=x.st;
+    if((!P.st.byHour||!Object.keys(P.st.byHour).length)&&st.byHour&&Object.keys(st.byHour).length){ P.st.byHour=st.byHour; borrowed.push('시간대'); }
+    if((!P.st.agents||!Object.keys(P.st.agents).length)&&st.agents&&Object.keys(st.agents).length){ P.st.agents=st.agents; borrowed.push('상담사'); }
+    if((!P.st.byType||Object.keys(P.st.byType).length<2)&&st.byType&&Object.keys(st.byType).length>=2){ P.st.byType=st.byType; borrowed.push('유형'); } });
+  checks.push({name:'같은 파일의 여러 표 — 중복 합산 방지',ok:true,detail:'"'+String(P.sh.srcGroup||P.sh.path).split('/').pop()+'" 의 표 '+arr.length+'개가 같은 기간의 콜을 다른 축으로 보여 줍니다 — 건수가 가장 큰 "'+String(P.sh.path).split('#').pop()+'" 로 집계'+(borrowed.length?(' · '+borrowed.join('·')+' 정보는 다른 표에서 가져옴'):'')});
+  return [P]; }
+/* 한 시트에 IB·OB 가 섞여 있고 "구분" 열이 있으면 행을 나눈다 */
+function splitByDirection(sheets){ var out=[], checks=[];
+  sheets.forEach(function(sh){ if(sh.fromDoc){ out.push(sh); return; }
+    var H=findHeaderV2(sh.rows); if(!H){ out.push(sh); return; }
+    var hr=sh.rows[H.i]||[], col=-1;
+    for(var j=0;j<hr.length;j++){ if(/^(구분|콜구분|호구분|인아웃|in\/?out|ib\/?ob|방향|direction|수발신)$/i.test(nrmH(hr[j]))){ col=j; break; } }
+    if(col<0){ out.push(sh); return; }
+    var start=H.i+(H.twoRow?2:1), head=sh.rows.slice(0,start), ib=[], ob=[], other=[];
+    for(var r=start;r<sh.rows.length;r++){ var row=sh.rows[r]; if(!row||!row.length)continue; var v=String(row[col]||'').toLowerCase().replace(/\s/g,'');
+      if(/^(ob|아웃바운드|아웃|발신|outbound|out)$/.test(v))ob.push(row); else if(/^(ib|인바운드|인|수신|inbound|in)$/.test(v))ib.push(row); else other.push(row); }
+    if(!ib.length||!ob.length){ out.push(sh); return; }
+    out.push(Object.assign({},sh,{path:sh.path+' [IB]',rows:head.concat(ib,other)}),Object.assign({},sh,{path:sh.path+' [OB]',rows:head.concat(ob)}));
+    checks.push({name:'IB·OB 구분 열로 분리',ok:true,detail:'"'+String(sh.path).split('/').pop()+'" — 인바운드 '+ib.length+'행 · 아웃바운드 '+ob.length+'행'}); });
+  return {sheets:out,checks:checks}; }
 function analyzeCallDataV2(sheets){
-  var checks=[], files=[], G={};
+  var checks=[], files=[], G={}, groups={}, gorder=[];
+  var _dir=splitByDirection(sheets); sheets=_dir.sheets; checks=checks.concat(_dir.checks);
   sheets.forEach(function(sh){
     var p=periodOfV2(sh.path), d=dirOfV2(sh.path);
     var st=sheetStatsV3(sh.rows,d);
     files.push({name:sh.path,period:p,dir:d,parsed:!!st,rows:st?st.rows:0,mode:st?st.mode:'',fromDoc:!!sh.fromDoc});
     if(!st)return;
     if(sh.fromDoc){ return; }
+    var slot0 = st.mode==='log' ? 'log' : (sh.fromAI?'aggAI':'agg'), gk=(sh.srcGroup||sh.path)+'|'+p+'|'+d+'|'+slot0;
+    if(!groups[gk]){ groups[gk]=[]; gorder.push(gk); } groups[gk].push({sh:sh,st:st,p:p,d:d}); });
+  gorder.forEach(function(gk){ combineSameFile(groups[gk],checks).forEach(function(x){ var sh=x.sh, st=x.st, p=x.p, d=x.d;
     G[p]=G[p]||{}; G[p][d]=G[p][d]||{log:null,agg:null,aggAI:null};
     var slot = st.mode==='log' ? 'log' : (sh.fromAI?'aggAI':'agg');
     var prev=G[p][d][slot];
     if(prev&&st.byDate){ var dupDates=Object.keys(st.byDate).filter(function(k){return prev.byDate&&prev.byDate[k];});
       if(dupDates.length>2){ checks.push({name:'중복 데이터 감지',ok:false,
         detail:'"'+sh.path+'" 의 날짜 '+dupDates.length+'개가 같은 기간의 다른 파일과 겹칩니다 — 중복 업로드 시 건수가 부풀려집니다.'}); } }
-    G[p][d][slot]=mergeStatsV3(prev,st); });
+    G[p][d][slot]=mergeStatsV3(prev,st); }); });
   var aiUsed={};
   Object.keys(G).forEach(function(p){ Object.keys(G[p]).forEach(function(d){
     var s=G[p][d], PLm=(p==='before'?'오픈전':p==='mid'?'안정화':'최근')+' '+(d==='ob'?'OB':'IB');
@@ -2993,7 +3377,7 @@ function analyzeCallDataV2(sheets){
       if(s.aggAI)checks.push({name:'중복 방지 — 집계 출처 선택',ok:true,detail:PLm+': 원본 집계표 기준, AI 추출 표는 제외'}); }
     else if(s.aggAI){ G[p][d]=s.aggAI; aiUsed[p+'_'+d]=true;
       checks.push({name:'AI 추출 표 기반 집계 ⚠',ok:false,
-        detail:PLm+': 스캔 PDF에서 AI로 추출한 표로 집계 — OCR 오인식 가능성이 있어 원본 수치와 반드시 대조하세요. 가능하면 원본 엑셀/CSV 업로드 권장'}); }
+        detail:PLm+': 스캔 PDF·이미지에서 AI로 판독한 표로 집계 — 오인식 가능성이 있어 원본 수치와 반드시 대조하세요. 가능하면 원본 엑셀/CSV 업로드 권장'}); }
     else { delete G[p][d]; return; } }); });
   var docTbl=files.filter(function(f){return f.fromDoc;}).length;
   if(docTbl)checks.push({name:'문서 표 자동 집계 제외',ok:true,
@@ -3022,13 +3406,15 @@ function analyzeCallDataV2(sheets){
   var parsedN=files.filter(function(f){return f.parsed;}).length;
   checks.unshift({name:'파일 인식',ok:parsedN===files.length&&parsedN>0,
     detail:files.length+'개 파일 중 '+parsedN+'개 인식 ('+files.filter(function(f){return f.parsed;}).map(function(f){return f.mode==='log'?'건별로그':'집계표';}).join(', ')+')'+(parsedN<files.length?' — 미인식 파일은 콜 지표 컬럼을 찾지 못함':'')});
-  return out.current?out:null; }
+  return out; /* current 가 없어도 checks·files 를 돌려준다 — 예전엔 null 이라 "왜 실패했는지"가 사라졌다 */ }
 /* ===== 위험도 등급 ===== */
 function riskOf(ab){ if(ab==null)return null; if(ab>=60)return '매우위험'; if(ab>=40)return '위험'; if(ab>=20)return '주의'; return '정상'; }
 var RISK_C={'정상':['#ecfdf5','#059669'],'주의':['#fefce8','#854d0e'],'위험':['#fffbeb','#d97706'],'매우위험':['#fef2f2','#dc2626']};
 var PARSER_VER='7.9';
 function validateQuant(q){
-  if(!q||!q.current)return {ok:false,why:'정량 지표 산출 실패 (집계 결과 없음)'};
+  var obOnly=!!(q&&!q.current&&q.ob&&q.ob.current); /* 아웃바운드만 올린 고객사 — IB 지표는 없지만 실패가 아니다 */
+  if(!q||(!q.current&&!obOnly))return {ok:false,why:'정량 지표 산출 실패 (집계 결과 없음)'};
+  if(obOnly){ var oc=q.ob.current; return (oc.connRate!=null&&(oc.connRate<0||oc.connRate>100))?{ok:false,why:'OB 연결율 비정상('+oc.connRate+')'}:{ok:true}; }
   var c=q.current, errs=[];
   function rng(v,lo,hi,nm){ if(v!=null&&(v<lo||v>hi))errs.push(nm+' 비정상('+v+')'); }
   if(c.inb!=null&&c.inb<=0)errs.push('인입콜 0 이하');
@@ -3037,17 +3423,18 @@ function validateQuant(q){
   if(rich===0)errs.push('핵심 지표(응답률·포기율·AHT·ASA) 전부 미산출 — 콜통계 파일 아님');
   rng(c.answerRate,0,100,'응답률'); rng(c.abandonRate,0,100,'포기율');
   rng(c.aht,3,1800,'AHT(초)'); rng(c.asa,0,900,'ASA(초)'); rng(c.acw,0,1200,'ACW(초)');
-  if(c.answerRate!=null&&c.abandonRate!=null&&Math.abs(c.answerRate+c.abandonRate-100)>30)
+  if(c.answerRate!=null&&c.abandonRate!=null&&(c.answerRate+c.abandonRate>105||c.answerRate+c.abandonRate<20))
     errs.push('응답률+포기율 합 비정상('+(c.answerRate+c.abandonRate).toFixed(1)+'%)');
   if(q.ob&&q.ob.current&&q.ob.current.connRate!=null)rng(q.ob.current.connRate,0,100,'OB 연결율');
   return errs.length?{ok:false,why:errs.join(' · ')}:{ok:true};
 }
 function clearClientData(){
   var name=curClientName()||'이 고객사';
+  if(typeof analyzing!=='undefined'&&analyzing){ toastMsg('분석이 진행 중입니다 — 끝난 뒤 초기화하세요'); return; }
   if(!confirm(name+'의 분석 데이터를 삭제할까요?\n잘못 업로드된 결과를 지우고 처음부터 다시 분석할 수 있습니다.'))return;
   var st=clientStore(); delete st[activeClientKey];
-  try{ localStorage.setItem(CLIENT_STORE_KEY, JSON.stringify(st)); }catch(e){ lsFail(e,'고객사 데이터'); }
-  try{ kvPut('cx_client_store',st); }catch(e){} /* 서버 공유 저장소에도 반영 — 새로고침 후 부활 방지 */
+  try{ localStorage.setItem('cx_client_store', JSON.stringify(st)); }catch(e){ lsFail(e,'고객사 데이터'); }
+  pushClientEntry(activeClientKey); /* 서버에서도 이 고객사 1건만 삭제 — 새로고침 후 부활 방지 */
   lastQuant=null; lastQual=null; lastMetrics=null;
   if(typeof fileObjs!=='undefined')fileObjs.length=0;
   var fl=document.getElementById('file-list'); if(fl)fl.innerHTML='';
@@ -3061,7 +3448,8 @@ function analyzeInterviews(docx){
   if(!docx.length)return null;
   var iv=docx.filter(function(d){return /인터뷰|interview|면담|회의록|voc|체크리스트|결과서/i.test(d.name)||/\.txt$/i.test(d.name);});
   var srcDocs=iv.length?iv:docx;
-  var allFull=docx.map(function(d){return '### '+d.name+'\n'+(d.text||'');}).join('\n').replace(/\n{3,}/g,'\n\n');
+  var allFull=docx.map(function(d){ var tt=(d.tables||[]).concat(d.extraTables||[]).map(function(tb){ return tb.map(function(r){ return r.map(function(c){return String(c==null?'':c).replace(/\n/g,' ').trim();}).filter(Boolean).join(' | '); }).filter(Boolean).join('\n'); }).filter(Boolean).join('\n\n');
+    return '### '+d.name+'\n'+(d.text||'')+(tt?('\n'+tt):''); }).join('\n').replace(/\n{3,}/g,'\n\n'); /* 표만 있는 인터뷰 문서도 원문이 비지 않게 */
   function catOf(h){ h=String(h||'');
     if(/콜봇|챗봇|어드바이저|advisor|디지털\s*ars|차세대|신사업|wfm|자동화|셀프서비스|고도화|투자\s*영역|향후|차기|로드맵|대시보드/i.test(h))return 'opp';
     if(/불편|문제|이슈|장애|오류|애로|불만|리스크|우려|과부하|미흡|어려움|부담|병목|지연|누락|민원|한계|불가|시급|개선\s*과제|부하|대기시간|포기율|재문의|에스컬레이션/.test(h))return "issue";
@@ -3080,8 +3468,12 @@ function analyzeInterviews(docx){
     if(cats[tgt]&&cats[tgt].length<8)cats[tgt].push(body.slice(0,150)); }
   srcDocs.forEach(function(d){
     var qaTable=(d.tables||[]).some(function(tb){return tb.some(function(r){return r&&r.length>=2&&isQuestion(r[0]);});});
-    if((d.tables||[]).length===0){ // 자유서술형(표 없음)만 문단 섹션 기반 — 요청서/가이드 템플릿 오염 방지
+    if(!qaTable){ /* 질문-답변 표가 없으면 문단·표 텍스트로 분류 (예전엔 표가 하나라도 있으면 건너뛰어 0건) */ // 자유서술형(표 없음)만 문단 섹션 기반 — 요청서/가이드 템플릿 오염 방지
       var cur=null;
+      /* "구분 | 내용" 같은 2열 이상 표 — 첫 칸을 분류 기준, 나머지를 본문으로 (예전엔 표가 있으면 통째로 건너뛰어 0건) */
+      (d.tables||[]).forEach(function(tb){ tb.forEach(function(r){ if(!r||r.length<2)return;
+        var lab=String(r[0]==null?'':r[0]).trim(), body=r.slice(1).map(function(c){return String(c==null?'':c).replace(/\n/g,' ').trim();}).filter(Boolean).join(' ');
+        if(body.length<5)return; var c=catOf(lab)||catOf(body); if(c)add(c,body); }); });
       (d.text||'').split('\n').forEach(function(t){ t=t.trim(); if(!t||/^#{1,3}\s/.test(t))return;
         var isHdr=(t.length<=26)&&!/[.?!]$/.test(t)&&/사항|문제|이슈|개선|요청|요구|기회|차기|과제|대응|효과|성과|제안|당면/.test(t);
         if(/^(참석|일시|진행|작성|목차|참고|출처)/.test(t)){cur=null;return;}
@@ -3108,48 +3500,80 @@ function analyzeInterviews(docx){
 }
 
 /* ---------- 오케스트레이션 ---------- */
-var lastQuant=null, lastQual=null, lastMetrics=null;
+var lastQuant=null, lastQual=null, lastMetrics=null, lastFailures=[], lastQuantInput=false, ANALYZE_AGAIN=false, LAST_DIAG=null;
 async function analyzeFiles(){
   if(!fileObjs.length){ toastMsg('파일을 먼저 업로드하세요 (드래그 또는 클릭)'); return; }
-  if(typeof analyzing!=='undefined') analyzing=true;
+  /* 분석은 한 번에 하나 — 도중에 파일이 더 들어오면 끝난 뒤 한 번 더 돈다(겹쳐 돌면 나중 결과가 앞 결과를 덮고 LLM 비용이 두 번 든다) */
+  if(typeof analyzing!=='undefined'&&analyzing){ ANALYZE_AGAIN=true; toastMsg('분석이 진행 중입니다 — 끝나면 추가한 파일까지 다시 분석합니다'); return; }
+  if(typeof analyzing!=='undefined') analyzing=true; ANALYZE_AGAIN=false;
+  var ck=activeClientKey, cName=curClientName(); /* 분석 대상 고객사를 고정 — 도중에 바뀌어도 이 고객사에 저장 */
   nav('analyze');
   var sub=document.getElementById('analyze-sub'); if(sub)sub.textContent=(curClientName()||'')+' 업로드 데이터 분석 중...';
   var lb=document.getElementById('log-box'); if(lb)lb.textContent='데이터 분석 시작 (브라우저 직접 분석)...\n';
   var sl=document.getElementById('step-list'); if(sl)sl.innerHTML='';
   setProg(0); setChip('run','분석 중');
   try{
-    var allSheets=[], allDocx=[], allOthers=[], allPdfs=[];
-    for(var i=0;i<fileObjs.length;i++){ stepLine('파일 읽기: '+fileObjs[i].name, Math.round((i+1)/fileObjs.length*40)); var pr=await parseFileObj(fileObjs[i]); allSheets=allSheets.concat(pr.sheets); allDocx=allDocx.concat(pr.docx); allOthers=allOthers.concat(pr.others||[]); allPdfs=allPdfs.concat(pr.pdfs||[]);
+    var allSheets=[], allDocx=[], allOthers=[], allPdfs=[], allImages=[], failures=[]; lastFailures=[];
+    for(var i=0;i<fileObjs.length;i++){ stepLine('파일 읽기: '+fileObjs[i].name, Math.round((i+1)/fileObjs.length*40)); var pr; try{ pr=await parseFileObj(fileObjs[i]); }catch(pe){ pr={sheets:[],docx:[],others:[{name:fileObjs[i].name,kind:'오류',note:'파일을 열지 못함 ('+String(pe&&pe.message||pe).slice(0,60)+') — 이 파일만 건너뜀'}],pdfs:[],images:[]}; } allSheets=allSheets.concat(pr.sheets); allDocx=allDocx.concat(pr.docx); allOthers=allOthers.concat(pr.others||[]); allPdfs=allPdfs.concat(pr.pdfs||[]); allImages=allImages.concat(pr.images||[]);
       (pr.others||[]).forEach(function(o){ addLog2('  · ['+o.kind+'] '+o.name.split('/').pop()+' — '+o.note); }); }
     if(allPdfs.length){ var _ac=aiCfg();
-      if(_ac.provider==='claude'&&_ac.key){
+      if(_ac.key){
         for(var pi=0;pi<allPdfs.length;pi++){ var P=allPdfs[pi];
           stepLine('AI PDF 표 추출: '+P.name, 45+Math.round((pi+1)/allPdfs.length*15));
           try{ var ex=await extractPdfTablesAI(P.name,P.b64);
-            (ex.tables||[]).forEach(function(t,ix){ allSheets.push({path:P.name+' #AI:'+String(t.title||('표'+(ix+1))).slice(0,30), rows:[t.headers].concat(t.rows), fromAI:true}); });
+            (ex.tables||[]).forEach(function(t,ix){ allSheets.push({path:P.name+' #AI:'+String(t.title||('표'+(ix+1))).slice(0,30), rows:[t.headers].concat(t.rows), fromAI:true, srcGroup:P.name}); });
             addLog2('  · [AI추출'+(ex.cached?' · 캐시(토큰 0)':'')+'] '+P.name+' — 표 '+(ex.tables?ex.tables.length:0)+'개 (검증 후 사용)');
           }catch(e){ addLog2('  · [AI추출 실패] '+P.name+' — '+e.message);
+            failures.push({stage:'PDF 표 추출',file:P.name,why:String(e&&e.message||e).slice(0,160)});
             allOthers.push({name:P.name,kind:'PDF',note:'AI 표 추출 실패: '+String(e.message).slice(0,80)}); } } }
-      else if(allPdfs.some(function(p){return p.scanned;})) addLog2('  · 스캔 PDF '+allPdfs.length+'건 — 설정에서 AI(Claude) 키 등록 시 표 자동 추출됩니다'); }
+      else if(allPdfs.some(function(p){return p.scanned;})){ addLog2('  · 스캔 PDF '+allPdfs.length+'건 — 설정에서 AI API 키를 등록하면 표를 자동 추출합니다');
+        allPdfs.filter(function(p){return p.scanned;}).forEach(function(p){ failures.push({stage:'PDF 표 추출',file:p.name,why:'AI API 키 미등록 — 스캔 PDF 는 키가 있어야 표를 읽습니다'}); }); } }
+    for(var ii=0;ii<allImages.length;ii++){ var IM=allImages[ii];
+      stepLine('AI 이미지 표 판독: '+IM.name, 60+Math.round((ii+1)/allImages.length*8));
+      try{ var sm=await shrinkImageForLLM(IM.buf,IM.mime);
+        addLog2('  · [이미지] '+IM.name+' — '+sm.srcW+'×'+sm.srcH+(sm.resized?' → '+sm.w+'×'+sm.h+' 축소':'')+' · 전송 '+fmtN(sm.b64.length/1024)+'KB');
+        var vx=await extractImageTablesAI(IM.name,sm);
+        if(vx.skip){ failures.push({stage:'이미지 판독',file:IM.name,why:vx.why}); addLog2('  · [AI판독 보류] '+IM.name+' — '+vx.why); continue; }
+        vx.tables.forEach(function(t,ix){ allSheets.push({path:IM.name+' #AI:'+String(t.title||('표'+(ix+1))).slice(0,30),rows:[t.headers].concat(t.rows),fromAI:true,fromImage:true,srcGroup:IM.name}); });
+        addLog2('  · [AI판독'+(vx.cached?' · 캐시(토큰 0)':'')+'] '+IM.name+' — 표 '+vx.tables.length+'개'+(vx.blanks?' · 못 읽은 칸 '+vx.blanks+'개는 빈칸 처리':'')+(vx.errors&&vx.errors.length?' · 검증 탈락 '+vx.errors.length+'개':'')+' (원본 대조 필요)');
+      }catch(e){ var why=String(e&&e.message||e).slice(0,160); failures.push({stage:'이미지 판독',file:IM.name,why:why}); addLog2('  · [AI판독 실패] '+IM.name+' — '+why); } }
+    /* 콜통계로 쓸 입력이 있었나 — 인터뷰만 올린 경우 정량 "실패"로 다루지 않는다 */
+    lastQuantInput=allSheets.some(function(s){return !s.fromDoc;})||allPdfs.length>0||allImages.length>0;
+    var _pick=pickImageTables(allSheets); allSheets=_pick.sheets;
+    var _om=(CLIENTS[ck]||{}).openMonth, _split=splitByOpenMonth(allSheets,_om); allSheets=_split.sheets;
+    if(_split.checks.length) addLog2('  · [기간 분할] 오픈 월 '+_om+' 기준 — 오픈 전·오픈 월·오픈 후로 나눠 집계');
+    _pick.unrecognized.forEach(function(u){ failures.push({stage:'이미지 표 인식',file:u.file,why:'판독한 표 "'+u.title+'"에서 콜 지표 열(인입·응답·포기·응답률 등)을 찾지 못함'}); });
     stepLine('정량 지표 집계 ('+allSheets.length+'시트)', 70);
     var quant = allSheets.length? analyzeCallDataV2(allSheets) : null;
+    if(quant&&(_pick.checks.length||_split.checks.length))quant.checks=(quant.checks||[]).concat(_split.checks,_pick.checks);
     stepLine('정성 인터뷰 분석 ('+allDocx.length+'건)', 88);
     var qual = analyzeInterviews(allDocx);
+    if(qual){ try{ var sx=await structureInterviewsAI(qual.full,cName);
+        if(sx.skip){ qual.aiNote=sx.why; addLog2('  · [인터뷰 구조화 보류] '+sx.why); }
+        else { qual.ai=sx.result; addLog2('  · [인터뷰 AI 구조화'+(sx.cached?' · 캐시(토큰 0)':'')+'] 니즈 '+sx.result.needs.length+' · Pain '+sx.result.pains.length+' · VOC '+sx.result.voc.length+' · 과제 '+sx.result.actions.length+(sx.result.dropped?' · 근거 미확인 '+sx.result.dropped+'개 제외':'')); }
+      }catch(e){ qual.aiError=String(e&&e.message||e).slice(0,160); failures.push({stage:'인터뷰 구조화',file:(qual.files||[]).join(', ').slice(0,80),why:qual.aiError}); addLog2('  · [인터뷰 구조화 실패] '+qual.aiError); } }
     var _nonDoc=allSheets.filter(function(s){return !s.fromDoc;});
-    if((!quant||!quant.current) && _nonDoc.length){ quant=quant||{}; quant.current=genericMetrics(_nonDoc); }
+    if((!quant||!quant.current) && _nonDoc.length && !(quant&&quant.ob&&quant.ob.current)){ /* OB 만 있는 경우엔 요약표 폴백으로 IB 수치를 만들지 않는다 */ quant=quant||{checks:[],files:[]}; quant.ob=quant.ob||{}; quant.current=genericMetrics(_nonDoc); } /* 요약표 폴백에도 ob 를 둔다 — 없으면 화면이 q.ob.current 에서 죽었다 */
     if(quant)quant.others=allOthers;
     else if(allOthers.length){ quant={current:null,checks:[],files:[],ob:{},others:allOthers}; }
     if(quant&&allOthers.length){ quant.checks=quant.checks||[];
       quant.checks.push({name:'문서·기타 파일 처리',ok:true,detail:allOthers.map(function(o){return '['+o.kind+'] '+o.name.split('/').pop()+': '+o.note;}).join(' | ').slice(0,400)}); }
-    lastQuant=quant; lastQual=qual; lastMetrics=(quant&&quant.current)||null;
+    lastQuant=quant; lastQual=qual; lastMetrics=(quant&&quant.current)||null; lastFailures=failures;
     var _gate=validateQuant(quant);
-    saveClientData();
+    if(!_gate.ok&&quant&&quant.files){ quant.files.filter(function(f){return !f.parsed&&!f.fromDoc;}).slice(0,6).forEach(function(f){
+      var sh=allSheets.filter(function(s){return s.path===f.name;})[0], hd=sh?(sh.rows.filter(function(r){return r&&r.some(function(c){return String(c).trim();});})[0]||[]).filter(function(c){return String(c).trim();}).slice(0,6).join(' · '):'';
+      failures.push({stage:'콜통계 인식',file:f.name,why:'콜 지표 열(인입·응답·포기·응답률 등)을 찾지 못함'+(hd?(' — 첫 행: '+hd.slice(0,80)):'')}); }); }
+    (allOthers||[]).filter(function(o){return o.kind==='오류'||o.kind==='미지원';}).forEach(function(o){ failures.push({stage:'파일 읽기',file:o.name,why:o.note}); });
+    saveClientData(ck);
     stepLine('완료', 100);
     renderResults(quant,qual);
     if(_gate.ok){ setChip('ok','분석 완료'); addLog2('> 분석 완료 — 검증 통과, 저장됨'); }
-    else { setChip('err','검증 실패'); addLog2('> ⚠ 정량 검증 실패: '+_gate.why); addLog2('> 기존 저장 데이터는 변경되지 않았습니다. 데이터 검증 메뉴에서 파일 인식 결과를 확인하세요.'); }
-  }catch(e){ setChip('err','오류'); addLog2('> 오류: '+e.message); addLog2('> 분석이 중단되었습니다 — 기존 저장 데이터는 변경되지 않았습니다.'); console.error(e); }
+    else if(!lastQuantInput){ setChip('ok','정성 분석 완료'); addLog2('> 콜통계 파일이 없어 정량 분석은 건너뛰었습니다 — 기존 정량 결과는 그대로 유지, 인터뷰 분석만 저장'); }
+    else { setChip('err','검증 실패'); addLog2('> ⚠ 정량 검증 실패: '+_gate.why); failures.forEach(function(f){ addLog2('>   원인 후보 — ['+f.stage+'] '+f.file+': '+f.why); }); addLog2('> 기존 정량 데이터는 변경되지 않았습니다. 원인을 해결한 뒤 결과 화면의 🔄 재분석을 누르세요.'); }
+  }catch(e){ setChip('err','오류'); addLog2('> 오류: '+e.message); addLog2('> 분석이 중단되었습니다 — 기존 저장 데이터는 변경되지 않았습니다.'); console.error(e);
+    var _ep=ensurePanel(); if(_ep)_ep.innerHTML='<div class="card" role="alert" style="padding:14px 18px;background:#fef2f2;border:1px solid #fecaca"><b style="color:var(--red)">⚠ 분석이 중단되었습니다</b> <span style="font-size:12.5px;color:var(--text3)">— '+escHtml(e&&e.message||e)+' · 기존 저장 데이터는 변경되지 않았습니다.</span>'+failureActionsHTML([])+'</div>'; }
   if(typeof analyzing!=='undefined') analyzing=false;
+  if(ANALYZE_AGAIN){ ANALYZE_AGAIN=false; if(activeClientKey===ck&&fileObjs.length) setTimeout(analyzeFiles,0); }
 }
 function genericMetrics(sheets){ // 단순 지표표 폴백
   var KW={inb:['인입','총콜','콜량'],answer:['응답률','응대율'],abandon:['포기율'],aht:['aht','평균응대','처리시간'],asa:['asa','대기']}, m={};
@@ -3198,10 +3622,20 @@ function renderResults(quant,qual){
       +hrs.map(function(h){return '<td style="padding:4px 6px;text-align:center;font-weight:600">'+h+'시</td>';}).join('')+'</tr><tr><td style="color:var(--text3);padding:4px 6px">콜수</td>'
       +hrs.map(function(h){return '<td style="padding:4px 6px;text-align:center">'+fmtN(bh[h].calls)+'</td>';}).join('')+'</tr><tr><td style="color:var(--text3);padding:4px 6px">포기율</td>'
       +hrs.map(function(h){var c=bh[h],r=c.calls?c.abd/c.calls*100:0,col=r>=50?'var(--red)':r>=30?'var(--amber-d)':'var(--green)';return '<td style="padding:4px 6px;text-align:center;color:'+col+';font-weight:700">'+r.toFixed(0)+'%</td>';}).join('')+'</tr></table></div>'; }
-    applyDashboard(m); if(hrs.length) applyHeatmap(bh); applyIssues(m);
-    if(quant.before||quant.mid||quant.after) applyPeriods(quant);
-    if(quant.agentDetail) applyAgents(quant.agentDetail);
-  } else { html+='<div style="font-weight:800;font-size:15px;margin-bottom:8px">📊 정량 분석</div><div style="font-size:12.5px;color:var(--text3)">콜통계 파일에서 지표를 인식하지 못했습니다. (서비스레벨/인바운드/응답·포기 보고서 형식 권장)</div>'; }
+    if(activeClientKey==='woori'){ /* 아래는 우리투자증권 정적 화면의 DOM 에 직접 쓴다 — 다른 고객사는 renderClientPage 가 그린다 */
+      applyDashboard(m); if(hrs.length) applyHeatmap(bh); applyIssues(m);
+      if(quant.before||quant.mid||quant.after) applyPeriods(quant);
+      if(quant.agentDetail) applyAgents(quant.agentDetail); }
+  } else if(quant&&quant.ob&&quant.ob.current){
+    html+='<div style="font-weight:800;font-size:15px;margin-bottom:8px">📊 정량 분석</div><div class="card" style="padding:12px 16px;font-size:12.5px;color:var(--text3)">아웃바운드 통계만 집계했습니다 — 발신 '+fmtN(quant.ob.current.calls||0)+'건'+(quant.ob.current.connRate!=null?' · 연결율 '+quant.ob.current.connRate+'%':'')+'. <b>OB 전략</b> 메뉴에서 확인하세요. 인바운드 통계를 함께 올리면 대시보드 KPI 가 채워집니다.</div>';
+  } else if(!lastQuantInput){
+    html+='<div style="font-weight:800;font-size:15px;margin-bottom:8px">📊 정량 분석</div><div class="card" style="padding:12px 16px;font-size:12.5px;color:var(--text3)">콜통계 파일이 없어 정량 분석은 건너뛰었습니다 — 기존 정량 결과는 그대로입니다. 콜통계(엑셀·CSV·PDF·이미지)를 함께 올리면 KPI가 갱신됩니다.</div>';
+  } else { var _gw=validateQuant(quant);
+    html+='<div style="font-weight:800;font-size:15px;margin-bottom:8px">📊 정량 분석</div>'
+      +'<div class="card" role="alert" style="padding:14px 18px;background:#fef2f2;border:1px solid #fecaca"><b style="color:var(--red)">⚠ 정량 지표를 만들지 못했습니다</b> <span style="font-size:12.5px;color:var(--text3)">— '+escHtml(_gw.why)+'</span>'
+      +failureListHTML(lastFailures)
+      +'<div style="font-size:12px;color:var(--text3);margin-top:6px">콜통계는 원본 엑셀/CSV 가 가장 정확합니다. 캡처 이미지·스캔 PDF 는 설정의 AI 키로 표를 판독합니다.</div>'
+      +failureActionsHTML(lastFailures)+'</div>'; }
 
   if(qual){ html+='<div style="font-weight:800;font-size:15px;margin:20px 0 8px">🎙 정성 분석 (인터뷰 '+qual.count+'건)</div>'
     +'<div style="font-size:12px;color:var(--text3);margin-bottom:8px">'+qual.files.map(escHtml).join(' · ')+'</div>'
@@ -3209,6 +3643,8 @@ function renderResults(quant,qual){
     +'<div style="font-size:11.5px;color:var(--text3);margin-top:6px">전체 '+fmtN(qual.full.length)+'자 · 정성 해석은 “AI 진단”에서 종합됩니다.</div>'
     +'<details style="margin-top:6px"><summary style="cursor:pointer;font-size:12px;color:var(--blue)">인터뷰 원문 보기</summary><pre style="white-space:pre-wrap;font-size:11.5px;color:var(--text2);background:var(--surface2);padding:10px;border-radius:8px;max-height:280px;overflow:auto;margin-top:6px">'+escHtml(qual.text)+'</pre></details>'; }
 
+  if(m&&lastFailures&&lastFailures.length) html+='<div class="card" role="status" style="padding:12px 18px;margin-top:14px;background:#fffbeb;border:1px solid #fde68a"><b style="color:#b45309">일부 분석 단계가 실패했습니다</b>'+failureListHTML(lastFailures)+failureActionsHTML(lastFailures)+'</div>';
+  if(qual&&(qual.ai||qual.aiError||qual.aiNote)) html+='<div style="margin-top:14px">'+ivAIHTML(qual)+'</div>';
   html+='<div id="ai-diag" style="margin-top:14px"></div>';
   el.innerHTML=html;
 }
@@ -3272,18 +3708,60 @@ function runDemo(){ if(typeof analyzing!=='undefined'&&analyzing)return; nav('an
   var sub=document.getElementById('analyze-sub'); if(sub)sub.textContent='데모 데이터 분석 중...';
   var lb=document.getElementById('log-box'); if(lb)lb.textContent='데모 분석 시작 (임시 데이터)...\n'; var sl=document.getElementById('step-list'); if(sl)sl.innerHTML=''; setChip('run','분석 중'); setProg(0);
   var steps=[['파일 로딩','데모 콜이력',20],['데이터 검증','결측·이상치',45],['KPI 집계','응답·포기·AHT',70],['시간대 분석','피크 탐지',90],['완료','',100]], i=0;
-  (function nx(){ if(i>=steps.length){ lastMetrics=DEMO; saveClientData(); renderResults({current:DEMO},null); setChip('ok','분석 완료'); addLog2('> 데모 완료'); return; } var s=steps[i++]; stepLine(s[0]+(s[1]?' — '+s[1]:''),s[2]); setTimeout(nx,400); })();
+  (function nx(){ if(i>=steps.length){ renderResults({current:DEMO,ob:{}},null); addLog2('> 데모 결과는 표시만 하고 저장하지 않습니다 (실제 고객사 데이터와 섞이지 않게)'); setChip('ok','분석 완료'); addLog2('> 데모 완료'); return; } var s=steps[i++]; stepLine(s[0]+(s[1]?' — '+s[1]:''),s[2]); setTimeout(nx,400); })();
 }
 function startDemo(){ runDemo(); }
 
-/* ---------- 보고서(오프라인 요약) ---------- */
+/* ---------- 보고서(오프라인 · 워드) ---------- */
+// 2026-10-12: 화면 버튼은 "Word 다운로드" 인데 실제로는 .txt 를 내려받았다(구조점검 #9).
+//   이미 들어 있는 JSZip 으로 브라우저 안에서 .docx 를 만든다. 서버·외부 전송 없음.
+//   JSZip 이 없거나 생성에 실패하면 예전처럼 .txt 로 내려받는다 — 다운로드 자체는 막지 않는다.
+//   내용은 .txt 와 같다(지표·인터뷰·AI 진단). 형식만 바뀐다.
+function docxXmlEsc(s){ return String(s==null?'':s).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/g,'')
+  .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function reportDocxXml(title, blocks){ // blocks: [{h:'소제목'} | {p:'문단(여러 줄 가능)'} | {rows:[[항목,값],...]}]
+  var F='<w:rFonts w:ascii="Malgun Gothic" w:hAnsi="Malgun Gothic" w:eastAsia="맑은 고딕"/>';
+  function run(t,b,sz){ return '<w:r><w:rPr>'+F+(b?'<w:b/>':'')+(sz?'<w:sz w:val="'+sz+'"/>':'')+'</w:rPr><w:t xml:space="preserve">'+docxXmlEsc(t)+'</w:t></w:r>'; }
+  function para(t,b,sz,sp){ return String(t==null?'':t).split(/\r?\n/).map(function(line){ return '<w:p>'+(sp?'<w:pPr><w:spacing w:before="'+sp+'" w:after="120"/></w:pPr>':'')+run(line,b,sz)+'</w:p>'; }).join(''); }
+  var BD='<w:tblBorders>'+['top','left','bottom','right','insideH','insideV'].map(function(k){ return '<w:'+k+' w:val="single" w:sz="4" w:space="0" w:color="BBBBBB"/>'; }).join('')+'</w:tblBorders>';
+  function table(rows){ return '<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/>'+BD+'</w:tblPr><w:tblGrid><w:gridCol w:w="2800"/><w:gridCol w:w="6200"/></w:tblGrid>'
+    +rows.map(function(r){ return '<w:tr>'+[r[0],r[1]].map(function(c,k){ return '<w:tc><w:tcPr><w:tcW w:w="'+(k?6200:2800)+'" w:type="dxa"/></w:tcPr>'+para(c,k===0)+'</w:tc>'; }).join('')+'</w:tr>'; }).join('')
+    +'</w:tbl><w:p/>'; }
+  var body=para(title,true,32,0)+(blocks||[]).map(function(b){
+    if(!b)return ''; if(b.h!=null) return para(b.h,true,26,240); if(b.rows) return table(b.rows); return para(b.p); }).join('');
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    +'<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>'+body
+    +'<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>';
+}
+var DOCX_MIME='application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+async function buildReportDocx(title, blocks, outType){
+  if(typeof JSZip==='undefined') throw new Error('zip 모듈 미로딩');
+  var z=new JSZip(), X='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+  z.file('[Content_Types].xml', X+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+    +'<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>'
+    +'<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>');
+  z.file('_rels/.rels', X+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+    +'<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>');
+  z.file('word/document.xml', reportDocxXml(title, blocks));
+  return z.generateAsync({type:outType||'blob', mimeType:DOCX_MIME, compression:'DEFLATE'});
+}
 async function downloadReport(type){ var st=document.getElementById('dl-status'); function S(c,m){if(st){st.style.color=c;st.textContent=m;}}
-  var m=lastMetrics||{}; var L=['CX 성과방문 분석 요약','고객사: '+(curClientName()||'-'),'생성: '+new Date().toLocaleString('ko-KR'),'유형: '+type,'',
-    '총 인입콜: '+(m.inb!=null?fmtN(m.inb)+'건':'-'),'응답률: '+(m.answerRate!=null?m.answerRate+'%':'-'),'포기율: '+(m.abandonRate!=null?m.abandonRate+'%':'-'),'AHT: '+ahtTxt(m.aht),'ASA: '+ahtTxt(m.asa),'SL: '+(m.sl!=null?m.sl+'%':'-'),''];
+  var m=lastMetrics||{}, client=curClientName()||'고객사', made=new Date().toLocaleString('ko-KR');
+  var kpi=[['총 인입콜',m.inb!=null?fmtN(m.inb)+'건':'-'],['응답률',m.answerRate!=null?m.answerRate+'%':'-'],['포기율',m.abandonRate!=null?m.abandonRate+'%':'-'],
+    ['AHT',ahtTxt(m.aht)],['ASA',ahtTxt(m.asa)],['SL',m.sl!=null?m.sl+'%':'-']];
+  var diag=(LAST_DIAG&&LAST_DIAG.key===activeClientKey&&LAST_DIAG.text)?LAST_DIAG.text:''; /* 다른 고객사 진단이 섞이지 않게 */
+  // .txt 폴백용 — 내용은 워드와 같다
+  var L=['CX 성과방문 분석 요약','고객사: '+(curClientName()||'-'),'생성: '+made,'유형: '+type,''].concat(kpi.map(function(r){return r[0]+': '+r[1];}),['']);
   if(lastQual){ L.push('[인터뷰 호평] '+(lastQual.good||'-')); L.push('[인터뷰 개선요청] '+(lastQual.issue||'-')); }
-  var d=document.getElementById('ai-diag'); if(d&&d.textContent.trim()) L.push('','[AI 진단]',d.textContent.trim());
-  var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([L.join('\n')],{type:'text/plain;charset=utf-8'})); a.download=(curClientName()||'고객사')+'_'+type+'_요약.txt'; a.click();
-  S('var(--green)','✓ '+type+' 요약 다운로드 완료'); }
+  if(diag) L.push('','[AI 진단]',diag);
+  var blocks=[{p:'고객사: '+(curClientName()||'-')},{p:'생성: '+made},{p:'유형: '+type},{h:'핵심 지표'},{rows:kpi}];
+  if(lastQual) blocks.push({h:'인터뷰'},{rows:[['호평',lastQual.good||'-'],['개선요청',lastQual.issue||'-']]});
+  if(diag) blocks.push({h:'AI 진단'},{p:diag});
+  function save(blob,name){ var a=document.createElement('a'), u=URL.createObjectURL(blob); a.href=u; a.download=name; a.click(); setTimeout(function(){ URL.revokeObjectURL(u); },1000); }
+  try{ save(await buildReportDocx('CX 성과방문 분석 보고서 — '+type, blocks), client+'_'+type+'_보고서.docx'); S('var(--green)','✓ '+type+' 워드 보고서 다운로드 완료'); }
+  catch(e){ save(new Blob([L.join('\n')],{type:'text/plain;charset=utf-8'}), client+'_'+type+'_요약.txt');
+    S('var(--amber)','워드 생성 실패('+(e&&e.message||e)+') — 텍스트 요약으로 내려받음'); }
+}
 
 /* ---------- AI 제공자/비용 ---------- */
 var AI_DEFAULTS={ claude:{model:'claude-sonnet-4-5',in:3,out:15}, gemini:{model:'gemini-2.5-flash',in:0.30,out:2.50}, gpt:{model:'gpt-4o-mini',in:0.15,out:0.60} };
@@ -3317,7 +3795,8 @@ async function resolveModel(){ var cfg=loadAI(); var prov=cfg.provider||'gemini'
 function loadAI(){ try{ return JSON.parse(localStorage.getItem('cx_ai_cfg'))||{}; }catch(e){ return {}; } }
 function saveAICfg(){ var p=document.querySelector('input[name="ai-prov"]:checked'); p=p?p.value:'gemini';
   localStorage.setItem('cx_ai_cfg',JSON.stringify({provider:p,key:val('ai-key'),model:val('ai-model'),inPrice:parseFloat(val('ai-in'))||0,outPrice:parseFloat(val('ai-out'))||0,krw:parseFloat(val('ai-krw'))||1350}));
-  var s=document.getElementById('ai-save-status'); if(s){s.textContent='✓ 저장됨';s.style.color='var(--green)';setTimeout(function(){s.textContent='';},1800);} }
+  var s=document.getElementById('ai-save-status'); if(s){s.textContent='✓ 저장됨';s.style.color='var(--green)';setTimeout(function(){s.textContent='';},1800);}
+  try{ renderAIReadiness(); }catch(e){} }
 function onProvChange(p){ var d=AI_DEFAULTS[p]; if(!d)return; setVal('ai-model',d.model); setVal('ai-in',d.in); setVal('ai-out',d.out); }
 function injectAISettings(){ var pb=document.querySelector('#page-settings .page-body'); if(!pb||document.getElementById('ai-settings-card'))return;
   var cfg=loadAI(), prov=cfg.provider||'gemini', d=AI_DEFAULTS[prov];
@@ -3325,12 +3804,13 @@ function injectAISettings(){ var pb=document.querySelector('#page-settings .page
   var c=document.createElement('div'); c.id='ai-settings-card'; c.className='card'; c.style.cssText='padding:18px 20px;margin-bottom:14px';
   c.innerHTML='<div style="font-weight:800;font-size:15px;margin-bottom:4px">🤖 AI 분석 엔진 설정</div><div style="font-size:12px;color:var(--text3);margin-bottom:12px">제공자 1개만 선택·입력해도 AI 진단이 동작합니다. 키는 이 브라우저에만 저장됩니다.</div>'
     +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">'+radio('claude','Claude')+radio('gemini','Gemini')+radio('gpt','GPT')+'</div>'
-    +'<div style="display:grid;grid-template-columns:2fr 1fr;gap:10px;margin-bottom:10px"><div><label class="form-label">모델</label><input class="form-input" id="ai-model" value="'+(cfg.model||d.model)+'"></div><div><label class="form-label">환율(₩/$)</label><input class="form-input" id="ai-krw" type="number" value="'+(cfg.krw||1350)+'"></div></div>'
-    +'<div style="margin-bottom:10px"><label class="form-label">API Key</label><input class="form-input" id="ai-key" type="password" placeholder="sk-... / AIza..." value="'+(cfg.key||'')+'"></div>'
+    +'<div style="display:grid;grid-template-columns:2fr 1fr;gap:10px;margin-bottom:10px"><div><label class="form-label">모델</label><input class="form-input" id="ai-model" value="'+escHtml(cfg.model||d.model)+'"></div><div><label class="form-label">환율(₩/$)</label><input class="form-input" id="ai-krw" type="number" value="'+(cfg.krw||1350)+'"></div></div>'
+    +'<div style="margin-bottom:10px"><label class="form-label">API Key</label><input class="form-input" id="ai-key" type="password" placeholder="sk-... / AIza..." value="'+escHtml(cfg.key||'')+'"></div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px"><div><label class="form-label">입력 단가 ($/1M)</label><input class="form-input" id="ai-in" type="number" step="0.01" value="'+(cfg.inPrice!=null?cfg.inPrice:d.in)+'"></div><div><label class="form-label">출력 단가 ($/1M)</label><input class="form-input" id="ai-out" type="number" step="0.01" value="'+(cfg.outPrice!=null?cfg.outPrice:d.out)+'"></div></div>'
     +'<div style="display:flex;align-items:center;gap:12px"><button class="btn btn-primary" onclick="saveAICfg()">저장</button><button class="btn btn-ghost" onclick="testAI()">연결 테스트</button><span id="ai-save-status" style="font-size:12px"></span></div>'
     +'<div id="ai-usage" style="margin-top:14px;font-size:12.5px"></div>';
   pb.insertBefore(c,pb.firstChild); renderUsage();
+  var rc=document.createElement('div'); rc.id='ai-ready-card'; rc.className='card'; rc.style.cssText='padding:18px 20px;margin-bottom:14px'; c.parentNode.insertBefore(rc,c.nextSibling); renderAIReadiness();
   var ki=document.getElementById('ai-key');
   if(ki){ ki.addEventListener('input',function(){ var p=detectProv(ki.value); if(!p)return;
     var radios=document.querySelectorAll('input[name="ai-prov"]');
@@ -3340,33 +3820,59 @@ function injectAISettings(){ var pb=document.querySelector('#page-settings .page
   }); }
 }
 var AIUSAGE={inTok:0,outTok:0,usd:0,calls:0};
+/* AI 준비 상태 — 키를 넣기 전·후 어떤 기능이 언제 얼마 정도 쓰는지 (화면 계산만, 외부 호출 없음) */
+var AI_FEATURES=[
+  {k:'image',t:'사진·캡처 판독',when:'콜통계 사진·화면 캡처(jpg·png)를 올렸을 때',tin:3200,tout:2500},
+  {k:'pdf',t:'스캔 PDF 표 추출',when:'콜통계 PDF 를 올렸을 때 (쪽수에 비례)',tin:6000,tout:3000},
+  {k:'iv',t:'인터뷰 AI 구조화',when:'인터뷰·회의록 문서를 올렸을 때 (원문 앞 12,000자)',tin:5000,tout:1500},
+  {k:'diag',t:'AI 진단',when:'대시보드의 "진단 생성" 버튼을 누를 때만',tin:1200,tout:900}];
+function aiReadinessHTML(cfg){ cfg=cfg||{}; var has=!!cfg.key, prov=cfg.provider||detectProv(cfg.key)||'', d=AI_DEFAULTS[prov]||{};
+  var pin=cfg.inPrice!=null?cfg.inPrice:(d.in||0), pout=cfg.outPrice!=null?cfg.outPrice:(d.out||0), krw=cfg.krw||1350;
+  function won(f){ var usd=f.tin/1e6*pin+f.tout/1e6*pout; return has?('약 $'+usd.toFixed(3)+' (₩'+fmtN(Math.max(1,Math.round(usd*krw)))+')'):'—'; }
+  var audit=0; try{ audit=(JSON.parse(localStorage.getItem('llmAuditLog')||'[]')||[]).length; }catch(e){}
+  var cache=0; ['cx_img_tbl_cache_v1','cx_pdf_tbl_cache_v1','cx_iv_struct_cache_v1'].forEach(function(k){ try{ cache+=Object.keys(JSON.parse(localStorage.getItem(k)||'{}')).length; }catch(e){} });
+  var masked=has?('••••'+escHtml(String(cfg.key).slice(-4))):'';
+  return '<div style="font-weight:800;font-size:15px;margin-bottom:4px">🧪 AI 준비 상태 <span style="font-size:11.5px;font-weight:600;color:var(--text3)">— 이 표는 비용이 들지 않습니다(아무것도 보내지 않음)</span></div>'
+   +'<div style="font-size:12.5px;margin:6px 0 10px;padding:10px 12px;border-radius:9px;background:'+(has?'var(--green-lt,#ecfdf5)':'var(--surface2)')+'">'
+   +(has?('<b style="color:var(--green)">켜짐</b> — '+escHtml(prov==='gpt'?'OpenAI':prov==='gemini'?'Gemini':'Claude')+' · 모델 '+escHtml(cfg.model||d.model||'-')+' · 키 '+masked)
+        :'<b>꺼짐</b> — 키가 없으면 AI 를 쓰지 않습니다. 엑셀·CSV 집계와 규칙 기반 인터뷰 분류는 그대로 동작합니다(비용 0).')+'</div>'
+   +'<table style="width:100%;border-collapse:collapse;font-size:12.3px"><tr style="color:var(--text3);font-size:11.5px"><td style="padding:4px 8px">기능</td><td style="padding:4px 8px">언제 쓰이나</td><td style="padding:4px 8px">1회 예상 비용</td></tr>'
+   +AI_FEATURES.map(function(f){ return '<tr style="border-top:1px solid var(--surface2)"><td style="padding:6px 8px;font-weight:700;white-space:nowrap">'+f.t+'</td><td style="padding:6px 8px;color:var(--text2)">'+f.when+'</td><td style="padding:6px 8px;color:var(--text3);white-space:nowrap">'+won(f)+'</td></tr>'; }).join('')
+   +'</table><div style="font-size:11.5px;color:var(--text3);margin-top:8px;line-height:1.6">· 세 공급자(Claude·OpenAI·Gemini) 모두 네 기능을 지원합니다. 보내기 전에 매번 <b>전송 동의창</b>이 뜹니다.<br>'
+   +'· 같은 파일을 다시 분석하면 저장된 결과(캐시 '+cache+'건)를 써서 0원입니다. 외부 전송 기록 '+audit+'건이 이 브라우저에 남아 있습니다.<br>'
+   +'· 위 "연결 테스트"는 짧은 확인 1회(약 ₩1 미만)입니다. 예상 비용은 단가 입력값 기준 추정이며 실제 청구는 공급자 기준입니다.</div>'
+   +'<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button type="button" class="btn btn-ghost btn-sm" onclick="clearAICaches()">AI 결과 캐시 비우기</button>'
+   +(has?'<button type="button" class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="removeAIKey()">이 브라우저에서 키 삭제</button>':'')+'</div>'; }
+function renderAIReadiness(){ var el=document.getElementById('ai-ready-card'); if(el)el.innerHTML=aiReadinessHTML(loadAI()); }
+function clearAICaches(){ ['cx_img_tbl_cache_v1','cx_pdf_tbl_cache_v1','cx_iv_struct_cache_v1'].forEach(function(k){ try{ localStorage.removeItem(k); }catch(e){} }); renderAIReadiness(); toastMsg('AI 결과 캐시를 비웠습니다 — 다음 분석은 다시 호출합니다(비용 발생)'); }
+function removeAIKey(){ if(!confirm('이 브라우저에 저장된 API 키를 지울까요?'))return; var c=loadAI(); delete c.key; try{ localStorage.setItem('cx_ai_cfg',JSON.stringify(c)); }catch(e){} setVal('ai-key',''); renderAIReadiness(); toastMsg('키를 지웠습니다 — AI 기능이 꺼졌습니다'); }
 function renderUsage(){ var el=document.getElementById('ai-usage'); if(!el)return; var cfg=loadAI();
   el.innerHTML='<div style="border:1px solid var(--border);border-radius:10px;padding:12px 14px;background:var(--surface2)"><div style="font-weight:700;margin-bottom:6px">누적 토큰·비용 ('+(cfg.provider||'-')+')</div><div style="display:flex;gap:18px;flex-wrap:wrap"><span>호출 <b>'+AIUSAGE.calls+'</b></span><span>입력 <b>'+fmtN(AIUSAGE.inTok)+'</b> tok</span><span>출력 <b>'+fmtN(AIUSAGE.outTok)+'</b> tok</span><span>비용 <b style="color:var(--blue)">$'+AIUSAGE.usd.toFixed(4)+'</b> · ₩'+fmtN(Math.round(AIUSAGE.usd*(cfg.krw||1350)))+'</span></div></div>'; }
 function aiPrompt(){ var m=lastMetrics||{}, q=lastQual; var t='당신은 컨택센터 운영 분석가입니다. 아래 정량·정성 데이터로 핵심 문제점 3가지와 개선·차기제안을 한국어 불릿으로 간결히 진단하세요.\n[정량] 총인입:'+(m.inb!=null?m.inb:'-')+', 응답률:'+(m.answerRate!=null?m.answerRate+'%':'-')+', 포기율:'+(m.abandonRate!=null?m.abandonRate+'%':'-')+', AHT:'+ahtTxt(m.aht)+', ASA:'+ahtTxt(m.asa)+', SL:'+(m.sl!=null?m.sl+'%':'-');
   if(q) t+='\n[정성 인터뷰 요약] '+maskSensitive((q.text||'').slice(0,1500),{oneWay:true}).masked; return t; }
 function estTok(s){ return Math.ceil((s||'').length/2.5); }
-async function callAI(prompt){ return callAIOnce(prompt,0); }
-async function callAIOnce(prompt,attempt){ var cfg=loadAI(); if(!cfg.key) throw new Error('설정에서 API Key를 먼저 입력하세요');
+async function callAI(prompt,meta){ return callAIOnce(prompt,0,meta); }
+async function callAIOnce(prompt,attempt,meta){ var cfg=loadAI(); if(!cfg.key) throw new Error('설정에서 API Key를 먼저 입력하세요');
   if(!cfg.provider||!cfg.model){ var dp=detectProv(cfg.key); if(dp){cfg.provider=dp;cfg.model=cfg.model||AI_DEFAULTS[dp].model;localStorage.setItem('cx_ai_cfg',JSON.stringify(cfg));} }
-  try{ return await _callProvider(prompt,cfg); }
+  try{ return await _callProvider(prompt,cfg,meta); }
   catch(e){ var msg=(e.message||'').toLowerCase();
     var modelErr=msg.indexOf('not_found')>=0||msg.indexOf('not found')>=0||msg.indexOf('does not exist')>=0||msg.indexOf('404')>=0||msg.indexOf('deprecated')>=0||msg.indexOf('invalid model')>=0||msg.indexOf('unsupported')>=0;
     if(modelErr&&attempt<4){ var fb=AI_FALLBACKS[cfg.provider||'gemini']||[]; var cur=cfg.model;
       var next=fb.filter(function(m){return m!==cur;})[attempt];
-      if(next){ cfg.model=next; setVal('ai-model',next); localStorage.setItem('cx_ai_cfg',JSON.stringify(cfg)); return callAIOnce(prompt,attempt+1); } }
+      if(next){ cfg.model=next; setVal('ai-model',next); localStorage.setItem('cx_ai_cfg',JSON.stringify(cfg)); return callAIOnce(prompt,attempt+1,meta); } }
     throw e; } }
-async function _callProvider(prompt,cfg){
+async function _callProvider(prompt,cfg,meta){ meta=meta||{};
   var prov=cfg.provider||'gemini', model=cfg.model||AI_DEFAULTS[prov].model, text='', inTok=0, outTok=0;
-  if(!(await confirmExternalSend({provider:prov,endpointHost:hostOf(prov),dataKinds:['정량지표','정성 인터뷰 요약'],fieldCount:2,maskApplied:true,fileBase64Included:false}))) throw new Error('사용자가 외부 LLM 전송을 취소했습니다');
-  try{ logExternalSend({app:'EPM',provider:prov,endpointHost:hostOf(prov),dataKinds:['diagnosis'],charCount:(prompt||'').length,fieldCount:1,maskApplied:true,fileBase64Included:false}); }catch(e){}
+  if(!(await confirmExternalSend({provider:prov,endpointHost:hostOf(prov),dataKinds:meta.dataKinds||['정량지표','정성 인터뷰 요약'],fieldCount:(meta.dataKinds||[0,0]).length,maskApplied:true,fileBase64Included:false}))) throw new Error('사용자가 외부 LLM 전송을 취소했습니다');
+  try{ logExternalSend({app:'EPM',provider:prov,endpointHost:hostOf(prov),dataKinds:[meta.logKind||'diagnosis'],charCount:(prompt||'').length,fieldCount:1,maskApplied:true,fileBase64Included:false}); }catch(e){}
   model=model.replace(/^models\//,'');
   if(prov==='gemini'){ var r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent?key='+encodeURIComponent(cfg.key),{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})}); var j=await r.json(); if(!r.ok)throw new Error((j.error&&j.error.message)||('HTTP '+r.status)); warnIfTruncated('gemini', j); var cand=(j.candidates||[])[0]||{}; text=((cand.content||{}).parts||[]).map(function(p){return p.text||'';}).join(''); var u=j.usageMetadata||{}; inTok=u.promptTokenCount||estTok(prompt); outTok=u.candidatesTokenCount||estTok(text); }
-  else if(prov==='claude'){ var r2=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':cfg.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:model,max_tokens:1024,messages:[{role:'user',content:prompt}]})}); var j2=await r2.json(); if(!r2.ok)throw new Error((j2.error&&j2.error.message)||('HTTP '+r2.status)); warnIfTruncated('claude', j2); text=(j2.content||[]).map(function(c){return c.text||'';}).join(''); var u2=j2.usage||{}; inTok=u2.input_tokens||estTok(prompt); outTok=u2.output_tokens||estTok(text); }
+  else if(prov==='claude'){ var r2=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':cfg.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:model,max_tokens:meta.maxTokens||1024,messages:[{role:'user',content:prompt}]})}); var j2=await r2.json(); if(!r2.ok)throw new Error((j2.error&&j2.error.message)||('HTTP '+r2.status)); warnIfTruncated('claude', j2); text=(j2.content||[]).map(function(c){return c.text||'';}).join(''); var u2=j2.usage||{}; inTok=u2.input_tokens||estTok(prompt); outTok=u2.output_tokens||estTok(text); }
   else { var r3=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'content-type':'application/json','authorization':'Bearer '+cfg.key},body:JSON.stringify({model:model,messages:[{role:'user',content:prompt}]})}); var j3=await r3.json(); if(!r3.ok)throw new Error((j3.error&&j3.error.message)||('HTTP '+r3.status)); warnIfTruncated('openai', j3); text=(((j3.choices||[])[0]||{}).message||{}).content||''; var u3=j3.usage||{}; inTok=u3.prompt_tokens||estTok(prompt); outTok=u3.completion_tokens||estTok(text); }
   var usd=(inTok/1e6*(cfg.inPrice||0))+(outTok/1e6*(cfg.outPrice||0)); AIUSAGE.inTok+=inTok;AIUSAGE.outTok+=outTok;AIUSAGE.usd+=usd;AIUSAGE.calls++; renderUsage();
   return {text:text,inTok:inTok,outTok:outTok,usd:usd,krw:Math.round(usd*(cfg.krw||1350))}; }
-async function genAIDiagnosis(){ var box=document.getElementById('ai-diag')||ensurePanel(); if(box)box.innerHTML='<div style="font-size:12.5px;color:var(--text3)">AI 진단 생성 중...</div>';
-  try{ var res=await callAI(aiPrompt()); box.innerHTML='<div style="border:1px solid var(--border);border-radius:10px;padding:14px;background:var(--surface2)"><div style="font-weight:700;margin-bottom:8px">🤖 AI 진단</div><div style="white-space:pre-wrap;font-size:12.5px;line-height:1.7;color:var(--text2)">'+escHtml(res.text)+'</div><div style="margin-top:10px;font-size:11.5px;color:var(--text3);border-top:1px solid var(--border);padding-top:8px">입력 '+fmtN(res.inTok)+' · 출력 '+fmtN(res.outTok)+' tok · <b style="color:var(--blue)">$'+res.usd.toFixed(4)+'</b> (₩'+fmtN(res.krw)+')</div></div>';
+async function genAIDiagnosis(){ var box=document.querySelector('.page.active #ai-diag')||document.getElementById('ai-diag')||ensurePanel(), diagKey=activeClientKey; if(box)box.innerHTML='<div style="font-size:12.5px;color:var(--text3)">AI 진단 생성 중...</div>';
+  try{ var res=await callAI(aiPrompt()); LAST_DIAG={key:diagKey,text:res.text}; box.innerHTML='<div style="border:1px solid var(--border);border-radius:10px;padding:14px;background:var(--surface2)"><div style="font-weight:700;margin-bottom:8px">🤖 AI 진단</div><div style="white-space:pre-wrap;font-size:12.5px;line-height:1.7;color:var(--text2)">'+escHtml(res.text)+'</div><div style="margin-top:10px;font-size:11.5px;color:var(--text3);border-top:1px solid var(--border);padding-top:8px">입력 '+fmtN(res.inTok)+' · 출력 '+fmtN(res.outTok)+' tok · <b style="color:var(--blue)">$'+res.usd.toFixed(4)+'</b> (₩'+fmtN(res.krw)+')</div></div>';
   }catch(e){ box.innerHTML='<div style="border:1px solid var(--red);background:var(--red-lt);border-radius:10px;padding:12px;font-size:12.5px;color:var(--red)">AI 호출 실패: '+escHtml(e.message)+'<br><span style="color:var(--text3)">설정에서 제공자·키 확인. 일부 제공자는 브라우저 CORS로 제한될 수 있습니다.</span></div>'; } }
 async function testAI(){ var s=document.getElementById('ai-save-status'); if(s){s.textContent='테스트 중...';s.style.color='var(--text3)';}
   var kp=detectProv(val('ai-key'));
@@ -3387,11 +3893,49 @@ function kvGet(key){ return fetch(STORE_API+'/kv/'+key,{signal:AbortSignal.timeo
   .catch(function(){ return undefined; }); }
 function kvPut(key,val){ return fetch(STORE_API+'/kv/'+key,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(val)})
   .then(function(r){ STORE_ONLINE=r.ok; }).catch(function(){ STORE_ONLINE=false; }); }
+/* 공유 저장소 쓰기 (2026-10-07) — 예전엔 브라우저가 들고 있던 저장소 "전체"를 PUT 했다.
+   두 사람이 동시에 쓰면 나중 사람이 앞사람의 고객사 분석을 지웠고, 첫 동기화가 실패한 PC 가 저장하면
+   서버 전체가 그 PC 의 몇 건으로 바뀌었다. 이제는 쓰기 직전에 서버 최신본을 읽어 바뀐 항목만 반영한다.
+   서버에 닿지 않으면 쓰지 않고(덮어쓰기 금지) 화면에 알린다. 항목에는 _pending 을 남겨 다음 동기화 때 다시 올린다. */
+var STORE_WRITE_FAIL=null, SYNC_T0=0;
+/* 값 + 버전(ETag). 저장소 서버 v3 이상이면 ETag 가 온다 — 없으면 null(옛 서버, 그래도 동작) */
+function kvGetVer(key){ return fetch(STORE_API+'/kv/'+key,{cache:'no-store',signal:AbortSignal.timeout?AbortSignal.timeout(4000):undefined})
+  .then(function(r){ if(!r.ok)throw 0; STORE_ONLINE=true; var et=null; try{ et=r.headers&&r.headers.get?r.headers.get('ETag'):null; }catch(e){}
+    return r.json().then(function(v){ return {val:v,etag:et}; }); })
+  .catch(function(){ return undefined; }); }
+function kvMergePut(key,mutate,attempt){ attempt=attempt||0;
+  return kvGetVer(key).then(function(got){ var sv=got===undefined?undefined:got.val;
+    if(sv===undefined) throw new Error('공유 저장소 응답 없음');
+    var base=(sv&&typeof sv==='object'&&!Array.isArray(sv))?sv:{}; mutate(base);
+    /* 읽은 버전을 함께 보낸다 — 그 사이 다른 사람이 저장했으면 서버가 412 로 거절하고, 다시 읽어 합친 뒤 재시도한다 */
+    var h={'content-type':'application/json'}; if(got.etag)h['If-Match']=got.etag;
+    return fetch(STORE_API+'/kv/'+key,{method:'PUT',headers:h,body:JSON.stringify(base)})
+      .then(function(r){ if(r.status===412&&attempt<4) return kvMergePut(key,mutate,attempt+1);
+        if(!r.ok)throw new Error(r.status===412?'다른 사용자와 저장이 계속 겹침':('쓰기 실패 HTTP '+r.status)); STORE_ONLINE=true; STORE_WRITE_FAIL=null; return true; }); })
+  .catch(function(e){ STORE_ONLINE=false; STORE_WRITE_FAIL=String(e&&e.message||e);
+    try{ toastMsg('⚠ 공유 저장소에 저장하지 못했습니다('+STORE_WRITE_FAIL+') — 이 브라우저에만 있습니다. 네트워크 확인 후 다시 열면 자동으로 올립니다'); }catch(x){}
+    try{ addLog2('> ⚠ 공유 저장소 저장 실패: '+STORE_WRITE_FAIL+' — 다른 PC 에서는 아직 보이지 않습니다'); }catch(x){}
+    return false; }); }
+function pushClientEntry(key){ var st=clientStore(), v=st[key];
+  return kvMergePut('cx_client_store',function(sv){ if(v){ var c=Object.assign({},v); delete c._pending; sv[key]=c; } else delete sv[key]; })
+    .then(function(ok){ var cur=clientStore()[key]; if(cur){ if(ok)delete cur._pending; else cur._pending=true;
+      try{ localStorage.setItem('cx_client_store',JSON.stringify(clientStore())); }catch(e){} } return ok; }); }
 async function syncFromServer(){
+  SYNC_T0=Date.now();
   var sv=await kvGet('cx_client_store');
-  if(sv&&typeof sv==='object'){ STORE_CACHE=sv; try{localStorage.setItem('cx_client_store',JSON.stringify(sv));}catch(e){ lsFail(e,'고객사 데이터'); } }
+  if(sv&&typeof sv==='object'){ var loc=STORE_CACHE||{}, again=[];
+    /* 서버에 못 올린 항목(_pending)과, 동기화가 도는 사이 이 화면에서 저장한 항목은 버리지 않는다 */
+    Object.keys(loc).forEach(function(k){ var L=loc[k]; if(!L)return;
+      if(L._pending||((L._savedAt||0)>=SYNC_T0&&(!sv[k]||(sv[k]._savedAt||0)<L._savedAt))){ sv[k]=L; if(L._pending)again.push(k); } });
+    STORE_CACHE=sv; try{localStorage.setItem('cx_client_store',JSON.stringify(sv));}catch(e){ lsFail(e,'고객사 데이터'); }
+    again.forEach(function(k){ pushClientEntry(k); }); }
   var cl=await kvGet('cx_clients');
-  if(cl&&typeof cl==='object'){ Object.keys(cl).forEach(function(k){ CLIENTS[k]=cl[k]; }); try{localStorage.setItem('cx_clients',JSON.stringify(cl));}catch(e){ lsFail(e,'고객사 목록'); } }
+  if(cl&&typeof cl==='object'){ var localOnly=Object.keys(CLIENTS).filter(function(k){ return k!=='woori'&&!cl[k]; });
+    /* 서버 값을 우선하되, 서버에 없는 이 브라우저의 필드(예: 막 정한 오픈 월)는 남긴다 */
+    Object.keys(cl).forEach(function(k){ CLIENTS[k]=Object.assign({},CLIENTS[k]||{},cl[k]); });
+    if(localOnly.length) persistClients(); /* 오프라인일 때 추가한 고객사는 서버에 올린다 */
+    var keep={}; Object.keys(CLIENTS).forEach(function(k){ if(k!=='woori')keep[k]=CLIENTS[k]; });
+    try{localStorage.setItem('cx_clients',JSON.stringify(keep));}catch(e){ lsFail(e,'고객사 목록'); } }
   loadClientData(activeClientKey);
   renderClientList();
   renderClientDashboard();
@@ -3402,33 +3946,44 @@ var WOORI_DASH_HTML=null;
 function clientStore(){ if(STORE_CACHE&&Object.keys(STORE_CACHE).length)return STORE_CACHE;
   try{ STORE_CACHE=JSON.parse(localStorage.getItem('cx_client_store'))||{}; }catch(e){ STORE_CACHE={}; }
   return STORE_CACHE; }
-function saveClientData(){ if(!activeClientKey)return;
+function qualForStore(q){ if(!q)return null;
+  return {good:q.good,issue:q.issue,insights:q.insights||null,files:q.files||null,count:q.count||0,text:(q.text||'').slice(0,4000),
+    ai:q.ai||null,aiError:q.aiError||null,aiNote:q.aiNote||null}; }
+function saveClientData(ckey){ var key=ckey||activeClientKey; if(!key)return;
+  var cname=(CLIENTS[key]&&CLIENTS[key].name)||'';
   var st=clientStore();
-  var prev=st[activeClientKey]||{};
+  var prev=st[key]||{};
   var gate=validateQuant(typeof lastQuant!=='undefined'?lastQuant:null);
   var _q=null;
   if(gate.ok){ try{ _q=JSON.parse(JSON.stringify({before:lastQuant.before,mid:lastQuant.mid,after:lastQuant.after,current:lastQuant.current,ob:lastQuant.ob,checks:(lastQuant.checks||[]).slice(0,50),files:(lastQuant.files||[]).slice(0,30),others:(lastQuant.others||[]).slice(0,20),agentDetail:lastQuant.agentDetail})); }catch(e){_q=null;gate={ok:false,why:'저장 직렬화 실패'};} }
-  if(!gate.ok){
+  if(!gate.ok&&!lastQuantInput){
+    /* 인터뷰·문서만 올린 분석 — 정량은 시도하지 않았으므로 실패가 아니다. 기존 정량·실패 기록을 그대로 두고 정성만 갱신 */
+    st[key]=Object.assign({},prev,{ qual:lastQual?qualForStore(lastQual):(prev.qual||null), ts:prev.ts||Date.now(), name:cname, _savedAt:Date.now() });
+  } else if(!gate.ok){
     // 정량 검증 실패 → 기존 정량 데이터 보존, 정성(qual)만 갱신
     if(typeof addLog2==='function')addLog2('> ⚠ 정량 저장 보류: '+gate.why+' — 기존 분석 데이터를 유지합니다');
-    st[activeClientKey]={ metrics:prev.metrics||null, quant:prev.quant||null, ver:prev.ver||null,
-      qual:lastQual?{good:lastQual.good,issue:lastQual.issue,insights:lastQual.insights||null,files:lastQual.files||null,count:lastQual.count||0,text:(lastQual.text||'').slice(0,4000)}:(prev.qual||null),
-      ts:prev.quant?prev.ts:Date.now(), name:curClientName(), lastError:gate.why, lastErrorTs:Date.now() };
+    /* 실패를 조용히 빈 결과로 남기지 않는다 — 원인(failures)을 같이 저장해 모든 메뉴 상단에 원인·재분석 버튼을 띄운다 */
+    st[key]={ metrics:prev.metrics||null, quant:prev.quant||null, ver:prev.ver||null,
+      qual:lastQual?qualForStore(lastQual):(prev.qual||null),
+      ts:prev.quant?prev.ts:Date.now(), name:cname, lastError:gate.why, lastErrorTs:Date.now(),
+      failures:(lastFailures||[]).slice(0,12), _savedAt:Date.now() };
   } else {
-    st[activeClientKey]={ metrics:lastMetrics||null, quant:_q, ver:PARSER_VER,
-      qual:lastQual?{good:lastQual.good,issue:lastQual.issue,insights:lastQual.insights||null,files:lastQual.files||null,count:lastQual.count||0,text:(lastQual.text||'').slice(0,4000)}:null,
-      ts:Date.now(), name:curClientName() };
+    st[key]={ metrics:lastMetrics||null, quant:_q, ver:PARSER_VER,
+      qual:lastQual?qualForStore(lastQual):(prev.qual||null), /* 콜통계만 다시 올려도 인터뷰 결과를 지우지 않는다 */
+      ts:Date.now(), name:cname, failures:(lastFailures||[]).slice(0,12), _savedAt:Date.now() };
   }
   STORE_CACHE=st;
   try{ localStorage.setItem('cx_client_store',JSON.stringify(st)); }catch(e){ lsFail(e,'고객사 데이터'); }
-  kvPut('cx_client_store',st);
-  renderClientDashboard(); }
+  pushClientEntry(key); /* 이 고객사 1건만 서버에 병합 — 실패하면 화면에 알리고 다음 동기화 때 다시 올린다 */
+  if(key===activeClientKey){ renderClientDashboard(); if(typeof renderUploadGuide==='function')renderUploadGuide(); } }
+
 function loadClientData(key){ var st=clientStore(); var d=st[key];
-  if(d){ lastMetrics=d.metrics||null; lastQual=d.qual||null; }
-  else if(key!=='woori'){ lastMetrics=null; lastQual=null; } }
+  lastMetrics=d?(d.metrics||null):null; lastQual=d?(d.qual||null):null;
+  lastQuant=null; lastFailures=[]; lastQuantInput=false; }
 function persistClients(){ var out={}; Object.keys(CLIENTS).forEach(function(k){ if(k!=='woori')out[k]=CLIENTS[k]; });
   try{ localStorage.setItem('cx_clients',JSON.stringify(out)); }catch(e){ lsFail(e,'고객사 목록'); }
-  kvPut('cx_clients',out); }
+  /* 병합 쓰기 — 다른 사람이 추가한 고객사를 목록에서 지우지 않는다 */
+  return kvMergePut('cx_clients',function(sv){ Object.keys(out).forEach(function(k){ sv[k]=out[k]; }); }); }
 function restoreClients(){ try{ var saved=JSON.parse(localStorage.getItem('cx_clients'))||{};
   Object.keys(saved).forEach(function(k){ if(!CLIENTS[k])CLIENTS[k]=saved[k]; }); }catch(e){} }
 var ORIG_PAGES={}, PAGE_OVERRIDDEN={};
@@ -3494,18 +4049,19 @@ function perfCardsHTML(q){
   var b=q[bk[0]], a=q[ak[0]], bl=bk[1], al=ak[1];
   var bob=q.ob&&q.ob[bk[0]], aob=q.ob&&q.ob[ak[0]];
   function rng(m){ var ks=m&&m.byDate?Object.keys(m.byDate).sort():[];
-    return ks.length?ks[0].slice(2)+'~'+ks[ks.length-1].slice(2):''; }
+    if(!ks.length&&m&&m.byMonth)ks=Object.keys(m.byMonth).sort(); /* 월별 보고서는 일자가 없다 */
+    return ks.length?(ks.length===1?ks[0].slice(2):ks[0].slice(2)+'~'+ks[ks.length-1].slice(2)):'기간 미상'; }
   // 카드 빌더: 개선(초록)/과제(빨강) 자동 판정
-  function pcard(opts){ // {good, title, icon, bVal, aVal, bSub, aSub, comment}
-    var color=opts.good?'green':'red', tag=opts.good?'✅ 개선':'⚠ 과제';
+  function pcard(opts){ // {good, flat, title, icon, bVal, aVal, bSub, aSub, comment}
+    var color=opts.flat?'text3':(opts.good?'green':'red'), tag=opts.flat?'➖ 변화 없음':(opts.good?'✅ 개선':'⚠ 과제');
     return '<div class="card" style="padding:18px;border-top:3px solid var(--'+color+');animation:cardReveal .5s var(--ease) both">'
      +'<div style="font-weight:800;font-size:13px;color:var(--'+color+'-d,var(--'+color+'))">'+tag+' · '+opts.title+'</div>'
      +'<div style="font-size:11px;color:var(--text3);margin-bottom:12px">'+(opts.subtitle||'직접집계')+'</div>'
      +'<div style="display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:12px">'
      +'<div style="background:var(--bg2);border-radius:10px;padding:12px 16px;text-align:center;min-width:90px"><div style="font-size:10.5px;color:var(--text4)">'+bl+'</div><div style="font-size:21px;font-weight:800">'+opts.bVal+'</div>'+(opts.bSub?'<div style="font-size:9.5px;color:var(--text4)">'+opts.bSub+'</div>':'')+'</div>'
      +'<div style="font-size:18px;color:var(--text4)">→</div>'
-     +'<div style="background:'+(opts.good?'#ecfdf5':'#fef2f2')+';border-radius:10px;padding:12px 16px;text-align:center;min-width:90px;border:1px solid '+(opts.good?'#a7f3d0':'#fecaca')+'"><div style="font-size:10.5px;color:var(--text4)">'+al+'</div><div style="font-size:21px;font-weight:800;color:var(--'+color+')">'+opts.aVal+'</div>'+(opts.aSub?'<div style="font-size:9.5px;color:var(--text4)">'+opts.aSub+'</div>':'')+'</div></div>'
-     +'<div style="background:'+(opts.good?'#ecfdf5':'#fffbeb')+';border-radius:8px;padding:9px 12px;font-size:11.5px"><b>'+opts.comment+'</b></div></div>'; }
+     +'<div style="background:'+(opts.flat?'#f4f4f5':(opts.good?'#ecfdf5':'#fef2f2'))+';border-radius:10px;padding:12px 16px;text-align:center;min-width:90px;border:1px solid '+(opts.flat?'#e4e4e7':(opts.good?'#a7f3d0':'#fecaca'))+'"><div style="font-size:10.5px;color:var(--text4)">'+al+'</div><div style="font-size:21px;font-weight:800;color:var(--'+color+')">'+opts.aVal+'</div>'+(opts.aSub?'<div style="font-size:9.5px;color:var(--text4)">'+opts.aSub+'</div>':'')+'</div></div>'
+     +'<div style="background:'+(opts.flat?'#f4f4f5':(opts.good?'#ecfdf5':'#fffbeb'))+';border-radius:8px;padding:9px 12px;font-size:11.5px"><b>'+opts.comment+'</b></div></div>'; }
   var goods=[], bads=[];
   // 인입 규모 (월평균 환산)
   function mAvg(m){ var mm=m&&m.byMonth?Object.keys(m.byMonth):[]; return (mm.length&&m.inb)?Math.round(m.inb/mm.length):null; }
@@ -3537,7 +4093,9 @@ function perfCardsHTML(q){
       comment:'원인: 인입 '+(grow!=null?(grow>=0?'+':'')+grow+'%':'증가')+' vs 상담 처리 '+(bansG!=null?((bansG>=0?'+':'')+bansG+'%'):'유지')+' — 수요·공급 불균형'})); }
   // AHT
   if(b.aht!=null&&a.aht!=null){ var dT=a.aht-b.aht;
-    if(dT<=0)goods.push(pcard({good:true,title:'AHT',subtitle:'평균 상담처리시간 (직접집계)',
+    if(Math.abs(dT)<=2)goods.push(pcard({good:true,flat:true,title:'AHT',subtitle:'평균 상담처리시간 (직접집계)',
+      bVal:(b.aht/60).toFixed(1)+'분',aVal:(a.aht/60).toFixed(1)+'분',comment:'차이 '+Math.abs(dT)+'초 이내 — 유지'}));
+    else if(dT<0)goods.push(pcard({good:true,title:'AHT',subtitle:'평균 상담처리시간 (직접집계)',
       bVal:(b.aht/60).toFixed(1)+'분',aVal:(a.aht/60).toFixed(1)+'분',
       comment:(dT/60).toFixed(1)+'분 ('+((dT/b.aht)*100).toFixed(1)+'%) 단축'+(grow!=null&&grow>0?' — 인입 +'+grow+'% 증가 중에도 개선':'')}));
     else bads.push(pcard({good:false,title:'AHT',subtitle:'직접집계 · 목표 5분↓',
@@ -3545,7 +4103,9 @@ function perfCardsHTML(q){
       comment:'+'+(dT/60).toFixed(1)+'분 증가 — 상담 유형 복잡도 점검 필요'})); }
   // ASA
   if(b.asa!=null&&a.asa!=null){ var dS=Math.round(a.asa-b.asa);
-    if(dS<=0)goods.push(pcard({good:true,title:'ASA 대기시간',subtitle:'응답콜 대기 평균 (직접집계)',
+    if(dS===0)goods.push(pcard({good:true,flat:true,title:'ASA 대기시간',subtitle:'응답콜 대기 평균 (직접집계)',
+      bVal:Math.round(b.asa)+'초',aVal:Math.round(a.asa)+'초',comment:'변화 없음'}));
+    else if(dS<0)goods.push(pcard({good:true,title:'ASA 대기시간',subtitle:'응답콜 대기 평균 (직접집계)',
       bVal:Math.round(b.asa)+'초',aVal:Math.round(a.asa)+'초',comment:Math.abs(dS)+'초 단축'}));
     else bads.push(pcard({good:false,title:'ASA 대기시간',subtitle:'직접집계 · 목표 60초↓',
       bVal:Math.round(b.asa)+'초',aVal:Math.round(a.asa)+'초',bSub:(b.asa/60).toFixed(1)+'분',aSub:(a.asa/60).toFixed(1)+'분',
@@ -3559,7 +4119,9 @@ function perfCardsHTML(q){
       comment:dO+'%p 하락 — IB 부하 집중으로 OB 여력 감소 추정'})); }
   if(!goods.length&&!bads.length)return null;
   var h='<div class="card" style="padding:12px 18px;margin-bottom:14px;background:#fffbeb;border:1px solid #fde68a;font-size:12px">'
-   +'⚠ <b>기간 분류 안내</b> — '+bl+'('+rng(b)+') → '+al+'('+rng(a)+') 비교. 기간은 파일명(오픈전/안정화/최근) 기준 자동 분류이며 모든 수치는 업로드 원본 직접 집계입니다.</div>';
+   +'⚠ <b>기간 분류 안내</b> — '+bl+'('+rng(b)+') → '+al+'('+rng(a)+') 비교. '
+   +(((typeof CLIENTS!=='undefined'&&CLIENTS[activeClientKey])||{}).openMonth?('기간은 <b>오픈 월 '+escHtml(CLIENTS[activeClientKey].openMonth)+'</b> 기준으로 나눴으며(오픈 전 / 오픈 월 / 오픈 후)'):'기간은 파일명(오픈전/안정화/최근) 기준 자동 분류이며')
+   +' 모든 수치는 업로드 원본 직접 집계입니다.</div>';
   h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px">'+goods.join('')+bads.join('')+'</div>';
   return h; }
 function periodCardsHTML(q){
@@ -3685,10 +4247,11 @@ function clientHeatmapHTML(byHour){
       +(risky.length?' — 인력 재배치 필요. ':'. ')
       +(golden?golden.h+'시('+golden.ab+'%)는 황금구간으로 OB 발신 집중 권장.':'')+'</div>'; } }
   return h+'</div>'; }
+function clCanvas(id){ return document.querySelector('.page.active #'+id)||document.getElementById(id); }
 function renderClientCharts(d){
   var q=d.quant, cur=(q&&q.current)||d.metrics||{};
   ['cl-month','cl-type','cl-agent','cl-team','cl-daily'].forEach(destroyChart);
-  var ed=document.getElementById('c-cl-daily');
+  var ed=clCanvas('c-cl-daily');
   if(ed&&cur.byDate){ var dk=Object.keys(cur.byDate).sort();
     if(dk.length>=3){ var anyAbd=dk.some(function(k){return cur.byDate[k].abd>0;});
       var ds=[{type:'bar',label:'\ucf5c\ub7c9',data:dk.map(function(k){return cur.byDate[k].calls;}),backgroundColor:'rgba(59,130,246,.6)',borderRadius:4,yAxisID:'y',order:2}];
@@ -3698,7 +4261,7 @@ function renderClientCharts(d){
           scales:{x:{ticks:{color:TX,font:{size:9},maxRotation:0,autoSkip:true},grid:{display:false},border:{display:false}},
             y:{position:'left',ticks:{color:TX,font:{size:10},callback:function(v){return v>=1000?(v/1000).toFixed(0)+'k':v}},grid:{color:GC},border:{display:false},title:{display:true,text:'\ucf5c\ub7c9',color:TX,font:{size:10}}},
             y1:{position:'right',display:anyAbd,min:0,ticks:{color:TX,font:{size:10},callback:function(v){return v+'%'}},grid:{display:false},border:{display:false}}}}}); } }
-  var em=document.getElementById('c-cl-month');
+  var em=clCanvas('c-cl-month');
   if(em){ // 전 기간 byMonth 병합 (안정화→최근 연속 추이)
     var BM={};
     if(q){ ['before','mid','after'].forEach(function(p){ var mm=q[p]&&q[p].byMonth; if(mm)Object.keys(mm).forEach(function(k){ BM[k]=BM[k]||{calls:0,abd:0,ans:0}; BM[k].calls+=mm[k].calls; BM[k].abd+=mm[k].abd; BM[k].ans+=mm[k].ans; }); }); }
@@ -3712,14 +4275,14 @@ function renderClientCharts(d){
         scales:{x:{ticks:{color:TX,font:{size:10}},grid:{display:false},border:{display:false}},
                 y:{ticks:{color:TX,font:{size:10},callback:function(v){return v+'%'}},grid:{color:GC},border:{display:false}}}}});
     } else { var p1=em.parentElement; if(p1)p1.innerHTML='<div style="font-size:12px;color:var(--text3);padding:30px 0;text-align:center">월별 데이터가 부족합니다 (날짜 컬럼 미인식 또는 1개월 미만)</div>'; } }
-  var et=document.getElementById('c-cl-type');
+  var et=clCanvas('c-cl-type');
   if(et&&cur.byType){ var tk=Object.keys(cur.byType).sort(function(a,b){return (cur.byType[b].calls||cur.byType[b])-(cur.byType[a].calls||cur.byType[a]);}).slice(0,8);
     if(tk.length>=2){ charts['cl-type']=new Chart(et,{type:'bar',
       data:{labels:tk.map(function(k){return k.length>14?k.slice(0,13)+'…':k;}),datasets:[{data:tk.map(function(k){return cur.byType[k].calls||cur.byType[k];}),backgroundColor:'rgba(59,130,246,.7)',borderRadius:4}]},
       options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:TT},
         scales:{x:{ticks:{color:TX,font:{size:10},callback:function(v){return fmtN(v)}},grid:{color:GC},border:{display:false}},
                 y:{ticks:{color:TX,font:{size:10}},grid:{display:false},border:{display:false}}}}}); } }
-  var ea=document.getElementById('c-cl-agent');
+  var ea=clCanvas('c-cl-agent');
   if(ea&&q&&q.agentDetail&&q.agentDetail.list){
     var L=q.agentDetail.list.slice(0,15);
     charts['cl-agent']=new Chart(ea,{type:'bar',
@@ -3729,7 +4292,7 @@ function renderClientCharts(d){
       options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:TT},
         scales:{x:{ticks:{color:TX,font:{size:9}},grid:{display:false},border:{display:false}},
                 y:{ticks:{color:TX,font:{size:10},callback:function(v){return v+'분'}},grid:{color:GC},border:{display:false}}}}}); }
-  var etm=document.getElementById('c-cl-team');
+  var etm=clCanvas('c-cl-team');
   if(etm&&q&&q.ob.current&&q.ob.current.byTeam){
     var T=q.ob.current.byTeam; var tn=Object.keys(T).filter(function(t){return T[t].calls>=30;}).sort(function(a,b){return T[b].calls-T[a].calls;}).slice(0,8);
     if(tn.length>=2){ charts['cl-team']=new Chart(etm,{type:'bar',
@@ -3746,19 +4309,91 @@ function peakOf(byHour){
   arr.sort(function(a,b){return b.ab-a.ab;});
   return {worst:arr[0],best:arr[arr.length-1]}; }
 /* ---------- 정성적 분석 (인터뷰 인사이트) 페이지 ---------- */
+/* ---------- 데이터 보완 안내 (2026-10-07) — 무엇이 없어서 어떤 메뉴가 비는지 ---------- */
+function dataGapsHTML(d){ if(!d)return '';
+  var q=d.quant, m=(q&&q.current)||d.metrics||{}, gaps=[], cl=(typeof CLIENTS!=='undefined'&&CLIENTS[activeClientKey])||{};
+  var periods=q?['before','mid','after'].filter(function(p){return q[p];}).length:0;
+  var hasQuant=m&&(m.inb!=null||m.answerRate!=null);
+  if(!hasQuant) gaps.push(['콜 통계','인입·응답·포기 건수(엑셀·CSV 원본 권장)','대시보드·KPI·모든 솔루션 메뉴']);
+  else {
+    if(periods<2) gaps.push(['오픈 전·후 기간',cl.openMonth?('오픈 월('+cl.openMonth+') 앞뒤 데이터가 모두 있어야 합니다 — 오픈 전 3개월 · 오픈 월 · 오픈 후 3개월 통계'):'데이터 업로드 화면에서 <b>오픈(도입) 월</b>을 정하거나, 오픈 전 3개월·오픈 후 3개월 통계를 파일명에 "오픈전"/"최근"을 넣어 올리세요','도입 성과 분석 · 시점별 비교']);
+    if(!m.byHour||!Object.keys(m.byHour).length) gaps.push(['시간대별 통계','0~23시 시간대별 인입·응답·포기 (오픈 전·후 각 1개월 이상)','히트맵 · 피크/황금시간 · 시간대별 투입 전략']);
+    if(!q||!q.agentDetail) gaps.push(['상담사별 통계','상담사명(또는 사번)별 처리 건수·평균 통화시간','상담사 분석 · 어드바이저 편차']);
+    if(!q||!q.ob||!q.ob.current) gaps.push(['아웃바운드(OB)','발신 건수·연결 건수 (파일명에 "아웃바운드"/"OB")','OB 전략 · 디지털 ARS']);
+    if(!m.byType||Object.keys(m.byType).length<2) gaps.push(['상담유형별','문의유형별 건수·평균 처리시간','챗봇 적합 유형']);
+    if(m.aiSrc) gaps.push(['원본 파일','사진·스캔은 AI 판독값이라 오인식 가능 — 시스템에서 내려받은 엑셀 원본','모든 수치의 정확도']); }
+  if(!d.qual) gaps.push(['인터뷰','인터뷰 결과서·회의록(워드·한글·텍스트·PPT)','정성 분석']);
+  if(!gaps.length)return '';
+  return '<div class="card" style="padding:16px 20px;margin-bottom:14px"><div style="font-weight:800;margin-bottom:4px">📋 데이터 보완 안내 <span style="font-size:11.5px;font-weight:600;color:var(--text3)">— 아래 자료를 추가하면 비어 있는 분석이 채워집니다</span></div>'
+   +'<table style="width:100%;border-collapse:collapse;font-size:12.3px;margin-top:8px"><tr style="color:var(--text3)"><td style="padding:5px 8px">필요한 자료</td><td style="padding:5px 8px">내용</td><td style="padding:5px 8px">열리는 분석</td></tr>'
+   +gaps.map(function(g){ return '<tr style="border-top:1px solid var(--surface2)"><td style="padding:6px 8px;font-weight:700;white-space:nowrap">'+g[0]+'</td><td style="padding:6px 8px;color:var(--text2)">'+g[1]+'</td><td style="padding:6px 8px;color:var(--text3)">'+g[2]+'</td></tr>'; }).join('')
+   +'</table></div>'; }
+/* ---------- 실패 표시 · 재분석 (2026-10-07) ---------- */
+function failureListHTML(list){ if(!list||!list.length)return '';
+  return '<ul style="margin:8px 0 0;padding-left:18px;font-size:12px;color:var(--text2);line-height:1.6">'+list.map(function(f){
+    return '<li><b>['+escHtml(f.stage)+']</b> '+escHtml(String(f.file||'').split('/').pop())+' — '+escHtml(f.why)+'</li>'; }).join('')+'</ul>'; }
+function failureActionsHTML(list){ var needKey=(list||[]).some(function(f){return /키|key/i.test(String(f.why||''));});
+  return '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button type="button" class="btn btn-primary btn-sm" onclick="reanalyze()">🔄 재분석</button>'
+   +(needKey?'<button type="button" class="btn btn-ghost btn-sm" onclick="nav(\'settings\')">AI 설정 →</button>':'')+'</div>'; }
+function failureCardHTML(d){ if(!d)return '';
+  var fl=d.failures||[];
+  if(d.lastError){ /* 최근 분석 실패 — 이전 검증 통과본이 있으면 그것을 보여 주고 있음을 밝힌다 */
+    return '<div class="card" role="alert" style="padding:14px 18px;margin-bottom:14px;background:#fef2f2;border:1px solid #fecaca">'
+     +'<b style="color:var(--red)">⚠ 최근 분석이 검증을 통과하지 못했습니다</b> <span style="font-size:12.5px;color:var(--text3)">— '+escHtml(d.lastError)
+     +(d.lastErrorTs?' ('+new Date(d.lastErrorTs).toLocaleString('ko-KR')+')':'')+'. '
+     +(d.quant?'아래 표시는 마지막으로 검증을 통과한 데이터입니다.':'정량 지표(대시보드·KPI·히트맵)는 비어 있습니다.')+'</span>'
+     +failureListHTML(fl)+failureActionsHTML(fl)+'</div>'; }
+  if(fl.length){ /* 정량은 성공했지만 일부 단계(예: 인터뷰 구조화)가 실패 */
+    return '<div class="card" role="status" style="padding:12px 18px;margin-bottom:14px;background:#fffbeb;border:1px solid #fde68a">'
+     +'<b style="color:#b45309">일부 분석 단계가 실패했습니다</b>'+failureListHTML(fl)+failureActionsHTML(fl)+'</div>'; }
+  return ''; }
+function reanalyze(){ if(typeof fileObjs!=='undefined'&&fileObjs.length){ analyzeFiles(); return; }
+  nav('upload'); toastMsg('브라우저는 보안상 이전에 올린 파일을 기억하지 못합니다 — 같은 파일을 다시 선택하면 바로 재분석합니다');
+  var fi=document.getElementById('file-input'); if(fi){ fi.value=''; fi.click(); } }
+var IV_AI_LABELS=[['needs','🎯 핵심 니즈','var(--blue)'],['pains','🩹 Pain point','var(--red)'],['voc','🗣 VOC (현업·고객의 말)','var(--amber-d)'],['actions','🛠 개선 과제','var(--green)']];
+function ivAIHTML(qual){ var a=qual&&qual.ai;
+  if(!a){
+    if(qual&&qual.aiError) return '<div class="card" role="alert" style="padding:14px 18px;margin-bottom:14px;background:#fef2f2;border:1px solid #fecaca"><b style="color:var(--red)">AI 구조화(핵심 니즈·Pain point·VOC·개선 과제) 실패</b>'
+      +'<div style="font-size:12.5px;color:var(--text3);margin-top:4px">'+escHtml(qual.aiError)+' — 아래는 규칙 기반 자동 분류입니다.</div>'+failureActionsHTML([{why:qual.aiError}])+'</div>';
+    if(qual&&qual.aiNote) return '<div class="card" style="padding:12px 18px;margin-bottom:14px;font-size:12.5px;color:var(--text3)">🧭 AI 구조화 미실행 — '+escHtml(qual.aiNote)
+      +' <button type="button" class="btn btn-ghost btn-sm" onclick="nav(\'settings\')">AI 설정 →</button></div>';
+    return ''; }
+  var h='<div class="card" style="padding:16px 20px;margin-bottom:14px"><div style="font-weight:800;margin-bottom:10px">🧭 인터뷰 AI 구조화 <span style="font-size:11px;font-weight:600;color:var(--text3)">원문에서 근거가 확인된 항목만'
+   +(a.dropped?' · 근거 미확인 '+a.dropped+'개 제외':'')+(a.truncated?' · 원문 앞 '+fmtN(IV_MAX_CHARS)+'자만 분석':'')+'</span></div>'
+   +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px">';
+  IV_AI_LABELS.forEach(function(L){ var arr=a[L[0]]||[];
+    h+='<div style="border:1px solid var(--border);border-left:3px solid '+L[2]+';border-radius:10px;padding:12px 14px"><div style="font-weight:800;font-size:13px;color:'+L[2]+';margin-bottom:8px">'+L[1]+' <span style="color:var(--text3);font-weight:600;font-size:11.5px">'+arr.length+'건</span></div>'
+     +(arr.length?'<ul style="margin:0;padding-left:16px;display:flex;flex-direction:column;gap:6px">'+arr.map(function(it){
+        return '<li style="font-size:12.5px;color:var(--text2);line-height:1.5">'+(it.priority?'<b style="font-size:10.5px;color:var(--red)">'+escHtml(it.priority)+'</b> ':'')+'<span>'+escHtml(it.text)+'</span>'
+          +'<div style="font-size:11px;color:var(--text4)">근거: “'+escHtml(it.evidence)+'”</div></li>'; }).join('')+'</ul>'
+       :'<div style="font-size:12px;color:var(--text4)">원문에서 확인된 항목 없음</div>')+'</div>'; });
+  return h+'</div></div>'; }
+function ivAISummaryHTML(qual){ var a=qual&&qual.ai; if(!a)return '';
+  var rows=[['핵심 니즈',a.needs,'var(--blue)'],['Pain point',a.pains,'var(--red)'],['개선 과제',a.actions,'var(--green)']].filter(function(r){return r[1]&&r[1].length;});
+  if(!rows.length)return '';
+  return rows.map(function(r){ return '<div style="font-size:12.5px;margin-top:4px"><b style="color:'+r[2]+'">'+r[0]+':</b> '+r[1].slice(0,3).map(function(x){return '<span>'+escHtml(x.text)+'</span>';}).join(' / ')+'</div>'; }).join('')
+   +'<div style="font-size:11px;color:var(--text4);margin-top:6px">AI 구조화 · <button type="button" class="btn btn-ghost btn-sm" onclick="nav(\'qual\')">정성 분석에서 전체 보기</button></div>'; }
 function renderQualPage(pg,d,name){
   var qual=d&&d.qual;
   var h='<div class="ph"><div><div class="pt">정성적 분석 (인터뷰 인사이트)</div><div class="ps">'+escHtml(name)
     +(qual&&qual.count?(' · 인터뷰·문서 '+qual.count+'건 · 핵심사항 자동 추출'):' · 인터뷰/VOC 미업로드')+'</div></div>'
     +'<div style="display:flex;gap:8px"><button class="btn btn-ghost btn-sm" onclick="nav(\'upload\')">데이터 업로드 →</button></div></div>'
     +'<div class="page-body">';
+  h+=failureCardHTML(d);
   var ins=qual&&qual.insights;
+  if(qual&&(qual.ai||qual.aiError)&&(!ins||!ins.total)){ h+=ivAIHTML(qual)+'</div>'; pg.innerHTML=h; PAGE_OVERRIDDEN['qual']=true; return; }
+  if(qual&&qual.count&&(!ins||!ins.total)){ /* 문서는 읽었는데 자동 분류가 0건 — "인터뷰 없음"이라고 하지 않는다 */
+    h+='<div class="card" style="padding:18px 20px;margin-bottom:14px"><div style="font-weight:800;margin-bottom:6px">🗣 인터뷰 문서 '+qual.count+'건을 읽었지만 자동 분류된 항목이 없습니다</div>'
+     +'<div style="font-size:12.5px;color:var(--text3);line-height:1.6">규칙 분류는 "질문-답변" 표나 "불편·개선·요청" 같은 소제목이 있을 때 잘 동작합니다. 설정에서 AI 키를 등록하면 AI 구조화(핵심 니즈·Pain point·VOC·개선 과제)로 정리됩니다. 아래 원문은 그대로 확인할 수 있습니다.</div></div>';
+    if(qual.text)h+='<div class="card" style="padding:14px 18px"><details open><summary style="cursor:pointer;font-weight:700;font-size:13px">📄 인터뷰 원문 보기</summary><pre style="white-space:pre-wrap;font-size:11.5px;color:var(--text2);background:var(--surface2);padding:12px;border-radius:8px;max-height:340px;overflow:auto;margin-top:8px">'+escHtml(qual.text)+'</pre></details></div>';
+    h+='</div>'; pg.innerHTML=h; PAGE_OVERRIDDEN['qual']=true; return; }
   if(!qual||!ins||!ins.total){
     h+='<div class="card" style="padding:18px 20px"><div style="font-weight:800;margin-bottom:6px">🗣 정성 분석할 인터뷰가 아직 없습니다</div>'
      +'<div style="font-size:12.5px;color:var(--text3);line-height:1.6">인터뷰록·VOC·회의록 등을 <b>텍스트(.txt)·워드(.docx)·HWPX·발표자료(.pptx)</b> 형태로 '
      +'<a href="javascript:nav(\'upload\')" style="font-weight:700">데이터 업로드</a>에 올리면, 불편사항·개선성과·요청·차기기회가 카테고리별로 자동 정리됩니다.</div></div>';
     h+='</div>'; pg.innerHTML=h; PAGE_OVERRIDDEN['qual']=true; return; }
-  h+='<div class="kpi-grid" style="margin-bottom:14px">'
+  h+=ivAIHTML(qual);
+  h+='<div style="font-weight:800;font-size:13px;margin:4px 2px 8px;color:var(--text3)">규칙 기반 자동 분류</div><div class="kpi-grid" style="margin-bottom:14px">'
    +qualStat('🟢','green',ins.good.length,'개선·성과')
    +qualStat('🔴','red',ins.issue.length,'불편·과제')
    +qualStat('🟠','amber',ins.request.length,'요청사항')
@@ -3793,6 +4428,7 @@ function renderClientPage(id){
   var pg=document.getElementById('page-'+id); if(!pg)return;
   var st=clientStore(), d=st[activeClientKey], name=curClientName()||'고객사';
   var q=d&&d.quant, m=d&&d.metrics;
+  if(q&&!q.ob)q=Object.assign({},q,{ob:{}}); /* 요약표 폴백으로 저장된 옛 결과 — ob 가 없어 q.ob.current 에서 TypeError 가 났다 */
   if(id==='qual'){ return renderQualPage(pg,d,name); }
   var title=PAGE_TITLES[id]||'분석';
   var h='<div class="ph"><div><div class="pt">'+title+'</div><div class="ps">'+escHtml(name)
@@ -3809,20 +4445,18 @@ function renderClientPage(id){
     h+='<div class="card" style="padding:14px 18px;margin-bottom:14px;background:#fef2f2;border:1px solid #fecaca">'
      +'<b style="color:var(--red)">🚫 저장된 분석 데이터가 검증 기준을 통과하지 못해 표시하지 않습니다</b>'
      +'<div style="font-size:12px;color:var(--text3);margin-top:4px">사유: '+escHtml(quarantine)+'</div>'
-     +'<div style="font-size:12px;margin-top:6px">우측 상단 <b>🗑 초기화</b> 후 콜통계 원본(엑셀/CSV)을 다시 업로드하세요. 스캔 PDF는 설정에서 AI(Claude) 키 등록 시 표를 자동 추출합니다.</div></div>'; }
+     +'<div style="font-size:12px;margin-top:6px">우측 상단 <b>🗑 초기화</b> 후 콜통계 원본(엑셀/CSV)을 다시 업로드하세요. 스캔 PDF·사진은 설정에서 AI API 키(Claude·OpenAI·Gemini)를 등록하면 표를 자동 추출합니다.</div></div>'; }
+  h+=failureCardHTML(d);
   if(!d||(!m&&!q&&!d.qual)){ h+=clientEmptyHTML(name)+'</div>'; pg.innerHTML=h; PAGE_OVERRIDDEN[id]=true; return; }
   if(!m&&!q&&d.qual){ // 정성만 분석된 상태 (콜통계 미업로드)
     h+='<div class="card" style="padding:14px 18px;margin-bottom:14px;background:var(--blue-lt)">'
      +'<b>📄 문서·인터뷰만 분석된 상태입니다</b> <span style="font-size:12.5px;color:var(--text3)">— 콜통계 엑셀(콜이력·집계표)을 업로드하면 KPI·히트맵·차트가 자동 구성됩니다.</span></div>';
-    if(d.qual.good||d.qual.issue){
+    h+=dataGapsHTML(d);
+    if(d.qual.good||d.qual.issue||d.qual.ai){
       h+='<div class="card" style="padding:16px 20px;margin-bottom:14px"><div style="font-weight:800;margin-bottom:8px">🗣 인터뷰 분석 요약</div>'
        +(d.qual.good?('<div style="font-size:12.5px;margin-bottom:4px"><b style="color:var(--green)">호평:</b> '+escHtml(d.qual.good)+'</div>'):'')
-       +(d.qual.issue?('<div style="font-size:12.5px"><b style="color:var(--red)">개선요청:</b> '+escHtml(d.qual.issue)+'</div>'):'')+'</div>'; }
+       +(d.qual.issue?('<div style="font-size:12.5px"><b style="color:var(--red)">개선요청:</b> '+escHtml(d.qual.issue)+'</div>'):'')+ivAISummaryHTML(d.qual)+'</div>'; }
     h+='</div>'; pg.innerHTML=h; PAGE_OVERRIDDEN[id]=true; return; }
-  if(d.lastError&&(!d.ts||d.lastErrorTs>d.ts)){
-    h+='<div class="card" style="padding:14px 18px;margin-bottom:14px;background:#fef2f2;border:1px solid #fecaca">'
-     +'<b style="color:var(--red)">⚠ 최근 분석이 검증을 통과하지 못했습니다</b> <span style="font-size:12.5px;color:var(--text3)">— '+escHtml(d.lastError)+'. '
-     +'아래 표시는 '+(d.quant?'마지막으로 검증 통과한 데이터':'데모/이전 데이터')+'입니다. 파일을 확인 후 다시 업로드하거나 우측 상단 🗑 초기화를 사용하세요.</span></div>'; }
   if(d.ver!==PARSER_VER&&(d.quant||d.metrics)){
     h+='<div class="card" style="padding:14px 18px;margin-bottom:14px;background:#fffbeb;border:1px solid #fde68a">'
      +'<b style="color:#b45309">⚠ 이전 버전 분석 결과입니다</b> <span style="font-size:12.5px;color:var(--text3)">— 산출 로직이 개선되었습니다. 정확한 수치를 위해 '
@@ -3832,7 +4466,7 @@ function renderClientPage(id){
   var solution={advisor:'상담 어드바이저',chatbot:'챗봇 채팅상담','digital-ars':'디지털 ARS'};
   if(id==='dashboard'){
     h+='<div class="kpi-grid" style="margin-bottom:14px">'
-     +kpiW({icon:'📞',color:'blue',d:'d1',val:cur.inb!=null?fmtN(cur.inb):'-',label:'총 인입콜 (IB)'+(cur.aiSrc?' <span style="background:var(--amber-lt);color:var(--amber-d);font-size:9.5px;font-weight:700;padding:1px 5px;border-radius:4px">AI추출 ⚠</span>':''),sub:cur.aiSrc?'스캔 PDF AI 추출 — 원본 대조 필요':('원본 '+(cur.inb!=null?fmtN(cur.inb):'-')+'건 직접 집계'),bar:100})
+     +kpiW({icon:'📞',color:'blue',d:'d1',val:cur.inb!=null?fmtN(cur.inb):'-',label:'총 인입콜 (IB)'+(cur.aiSrc?' <span style="background:var(--amber-lt);color:var(--amber-d);font-size:9.5px;font-weight:700;padding:1px 5px;border-radius:4px">AI추출 ⚠</span>':''),sub:cur.aiSrc?'PDF·이미지 AI 판독 — 원본 대조 필요':('원본 '+(cur.inb!=null?fmtN(cur.inb):'-')+'건 직접 집계'),bar:100})
      +kpiW({icon:'📵',color:'red',d:'d2',val:cur.abandonRate!=null?cur.abandonRate+'%':'-',valColor:cur.abandonRate>=40?'var(--red)':'',label:'포기율'+(cur.abdSrc==='file'?' (파일표기)':''),
         badge:cur.abandonRate!=null?(cur.abandonRate<=20?'정상':riskOf(cur.abandonRate)):'',badgeRisk:cur.abandonRate!=null?(cur.abandonRate<=20?'정상':riskOf(cur.abandonRate)):'정상',
         sub:cur.abandoned!=null?fmtN(cur.abandoned)+'건 · 목표 20%↓':'목표 20%↓',bar:Math.min(100,cur.abandonRate||0)})
@@ -3853,20 +4487,22 @@ function renderClientPage(id){
      +'</div>';
     var _hm=clientHeatmapHTML(cur.byHour); h+=_hm;
     if(!_hm&&cur.byDate&&Object.keys(cur.byDate).length>=3){ h+='<div class="card d3" style="padding:18px 20px;margin-bottom:14px;animation:cardReveal .5s var(--ease) both"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div style="font-weight:800">\ud83d\udcc8 \uc77c\uc790\ubcc4 \ucf5c\ub7c9\u00b7\ucd94\uc774</div><span style="font-size:11px;color:var(--text4)">\uc6d0\ubcf8 \uc9c1\uc811 \uc9d1\uacc4</span></div><div style="height:240px"><canvas id="c-cl-daily"></canvas></div><div style="font-size:11px;color:var(--text4);margin-top:8px">\u23f1 \uc2dc\uac04\ub300(\uc2dc:\ubd84)\uac00 \ud3ec\ud568\ub41c \ucf5c\ub85c\uadf8\ub97c \uc62c\ub9ac\uba74 \uc2dc\uac04\ub300\ubcc4 \ud788\ud2b8\ub9f5\ub3c4 \uc790\ub3d9 \uc0dd\uc131\ub429\ub2c8\ub2e4.</div></div>'; }
+    h+=dataGapsHTML(d);
     var hasMonth=cur.byMonth&&Object.keys(cur.byMonth).length>=2;
     var hasType=cur.byType&&Object.keys(cur.byType).length>=2;
     if(hasMonth||hasType){ h+='<div style="display:grid;grid-template-columns:'+(hasMonth&&hasType?'1fr 1fr':'1fr')+';gap:14px;margin-bottom:14px">';
       if(hasMonth)h+='<div class="card d4" style="padding:18px 20px;animation:cardReveal .5s var(--ease) both"><div style="font-weight:800;margin-bottom:10px">📈 월별 응답률/포기율 추이</div><div style="height:220px"><canvas id="c-cl-month"></canvas></div></div>';
       if(hasType)h+='<div class="card d5" style="padding:18px 20px;animation:cardReveal .5s var(--ease) both"><div style="font-weight:800;margin-bottom:10px">📊 상담유형별 건수</div><div style="height:220px"><canvas id="c-cl-type"></canvas></div></div>';
       h+='</div>'; }
-    if(d.qual&&(d.qual.good||d.qual.issue)){
+    if(d.qual&&(d.qual.good||d.qual.issue||d.qual.ai)){
       h+='<div class="card" style="padding:16px 20px;margin-bottom:14px"><div style="font-weight:800;margin-bottom:8px">🗣 인터뷰 분석 요약</div>'
        +(d.qual.good?('<div style="font-size:12.5px;margin-bottom:4px"><b style="color:var(--green)">호평:</b> '+escHtml(d.qual.good)+'</div>'):'')
-       +(d.qual.issue?('<div style="font-size:12.5px"><b style="color:var(--red)">개선요청:</b> '+escHtml(d.qual.issue)+'</div>'):'')+'</div>'; }
+       +(d.qual.issue?('<div style="font-size:12.5px"><b style="color:var(--red)">개선요청:</b> '+escHtml(d.qual.issue)+'</div>'):'')+ivAISummaryHTML(d.qual)+'</div>'; }
     h+='<div class="card" style="padding:16px 20px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div style="font-weight:800">🤖 AI 진단</div>'
      +'<button class="btn btn-ghost btn-sm" onclick="genAIDiagnosis()">진단 생성</button></div>'
      +'<div id="ai-diag" style="font-size:12.5px;color:var(--text3)">진단 생성 버튼을 누르면 이 고객사 데이터 기준 AI 진단이 표시됩니다.</div></div>';
   } else if(id==='validate'){
+    h+=dataGapsHTML(d);
     h+=(q?checksHTML(q.checks):'<div class="card" style="padding:16px 20px;font-size:12.5px;color:var(--text3)">검증 데이터가 없습니다 — 데이터를 다시 분석해주세요.</div>');
     h+=clientHeatmapHTML(cur.byHour);
     if(q&&((q.files&&q.files.length)||(q.others&&q.others.length))){ h+='<div class="card" style="padding:16px 20px"><div style="font-weight:800;margin-bottom:8px">인식된 파일</div>';
