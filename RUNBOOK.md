@@ -188,9 +188,32 @@
    ※ 이 단계를 건너뛰어도 **어떤 검증도 실패하지 않는다** — 되돌아온 행은 4단계 대조에서 「기준치
    이상」이고 6단계 스키마도 `ok` 다. 사건의 접근 수단이 되살아난 채 7단계에서 문이 열린다.
    ※ 산출·목록은 아래 **3-8**, 쓰기(폐기·재설정) 실행은 **사람이 한다** — 자동화하지 않았다.
-7. **쓰기 차단 해제** — 6단계의 `schema.verdict` 가 `ok` 이고 **6-1단계 재적용을 마친 뒤에만**
-   `RECOVERY_WRITE_FREEZE` 를 지우고(또는 `false`) 재배포한다.
+6-2. **외부 상태 대조** — 복구는 **이 DB 안만** 되돌린다. 결제 **제공자**(PortOne) 쪽 결제·구독·
+   영수증은 그대로 남는데, 그 반영 결과인 `organizations.plan` 과 감사 행 `BILLING_PLAN_APPLIED` 는
+   복구 시점으로 돌아간다(아래 3-9). 해제(7단계) 전에 양방향으로 맞춘다.
+   1. **대조 구간을 산출한다** — 복구 시점(3-6 의 `restorePoint`) ~ **차단 해제 시각**.
+      §3-7 유실 구간(끝 = 차단을 **건** 시각)보다 **넓다**: 차단 중에도 제공자는 웹훅을 보내고
+      503 을 받으므로, 그 구간을 빼면 **재시도 만료분이 대조 대상에서 빠진다.**
+   2. 제공자 콘솔에서 그 구간의 **결제·해지·환불 목록**을 받는다(조직 식별자 포함).
+      복구된 DB 의 반영 이력은 전환과 함께 되돌아갔다 — 남은 정본은 제공자 쪽뿐이다.
+   3. `organizations.plan` 과 **양방향** 대조:
+      **올라가야 할 것**(결제했는데 플랜이 내려갔다 — `ENTITLEMENTS_ENFORCE` 가 ON 이면 좌석·기능이
+      즉시 잠긴다. 사용자가 문의로 알려 준다)과 **내려가야 할 것**(해지했는데 유료 플랜이 되살아났다 —
+      **아무도 알려 주지 않는다**).
+   4. 어긋난 조직의 plan 을 제공자 기준으로 맞춘다 — **재결제를 요청하지 않는다**(이중 청구가 된다).
+   5. 마친 시각을 `RECOVERY_EXTERNAL_RECONCILED_AT` 에 적는다 — 그 **뒤에** 7단계로 간다.
+      차단 중 미기록이면 `checks.externalState.detail.state` 가 `pending` 으로 드러난다.
+   ※ 이 단계를 건너뛰어도 **어떤 검증도 실패하지 않는다** — 4단계는 `organizations` 를 **행 수로만**
+   세므로 전 조직의 plan 이 옛 값으로 돌아가도 `ok` 이고, 차단 중의 503 은 미들웨어가 내므로
+   애플리케이션 로그에 결제 이벤트로 남지 않는다. `FREEZE_LIMITS` 가 「재시도 만료분은 수동 대조가
+   필요하다」고 적어 둔 바로 그 구간이다.
+   ※ 결제 반영이 OFF(`BILLING_APPLY_LIVE`·`PAYMENTS_LIVE` 기본값)면 되돌아갈 반영이 없어
+   `checks.externalState` 가 `not_applicable` 로 남는다 — **제공자 쪽에 결제가 없다는 뜻은 아니다.**
+   ※ 산출·목록은 아래 **3-9**, 제공자 조회와 plan 재반영은 **사람이 한다** — 자동화하지 않았다.
+7. **쓰기 차단 해제** — 6단계의 `schema.verdict` 가 `ok` 이고 **6-1단계 재적용을 마친 뒤에만**,
+   그리고 **6-2단계 대조를 마친 뒤에만** `RECOVERY_WRITE_FREEZE` 를 지우고(또는 `false`) 재배포한다.
    ※ 해제는 사용자와 **되살아난 접근 수단을 동시에** 들여보낸다 — 순서를 바꾸지 않는다.
+   ※ 해제 뒤에는 어긋난 플랜 위로 쓰기가 쌓여 **어느 것이 복구 탓인지 흐려진다**(아래 3-9).
    확인: `GET /api/health` → `checks.writeFreeze.detail.frozen` 이 `false`.
    ※ 이 단계를 잊으면 복구가 끝난 서비스가 **읽기전용으로 남는다** — 사용자에게는 저장이
    되지 않는 장애로 보이고, `/api/health` 는 `degraded` 로만 표시된다(503 이 아니므로
@@ -207,6 +230,8 @@
       (3-7 의 `assessDuration`). 표 초안 한 줄은 3-7 이 만들어 주지만 **붙여 넣는 것은 사람**이다.
    4. `RECOVERY_WRITE_FREEZE_AT` 를 **지운다.** 남겨 두면 다음 사건에서 **옛 시각이 구간의 끝**으로
       쓰인다. 평상시에 남아 있으면 `checks.incidentClosure.detail.state` 가 `stale_record` 로 드러난다.
+      같은 자리에서 `RECOVERY_SECURITY_REAPPLIED_AT`·`RECOVERY_EXTERNAL_RECONCILED_AT` 도 지운다 —
+      남으면 다음 사건에서 **옛 시각이 「재적용·대조했다」는 근거**로 쓰인다(`stale_record`).
 
 > 되돌린 시점 이후의 데이터는 유실된다. 손실 구간을 반드시 이해관계자에게 고지한다.
 > 2단계 차단을 **언제** 걸었는지가 그 구간의 끝이다(차단 이후의 쓰기는 애초에 없다) — 그래서
@@ -563,6 +588,70 @@ node --input-type=module -e "import {reapplyPlanFor,reapplyText} from './src/lib
   매번 점검한다 — 6-1단계가 사라지거나, 7단계가 6-1 완료를 선행 조건으로 걸지 않거나, 세션 폐기 방식이
   바뀌었는데 위 표가 그대로이면 CI 가 실패한다(문서는 그대로 읽히기 때문에 사람 눈으로는 알 수 없는 회귀다).
 
+### 3-9. 외부 상태 대조 — 복구는 **제공자 쪽을 되돌리지 못한다**
+
+위 3-8 까지는 「복구가 **되돌려 버리는** 것」을 다뤘다. 이 절은 그 반대다 — **복구가 되돌리지
+못하는 상태**가 밖에 있고, 그 반영 결과만 되돌아가서 둘이 어긋난다.
+
+`lib/writeFreeze.ts` 의 `FREEZE_LIMITS` 마지막 줄은 이미 이렇게 적어 두었다 — 「외부 웹훅(결제 등)도
+차단되어 503 을 받는다 — 제공자 재시도에 의존하며, **재시도 만료분은 수동 대조가 필요하다**」.
+그 「수동 대조」를 **무엇과, 어느 구간을, 어떤 순서로** 하는지가 이 절이다.
+
+| 외부 시스템 | 저쪽에 남는 것 | 복구가 되돌리는 **이쪽** | 전환 뒤 생기는 일 |
+| --- | --- | --- | --- |
+| 결제 제공자(PortOne) | 승인된 결제·활성 구독·영수증 | `organizations.plan` + 감사 이벤트 `BILLING_PLAN_APPLIED` | 결제한 조직은 옛 플랜으로, 해지를 반영한 조직은 유료 플랜으로 — **양방향** |
+| 결제 웹훅의 제공자측 재시도 창 | 아직 ack 되지 않은 이벤트 | 없다(차단 중엔 애초에 반영되지 않는다) | 차단이 재시도 창보다 길면 그 결제는 **영구히 반영되지 않는다** |
+| 수신자 메일함 | 이미 보낸 재설정 링크 | `password_reset_tokens` 행 | 복구 시점 이후 발송분이 **「유효하지 않은 링크」**가 된다(`MAIL_PROVIDER` 미설정이면 실발송 0 — 지금은 해당 없음) |
+
+**왜 아무 검증에도 걸리지 않는가.** 4단계 핵심 테이블에 `organizations` 는 들어 있지만 세는 것은
+**행 수**다 — 전 조직의 `plan` 이 옛 값으로 돌아가도 행 수는 그대로여서 `ok` 다. 6단계
+`schema.verdict` 는 테이블 존재만 본다. 차단 중의 503 은 라우트가 아니라 **미들웨어**가 내므로
+애플리케이션 로그에 결제 이벤트로 남지 않고, 제공자 쪽 재시도 실패 이력은 애초에 이 DB 에 없다.
+
+**결제 웹훅은 차단 예외에 넣지 않았다.** 열면 차단 중의 반영이 **버려지는 DB** 에 쌓여 전환에서
+함께 사라진다 — 503 을 받고 제공자 재시도에 맡기는 쪽이 덜 나쁘다(열면 **대조할 흔적조차** 없어진다).
+테스트가 예외 목록에 이 경로가 끼어드는 것을 CI 로 막는다.
+
+**대조 구간 산출(1줄).** 복구 시점과 **차단 해제 시각**을 넣는다 — 끝은 차단을 **건** 시각이 아니다.
+
+```bash
+node --input-type=module -e "
+import { reconcilePlanFor, reconcileText } from './src/lib/externalReconcile.ts';
+console.log(reconcileText(reconcilePlanFor({
+  restorePoint: '2026-10-15T12:55:00+09:00',   // 3-6 의 restorePoint(실제로 브랜치를 만든 시점)
+  releasedAt:   '2026-10-15T15:40:00+09:00',   // 7단계 차단 해제 시각
+  freezeAt:     process.env.RECOVERY_WRITE_FREEZE_AT, // 참고용(3-7 유실 구간의 끝)
+})));
+"
+```
+
+- `verdict` 는 `ok` / `invalid_restore_point`(복구 시점을 못 읽는다) / **`end_unrecorded`**(해제 시각이
+  없다 — **`RECOVERY_WRITE_FREEZE_AT` 로 대신하지 않는다.** 그러면 차단 구간에 거절된 웹훅이 조용히
+  빠진다) / `invalid_end` / **`end_before_start`**(음수를 0 으로 깎아 「대조할 것이 없다」로 만들지
+  않는다) / `future_end`(아직 해제하지 않았다 — 지금 확정하면 그 뒤 거절되는 웹훅이 빠진다).
+- 실행(제공자 콘솔 조회·plan 재반영)은 운영 DB 쓰기라 **사람이 한다.** 자동화는 **구간·대상·순서**
+  까지만 말한다(`RECONCILE_STEPS`·`DRIFT_DIRECTIONS`).
+- 제공자가 재시도를 **언제까지** 하는지는 코드가 모른다 — 창 길이는 제공자 문서·콘솔에서 사람이
+  확인한다. 임의 수치를 두지 않으므로 「재시도로 알아서 들어왔다」고 단정할 수 없다 `[확인 필요]`
+- 평상시 점검: `GET /api/health` → `checks.externalState.detail.state` —
+  **`not_applicable`**(결제 반영 OFF — 되돌아갈 반영이 없다. 평상시 기본값) / `normal`(반영 ON·차단
+  OFF·미기록) / **`pending`**(차단 중인데 대조 미기록 — **해제 전에** 한다) / `recorded` /
+  `invalid_record` / **`stale_record`**(차단은 풀렸는데 값이 남아 있다 → 8단계에서 지운다).
+  `required: false` 라 어느 경우에도 503 이 되지 않는다(degraded 200).
+
+> **대조를 기록했다는 것이 「어긋남이 없다」는 뜻이 아니다.** 보장하지 못하는 것(응답 `limits`):
+> 대조의 **정본은 제공자 콘솔**이고 반영 이력은 같은 DB 의 감사 행이라 전환과 함께 되돌아갔다
+> (§3-5 보존본이 없으면 복구된 DB 안에서 대상을 재구성할 수 없다) · 이 모듈은 구간·대상·순서까지만
+> 말한다 · **§3-7 유실 구간과 다른 구간**이므로 두 수치를 섞어 쓰지 않는다(고지 수치는 3-7 쪽이다) ·
+> 제공자 재시도 창의 길이는 코드가 모른다 · 구간 **밖**의 어긋남(복구와 무관한 미반영 결제·수동 계약·
+> 엔터프라이즈)은 평상시 대조 대상이다 · 기록은 「했다고 적었다」는 뜻이고 **몇 건을 어떻게 맞췄는지는
+> 검증하지 않는다** · 고친 결과도 같은 DB 의 행이라 **두 번째 복구를 하면 다시 되돌아간다.**
+
+- `tests/externalReconcile.test.ts` 가 실제 `RUNBOOK.md`·`app/api/health/route.ts` 와
+  `app/api/billing/webhook/route.ts` 원문을 매번 점검한다 — 6-2단계가 사라지거나, 7단계가 6-2 완료를
+  선행 조건으로 걸지 않거나, 결제 반영 경로(`organizations.plan`·`BILLING_PLAN_APPLIED`)가 바뀌었는데
+  위 표가 그대로이거나, 결제 웹훅이 차단 예외 목록에 들어가면 CI 가 실패한다.
+
 ## 4. 환경변수·시크릿 복구
 
 Vercel 환경변수는 DB 백업에 포함되지 않으므로 별도 보관한다.
@@ -633,6 +722,11 @@ Vercel 환경변수는 DB 백업에 포함되지 않으므로 별도 보관한�
 복구는 끊은 세션·바꾼 비밀번호·잠근 계정·회수한 권한을 함께 되돌리므로 전환 뒤 다시 적용해야 하는데,
 그 완료를 적어 두지 않으면 **해제(7단계) 전에 했는지** 사후에 확인할 수 없다(그 기록도 함께 되돌아갔다).
 6-1단계에서 넣고 8단계 기록을 마치면 **지운다**. 평상시에는 없어야 한다.
+`RECOVERY_EXTERNAL_RECONCILED_AT` — **외부 상태 대조**를 마친 시각(타임존 붙인 ISO. 위 3-9).
+복구는 `organizations.plan` 과 반영 감사 행을 되돌리지만 **결제 제공자 쪽 결제·구독은 되돌리지 못한다** —
+대조하지 않으면 돈을 낸 조직의 플랜이 내려가고(좌석·기능이 잠긴다) 해지한 조직의 유료 플랜이 되살아난다
+(후자는 아무도 신고하지 않는다). 그 완료를 적어 두지 않으면 **해제(7단계) 전에 했는지** 사후에 확인할 수 없다.
+6-2단계에서 넣고 8단계 기록을 마치면 **지운다**. 평상시에는 없어야 한다.
 `RECOVERY_EXPECTED_DB` — 전환 확인용 **연결 대상 지문**(12자리 16진수. 위 3-4). 연결 문자열이 아니다 —
 그런 값은 비교하지 않고 `invalid_expected` 로 거절한다. **미설정이 평상시 상태**이고, 유실되면
 5단계 전환이 반영됐는지 기계적으로 확인할 수 없게 된다(눈으로는 어느 DB 를 보는지 알 수 없다).
@@ -741,7 +835,7 @@ Vercel 환경변수는 DB 백업에 포함되지 않으므로 별도 보관한�
 모르는 키는 `unknownKeys` 로만 보고한다(코드에서 사라진 키일 수 있어 「유실」로 단정하지 않는다).
 
 복구·롤백용 임시 키(`RECOVERY_WRITE_FREEZE`·`RECOVERY_WRITE_FREEZE_AT`·
-`RECOVERY_SECURITY_REAPPLIED_AT`·`DEPLOY_PINNED_COMMIT`)는 **평상시 미설정이 정상**이라
+`RECOVERY_SECURITY_REAPPLIED_AT`·`RECOVERY_EXTERNAL_RECONCILED_AT`·`DEPLOY_PINNED_COMMIT`)는 **평상시 미설정이 정상**이라
 스냅샷·유실 판정에서 빠진다 — 사건 중에 뜬 스냅샷이 평상시에도 그 키를 요구하면 거짓 `missing`
 이 된다. 그쪽은 각 전용 체크(`checks.writeFreeze`·`incidentClosure`·`postRestoreSecurity`·
 `deployPin`)가 따로 본다.
@@ -895,6 +989,13 @@ node --input-type=module -e "import {deployRollbackStatus,rollbackText} from './
       리허설이라면 복구 브랜치에서 **세션 폐기까지는 실제로** 해 본다(그 뒤 다시 로그인되는지가 점검 대상이다)
 - [ ] 재적용 시각을 `RECOVERY_SECURITY_REAPPLIED_AT` 에 적었다 —
       `checks.postRestoreSecurity.detail.state` 가 `recorded`(차단 중 미기록이면 `pending` 이다)
+- [ ] **해제 전에** 외부 상태를 대조했다(§3 6-2단계) — 제공자 쪽 결제·해지 목록과 `organizations.plan`
+      을 **양방향**으로 맞췄다. 리허설이라면 **구간을 산출할 수 있는지**와 제공자 콘솔에서 그 구간
+      목록을 받아낼 수 있는지가 점검 대상이다(쓰기는 하지 않는다)
+- [ ] 대조 구간의 끝을 **차단 해제 시각**으로 잡았다 — `RECOVERY_WRITE_FREEZE_AT`(차단을 **건** 시각)로
+      대신하지 않았다. 대신하면 차단 중 503 을 받은 웹훅이 구간에서 빠진다(§3-9)
+- [ ] 대조 시각을 `RECOVERY_EXTERNAL_RECONCILED_AT` 에 적었다 —
+      `checks.externalState.detail.state` 가 `recorded`(결제 반영이 OFF 면 `not_applicable` 이 정상이다)
 - [ ] 쓰기 차단 **해제**(§3 7단계) — `checks.writeFreeze.detail.frozen` 이 `false` 로 돌아왔다
 - [ ] `GET /api/health` 전 항목 정상
 - [ ] 설정 복구 확인(§4-10 2번) — `checks.envPresence.detail.verdict` 가 `ok` 이고
@@ -906,6 +1007,8 @@ node --input-type=module -e "import {deployRollbackStatus,rollbackText} from './
 - [ ] `RECOVERY_WRITE_FREEZE_AT` 를 지웠다 — `checks.incidentClosure.detail.state` 가 `normal`
 - [ ] `RECOVERY_SECURITY_REAPPLIED_AT` 를 지웠다 — `checks.postRestoreSecurity.detail.state` 가 `normal`
       (남으면 다음 사건에서 **옛 시각이 「재적용했다」는 근거**로 쓰인다)
+- [ ] `RECOVERY_EXTERNAL_RECONCILED_AT` 를 지웠다 — `checks.externalState.detail.state` 가
+      `not_applicable`(반영 OFF) 또는 `normal`(반영 ON) 로 돌아왔다
 - [ ] 리허설 중 **배포 롤백(Promote)을 쓰지 않았다** — 쓰면 차단·DB 교체가 함께 되돌아간다(5-1).
       코드 회귀가 끼어들면 `git revert` 재배포로 처리한다
 - [ ] 리허설 중 AutoPush 가 새 배포를 만들었어도 `checks.writeFreeze.detail.frozen` 이 `true` 로

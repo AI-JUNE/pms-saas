@@ -66,6 +66,7 @@ export const TRANSIENT_KEYS: readonly string[] = [
   'RECOVERY_WRITE_FREEZE', // checks.writeFreeze
   'RECOVERY_WRITE_FREEZE_AT', // checks.incidentClosure
   'RECOVERY_SECURITY_REAPPLIED_AT', // checks.postRestoreSecurity
+  'RECOVERY_EXTERNAL_RECONCILED_AT', // checks.externalState
   'DEPLOY_PINNED_COMMIT', // checks.deployPin
 ];
 
@@ -461,8 +462,8 @@ export const PRESENCE_LIMITS: readonly string[] = [
   CAVEAT_BASELINE_IS_A_LIST,
   CAVEAT_THIS_DEPLOYMENT_ONLY,
   '복구·롤백용 임시 키(`RECOVERY_WRITE_FREEZE`·`RECOVERY_WRITE_FREEZE_AT`·' +
-    '`RECOVERY_SECURITY_REAPPLIED_AT`·`DEPLOY_PINNED_COMMIT`)는 **평상시 미설정이 정상**이라 ' +
-    '스냅샷·유실 판정에서 빠진다 — 그쪽은 각 전용 체크가 본다',
+    '`RECOVERY_SECURITY_REAPPLIED_AT`·`RECOVERY_EXTERNAL_RECONCILED_AT`·`DEPLOY_PINNED_COMMIT`)는 ' +
+    '**평상시 미설정이 정상**이라 스냅샷·유실 판정에서 빠진다 — 그쪽은 각 전용 체크가 본다',
   '묶음 정합성은 **열거된 조합만** 본다(`COHERENCE_RULES`) — 선행 조건이 없는 스위치의 유실은 ' +
     '기준 스냅샷이 있어야 드러난다',
 ];

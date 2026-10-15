@@ -14,6 +14,7 @@ export type CheckName =
   | 'dbIdentity'
   | 'incidentClosure'
   | 'postRestoreSecurity'
+  | 'externalState'
   | 'deployPin';
 
 export interface CheckResult {

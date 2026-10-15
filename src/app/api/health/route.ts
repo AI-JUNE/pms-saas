@@ -5,6 +5,7 @@ import { billingStatus } from '@/lib/portone';
 import { dbIdentityCheck } from '@/lib/dbIdentity';
 import { deployPinCheck } from '@/lib/deployRollback';
 import { envPresenceCheck } from '@/lib/envPresence';
+import { externalStateCheck } from '@/lib/externalReconcile';
 import { buildHealthBody, sanitizeError, statusCode, type Checks } from '@/lib/health';
 import { closureCheck } from '@/lib/incidentClosure';
 import { securityReapplyCheck } from '@/lib/postRestoreSecurity';
@@ -117,6 +118,16 @@ export async function GET(req: Request) {
   // 그래서 **차단이 걸려 있는 동안**(= 아직 아무도 들어오지 못하는 동안) 재적용 미기록을 드러낸다.
   // 상태·키 이름·시각만 담고(계정·토큰·행 수 없음) required:false 라 503 이 되지는 않는다.
   checks.postRestoreSecurity = securityReapplyCheck();
+
+  // 복구가 **되돌리지 못하는 외부 상태**와 대조했는지(RUNBOOK §3 6-2단계·§3-9). 시점 복구는 이 DB 안만
+  // 되돌린다 — 결제 제공자 쪽 결제·구독·영수증은 그대로 남는데, 그 반영 결과인 organizations.plan 과
+  // 감사 행(BILLING_PLAN_APPLIED)은 T-ε 로 돌아간다. 그래서 돈을 낸 조직의 플랜이 내려가고(좌석·기능이
+  // 잠긴다) 해지한 조직의 유료 플랜이 되살아난다 — 4단계는 organizations 를 **행 수로만** 세므로 둘 다
+  // `ok` 로 통과한다. 차단 중 503 을 받은 웹훅은 제공자 재시도가 만료되면 다시 오지 않는다
+  // (writeFreeze 의 FREEZE_LIMITS 가 「수동 대조가 필요하다」고 적어 둔 바로 그 구간이다).
+  // 그래서 **차단이 걸려 있는 동안**(= 아직 사용자가 들어오지 못하는 동안) 미대조를 드러낸다.
+  // 상태·키 이름·시각·개수만 담고(조직·금액·결제 식별자 없음) required: false 라 503 이 되지는 않는다.
+  checks.externalState = externalStateCheck();
 
   // 배포 롤백이 유지되고 있는지(RUNBOOK §5·§5-1). §5 2단계는 「`commit` 이 롤백 대상과 일치하는지
   // 확인」인데 그 눈 확인은 **그 순간**만 말한다 — 이 배포 경로는 AutoPush(20분) → push →

@@ -106,6 +106,7 @@ export const ENV_VARS: EnvVar[] = [
   { key: 'RECOVERY_WRITE_FREEZE', kind: 'switch', group: '복구 리허설', note: 'RUNBOOK §3 2단계 쓰기 차단(읽기전용 모드). 평상시 반드시 OFF — 켜진 채 복구되면 전 사용자의 저장이 503 으로 거절된다' },
   { key: 'RECOVERY_WRITE_FREEZE_AT', kind: 'config', group: '복구 리허설', note: 'RUNBOOK §3 2단계 쓰기 차단이 **실효된** 시각(ISO). 유실 구간의 끝이고 사후에는 복원할 수 없는 값이다 — 미기록이면 §3 8단계의 고지 구간을 사람 기억으로 적게 된다. 평상시에는 없어야 한다(남으면 다음 사건의 구간 끝으로 쓰인다)' },
   { key: 'RECOVERY_SECURITY_REAPPLIED_AT', kind: 'config', group: '복구 리허설', note: 'RUNBOOK §3 6-1단계 보안 상태 재적용을 **마친** 시각(ISO). 복구는 끊은 세션·바꾼 비밀번호·잠근 계정·회수한 권한을 함께 되돌리므로 전환 뒤 다시 적용해야 한다 — 미기록이면 해제(7단계) 전에 했는지 사후 확인할 수 없다. 평상시에는 없어야 한다' },
+  { key: 'RECOVERY_EXTERNAL_RECONCILED_AT', kind: 'config', group: '복구 리허설', note: 'RUNBOOK §3 6-2단계 **외부 상태 대조**를 마친 시각(ISO). 복구는 organizations.plan 과 반영 감사 행을 되돌리지만 결제 제공자 쪽 결제·구독은 되돌리지 못한다 — 대조하지 않으면 돈을 받은 조직의 플랜이 내려가거나 해지한 조직의 유료 플랜이 되살아난다. 미기록이면 해제(7단계) 전에 했는지 사후 확인할 수 없다. 평상시에는 없어야 한다' },
   { key: 'RECOVERY_ENV_BASELINE', kind: 'config', group: '복구 리허설', note: 'RUNBOOK §4-12 **설정 키 이름** 기준 스냅샷(`asOf=…;keys=A,B` — 값은 담지 않는다). §2 월 점검에서 갱신한다. 미설정이 평상시이고, 없으면 복구에서 빠진 키를 판정하지 않는다(어느 키가 있어야 하는지 코드가 정하지 않는다)' },
   { key: 'RECOVERY_EXPECTED_DB', kind: 'config', group: '복구 리허설', note: 'RUNBOOK §3 5단계 전환 확인용 **연결 대상 지문**(12자리 16진수, 연결 문자열 아님). 미설정이 평상시 — 유실 시 전환 반영 여부를 기계적으로 확인할 수 없다' },
 
