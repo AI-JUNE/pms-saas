@@ -43,6 +43,12 @@
 4. 환경변수 스냅샷이 최신인지 확인(4절). `RECOVERY_EXPECTED_DB` 를 남겨 두었다면
    `checks.dbIdentity.detail.verdict` 가 `match` 인지 함께 본다 — `mismatch` 면 연결 대상이
    바뀐 것이다(의도한 변경이면 지문을 갱신한다. 3-4).
+   - **설정 키 이름 스냅샷 갱신** — `GET /api/health` 의 `checks.envPresence.detail.snapshot`
+     문자열을 그대로 복사해 `RECOVERY_ENV_BASELINE` 에 넣는다(`asOf=…;keys=A,B` — **값은 담기지
+     않는다. 키 이름뿐이다**). 이것이 복구일에 「무엇이 빠졌는가」를 판정할 **유일한 기준**이다
+     (미설정이면 유실 판정을 하지 않는다 — 어느 키가 있어야 하는지 코드가 지어내지 않는다).
+   - `checks.envPresence.detail.ineffective` 가 빈 배열인지 함께 본다. 비어 있지 않으면
+     **켜 둔 스위치가 선행 값 없이 아무 일도 하지 않는 상태**다(아래 4-12).
 5. `GET /api/health` 의 `checks.recovery.detail.baseline.status` 가 `ok` 인지 확인
    (`stale`/`undated`/`absent` 면 위 3번이 밀린 것이다. `unjudged` 는 기한 미설정 상태).
 6. 아래 6절 리허설 표에 점검 결과 1줄 기록.
@@ -655,11 +661,20 @@ Vercel 환경변수는 DB 백업에 포함되지 않으므로 별도 보관한�
 복구 후 확인 순서:
 
 1. 위 4-1 두 개가 들어갔는지 → `GET /api/health` 의 `db` 체크가 `ok`.
-2. 활성화 스위치가 **의도한 상태**인지 — 특히 `PAYMENTS_LIVE`·`BILLING_APPLY_LIVE`·`RECOVERY_WRITE_FREEZE`가
+2. **빠진 키부터 기계적으로 확인한다** → `checks.envPresence` (아래 4-12).
+   - `detail.verdict` 가 `missing` 이면 `detail.missingKeys`·`detail.blankedKeys` 가 **평상시에
+     있었는데 지금 없는 키**다. 이 목록이 아래 3~4번의 눈 확인보다 먼저다.
+   - `detail.ineffective` 가 비어 있는지 — 켜 둔 스위치가 선행 값 없이 **아무 일도 하지 않는**
+     상태를 잡는다(예: `LEGAL_DOCS_FINAL` 만 돌아오고 버전·시행일이 빠지면 화면은 「초안」으로
+     남는다. 그 모습은 「아직 확정 전」과 구분되지 않으므로 3번의 눈 확인으로는 알 수 없다).
+   - `detail.verdict` 가 `no_baseline` 이면 **판정 자체를 못 한 것**이다(기준 스냅샷 미설정).
+     그 경우 이 단계는 통과가 아니라 보류다 — 2절 4번에서 스냅샷을 떠 두어야 한다.
+3. 활성화 스위치가 **의도한 상태**인지 — 특히 `PAYMENTS_LIVE`·`BILLING_APPLY_LIVE`·`RECOVERY_WRITE_FREEZE`가
    기본 OFF인지 반드시 재확인한다. 스위치는 `true` 문자열일 때만 ON 이다(`1`·`yes`·공백은 OFF 유지).
-3. 4-5 법적 문서 키가 복구됐는지 → `/terms`·`/privacy` 에 「초안」 배너가 없고 버전·시행일이 표기되는지 눈으로 확인.
-4. 4-6 파트너 키는 계약 상태에 맞게. 미설정이면 전건 직접 계약으로 동작한다.
-5. 전환 직후라면 `checks.dbIdentity.detail.verdict` 가 `match` 인지 → **어느 DB 를 보고 있는지** 확인(위 3-4).
+   위 2번은 **켜진 스위치의 선행 조건**만 보므로, 꺼져 있어야 할 스위치가 켜진 상태는 여기서 본다.
+4. 4-5 법적 문서 키가 복구됐는지 → `/terms`·`/privacy` 에 「초안」 배너가 없고 버전·시행일이 표기되는지 눈으로 확인.
+5. 4-6 파트너 키는 계약 상태에 맞게. 미설정이면 전건 직접 계약으로 동작한다.
+6. 전환 직후라면 `checks.dbIdentity.detail.verdict` 가 `match` 인지 → **어느 DB 를 보고 있는지** 확인(위 3-4).
    `checks.db` 의 `ok` 는 어느 DB 든 통과하므로 1번만으로는 전환 반영을 알 수 없다.
 
 #### 4-11. 배포 롤백 고정 (5절)
@@ -667,6 +682,80 @@ Vercel 환경변수는 DB 백업에 포함되지 않으므로 별도 보관한�
 `DEPLOY_PINNED_COMMIT` — 5절 롤백 대상 커밋(7~40자리 16진수). **평상시 미설정이 정상**이고 복구 대상도 아니다.
 롤백 중에만 넣어 두면 롤백이 풀린 사실이 `GET /api/health` 의 `checks.deployPin` 에 `drifted` 로 남는다(아래 5-1).
 수정 배포를 마친 뒤에는 **지운다** — 남겨 두면 이후 정상 배포가 전부 `drifted` 로 보인다.
+
+#### 4-12. 설정 복구 확인 — 이 절의 목록이 **실제로 들어갔는지**
+
+이 절의 머리말은 「빠진 키는 오류를 내지 않고 **조용히 기본값으로 되돌아간다**」고 경고한다.
+그런데 목록의 정본인 `lib/envRegistry.ts` 는 설계상 `process.env` 를 보지 않는다(소스·문서끼리
+대조하는 CI 시점 점검이다) — 그래서 **정본 37키와 실제로 돌고 있는 배포의 env 가 한 번도
+대조되지 않았다.** 담당자가 복구일에 보는 위 4-10 에서 기계적으로 확인되는 것은
+`DATABASE_URL` 하나뿐이고, 나머지는 대시보드와 화면의 **눈 확인**이었다.
+
+눈 확인이 **원리상 구분하지 못하는 상태**가 있다.
+
+- `lib/legal.ts` 는 fail-safe 라 `LEGAL_DOCS_FINAL=true` 여도 버전·시행일 중 하나만 유실되면
+  조용히 draft 로 남는다 — 화면은 「초안」 배너를 띄우고, 그 모습은 **「아직 확정 전」과 똑같다.**
+- 아무 흔적도 남지 않는 키들이 있다. `LEGAL_CONSENT_REQUIRED` 유실 → 가입 동의 강제가 관측
+  모드로 내려가고(가입은 그대로 성공한다), `ENTITLEMENTS_ENFORCE` 유실 → 좌석·기능 제한이
+  차단에서 관측으로 내려간다. **화면도 응답도 복구 전과 똑같다.**
+- 키가 **공백뿐인** 경우는 대시보드에 「있다」로 보이는데 읽는 쪽은 미설정과 똑같이 동작한다.
+
+- `GET /api/health` → `checks.envPresence` (`lib/envPresence.ts`, **required: false**)
+
+판정은 성질이 다른 둘로 나뉜다.
+
+**(가) 묶음 정합성 — 기준 없이 지금 상태만으로 판정된다.** 스위치는 켜졌는데 그 스위치가
+필요로 하는 값이 없는 상태를 `detail.ineffective` 로 드러낸다. 유실이 **묶음의 일부**일 때
+가장 먼저 걸리는 그물이다.
+
+| 켜진 스위치 | 함께 있어야 하는 것 | 없으면 조용히 |
+| --- | --- | --- |
+| `LEGAL_DOCS_FINAL` | `LEGAL_TERMS_VERSION`·`LEGAL_TERMS_EFFECTIVE`·`LEGAL_PRIVACY_VERSION`·`LEGAL_PRIVACY_EFFECTIVE` | fail-safe 로 draft 유지 — 화면이 「아직 확정 전」과 구분되지 않는다 |
+| `LEGAL_CONSENT_REQUIRED` | `LEGAL_DOCS_FINAL` = ON | **초안 문서에 대해** 동의를 강제한다(감사로그의 동의 버전이 `draft`) |
+| `MONITORING_ENABLED` | `SENTRY_DSN` | 에러 캡처가 전송 없이 no-op — `ALERT_WEBHOOK_URL` 이 남아 있어도 알림이 함께 멈춘다 |
+| `PAYMENTS_LIVE` | `PORTONE_STORE_ID`·`PORTONE_CHANNEL_KEY`·`PORTONE_API_SECRET`·`PORTONE_WEBHOOK_SECRET` | 실결제가 더미 설정으로 열린다(`checks.billing` 은 **웹훅 서명 키를 보지 않는다**) |
+| `BILLING_APPLY_LIVE` | `PAYMENTS_LIVE` = ON | 웹훅 결과가 DB 에 반영되지 않는데 응답은 200 이다 |
+| `PARTNER_ATTRIBUTION_ENABLED` | `PARTNER_CHANNEL_ENABLED` = ON | 귀속 기록이 **전건 직접 계약**으로 남아 정산 근거가 되지 못한다 |
+| `PARTNER_ROLE_ENABLED` | `PARTNER_CHANNEL_ENABLED` = ON | 파트너에게 **보이는 고객사가 없다**(가시 범위가 귀속 기록 파생이다) |
+| `PARTNER_SETTLEMENT_ENABLED` | `PARTNER_COMMISSION_RATES` | 리포트는 열리는데 전건 `rate_unconfigured` 로 금액이 비어 있다 |
+
+**(나) 유실 판정 — 2절 4번 스냅샷이 있어야 돌아간다.** 어느 키가 「있어야 하는가」는 계약·승인
+상태에 따라 다르므로 **코드가 정하지 않는다.** 평상시에 떠 둔 **키 이름 스냅샷**만 기준으로
+인정한다(행 수 기준 스냅샷 3-2 와 같은 규율).
+
+| 환경변수 | 값 | 설명 |
+| --- | --- | --- |
+| `RECOVERY_ENV_BASELINE` | `asOf=2026-10-15;keys=DATABASE_URL,SESSION_COOKIE,…` | 그때 **값이 있던 키 이름**과 뜬 날짜. `{"asOf":"…","keys":[…]}` JSON 도 받는다. **값이 섞인 입력은 채택하지 않는다** — 받아 주면 복구 기준이라는 이름으로 시크릿이 env 에 한 벌 더 복제된다 |
+
+| `verdict` | 뜻 | 할 일 |
+| --- | --- | --- |
+| `no_baseline` | 기준 스냅샷이 없다(**평상시 상태**) | 2절 4번에서 `detail.snapshot` 을 복사해 넣는다. 그 전까지 유실 판정은 **보류**다 |
+| `invalid_baseline` | 적혀 있으나 쓸 수 없다(값이 섞였다·키를 못 읽었다) | 키 이름만 담긴 형식으로 다시 적는다 |
+| `missing` | 기준에 있던 키가 지금 **없거나 공백**이다 | `missingKeys`·`blankedKeys` 를 발급처에서 재발급·재입력한다. 어느 키도 오류를 내지 않는다 |
+| `undated` | 키는 다 있으나 `asOf` 가 없다 | 목록은 그대로 대조하되 「복구 전 상태」로 단정하지 않는다 |
+| `ok` | 기준의 키가 모두 값으로 있다 | 기준 갱신은 2절 4번에서 한다 |
+
+판정 순서는 **유실이 기준치 자격보다 먼저다** — `asOf` 가 없다는 사실로 `missing` 을 덮지 않는다
+(고칠 대상이 다르다. 유실은 지금 복구해야 하고 날짜는 다음 점검에서 채운다).
+`addedKeys` 는 스냅샷 뒤에 새로 들어온 키이고 **유실이 아니다**. 스냅샷에 있는데 레지스트리가
+모르는 키는 `unknownKeys` 로만 보고한다(코드에서 사라진 키일 수 있어 「유실」로 단정하지 않는다).
+
+복구·롤백용 임시 키(`RECOVERY_WRITE_FREEZE`·`RECOVERY_WRITE_FREEZE_AT`·
+`RECOVERY_SECURITY_REAPPLIED_AT`·`DEPLOY_PINNED_COMMIT`)는 **평상시 미설정이 정상**이라
+스냅샷·유실 판정에서 빠진다 — 사건 중에 뜬 스냅샷이 평상시에도 그 키를 요구하면 거짓 `missing`
+이 된다. 그쪽은 각 전용 체크(`checks.writeFreeze`·`incidentClosure`·`postRestoreSecurity`·
+`deployPin`)가 따로 본다.
+
+※ 이 판정이 보장하지 **못하는** 것(`detail.limits` 로 함께 나온다):
+**키가 있는지**까지만 말한다 — 값이 맞는지(옛 시크릿·다른 환경의 값·오타)는 보지 않는다(값이
+틀린 쪽은 대부분 오류를 낸다) · 기준 스냅샷은 **그때 값이 있던 키 목록**일 뿐이고 그때 설정이
+옳았다는 뜻이 아니다 · 스냅샷 이후 의도적으로 추가·삭제한 키도 `addedKeys`/`missingKeys` 로
+똑같이 보인다 · **이 배포의 env 만** 본다(Vercel 스코프를 틀린 입력·다른 배포는 알 수 없다) ·
+묶음 정합성은 **열거된 조합만** 본다 — 선행 조건이 없는 스위치의 유실은 스냅샷이 있어야 드러난다.
+
+※ 공개 엔드포인트이므로 **설정값은 응답에 담지 않는다** — 키 이름·판정·날짜·개수뿐이다.
+`required: false` 라 설정이 유실돼도 503 이 되지 않는다(설정 유실로 서비스를 내리면 복구
+자신이 막힌다. 3-3 과 같은 규율).
 
 ## 5. 배포 롤백 (코드 문제일 때)
 
@@ -808,6 +897,9 @@ node --input-type=module -e "import {deployRollbackStatus,rollbackText} from './
       `checks.postRestoreSecurity.detail.state` 가 `recorded`(차단 중 미기록이면 `pending` 이다)
 - [ ] 쓰기 차단 **해제**(§3 7단계) — `checks.writeFreeze.detail.frozen` 이 `false` 로 돌아왔다
 - [ ] `GET /api/health` 전 항목 정상
+- [ ] 설정 복구 확인(§4-10 2번) — `checks.envPresence.detail.verdict` 가 `ok` 이고
+      `detail.ineffective` 가 비어 있다. `no_baseline` 이면 **판정을 못 한 것**이므로 통과가 아니다
+      (리허설이라면 2절 4번 스냅샷을 떠 두는 것까지가 점검 대상이다)
 - [ ] 유실 구간을 §3-7 명령으로 산출했다 — `verdict` 가 `ok` 이고 `notice` 를 기록했다
       (리허설이라면 고지 대상은 없지만 **구간을 산출할 수 있는지**가 점검 대상이다)
 - [ ] 소요시간 측정(§3-7 `assessDuration`: 1단계 중단 결정 ~ 7단계 차단 해제) 및 위 표 기록

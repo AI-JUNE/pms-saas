@@ -9,6 +9,7 @@ export type CheckName =
   | 'recovery'
   | 'recoveryWindow'
   | 'periodicCheck'
+  | 'envPresence'
   | 'writeFreeze'
   | 'dbIdentity'
   | 'incidentClosure'

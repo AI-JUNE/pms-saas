@@ -4,6 +4,7 @@ import { db } from '@/db';
 import { billingStatus } from '@/lib/portone';
 import { dbIdentityCheck } from '@/lib/dbIdentity';
 import { deployPinCheck } from '@/lib/deployRollback';
+import { envPresenceCheck } from '@/lib/envPresence';
 import { buildHealthBody, sanitizeError, statusCode, type Checks } from '@/lib/health';
 import { closureCheck } from '@/lib/incidentClosure';
 import { securityReapplyCheck } from '@/lib/postRestoreSecurity';
@@ -79,6 +80,15 @@ export async function GET(req: Request) {
   // 그러면 §3 2단계 쓰기 차단(전 사용자 저장 503)을 건 뒤 3단계에서야 복구 불가를 알게 된다.
   // 점검 일자 하나로 그 순서를 뒤집는다. 날짜·일수·키 이름만 담고(설정값 없음) required: false.
   checks.periodicCheck = periodicCheckHealth();
+
+  // §4 환경변수·시크릿 복구가 **실제로 됐는지**. §4 머리말은 「빠진 키는 오류를 내지 않고 조용히
+  // 기본값으로 되돌아간다」고 경고하는데, 정본(lib/envRegistry.ts)은 설계상 process.env 를 보지
+  // 않으므로 **레지스트리와 돌고 있는 배포가 한 번도 대조되지 않았다** — §4-10 의 확인은 눈 확인
+  // 이고, LEGAL_* 처럼 fail-safe 로 draft 로 남는 조합은 「아직 확정 전」과 구분되지 않는다.
+  // 여기서 (가) 켜졌는데 선행 값이 없는 스위치와 (나) §2 스냅샷 대비 사라진 키를 드러낸다.
+  // 값은 담지 않는다(키 이름·판정·날짜·개수만). required: false — 설정 유실로 서비스를 내리면
+  // 복구 자신이 막힌다. 기준 스냅샷 미설정(no_baseline)은 평상시 상태라 degraded 가 아니다.
+  checks.envPresence = envPresenceCheck();
 
   // 쓰기 차단(RUNBOOK §3 2단계) 상태. 2단계는 「유지보수 상태로 전환」을 지시하면서도
   // 그것이 걸렸는지 확인할 방법이 없었다 — 여기서 드러내 확인 가능한 단계로 만든다.
