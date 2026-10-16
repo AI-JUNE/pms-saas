@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { sql } from 'drizzle-orm';
 import { db } from '@/db';
+import { assetCoverageCheck } from '@/lib/assetCoverage';
 import { billingStatus } from '@/lib/portone';
 import { dbIdentityCheck } from '@/lib/dbIdentity';
 import { deployPinCheck } from '@/lib/deployRollback';
@@ -128,6 +129,15 @@ export async function GET(req: Request) {
   // 그래서 **차단이 걸려 있는 동안**(= 아직 사용자가 들어오지 못하는 동안) 미대조를 드러낸다.
   // 상태·키 이름·시각·개수만 담고(조직·금액·결제 식별자 없음) required: false 라 503 이 되지는 않는다.
   checks.externalState = externalStateCheck();
+
+  // §1 보호 대상 표가 **실제 저장 위치와 맞는지**(RUNBOOK §1·§1-1). §3·§4·§5 의 기계적 판정은 모두
+  // 그 표 한 장을 전제로 삼는데, 표 자체는 한 번도 코드와 대조되지 않았다 — 「업로드 파일 = DB 저장 =
+  // DB 백업에 포함」은 사실이 아니다. `lib/attachments.ts` 의 어떤 어댑터도 `canStore: true` 가 아니라
+  // 본문은 어디에도 보관되지 않고, 복구로 돌아오는 것은 **목록**이다(그 목록조차 4단계 핵심 테이블에
+  // attachments 가 없어 행 수 대조로 드러나지 않는다). 외부 스토리지를 켜면 본문이 PITR 경계 밖으로
+  // 나가 고아 객체·깨진 참조가 생기는데, 그 전환은 환경변수 한 줄이다.
+  // 판정·위치 설명만 담고(파일명·업로더·저장 키 없음) required: false 라 503 이 되지는 않는다.
+  checks.assetCoverage = assetCoverageCheck();
 
   // 배포 롤백이 유지되고 있는지(RUNBOOK §5·§5-1). §5 2단계는 「`commit` 이 롤백 대상과 일치하는지
   // 확인」인데 그 눈 확인은 **그 순간**만 말한다 — 이 배포 경로는 AutoPush(20분) → push →

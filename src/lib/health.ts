@@ -15,6 +15,7 @@ export type CheckName =
   | 'incidentClosure'
   | 'postRestoreSecurity'
   | 'externalState'
+  | 'assetCoverage'
   | 'deployPin';
 
 export interface CheckResult {
