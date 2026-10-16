@@ -779,6 +779,11 @@ Vercel 환경변수는 DB 백업에 포함되지 않으므로 별도 보관한�
 `RECOVERY_EXPECTED_DB` — 전환 확인용 **연결 대상 지문**(12자리 16진수. 위 3-4). 연결 문자열이 아니다 —
 그런 값은 비교하지 않고 `invalid_expected` 로 거절한다. **미설정이 평상시 상태**이고, 유실되면
 5단계 전환이 반영됐는지 기계적으로 확인할 수 없게 된다(눈으로는 어느 DB 를 보는지 알 수 없다).
+`RECOVERY_REHEARSAL_ACTIVE` — 「이 배포는 **리허설 대상**이다」 선언(`true` 만 ON. 아래 6-1).
+리허설 체크리스트의 파괴적 단계는 전부 **환경변수 변경 + 응답 확인**인데, 스코프(Production/Preview)를
+틀리면 그 설정이 운영 배포에 걸리면서도 **체크리스트가 요구하는 바로 그 응답**이 나온다.
+선언은 같은 재배포로 함께 반영되므로 **운영 배포가 그 사실을 스스로 보고한다**(`production_rehearsal`).
+**평상시 미설정이 정상**이고 리허설이 끝나면 지운다.
 
 #### 4-8. 메일·첨부 저장소·감사 보존 (전부 기본 미연동 — **활성화는 승인 필요**, 2026-10-07 배치181)
 
@@ -886,11 +891,12 @@ Vercel 환경변수는 DB 백업에 포함되지 않으므로 별도 보관한�
 `addedKeys` 는 스냅샷 뒤에 새로 들어온 키이고 **유실이 아니다**. 스냅샷에 있는데 레지스트리가
 모르는 키는 `unknownKeys` 로만 보고한다(코드에서 사라진 키일 수 있어 「유실」로 단정하지 않는다).
 
-복구·롤백용 임시 키(`RECOVERY_WRITE_FREEZE`·`RECOVERY_WRITE_FREEZE_AT`·
-`RECOVERY_SECURITY_REAPPLIED_AT`·`RECOVERY_EXTERNAL_RECONCILED_AT`·`DEPLOY_PINNED_COMMIT`)는 **평상시 미설정이 정상**이라
+복구·롤백·리허설용 임시 키(`RECOVERY_WRITE_FREEZE`·`RECOVERY_WRITE_FREEZE_AT`·
+`RECOVERY_SECURITY_REAPPLIED_AT`·`RECOVERY_EXTERNAL_RECONCILED_AT`·`RECOVERY_REHEARSAL_ACTIVE`·
+`DEPLOY_PINNED_COMMIT`)는 **평상시 미설정이 정상**이라
 스냅샷·유실 판정에서 빠진다 — 사건 중에 뜬 스냅샷이 평상시에도 그 키를 요구하면 거짓 `missing`
 이 된다. 그쪽은 각 전용 체크(`checks.writeFreeze`·`incidentClosure`·`postRestoreSecurity`·
-`deployPin`)가 따로 본다.
+`rehearsalScope`·`deployPin`)가 따로 본다.
 
 ※ 이 판정이 보장하지 **못하는** 것(`detail.limits` 로 함께 나온다):
 **키가 있는지**까지만 말한다 — 값이 맞는지(옛 시크릿·다른 환경의 값·오타)는 보지 않는다(값이
@@ -992,6 +998,10 @@ node --input-type=module -e "import {deployRollbackStatus,rollbackText} from './
 리허설은 **운영 DB가 아닌 복구 브랜치**에서 수행한다. 실제 수행 후 사람이 아래 표에 기록한다.
 (자동화 에이전트는 이 표를 임의로 채우지 않는다 — 미실시 상태를 그대로 둔다.)
 
+> **시작하기 전에 6-1 을 읽는다.** 아래 체크리스트의 파괴적 단계는 전부 「환경변수 변경 + 응답 확인」
+> 이어서, 스코프를 틀리면 **운영 배포에 걸리면서도 체크리스트가 요구하는 그 응답**이 나온다.
+> 대상 배포에 `RECOVERY_REHEARSAL_ACTIVE=true` 를 선언하고 `checks.rehearsalScope` 로 확인한다.
+
 | 일자 | 유형(정기/사건) | 복구 대상 시점 | 소요시간 | 검증 결과 | 담당 | 비고 |
 | --- | --- | --- | --- | --- | --- | --- |
 | (미실시) | | | | | | 최초 리허설 예정 `[확인 필요]` |
@@ -1013,8 +1023,68 @@ node --input-type=module -e "import {deployRollbackStatus,rollbackText} from './
 
 > 담당자 이름·비고는 환경변수에 넣지 않는다(공개 엔드포인트 노출 방지). 사람 정보는 위 표에만 둔다.
 
+### 6-1. 리허설이 운영 배포에 걸리지 않게 — 선언과 확인
+
+머리말의 「운영 DB가 아닌 복구 브랜치에서 수행한다」는 **사람에게 하는 말 한 줄**이었고, 확인하는
+코드가 없었다. 아래 체크리스트의 파괴적 단계는 전부 **환경변수 변경 + 응답 확인**이고, Vercel
+스코프(Production/Preview)를 틀리기 쉽다는 사실은 3-4 가, 「이 배포의 env 만 본다 — 스코프를 틀린
+입력은 알 수 없다」는 사실은 4-12 가 이미 적어 두었다. **틀렸을 때 나오는 응답이 체크리스트가 요구하는
+바로 그 응답**이라서, 리허설이 운영 장애를 내도 체크리스트는 전부 통과하고 위 표에는 `정상` 으로 적힌다.
+
+| 단계 키 | 어디서 | 운영 배포에 걸리면 | 왜 조용한가 |
+| --- | --- | --- | --- |
+| `write_freeze` | 3절 2단계 | **전 사용자의 저장이 503** (조회는 되므로 「저장만 안 되는」 장애로 보인다) | 체크리스트가 요구하는 `frozen: true`·`503 WRITE_FROZEN` 이 **성공과 글자 그대로 같다** |
+| `database_url` | 3절 5단계 | 운영이 **버려질 복구 브랜치**에 쓰기를 쌓는다. 되돌리면 그 구간이 사라지고 기록도 없다 | `checks.db` 는 `select 1` 이라 어느 DB 든 `ok`, 지문은 기준값을 함께 넣으므로 `match` |
+| `expected_db` | 3-4 | 운영의 기준 지문이 복구 브랜치로 덮여 **틀린 대상에 `match`** 를 낸다 | 체크리스트가 「`match` 인지 확인」을 지시한다 — 무엇과 비교해도 맞는다 |
+| `session_purge` | 3절 6-1단계 | **전 사용자 강제 로그아웃**(작성 중이던 입력이 함께 사라진다) | 로그아웃은 정상 동작이라 로그·에러 모니터링에 사고로 남지 않는다 |
+| `baseline_overwrite` | 3-2 | 리허설 DB 의 행 수가 운영 기준치가 되어 이후 4단계 대조가 **자기 자신과의 비교**가 된다 | 이후 판정이 영구히 `ok` — 날짜는 새것이라 `stale` 로도 안 걸린다 |
+| `promote_rollback` | 5절 | 옛 배포의 **env 스냅샷**으로 돌아 차단·DB 교체·기준 지문이 함께 되돌아간다(5-1) | `frozen: false` 가 7단계 완료와 같은 모습이고, 지문 소실은 `unset` 이라 degraded 조차 아니다 |
+
+**선언.** 리허설 대상 배포에만 `RECOVERY_REHEARSAL_ACTIVE=true` 를 넣는다(Preview 스코프).
+선언과 파괴적 설정은 **같은 재배포로 반영**되므로 스코프를 틀리면 선언도 함께 틀린 배포로 간다 —
+그래서 **운영 배포 자신이** `production_rehearsal` 로 보고한다. 그것이 이 장치의 작동 원리다.
+환경변수는 재배포 전까지 반영되지 않으므로(3절 5단계) **선언을 먼저 넣고 판정을 확인한 뒤** 파괴적
+단계로 간다.
+
+산출·확인(1줄):
+
+```bash
+curl -s "$BASE/api/health" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const c=JSON.parse(s).checks.rehearsalScope.detail;console.log(c.verdict,c.role,c.declaration,(c.activeKeys||[]).join(',')||'-');console.log(c.action)})"
+```
+
+| `verdict` | 뜻 | 할 일 |
+| --- | --- | --- |
+| `normal` | 선언도 파괴적 설정도 없다(**평상시**) | 리허설을 시작할 때 대상 배포에만 선언을 넣는다 |
+| `rehearsal` | 리허설 대상으로 선언된 **비운영** 배포다 | 여기서 파괴적 단계를 수행한다. 평상시가 아니므로 `degraded` 로 남는다 — **마치면 지운다** |
+| `production_rehearsal` | **운영 배포에 리허설이 선언됐다** | 같은 재배포로 들어간 차단·`DATABASE_URL`·기준 지문이 운영에 걸렸는지 즉시 확인한다. **먼저 차단을 풀어** 저장을 되살린 뒤 선언을 지운다. 운영이 복구 브랜치를 보고 있었다면 그 구간의 쓰기는 되돌릴 수 없으므로 3-7 과 같은 방식으로 구간을 적는다 |
+| `unknown_role` | 선언됐으나 이 배포가 운영인지 **모른다**(`VERCEL_ENV` 없음) | 운영이 아니라고 단정하지 말고 대상 배포의 URL·지문(3-4)으로 직접 확인한다 |
+| `invalid_declaration` | 선언 키에 `true` 가 아닌 값이 있다 | **선언은 꺼져 있다**(대시보드에는 「넣어 두었다」로 보인다). `true` 로 다시 적거나 지운다 |
+| `undeclared_activity` | 파괴적 설정이 있는데 선언이 없다 | **실제 사건 대응이라면 정상이다.** 리허설이라면 선언을 넣어 두 상태를 구분한다(판정 보류) |
+
+어긋남의 방향 세 가지:
+
+| 방향 키 | 언제 | 누가 알아채는가 |
+| --- | --- | --- |
+| `rehearsal_hits_production` | 리허설 설정이 운영 스코프에 들어간다 | **아무도 사고로 기록하지 않는다** — 사용자는 일시 장애로, 담당자는 통과로 본다 |
+| `incident_mistaken_for_rehearsal` | 리허설 기간에 실제 사건이 겹친다 | 사용자 문의로만 드러난다 — 응답만 보면 둘이 같은 모습이다 |
+| `declaration_left_on` | 리허설 뒤 선언을 지우지 않는다 | 선언이 살아 있는 동안 이 체크가 `degraded` 로 남는다 — 그것이 알림이다 |
+
+※ 이 판정이 보장하지 **못하는** 것(`detail.limits` 로 함께 나온다):
+선언은 「이 배포를 리허설 대상으로 **적었다**」는 뜻이고 DB 가 복구 브랜치인지는 말하지 않는다
+(그쪽은 `checks.dbIdentity` 의 지문이 본다) · **선언하지 않으면 리허설과 사건 대응을 구분할 수 없다**
+(`undeclared_activity` 는 판정 보류이고 사고라는 뜻이 아니다) · 이 배포의 env 만 본다 ·
+세션 폐기 같은 **DB 쓰기**와 Promote 는 env 에 흔적을 남기지 않아 목록으로만 말한다 ·
+배포 역할은 플랫폼 주입값을 읽은 것이라 `VERCEL_ENV` 가 없으면 `unknown` 이다(운영이 아니라는 뜻이 아니다) ·
+선언을 운영 스코프에 넣는 것을 **막지는 못한다** — 재배포 후 그 배포의 응답으로 드러낼 뿐이다.
+
+※ `required: false` 라 어느 경우에도 503 이 되지 않는다(리허설 상태로 서비스를 내리면 복구·리허설
+자신이 막힌다). 응답에는 **설정값·호스트·연결 문자열을 담지 않는다** — 판정·역할·키 이름뿐이다.
+
 ### 리허설 체크리스트
 
+- [ ] **시작 전에** 리허설 대상 배포에만 `RECOVERY_REHEARSAL_ACTIVE=true` 를 선언하고 재배포했다 —
+      `checks.rehearsalScope.detail.verdict` 가 `rehearsal` 이다(§6-1). 운영 배포에서 같은 응답이
+      `production_rehearsal` 이면 **스코프를 틀린 것**이므로 파괴적 단계로 넘어가지 않는다
 - [ ] 손상 구간 감사로그를 기간 지정으로 조회해 `capture.verdict` 가 `complete` 가 될 때까지 받았다(§3-5)
 - [ ] 받은 기록을 **복구 대상 DB 밖**에 보관했다 — 전환하면 그 구간은 사라진다
 - [ ] 보존 창 길이가 **최근 확인된 값**인지 — `checks.periodicCheck.detail.verdict` 가 `ok` 이고
@@ -1065,6 +1135,8 @@ node --input-type=module -e "import {deployRollbackStatus,rollbackText} from './
 - [ ] `RECOVERY_EXTERNAL_RECONCILED_AT` 를 지웠다 — `checks.externalState.detail.state` 가
       `not_applicable`(반영 OFF) 또는 `normal`(반영 ON) 로 돌아왔다
 - [ ] 리허설 중 **배포 롤백(Promote)을 쓰지 않았다** — 쓰면 차단·DB 교체가 함께 되돌아간다(5-1).
+- [ ] `RECOVERY_REHEARSAL_ACTIVE` 를 지웠다 — `checks.rehearsalScope.detail.verdict` 가 `normal` 로
+      돌아왔다(남으면 다음 사건의 `degraded` 가 **「리허설 중」으로 읽힌다**. §6-1 `declaration_left_on`)
       코드 회귀가 끼어들면 `git revert` 재배포로 처리한다
 - [ ] 리허설 중 AutoPush 가 새 배포를 만들었어도 `checks.writeFreeze.detail.frozen` 이 `true` 로
       유지됐다(재배포는 **현재** env 를 받는다 — 유지되지 않으면 스코프를 잘못 넣은 것이다)

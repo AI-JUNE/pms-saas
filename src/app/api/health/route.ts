@@ -13,6 +13,7 @@ import { securityReapplyCheck } from '@/lib/postRestoreSecurity';
 import { periodicCheckHealth } from '@/lib/periodicCheck';
 import { rateLimitResponse, RL } from '@/lib/ratelimit';
 import { recoveryReadinessCheck } from '@/lib/recoveryVerify';
+import { rehearsalScopeCheck } from '@/lib/rehearsalScope';
 import { pitrWindowCheck } from '@/lib/recoveryWindow';
 import { writeFreezeCheck } from '@/lib/writeFreeze';
 
@@ -138,6 +139,15 @@ export async function GET(req: Request) {
   // 나가 고아 객체·깨진 참조가 생기는데, 그 전환은 환경변수 한 줄이다.
   // 판정·위치 설명만 담고(파일명·업로더·저장 키 없음) required: false 라 503 이 되지는 않는다.
   checks.assetCoverage = assetCoverageCheck();
+
+  // 리허설이 **어느 배포에 걸려 있는가**(RUNBOOK §6·§6-1). §6 머리말은 「리허설은 운영 DB가 아닌
+  // 복구 브랜치에서 수행한다」고만 적어 두었고 확인하는 코드가 없었다 — 체크리스트가 지시하는 관측
+  // (`frozen: true` · `PATCH` → 503 · 지문 `match`)은 **그 설정이 운영 스코프에 들어갔을 때도 똑같이**
+  // 나온다. 운영이 버려질 복구 브랜치에 쓰기를 쌓아도 `checks.db` 는 `select 1` 이라 ok 다.
+  // 선언(RECOVERY_REHEARSAL_ACTIVE)과 파괴적 설정은 **같은 재배포로 반영**되므로 스코프를 틀리면
+  // 선언도 함께 틀린 배포로 간다 — 그래서 운영 배포 자신이 production_rehearsal 로 보고한다.
+  // 판정·역할·키 이름만 담고(설정값·호스트 없음) required: false 라 503 이 되지 않는다.
+  checks.rehearsalScope = rehearsalScopeCheck();
 
   // 배포 롤백이 유지되고 있는지(RUNBOOK §5·§5-1). §5 2단계는 「`commit` 이 롤백 대상과 일치하는지
   // 확인」인데 그 눈 확인은 **그 순간**만 말한다 — 이 배포 경로는 AutoPush(20분) → push →

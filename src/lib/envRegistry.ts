@@ -109,6 +109,7 @@ export const ENV_VARS: EnvVar[] = [
   { key: 'RECOVERY_EXTERNAL_RECONCILED_AT', kind: 'config', group: '복구 리허설', note: 'RUNBOOK §3 6-2단계 **외부 상태 대조**를 마친 시각(ISO). 복구는 organizations.plan 과 반영 감사 행을 되돌리지만 결제 제공자 쪽 결제·구독은 되돌리지 못한다 — 대조하지 않으면 돈을 받은 조직의 플랜이 내려가거나 해지한 조직의 유료 플랜이 되살아난다. 미기록이면 해제(7단계) 전에 했는지 사후 확인할 수 없다. 평상시에는 없어야 한다' },
   { key: 'RECOVERY_ENV_BASELINE', kind: 'config', group: '복구 리허설', note: 'RUNBOOK §4-12 **설정 키 이름** 기준 스냅샷(`asOf=…;keys=A,B` — 값은 담지 않는다). §2 월 점검에서 갱신한다. 미설정이 평상시이고, 없으면 복구에서 빠진 키를 판정하지 않는다(어느 키가 있어야 하는지 코드가 정하지 않는다)' },
   { key: 'RECOVERY_EXPECTED_DB', kind: 'config', group: '복구 리허설', note: 'RUNBOOK §3 5단계 전환 확인용 **연결 대상 지문**(12자리 16진수, 연결 문자열 아님). 미설정이 평상시 — 유실 시 전환 반영 여부를 기계적으로 확인할 수 없다' },
+  { key: 'RECOVERY_REHEARSAL_ACTIVE', kind: 'switch', group: '복구 리허설', note: 'RUNBOOK §6-1 「이 배포는 리허설 대상이다」 선언. 리허설 체크리스트의 파괴적 단계(쓰기 차단·DATABASE_URL 교체·세션 폐기)는 환경변수 스코프를 틀리면 운영 배포에 걸리는데, 그때 나오는 응답이 체크리스트가 요구하는 바로 그 응답이다 — 선언은 같은 재배포로 함께 반영되므로 운영 배포가 그 사실을 스스로 보고한다(production_rehearsal). 평상시 미설정이 정상이고 리허설이 끝나면 지운다', indirectIn: 'src/lib/rehearsalScope.ts' },
 
   // ── 메일·첨부 저장소·감사 보존(배치181, 전부 기본 미연동 — 활성화는 승인) ──
   { key: 'MAIL_PROVIDER', kind: 'config', group: '메일·첨부·보존', note: '메일 발송 제공자. 미설정 = log 스텁(실발송 0, 비밀번호 재설정 메일이 나가지 않는다) [활성화 승인 필요]', indirectIn: 'src/lib/passwordReset.ts' },

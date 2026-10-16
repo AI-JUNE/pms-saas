@@ -16,6 +16,7 @@ export type CheckName =
   | 'postRestoreSecurity'
   | 'externalState'
   | 'assetCoverage'
+  | 'rehearsalScope'
   | 'deployPin';
 
 export interface CheckResult {
