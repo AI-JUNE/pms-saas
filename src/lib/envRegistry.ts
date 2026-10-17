@@ -61,6 +61,7 @@ export const ENV_VARS: EnvVar[] = [
   { key: 'ALERT_WEBHOOK_URL', kind: 'secret', group: '관측', note: '치명 오류 알림 웹훅. 미설정 시 알림만 생략' },
   { key: 'LOG_LEVEL', kind: 'config', group: '관측', note: '구조화 로그 최소 레벨' },
   { key: 'APP_VERSION', kind: 'config', group: '관측', note: '/api/health 가 노출하는 버전 표기' },
+  { key: 'HEALTH_DETAIL_TOKEN', kind: 'secret', group: '관측', note: 'RUNBOOK §2-3 공개 `/api/health` **상세** 열람 토큰(`x-health-token` 헤더). `/api/health` 는 인증이 없어, 복구 중에는 차단 여부·차단을 건 시각·보안 재적용 미완(되돌아온 세션·비밀번호가 아직 통한다)·빠진 설정 키를 무인증으로 공표한다 — 이 토큰이 설정돼 있으면 사건 표지가 들어가 있는 동안 무인증 응답에서 상세·체크 이름이 가려지고(상태 코드·`status` 는 그대로), 토큰 제시 요청만 전체를 본다. **평상시 미설정이 정상**이고, 미설정이면 가리지 않는 대신 `checks.disclosure` 가 `exposed` 로 드러낸다' },
 
   // ── 결제(기본 OFF, 활성화는 승인) ──
   { key: 'PORTONE_STORE_ID', kind: 'config', group: '결제', note: '포트원 상점 ID. 미설정 시 테스트 더미값으로 스캐폴딩 동작' },

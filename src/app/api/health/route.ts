@@ -8,6 +8,13 @@ import { deployPinCheck } from '@/lib/deployRollback';
 import { envPresenceCheck } from '@/lib/envPresence';
 import { externalStateCheck } from '@/lib/externalReconcile';
 import { buildHealthBody, sanitizeError, statusCode, type Checks } from '@/lib/health';
+import {
+  DETAIL_TOKEN_HEADER,
+  disclosureCheck,
+  disclosureGate,
+  publicHealthView,
+  publicSignalHeaders,
+} from '@/lib/healthDisclosure';
 import { signalHeaders, withSignal } from '@/lib/healthSignal';
 import { closureCheck } from '@/lib/incidentClosure';
 import { securityReapplyCheck } from '@/lib/postRestoreSecurity';
@@ -158,6 +165,14 @@ export async function GET(req: Request) {
   // 커밋 접두사·env 키 이름·판정만 담는다(설정값 없음).
   checks.deployPin = deployPinCheck();
 
+  // 위 체크들이 **무인증으로** 무엇을 말하는지(RUNBOOK §2-3). 이 라우트는 인증이 없고 한도도
+  // 넉넉한데(업타임 모니터용), 복구 중에는 응답이 차단 여부·차단을 건 시각·보안 재적용 미완
+  // (`postRestoreSecurity: pending` = 되돌아온 세션·비밀번호가 **아직 통한다**)·빠진 설정 키를
+  // 실시간으로 공표한다 — §3-8 이 줄이려던 그 구간의 시작과 끝을 바깥에 먼저 알려 주는 셈이다.
+  // 각 배치는 「값은 담지 않는다」를 지켰고 그래서 **판정과 키 이름만으로 생기는** 이 노출은
+  // 한 번도 점검되지 않았다. 판정·키 이름만 담고(토큰 값·설정값 없음) required: false.
+  checks.disclosure = disclosureCheck();
+
   const body = buildHealthBody({ checks, uptimeSec: (Date.now() - startedAt) / 1000 });
 
   // 위 판정들이 **도달하게** 한다(RUNBOOK §2-2). 복구 관련 체크는 전부 required: false 라
@@ -169,6 +184,19 @@ export async function GET(req: Request) {
   // 헤더 2개와 본문 `signal` 요약으로 걸 수 있는 표면만 만든다 — 알림 발신은 하지 않는다
   // (폴링마다 중복이 되고 서버리스에서 디듀프할 방법이 없다. signal.limits 에 적어 내보낸다).
   // 체크 이름·판정·개수만 담는다(설정값·호스트·행 수 없음).
+  // 사건 표지(§3 의 복구용 env)가 들어가 있고 상세를 볼 경로(`HEALTH_DETAIL_TOKEN`)가 있을 때만,
+  // 무인증 요청에서 체크 **상세와 이름**을 가린다(RUNBOOK §2-3). 토큰이 없으면 가리지 않는다 —
+  // 복구 담당자의 유일한 확인 수단을 막는 쪽이 더 위험하다. 대신 그 상태를 `checks.disclosure` 가
+  // `exposed` 로 드러낸다. 평상시(표지 없음)에는 응답이 한 글자도 바뀌지 않는다.
+  // 상태 코드·`status`·`x-health-status` 는 어느 경우에도 그대로다(§2-2 의 도달 경로를 죽이지 않는다).
+  const gate = disclosureGate({ token: req.headers.get(DETAIL_TOKEN_HEADER) });
+  if (gate.withhold) {
+    return NextResponse.json(publicHealthView(withSignal(body), { gated: true }), {
+      status: statusCode(body.status),
+      headers: publicSignalHeaders({ 'Cache-Control': 'no-store', ...signalHeaders(body) }, { gated: true }),
+    });
+  }
+
   return NextResponse.json(withSignal(body), {
     status: statusCode(body.status),
     headers: { 'Cache-Control': 'no-store', ...signalHeaders(body) },

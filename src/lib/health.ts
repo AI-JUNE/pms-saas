@@ -17,7 +17,8 @@ export type CheckName =
   | 'externalState'
   | 'assetCoverage'
   | 'rehearsalScope'
-  | 'deployPin';
+  | 'deployPin'
+  | 'disclosure';
 
 export interface CheckResult {
   ok: boolean;
