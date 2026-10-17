@@ -8,6 +8,7 @@ import { deployPinCheck } from '@/lib/deployRollback';
 import { envPresenceCheck } from '@/lib/envPresence';
 import { externalStateCheck } from '@/lib/externalReconcile';
 import { buildHealthBody, sanitizeError, statusCode, type Checks } from '@/lib/health';
+import { signalHeaders, withSignal } from '@/lib/healthSignal';
 import { closureCheck } from '@/lib/incidentClosure';
 import { securityReapplyCheck } from '@/lib/postRestoreSecurity';
 import { periodicCheckHealth } from '@/lib/periodicCheck';
@@ -159,8 +160,17 @@ export async function GET(req: Request) {
 
   const body = buildHealthBody({ checks, uptimeSec: (Date.now() - startedAt) / 1000 });
 
-  return NextResponse.json(body, {
+  // 위 판정들이 **도달하게** 한다(RUNBOOK §2-2). 복구 관련 체크는 전부 required: false 라
+  // degraded(200) + `ok: true` 로 나가는데, 이 응답을 상시로 읽는 쪽 셋 — 업타임 모니터(상태 코드)·
+  // `ok` 만 보는 감시자·오류 알림 웹훅(예외만) — 은 **어느 쪽도 degraded 를 보지 못한다**.
+  // 남은 통로인 사람의 §2 월 점검은 계기가 점검 자신이라 순환이고, writeFreeze·incidentClosure·
+  // postRestoreSecurity·externalState 는 차단이 걸려 있는 **수십 분 동안만** 쓸모가 있다.
+  // 그래서 상태 코드는 그대로 두고(degraded 로 503 을 내면 복구가 자기 자신을 막는다)
+  // 헤더 2개와 본문 `signal` 요약으로 걸 수 있는 표면만 만든다 — 알림 발신은 하지 않는다
+  // (폴링마다 중복이 되고 서버리스에서 디듀프할 방법이 없다. signal.limits 에 적어 내보낸다).
+  // 체크 이름·판정·개수만 담는다(설정값·호스트·행 수 없음).
+  return NextResponse.json(withSignal(body), {
     status: statusCode(body.status),
-    headers: { 'Cache-Control': 'no-store' },
+    headers: { 'Cache-Control': 'no-store', ...signalHeaders(body) },
   });
 }
