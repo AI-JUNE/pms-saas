@@ -22,6 +22,7 @@ import { securityReapplyCheck } from '@/lib/postRestoreSecurity';
 import { periodicCheckHealth } from '@/lib/periodicCheck';
 import { rateLimitResponse, RL } from '@/lib/ratelimit';
 import { recoveryReadinessCheck } from '@/lib/recoveryVerify';
+import { rehearsalCoverageCheck } from '@/lib/rehearsalCoverage';
 import { rehearsalScopeCheck } from '@/lib/rehearsalScope';
 import { pitrWindowCheck } from '@/lib/recoveryWindow';
 import { writeFreezeCheck } from '@/lib/writeFreeze';
@@ -169,6 +170,16 @@ export async function GET(req: Request) {
   // 선언도 함께 틀린 배포로 간다 — 그래서 운영 배포 자신이 production_rehearsal 로 보고한다.
   // 판정·역할·키 이름만 담고(설정값·호스트 없음) required: false 라 503 이 되지 않는다.
   checks.rehearsalScope = rehearsalScopeCheck();
+
+  // 그 리허설이 **어느 절차를 검증했는가**(RUNBOOK §6·§6-2). 위 체크들이 전제로 깔고 있는 문장은
+  // 「이 절차는 실제로 작동한다」이고 근거는 §6 리허설 하나인데, 그것을 기계적으로 말하는
+  // `checks.recovery` 는 **일자와 결과 두 칸만** 본다 — 「언제 했는가」는 말하고 「무엇을 검증했는가」는
+  // 말하지 않는다. 이 RUNBOOK 은 소절 19개·체크리스트 36항목·복구 중에만 넣는 기록 키 8개로 자랐고
+  // 그 변경을 만드는 쪽이 야간 자동 개발 자신이다 — 그래서 **장치가 좋아질수록 리허설 근거는 낡는데**
+  // 기한 판정은 시간만 보므로(절차 변경은 기한을 앞당기지 않는다) `ok` 가 그대로 유지된다.
+  // 여기서 그 축을 분리해, 리허설 뒤에 들어온 단위와 범위 기록에 없는 단위를 드러낸다.
+  // 단위 키(소절 번호)·판정·날짜·개수만 담고(담당자·비고 없음) required: false 라 503 이 되지 않는다.
+  checks.rehearsalCoverage = rehearsalCoverageCheck();
 
   // 배포 롤백이 유지되고 있는지(RUNBOOK §5·§5-1). §5 2단계는 「`commit` 이 롤백 대상과 일치하는지
   // 확인」인데 그 눈 확인은 **그 순간**만 말한다 — 이 배포 경로는 AutoPush(20분) → push →

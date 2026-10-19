@@ -99,6 +99,7 @@ export const ENV_VARS: EnvVar[] = [
   { key: 'RECOVERY_LAST_REHEARSAL', kind: 'config', group: '복구 리허설', note: '마지막 리허설 일자(YYYY-MM-DD)' },
   { key: 'RECOVERY_LAST_REHEARSAL_RESULT', kind: 'config', group: '복구 리허설', note: '마지막 리허설 결과(정상/부분 통과/실패)' },
   { key: 'RECOVERY_LAST_REHEARSAL_KIND', kind: 'config', group: '복구 리허설', note: '마지막 리허설 유형(정기/사건). 선택' },
+  { key: 'RECOVERY_LAST_REHEARSAL_SCOPE', kind: 'config', group: '복구 리허설', note: '마지막 리허설이 **수행한 절차 단위** 목록(RUNBOOK §6-2. `asOf=…;rev=…;units=1-1,2-1` 형식). 신선도 판정은 일자·결과만 보므로 리허설 **뒤에 추가된 소절**은 한 번도 수행되지 않았는데도 ok 로 남았다 — 이 기록이 그 축을 본다. 유실 시 범위 판정이 `unrecorded`(판정 불가)로 떨어진다. **영구 기록이라 임시 키가 아니다**', indirectIn: 'src/lib/rehearsalCoverage.ts' },
   { key: 'RECOVERY_CHECK_INTERVAL_DAYS', kind: 'config', group: '복구 리허설', note: 'RUNBOOK §2 정기 점검 주기(일). 미설정 시 점검이 밀렸는지 판정 보류 — 임의 기본 주기 없음' },
   { key: 'RECOVERY_LAST_CHECK', kind: 'config', group: '복구 리허설', note: 'RUNBOOK §2 정기 점검을 마친 일자(YYYY-MM-DD). **날짜를 품지 않는 설정값(보존 창 길이·연결 대상 지문)의 유일한 확인 시점**이다 — 유실 시 그 값들이 언제 기준인지 알 수 없어진다' },
   { key: 'RECOVERY_DATA_BASELINE', kind: 'config', group: '복구 리허설', note: '핵심 테이블 행수 기준 스냅샷. 유실 시 복구 후 행 복원을 대조할 기준이 사라진다(no_baseline)' },

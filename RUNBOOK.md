@@ -971,6 +971,10 @@ Vercel 환경변수는 DB 백업에 포함되지 않으므로 별도 보관한�
 #### 4-7. 복구 리허설 (6절과 같은 키)
 
 `RECOVERY_REHEARSAL_INTERVAL_DAYS` · `RECOVERY_LAST_REHEARSAL` · `RECOVERY_LAST_REHEARSAL_RESULT` · `RECOVERY_LAST_REHEARSAL_KIND` — 의미는 6절 표 참조.
+`RECOVERY_LAST_REHEARSAL_SCOPE` — 마지막 리허설이 **수행한 절차 단위** 목록(아래 6-2).
+신선도 판정(`checks.recovery`)은 **일자와 결과 두 칸만** 보므로, 리허설 **뒤에 추가된 소절**은
+한 번도 수행되지 않았는데도 `ok` 로 남았다 — 이 기록이 그 축을 본다. **유실되면 범위 판정이
+`unrecorded`(판정 불가)로 떨어진다.** 담당자·비고는 넣지 않는다(공개 엔드포인트에 나간다).
 `RECOVERY_CHECK_INTERVAL_DAYS` · `RECOVERY_LAST_CHECK` — **2절 정기 점검**의 주기(일)와 마지막 점검 일자(위 2-1).
 점검 일자는 **날짜를 품지 않는 설정값**(`RECOVERY_PITR_RETENTION_HOURS`·`RECOVERY_EXPECTED_DB`)의
 **유일한 확인 시점**이다 — 유실되면 그 값들이 언제 기준인지 알 수 없어지고(`unconfirmed`),
@@ -1252,6 +1256,7 @@ node --input-type=module -e "import {deployRollbackStatus,rollbackText} from './
 | `RECOVERY_LAST_REHEARSAL` | `YYYY-MM-DD` | 마지막 리허설 일자. 형식 밖·비실존 날짜·미래 날짜는 무효 처리 |
 | `RECOVERY_LAST_REHEARSAL_RESULT` | `정상` / `부분 통과` / `실패` | `정상`이 아니면 `failing` — 기한 내여도 `ok`가 되지 않는다 |
 | `RECOVERY_LAST_REHEARSAL_KIND` | `정기` / `사건` | 선택 |
+| `RECOVERY_LAST_REHEARSAL_SCOPE` | `asOf=…;rev=…;units=1-1,2-1,…` | 그 리허설이 **수행한 절차 단위**. 위 네 칸은 「언제·결과」만 말하고 **「무엇을 검증했는가」는 말하지 않는다** — 아래 6-2 |
 
 > 담당자 이름·비고는 환경변수에 넣지 않는다(공개 엔드포인트 노출 방지). 사람 정보는 위 표에만 둔다.
 
@@ -1312,11 +1317,73 @@ curl -s "$BASE/api/health" | node -e "let s='';process.stdin.on('data',d=>s+=d).
 ※ `required: false` 라 어느 경우에도 503 이 되지 않는다(리허설 상태로 서비스를 내리면 복구·리허설
 자신이 막힌다). 응답에는 **설정값·호스트·연결 문자열을 담지 않는다** — 판정·역할·키 이름뿐이다.
 
+### 6-2. 리허설이 **어느 절차를 검증했는가** — 범위 기록
+
+1·2·3·4·5절의 기계적 판정이 전부 전제로 깔고 있는 문장은 하나다 — 「이 절차는 실제로 작동한다」.
+그 근거는 이 6절 리허설 하나이고, 그것을 기계적으로 말하는 것은 위 **기한 추적**(`checks.recovery`)이다.
+그런데 그 판정이 보는 것은 **일자와 결과 두 칸**뿐이다. 「언제 했는가」는 말하고 **「무엇을 검증했는가」는
+말하지 않는다.**
+
+- **리허설은 「그때의 절차」를 검증한다.** 이 문서는 3절이 여덟 줄이던 상태에서 소절 19개·아래
+  체크리스트 36항목·복구 중에만 넣는 기록 키 8개로 자랐다. 그 전부가 리허설 **뒤에** 들어왔다면
+  한 번도 수행된 적이 없는데, 신선도는 날짜만 보므로 `ok` 다 — 그리고 그 `ok` 를 읽는 쪽
+  (2-2 `signal` · 2절 월 점검 · 마켓플레이스 보안 설명)은 「복구 절차가 검증됐다」로 읽는다.
+- **기한 판정은 시간만 본다.** `RECOVERY_REHEARSAL_INTERVAL_DAYS` 로 `stale` 을 내는데
+  **절차 변경은 기한을 앞당기지 않는다** — 어제 3절을 통째로 고쳐도 열흘 전 리허설은 기한 안이다.
+- **그 변경을 만드는 쪽이 야간 자동 개발 자신이다.** 매 배치가 절차를 늘린다 — 그래서 **장치가
+  좋아질수록 리허설 근거는 낡는데**, 낡는 쪽으로는 아무 신호도 생기지 않는다.
+
+**기록.** 리허설 당일 아래 명령으로 범위 한 줄을 산출해 `RECOVERY_LAST_REHEARSAL_SCOPE` 에 넣는다.
+그 줄은 「전 단위를 수행했다」는 **선언**이므로 **건너뛴 단위는 손으로 지운다** — 지우는 것이 이
+기록의 쓸모다(지우지 않으면 표의 `정상` 과 같은 값이 된다).
+
+```bash
+curl -s "$BASE/api/health" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const c=JSON.parse(s).checks.rehearsalCoverage.detail;console.log(c.verdict,'covered='+c.coveredCount+'/'+c.unitCount,'rev='+c.currentRev);console.log('uncovered:',(c.uncovered||[]).join(',')||'-');console.log('added-since-rehearsal:',(c.addedSinceRehearsal||[]).join(',')||'-');console.log(c.action)})"
+```
+
+| `verdict` | 뜻 | 할 일 |
+| --- | --- | --- |
+| `no_rehearsal` | 리허설 기록 자체가 없다 — **범위 판정 보류**(미실시는 `checks.recovery` 가 말한다) | 1회 수행하고 표·일자·범위를 함께 적는다 |
+| `unrecorded` | 일자는 있는데 **무엇을 검증했는지 없다** | **통과가 아니라 판정 불가다.** 다음 리허설에서 위 명령으로 범위를 적는다 |
+| `invalid_record` | 범위 기록을 읽을 수 없다 | 위 형식으로 다시 적는다(사람 이름·비고는 넣지 않는다). 일부만 읽으면 어느 단위를 덮었는지 알 수 없어 채택하지 않는다 |
+| `procedure_changed` | 범위에 **없는 절차 단위가 있다** | 그 단위는 복구일에 처음 밟는다 — 해당 소절만 따로 리허설하고 범위를 갱신한다 |
+| `undated` | 범위가 **언제 기준인지** 모른다 | 리허설 당일 날짜(`asOf`)를 함께 적는다 |
+| `scope_after_rehearsal` | 범위를 적은 날이 리허설보다 **뒤**다 | 그 사이에 들어온 단위까지 덮였을 수 있다 — 리허설 당일 산출한 범위로 다시 적는다 |
+| `ok` | 마지막 리허설이 현재 단위를 모두 덮고 있다 | 다음 리허설에서도 범위를 함께 갱신한다 |
+
+어긋남의 방향 세 가지:
+
+| 방향 키 | 언제 | 누가 알아채는가 |
+| --- | --- | --- |
+| `procedure_outruns_rehearsal` | 절차에 소절·기록 키가 추가되는데 리허설은 주기대로만 돈다 | **아무도** — 일자·결과만 보므로 `ok` 가 유지되고 기한은 절차 변경으로 앞당겨지지 않는다 |
+| `scope_stamped_later` | 리허설을 마친 **뒤에** 범위를 다시 떠서 넣는다 | 아무도 — 날짜가 새것이라 기한에도 걸리지 않는다(`scope_after_rehearsal` 로 드러낸다) |
+| `unit_removed` | 소절이 사라졌는데 범위에 옛 키가 남는다 | `unknownUnits` 로 따로 보고한다 — **유실로 단정하지 않는다**(의도적 삭제일 수 있다) |
+
+**단위는 번호 붙은 소절이다.** 정본은 `lib/rehearsalCoverage.ts` 의 `PROCEDURE_UNITS` 이고,
+테스트가 **실제 이 문서의 소절 목록과 양방향으로** 대조한다 — 새 소절을 추가하면서 정본에
+등록하지 않으면 CI 가 실패한다(등록하지 않으면 **절차는 자라는데 범위 판정은 그대로 `ok`** 가
+된다). 환경변수 묶음 목록(4-1~4-9·4-11)은 리허설로 수행할 단계가 아니라서 단위에서 빼고,
+그 예외는 `NON_PROCEDURE_SECTIONS` 에 이유와 함께 적어 둔다.
+
+※ 이 판정이 보장하지 **못하는** 것(`detail.limits` 로 함께 나온다):
+범위 기록은 「그 단위를 **수행했다고 적었다**」는 뜻이고 수행 내용·통과 여부는 검증하지 않는다 ·
+단위는 **소절**이고 그 안의 모든 체크리스트 항목이 수행됐다는 뜻은 아니다 ·
+3절 **1~8단계 본 절차**는 단위로 세지 않는다(그 수행은 체크리스트와 표의 `검증 결과` 가 말한다) ·
+체크리스트가 번호로 인용하지 않는 단위(`detail.uncited`)는 리허설에서 **이름으로 찾을 수 없다** ·
+`since` 는 사람이 적은 날짜라 소절이 **존재하는지**만 대조된다 ·
+`rev` 는 요약 표지일 뿐이고 판정은 **단위 목록**으로 한다 · 이 배포의 env 만 본다.
+
+※ `required: false` 라 어느 경우에도 503 이 되지 않는다(리허설 범위로 서비스를 내리면 복구
+자신이 막힌다). 응답에는 단위 키(소절 번호)·판정·날짜·개수만 담는다 — 담당자·비고는 담지 않는다.
+
 ### 리허설 체크리스트
 
 - [ ] **시작 전에** 리허설 대상 배포에만 `RECOVERY_REHEARSAL_ACTIVE=true` 를 선언하고 재배포했다 —
       `checks.rehearsalScope.detail.verdict` 가 `rehearsal` 이다(§6-1). 운영 배포에서 같은 응답이
       `production_rehearsal` 이면 **스코프를 틀린 것**이므로 파괴적 단계로 넘어가지 않는다
+- [ ] **시작 전에** `checks.rehearsalCoverage.detail.addedSinceRehearsal` 로 지난 리허설 **뒤에 절차에
+      들어온 단위**를 확인하고, 그 소절을 이번 리허설 범위에 넣었다(§6-2. 기한 판정은 시간만 보므로
+      절차가 바뀌어도 `checks.recovery` 는 `ok` 를 유지한다)
 - [ ] 손상 구간 감사로그를 기간 지정으로 조회해 `capture.verdict` 가 `complete` 가 될 때까지 받았다(§3-5)
 - [ ] 받은 기록을 **복구 대상 DB 밖**에 보관했다 — 전환하면 그 구간은 사라진다
 - [ ] 보존 창 길이가 **최근 확인된 값**인지 — `checks.periodicCheck.detail.verdict` 가 `ok` 이고
@@ -1367,6 +1434,10 @@ curl -s "$BASE/api/health" | node -e "let s='';process.stdin.on('data',d=>s+=d).
       `due` 가 뜨는 것까지가 점검 대상이다(채우면 「고지했다」는 거짓 근거가 남는다)
 - [ ] 소요시간 측정(§3-7 `assessDuration`: 1단계 중단 결정 ~ 7단계 차단 해제) 및 위 표 기록
       — 비고 칸은 §3-10 `recordRemark()` 가 구간·고지 시각과 함께 만들어 준다
+- [ ] **수행한 절차 단위**를 §6-2 명령으로 산출해 `RECOVERY_LAST_REHEARSAL_SCOPE` 에 적었다 —
+      건너뛴 단위는 **손으로 지웠다**(지우지 않으면 표의 `정상` 과 같은 값이 된다).
+      `checks.rehearsalCoverage.detail.verdict` 가 `ok` 이고 `uncovered` 가 비어 있다.
+      일부만 수행했다면 `procedure_changed` 가 **정상이고**, 그 목록이 다음 리허설의 범위다
 - [ ] 표지를 지우기 **전에** `checks.lossNotice.detail.canClearMarkers` 가 `true` 이고
       `blockers` 가 비어 있음을 확인했다(§3 8단계 4번) — 리허설에서는 고지 기록이 없으므로
       `blockers` 가 **차 있는 것이 정상**이고, 그 사실을 확인하는 것이 점검 대상이다

@@ -18,6 +18,7 @@ export type CheckName =
   | 'externalState'
   | 'assetCoverage'
   | 'rehearsalScope'
+  | 'rehearsalCoverage'
   | 'deployPin'
   | 'disclosure';
 
