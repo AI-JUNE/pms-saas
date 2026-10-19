@@ -19,6 +19,7 @@ export type CheckName =
   | 'assetCoverage'
   | 'rehearsalScope'
   | 'rehearsalCoverage'
+  | 'rehearsalObservation'
   | 'deployPin'
   | 'disclosure';
 

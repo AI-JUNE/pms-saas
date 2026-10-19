@@ -23,6 +23,7 @@ import { periodicCheckHealth } from '@/lib/periodicCheck';
 import { rateLimitResponse, RL } from '@/lib/ratelimit';
 import { recoveryReadinessCheck } from '@/lib/recoveryVerify';
 import { rehearsalCoverageCheck } from '@/lib/rehearsalCoverage';
+import { rehearsalObservationCheck } from '@/lib/rehearsalObservation';
 import { rehearsalScopeCheck } from '@/lib/rehearsalScope';
 import { pitrWindowCheck } from '@/lib/recoveryWindow';
 import { writeFreezeCheck } from '@/lib/writeFreeze';
@@ -196,6 +197,18 @@ export async function GET(req: Request) {
   // 각 배치는 「값은 담지 않는다」를 지켰고 그래서 **판정과 키 이름만으로 생기는** 이 노출은
   // 한 번도 점검되지 않았다. 판정·키 이름만 담고(토큰 값·설정값 없음) required: false.
   checks.disclosure = disclosureCheck();
+
+  // 위 체크들을 **리허설이 실제로 읽는가**(RUNBOOK §6·§6-3). 체크리스트 36항목의 거의 전부는
+  // 「무엇을 한 뒤 `checks.<이름>.detail.<칸>` 이 `<값>` 인지 확인했다」 꼴이고, 그 인용이 이
+  // 절차의 **유일한 실행 표면**이다 — 그런데 그것이 가리키는 곳이 실제로 있는지 아무도 대조하지
+  // 않았다. 칸·판정값 이름이 바뀌면 담당자가 받는 것은 오류가 아니라 `undefined` 이고, 그것은
+  // 「문제 없음」과 글자 하나 다르지 않다(그 항목은 조용히 통과로 기록된다). 게다가 포괄 항목
+  // 「전 항목 정상」은 **어떤 리허설에서도 통과할 수 없었다** — 복구 관련 체크는 의도적으로
+  // degraded 를 내기 때문이다. 그래서 여기서 (가) 정본이 가리키는 체크가 응답에 있는지,
+  // (나) 체크리스트가 읽지 않는 장치가 있는지, (다) degraded 중 **설명되지 않은 것**이 무엇인지를
+  // 드러낸다. 이 판정은 **다른 체크를 전부 실은 뒤**에 와야 한다(뒤에 실리는 체크는 보지 못한다).
+  // 체크 이름·판정·개수만 담고(설정값·행 수·시각 없음) required: false 라 503 이 되지 않는다.
+  checks.rehearsalObservation = rehearsalObservationCheck({ checks });
 
   const body = buildHealthBody({ checks, uptimeSec: (Date.now() - startedAt) / 1000 });
 

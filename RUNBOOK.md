@@ -1376,6 +1376,69 @@ curl -s "$BASE/api/health" | node -e "let s='';process.stdin.on('data',d=>s+=d).
 ※ `required: false` 라 어느 경우에도 503 이 되지 않는다(리허설 범위로 서비스를 내리면 복구
 자신이 막힌다). 응답에는 단위 키(소절 번호)·판정·날짜·개수만 담는다 — 담당자·비고는 담지 않는다.
 
+### 6-3. 리허설이 **무엇을 보고 판정하는가** — 인용의 대조
+
+위 6-2 는 리허설이 **어느 소절**을 검증했는지를 본다. 그 소절 안에서 사람이 실제로 **수행하는
+것**은 아래 체크리스트이고, 그 항목의 거의 전부는 같은 모양이다 — 「무엇을 한 뒤
+`checks.<이름>.detail.<칸>` 이 `<값>` 인지 확인했다」. 즉 **이 절차의 유일한 실행 표면은
+체크리스트의 인용**이다. 그런데:
+
+- **그 인용이 가리키는 곳이 실제로 있는지 아무도 대조하지 않았다.** 인용은 Markdown 안의 평범한
+  문자열이고 체크 이름·상세 칸·판정값은 전부 코드가 정하는데, 그 코드를 매일 고치는 쪽이 야간
+  자동 개발 자신이다. 이름이 바뀌면 담당자가 받는 것은 오류가 아니라 **`undefined`** 이고,
+  그것은 「문제 없음」과 글자 하나 다르지 않다 — 그 항목은 조용히 통과로 기록되고 위 표에는
+  `정상` 이 남는다.
+- **달성할 수 없는 항목이 하나 있었다** — 「`GET /api/health` 전 항목 정상」. 복구 관련 체크는
+  **의도적으로** `ok: false` 를 낸다: 평상시에도 `recovery`(리허설 미실시)·`recoveryWindow`
+  (보존기간 `[확인 필요]`)·`periodicCheck`(월 점검 미기록)가 그렇고, 리허설 중에는
+  `writeFreeze`·`rehearsalScope`·`postRestoreSecurity`·`externalState`·`lossNotice` 가 더해진다.
+  그래서 그 항목은 통과할 수 없고 담당자는 체크하고 넘어가게 된다 — 체크리스트에서 유일한 포괄
+  항목이므로, 그렇게 묻히는 것은 그 항목 하나가 아니라 **아무도 따로 보지 않는 모든 체크의 실패**다.
+- **읽히지 않는 장치가 쌓인다.** 체크는 19개인데 체크리스트가 칸을 인용하는 것은 11개뿐이었다.
+  특히 `disclosure`(2-3 가림)는 **복구 중에만** 작동하고 리허설은 사건 표지를 실제로 넣어 보는
+  유일한 기회인데, 그 가림이 걸리는지 한 번도 확인된 적이 없다.
+
+**확인.** 아래 명령으로 인용이 가리킬 곳을 잃지 않았는지와 **설명되지 않은 degraded** 를 본다.
+
+```bash
+curl -s "$BASE/api/health" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const c=JSON.parse(s).checks.rehearsalObservation.detail;console.log(c.verdict,'phase='+c.phase,'observed='+c.observed);console.log('uncited:',(c.uncited||[]).join(',')||'-');console.log('missing:',(c.missing||[]).join(',')||'-');console.log('expected-degraded:',(c.expectedDegraded||[]).join(',')||'-');console.log('UNEXPECTED-degraded:',(c.unexpectedDegraded||[]).join(',')||'-');console.log(c.action)})"
+```
+
+| `verdict` | 뜻 | 할 일 |
+| --- | --- | --- |
+| `ok` | 체크 전건이 응답에 있고 관측 대상 전건을 체크리스트가 칸으로 인용한다 | `unexpectedDegraded` 가 비어 있는지만 본다(비어 있어도 **설명된 degraded 는 그대로 degraded** 다) |
+| `uncited` | 리허설이 **한 번도 읽지 않는** 체크가 있다 | 그 장치는 복구일에 처음 읽힌다 — 체크리스트에 그 칸을 읽는 항목을 넣고 정본의 `cited` 를 맞춘다 |
+| `missing_check` | 정본이 가리키는 체크가 **응답에 없다** | 배선이 빠졌거나 이름이 바뀌었다. 해당 체크리스트 항목은 `undefined` 를 받으면서 통과로 읽힌다 |
+| `unreadable` | 응답의 `checks` 를 읽을 수 없다 | **「문제 없음」으로 올리지 않는다.** 응답 조립이 바뀌었으면 이 판정을 함께 본다 |
+
+어긋남의 방향 세 가지(전부 응답은 200 이라 사람 눈으로는 알아챌 수 없다):
+
+| 방향 키 | 언제 | 무엇이 조용해지는가 |
+| --- | --- | --- |
+| `renamed_target` | 코드가 판정 칸·판정값 이름을 바꾸는데 체크리스트는 옛 이름을 가리킨다 | 담당자가 받는 것은 오류가 아니라 `undefined` — 「문제 없음」과 구별되지 않는다 |
+| `unobserved_device` | 체크는 매 배치 늘고 체크리스트는 손으로 자란다 | 등록만 되고 인용되지 않은 장치는 **복구일에 처음** 읽힌다 |
+| `blanket_item` | 「전 항목 정상」 류가 구체 인용을 대신한다 | 달성 불가능한 항목이 되어, 아무도 따로 보지 않는 체크의 실패를 함께 덮는다 |
+
+**정본은 `lib/rehearsalObservation.ts` 의 `CHECK_OBSERVATIONS`** 이고 체크 전건(판정 칸 · 값 어휘의
+**정본 위치** · 체크리스트가 읽는가 · **의도적으로 degraded 가 되는 때**)을 적어 둔다. 테스트가
+매번 **실제 이 문서의 체크리스트와 실제 응답 모양·실제 어휘 선언 원문을 대조**한다 — 없는 체크·
+없는 칸을 가리키는 인용, 어휘에 없는 기대값, 포괄 문구로 되돌아간 항목, 그리고 **`CheckName` 에
+체크를 추가하면서 정본에 등록하지 않는 변경**이 전부 CI 실패다(등록하는 순간 `cited: false` 가
+되어 「리허설이 아직 그 장치를 본 적 없다」가 응답에 남는다). 값 어휘는 이 모듈에 **복사하지
+않는다** — 복사해 두면 이름이 바뀌어도 둘 다 옛 이름이라 영원히 맞는다.
+
+※ 이 판정이 보장하지 **못하는** 것(`detail.limits` 로 함께 나온다):
+인용이 가리키는 칸이 있다는 것은 **「읽을 수 있다」까지만** 뜻한다(실제로 읽었는지는 6-2 가 말한다) ·
+값 어휘 대조는 **인용 바로 뒤의 기대값 하나**만 본다 · boolean·수치 칸은 어휘가 없어 값 대조를 하지 않는다 ·
+`unexpectedDegraded` 가 비어 있다 **≠ 정상**(설명된 degraded 는 여전히 degraded 다 — 이 목록은 그것을 지우지 않는다) ·
+이 판정은 **응답 모양**만 보고 그 칸의 값이 사실인지는 각 체크가 말한다 ·
+자기 자신은 판정 시점에 아직 응답에 실리지 않아 `missing` 으로 세지 않는다 ·
+인용 대조는 **CI 시점**에만 돌고 런타임 응답은 정본의 `cited` 선언을 그대로 말한다.
+
+※ **설명되지 않은 degraded 로 `ok` 를 내리지 않는다** — 그 체크가 이미 스스로 degraded 로 말하고
+있고 도달은 2-2 가 맡는다(중복 보고 금지). `required: false` 라 어느 경우에도 503 이 되지 않고,
+응답에는 체크 이름·판정·개수만 담는다(설정값·행 수·시각 없음).
+
 ### 리허설 체크리스트
 
 - [ ] **시작 전에** 리허설 대상 배포에만 `RECOVERY_REHEARSAL_ACTIVE=true` 를 선언하고 재배포했다 —
@@ -1386,7 +1449,10 @@ curl -s "$BASE/api/health" | node -e "let s='';process.stdin.on('data',d=>s+=d).
       절차가 바뀌어도 `checks.recovery` 는 `ok` 를 유지한다)
 - [ ] 손상 구간 감사로그를 기간 지정으로 조회해 `capture.verdict` 가 `complete` 가 될 때까지 받았다(§3-5)
 - [ ] 받은 기록을 **복구 대상 DB 밖**에 보관했다 — 전환하면 그 구간은 사라진다
-- [ ] 보존 창 길이가 **최근 확인된 값**인지 — `checks.periodicCheck.detail.verdict` 가 `ok` 이고
+- [ ] 보존 창 길이가 **설정돼 있는지** — `checks.recoveryWindow.detail.retentionConfigured` 가
+      `true`. `false` 면 §3-6 이 `unknown_window`(= 「창 밖」이 아니라 **「모른다」**)에서 멈추므로
+      파괴적 단계로 넘어가지 않는다
+- [ ] 그 값이 **최근 확인된 값**인지 — `checks.periodicCheck.detail.verdict` 가 `ok` 이고
       `detail.untrusted` 가 비어 있다(`overdue`·`absent` 면 §3-6 판정이 옛 플랜 기준이다. 2-1)
 - [ ] 복구 시점을 §3-6 명령으로 산출했다 — `verdict` 가 `ok` 이고 ε 의 근거(원인 작업 직전 기록)를 적었다
 - [ ] 산출한 `deadline` 을 적어 두고 그 안에 브랜치를 만들었다(보존 창 하한은 시간과 함께 전진한다)
@@ -1394,6 +1460,10 @@ curl -s "$BASE/api/health" | node -e "let s='';process.stdin.on('data',d=>s+=d).
 - [ ] 그 `true` 를 확인한 시각을 `RECOVERY_WRITE_FREEZE_AT` 에 적었다 —
       `checks.incidentClosure.detail.state` 가 `recorded`(§3-7. 해제 후에는 이 시각을 알 수 없다)
 - [ ] 차단 중 쓰기가 실제로 거절되는지 1건 확인(예: `PATCH` 아무 자원 → `503` + `code: WRITE_FROZEN`)
+- [ ] 사건 표지가 들어 있는 동안 **무인증 응답이 상세를 가리는지** —
+      `checks.disclosure.detail.verdict` 가 `gated` 다. `HEALTH_DETAIL_TOKEN` 이 없으면 `exposed`
+      가 나오는 것이 **정상 결과**이고, 리허설은 그 표지를 실제로 넣어 보는 **유일한 기회**이므로
+      어느 쪽인지 확인하는 것까지가 점검 대상이다(2-3. 복구일에는 토큰을 넣을 겨를이 없다)
 - [ ] Neon 복구 브랜치 생성 성공 — 그 브랜치의 **지문**을 §3-4 명령으로 산출해 적어 둔다
 - [ ] 스테이징에서 애플리케이션 기동 성공
 - [ ] 스테이징이 보는 DB 가 복구 브랜치인지 — `GET /api/admin/recovery-verify` 의
@@ -1418,7 +1488,11 @@ curl -s "$BASE/api/health" | node -e "let s='';process.stdin.on('data',d=>s+=d).
 - [ ] 대조 시각을 `RECOVERY_EXTERNAL_RECONCILED_AT` 에 적었다 —
       `checks.externalState.detail.state` 가 `recorded`(결제 반영이 OFF 면 `not_applicable` 이 정상이다)
 - [ ] 쓰기 차단 **해제**(§3 7단계) — `checks.writeFreeze.detail.frozen` 이 `false` 로 돌아왔다
-- [ ] `GET /api/health` 전 항목 정상
+- [ ] `GET /api/health` 의 degraded 가 **설명된 것뿐인지** —
+      `checks.rehearsalObservation.detail.verdict` 가 `ok` 이고 `detail.unexpectedDegraded` 가
+      비어 있다(6-3). 「전 항목 정상」은 확인 항목이 될 수 없다 — 복구 관련 체크는 **의도적으로**
+      degraded 를 내므로 그 문구는 어떤 리허설에서도 통과하지 못하고, 통과하지 못하는 항목은
+      **아무도 따로 보지 않는 체크의 실패까지 함께 덮는다**
 - [ ] 첨부의 복구 경계를 확인했다 — `checks.assetCoverage.detail.verdict` 가 `metadata_only` 이고,
       복구 뒤 화면에 보이는 첨부가 **메타데이터뿐**임을 1건 열어 확인했다(§1-1).
       `unprotected` 면 제공자 객체 목록과 `attachments.storage_key` 대조가 **추가 단계**다
@@ -1447,7 +1521,11 @@ curl -s "$BASE/api/health" | node -e "let s='';process.stdin.on('data',d=>s+=d).
       (남으면 다음 사건에서 **옛 시각이 「재적용했다」는 근거**로 쓰인다)
 - [ ] `RECOVERY_EXTERNAL_RECONCILED_AT` 를 지웠다 — `checks.externalState.detail.state` 가
       `not_applicable`(반영 OFF) 또는 `normal`(반영 ON) 로 돌아왔다
-- [ ] 리허설 중 **배포 롤백(Promote)을 쓰지 않았다** — 쓰면 차단·DB 교체가 함께 되돌아간다(5-1).
+- [ ] 표·env 를 적은 뒤 **그 기록이 판정에 닿았는지** — `checks.recovery.detail.rehearsal.status`
+      가 `ok` 로 바뀌었다. `RECOVERY_REHEARSAL_INTERVAL_DAYS` 가 비어 있으면 기한 판정이 보류되어
+      「적었는데 아무것도 바뀌지 않는」 상태가 남는다(위 **기한 추적** 표)
+- [ ] 리허설 중 **배포 롤백(Promote)을 쓰지 않았다** — `checks.deployPin.detail.verdict` 가
+      `off` 다(쓰면 차단·DB 교체·기준 지문이 옛 배포의 env 스냅샷으로 함께 되돌아간다. 5-1).
 - [ ] `RECOVERY_REHEARSAL_ACTIVE` 를 지웠다 — `checks.rehearsalScope.detail.verdict` 가 `normal` 로
       돌아왔다(남으면 다음 사건의 `degraded` 가 **「리허설 중」으로 읽힌다**. §6-1 `declaration_left_on`)
       코드 회귀가 끼어들면 `git revert` 재배포로 처리한다

@@ -115,7 +115,7 @@ export const PROCEDURE_UNITS: readonly ProcedureUnit[] = [
     key: '2-3',
     title: '공개 헬스 응답의 상세 — 복구 중에는 사건 상태를 공표한다',
     since: '2026-10-18',
-    cited: false,
+    cited: true,
     skipped: '복구일에 `HEALTH_DETAIL_TOKEN` 이 없어 사건 상태가 무인증으로 나간다(그때는 넣을 겨를이 없다)',
   },
   {
@@ -222,6 +222,13 @@ export const PROCEDURE_UNITS: readonly ProcedureUnit[] = [
     since: '2026-10-19',
     cited: true,
     skipped: '범위를 적지 않아 다음 리허설까지 「무엇이 검증됐는가」를 아무도 알 수 없다',
+  },
+  {
+    key: '6-3',
+    title: '리허설이 무엇을 보고 판정하는가 — 인용의 대조',
+    since: '2026-10-19',
+    cited: true,
+    skipped: '체크리스트의 인용이 가리킬 곳을 잃은 채로 리허설이 돌아, `undefined` 를 「문제 없음」으로 읽는다',
   },
 ];
 
