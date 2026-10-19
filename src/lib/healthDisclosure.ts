@@ -39,6 +39,7 @@ import { isSwitchOn, presenceOf } from './envPresence.ts';
 import { HEALTH_DEGRADED_HEADER } from './healthSignal.ts';
 import { FREEZE_AT_ENV } from './incidentClosure.ts';
 import { EXTERNAL_RECONCILED_ENV } from './externalReconcile.ts';
+import { NOTICE_AT_ENV, RESTORE_POINT_ENV } from './lossNotice.ts';
 import { SECURITY_REAPPLIED_ENV } from './postRestoreSecurity.ts';
 import { REHEARSAL_ACTIVE_ENV } from './rehearsalScope.ts';
 import { WRITE_FREEZE_ENV } from './writeFreeze.ts';
@@ -102,6 +103,13 @@ export const DISCLOSURES: readonly Disclosure[] = [
     learns: '차단을 건 정확한 시각 — 즉 사건 발생·대응 타임라인',
     enables: '고지 전에 사건을 외부에 알리는 것 · 유실 구간을 역산해 그 구간의 쓰기를 노리는 것',
     whyUnnoticed: '「시각은 값이 아니라 기록」으로 분류돼 PII·시크릿 점검을 통과했다',
+  },
+  {
+    check: 'lossNotice',
+    fields: ['state', 'windowVerdict', 'notified', 'noticedAt', 'blockers'],
+    learns: '유실 구간을 **아직 고지하지 않았다**(`due`)는 사실과, 고지를 보낸 시각',
+    enables: '고지 전 구간에 사건을 외부에 먼저 알리는 것 · 「아직 아무도 모른다」는 창을 아는 것',
+    whyUnnoticed: '고지 수행 기록은 **이번에 처음 생긴 값**이다 — 구간 수치는 애초에 담지 않았다',
   },
   {
     check: 'envPresence',
@@ -174,6 +182,8 @@ export interface IncidentMarker {
 export const INCIDENT_MARKERS: readonly IncidentMarker[] = [
   { key: WRITE_FREEZE_ENV, kind: 'switch', means: '쓰기 차단(§3 2단계)이 걸려 있다 — 복구 중이다' },
   { key: FREEZE_AT_ENV, kind: 'record', means: '차단을 건 시각이 기록돼 있다(§3-7) — 사건 타임라인이 열려 있다' },
+  { key: RESTORE_POINT_ENV, kind: 'record', means: '복구 시점(T-ε)이 기록돼 있다(§3-10) — 유실 구간의 **시작**이다' },
+  { key: NOTICE_AT_ENV, kind: 'record', means: '유실 구간 고지를 발신한 시각이 기록돼 있다(§3 8단계 2번)' },
   { key: SECURITY_REAPPLIED_ENV, kind: 'record', means: '보안 상태 재적용 시각이 기록돼 있다(§3 6-1단계)' },
   { key: EXTERNAL_RECONCILED_ENV, kind: 'record', means: '외부 상태 대조 시각이 기록돼 있다(§3 6-2단계)' },
   { key: REHEARSAL_ACTIVE_ENV, kind: 'switch', means: '이 배포가 리허설 대상으로 선언돼 있다(§6-1)' },

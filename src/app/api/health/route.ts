@@ -17,6 +17,7 @@ import {
 } from '@/lib/healthDisclosure';
 import { signalHeaders, withSignal } from '@/lib/healthSignal';
 import { closureCheck } from '@/lib/incidentClosure';
+import { lossNoticeCheck } from '@/lib/lossNotice';
 import { securityReapplyCheck } from '@/lib/postRestoreSecurity';
 import { periodicCheckHealth } from '@/lib/periodicCheck';
 import { rateLimitResponse, RL } from '@/lib/ratelimit';
@@ -120,6 +121,18 @@ export async function GET(req: Request) {
   // 그래서 **차단이 걸려 있는 동안**(= 아직 기록할 수 있는 동안) 미기록을 드러낸다.
   // 시각·상태만 담고(행 수·담당자 없음) required:false 라 503 이 되지는 않는다.
   checks.incidentClosure = closureCheck();
+
+  // 그 구간을 **실제로 고지했는지**(RUNBOOK §3 8단계 2번·§3-10). 위 incidentClosure 가 승격한 것은
+  // 구간의 **끝**뿐이고, 시작인 복구 시점(T-ε)은 여전히 인자였다 — 3단계는 브랜치 **지문**만 적어
+  // 두라고 지시한다. 그래서 `recorded`(끝은 안다)여도 구간이 산출되지 않을 수 있었다. 더 큰 구멍은
+  // 6-1·6-2단계가 각각 기록 키를 갖고 7단계가 그 둘을 선행 조건으로 거는데, **되돌릴 수 없는 외부
+  // 커뮤니케이션**인 고지에는 기록도 게이트도 없었다는 점이다(§6 표 비고의 「고지 완료 여부 확인」은
+  // 읽는 코드가 없는 메모다). 8단계 4번은 표지를 지우라고 지시하고 stale_record 가 그것을 재촉하는데,
+  // 지운 뒤에는 고지 없이 끝낸 복구와 제대로 끝낸 복구가 **구별되지 않는다**.
+  // 그래서 표지가 남아 있는 동안 미기록·미고지를 드러내고 삭제에 선행 조건을 붙인다.
+  // 판정·키 이름·고지 시각·boolean 만 담는다 — **구간 수치와 복구 시점 값은 담지 않는다**
+  // (무인증 응답이라 구간을 역산하는 데 쓰인다). required: false 라 503 이 되지 않는다.
+  checks.lossNotice = lossNoticeCheck();
 
   // 복구가 되돌린 **보안 상태**를 다시 적용했는지(RUNBOOK §3 6-1단계·§3-8). 시점 복구는 업무 데이터만
   // 되돌리는 것이 아니다 — 끊은 세션(sessions 행 삭제)·바꾼 비밀번호(users.password_hash)·잠근 계정·

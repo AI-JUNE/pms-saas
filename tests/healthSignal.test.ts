@@ -79,10 +79,10 @@ test('상시 감시자 셋은 degraded 를 보지 못한다 ⬅ 이 모듈이 �
 
 /* ─────────────────────────── 시한부 체크 정본 ─────────────────────────── */
 
-test('시한부 체크 정본: 창이 닫히면 신호 자체가 사라지는 넷', () => {
+test('시한부 체크 정본: 창이 닫히면 신호 자체가 사라지는 것들', () => {
   assert.deepEqual(
     TIME_BOUND_CHECKS.map((t) => t.name),
-    ['writeFreeze', 'incidentClosure', 'postRestoreSecurity', 'externalState'],
+    ['writeFreeze', 'incidentClosure', 'lossNotice', 'postRestoreSecurity', 'externalState'],
   );
   for (const t of TIME_BOUND_CHECKS) {
     assert.ok(t.window.trim() && t.afterWindow.trim() && t.source.trim(), `${t.name} 칸이 비었다`);

@@ -13,6 +13,7 @@ export type CheckName =
   | 'writeFreeze'
   | 'dbIdentity'
   | 'incidentClosure'
+  | 'lossNotice'
   | 'postRestoreSecurity'
   | 'externalState'
   | 'assetCoverage'

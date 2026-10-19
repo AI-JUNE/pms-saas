@@ -157,7 +157,7 @@ export interface TimeBoundCheck {
 
 /**
  * **창이 닫히면 신호 자체가 사라지는** 체크. 월 1회 사람 점검으로는 원리상 닿지 못한다 —
- * 이 넷은 전부 쓰기 차단(`RECOVERY_WRITE_FREEZE`)이 걸려 있는 **복구 중 수십 분**에만 뜻이 있다.
+ * 전부 쓰기 차단(`RECOVERY_WRITE_FREEZE`)이 걸려 있는 **복구 중 수십 분**에만 뜻이 있다.
  */
 export const TIME_BOUND_CHECKS: readonly TimeBoundCheck[] = [
   {
@@ -171,6 +171,14 @@ export const TIME_BOUND_CHECKS: readonly TimeBoundCheck[] = [
     window: '차단이 걸려 있는 동안(= 유실 구간의 끝을 **아직 기록할 수 있는** 동안)',
     afterWindow: '7단계가 스위치를 지우면 끝을 확정할 근거가 사라진다 — 되돌릴 수 없는 고지를 사람 기억으로 적게 된다',
     source: 'lib/incidentClosure.ts · RUNBOOK §3 8단계·§3-7',
+  },
+  {
+    name: 'lossNotice',
+    window: '차단이 걸려 있는 동안(= 구간의 **두 끝이 아직 env 에 남아 있는** 동안)',
+    afterWindow:
+      '8단계 4번이 표지를 지우면 구간을 되찾을 수도, 「고지했는가」를 물을 수도 없다 — ' +
+      '고지 없이 끝낸 복구가 평상시와 글자 하나 다르지 않다',
+    source: 'lib/lossNotice.ts · RUNBOOK §3 8단계 2번·§3-10',
   },
   {
     name: 'postRestoreSecurity',
