@@ -975,6 +975,9 @@ Vercel 환경변수는 DB 백업에 포함되지 않으므로 별도 보관한�
 신선도 판정(`checks.recovery`)은 **일자와 결과 두 칸만** 보므로, 리허설 **뒤에 추가된 소절**은
 한 번도 수행되지 않았는데도 `ok` 로 남았다 — 이 기록이 그 축을 본다. **유실되면 범위 판정이
 `unrecorded`(판정 불가)로 떨어진다.** 담당자·비고는 넣지 않는다(공개 엔드포인트에 나간다).
+위 네 칸은 **6절 표에도 같은 값이 있다**(`범위` 열 포함 — 2026-10-20 신설). 이 묶음이 유실되면
+표에서 되돌릴 수 있고, 그 복원 줄은 6-4 의 저장소 명령이 만들어 준다(`checks.rehearsalLedger` 가
+두 기록의 어긋남을 드러낸다 — `table_only` 가 바로 「유실됐는데 표에는 남아 있다」는 상태다).
 `RECOVERY_CHECK_INTERVAL_DAYS` · `RECOVERY_LAST_CHECK` — **2절 정기 점검**의 주기(일)와 마지막 점검 일자(위 2-1).
 점검 일자는 **날짜를 품지 않는 설정값**(`RECOVERY_PITR_RETENTION_HOURS`·`RECOVERY_EXPECTED_DB`)의
 **유일한 확인 시점**이다 — 유실되면 그 값들이 언제 기준인지 알 수 없어지고(`unconfirmed`),
@@ -1238,15 +1241,20 @@ node --input-type=module -e "import {deployRollbackStatus,rollbackText} from './
 > 이어서, 스코프를 틀리면 **운영 배포에 걸리면서도 체크리스트가 요구하는 그 응답**이 나온다.
 > 대상 배포에 `RECOVERY_REHEARSAL_ACTIVE=true` 를 선언하고 `checks.rehearsalScope` 로 확인한다.
 
-| 일자 | 유형(정기/사건) | 복구 대상 시점 | 소요시간 | 검증 결과 | 담당 | 비고 |
-| --- | --- | --- | --- | --- | --- | --- |
-| (미실시) | | | | | | 최초 리허설 예정 `[확인 필요]` |
+| 일자 | 유형(정기/사건) | 복구 대상 시점 | 소요시간 | 검증 결과 | 담당 | 비고 | 범위 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| (미실시) | | | | | | 최초 리허설 예정 `[확인 필요]` | |
+
+> 열 순서는 `lib/recovery.ts` 의 파서가 **위치로** 읽는다 — 새 열은 **맨 뒤에** 붙인다(6-4
+> `auditColumnOrder` 가 매번 고정한다). 마지막 `범위` 열은 2026-10-20 에 만들었다: 그 값
+> (`RECOVERY_LAST_REHEARSAL_SCOPE`)이 **env 에만 살아 있어서** Promote 롤백·시크릿 유실로
+> 사라지면 범위 판정이 `unrecorded`(판정 보류)로 조용히 내려앉았다(아래 6-4).
 
 ### 기한 추적 (자동)
 
 위 표는 사람이 채우지만, **미실시·기한초과가 잊히지 않도록** `lib/recovery.ts`가 기계적으로 판정한다.
 
-- `GET /api/health` → `checks.recovery.detail.rehearsal` 에 `status`(missing/stale/failing/ok)·`lastDate`·`ageDays`·`dueDate`·해야 할 일(`action`)이 노출된다.
+- `GET /api/health` → `checks.recovery.detail.rehearsal` 에 `status`(missing/unknown_result/stale/failing/ok)·`lastDate`·`ageDays`·`dueDate`·해야 할 일(`action`)이 노출된다.
   판정용 체크라서 **required: false** — 리허설 미실시로 서비스가 down(503)이 되지는 않고 `degraded`(200)로만 표시된다.
 - 리허설을 실제로 수행하면 위 표에 기록하고, 아래 환경변수를 갱신한다(값 없으면 "미실시"로 남는다).
 
@@ -1254,9 +1262,9 @@ node --input-type=module -e "import {deployRollbackStatus,rollbackText} from './
 | --- | --- | --- |
 | `RECOVERY_REHEARSAL_INTERVAL_DAYS` | 예: `180` | 리허설 주기(일). **미설정이면 기한 판정을 하지 않는다** — 임의 기본 주기를 쓰지 않는다 `[확인 필요]` |
 | `RECOVERY_LAST_REHEARSAL` | `YYYY-MM-DD` | 마지막 리허설 일자. 형식 밖·비실존 날짜·미래 날짜는 무효 처리 |
-| `RECOVERY_LAST_REHEARSAL_RESULT` | `정상` / `부분 통과` / `실패` | `정상`이 아니면 `failing` — 기한 내여도 `ok`가 되지 않는다 |
+| `RECOVERY_LAST_REHEARSAL_RESULT` | `정상` / `부분 통과` / `실패` | `실패`·`부분 통과`는 `failing`. **판독할 수 없으면(비었거나 다른 문구) `unknown_result`** — 둘 다 `ok`가 아니다(2026-10-20 분리. 그전에는 **판독 불가가 `ok` 로 나갔다** — 아래 6-4) |
 | `RECOVERY_LAST_REHEARSAL_KIND` | `정기` / `사건` | 선택 |
-| `RECOVERY_LAST_REHEARSAL_SCOPE` | `asOf=…;rev=…;units=1-1,2-1,…` | 그 리허설이 **수행한 절차 단위**. 위 네 칸은 「언제·결과」만 말하고 **「무엇을 검증했는가」는 말하지 않는다** — 아래 6-2 |
+| `RECOVERY_LAST_REHEARSAL_SCOPE` | `asOf=…;rev=…;units=1-1,2-1,…` | 그 리허설이 **수행한 절차 단위**. 위 네 칸은 「언제·결과」만 말하고 **「무엇을 검증했는가」는 말하지 않는다** — 아래 6-2. 같은 값을 위 표 `범위` 열에도 적는다(6-4) |
 
 > 담당자 이름·비고는 환경변수에 넣지 않는다(공개 엔드포인트 노출 방지). 사람 정보는 위 표에만 둔다.
 
@@ -1439,6 +1447,77 @@ curl -s "$BASE/api/health" | node -e "let s='';process.stdin.on('data',d=>s+=d).
 있고 도달은 2-2 가 맡는다(중복 보고 금지). `required: false` 라 어느 경우에도 503 이 되지 않고,
 응답에는 체크 이름·판정·개수만 담는다(설정값·행 수·시각 없음).
 
+### 6-4. 리허설 기록이 **어디에 남아 있는가** — 표와 env 의 대조
+
+6-2 는 리허설이 **어느 절차 단위**를 검증했는지, 6-3 은 그 단위에서 **무엇을 읽는지**를 기계화했다.
+둘 다 전제는 하나다 — 「리허설 기록이 있다」. 그 기록은 **두 군데**에 있는데, **대조된 적이 없었다.**
+
+- **판정은 사라지는 쪽만 본다.** `rehearsalFreshness` 는 `rehearsalFromEnv(process.env)` 가 만든
+  한 행만 보고, 위 표는 `parseRehearsalTable` 로 읽을 수 있지만 그 값이 **어떤 판정에도 닿지
+  않는다**(테스트의 표 무결성 점검에만 쓰인다). 그래서 판정의 유일한 입력은 환경변수이고,
+  그 자리는 4절이 「복구 대상」으로 선언한 바로 그 자리다 — 시크릿 유실·프로젝트 재생성에서
+  함께 사라진다. 사라지면 신선도는 `missing`, 범위는 `unrecorded`(= **판정 불가**)로 내려앉는데
+  **저장소의 표에는 그 리허설이 그대로 남아 있다.** 되찾을 수 있는데 아무도 되찾지 않는다.
+- **칸이 서로 달랐다.** 범위(`RECOVERY_LAST_REHEARSAL_SCOPE` — 6-2 판정의 전부)는 표에 칸이
+  없어 **env 에만** 살았다. 5-1 이 적어 둔 대로 Promote 롤백은 **옛 배포의 env 스냅샷**으로
+  돌아가므로 롤백 한 번에 그 기록이 옛 값·공백으로 되돌아가는데, 그것은 판정 보류라서
+  **degraded 조차 아니다.** 거꾸로 복구 대상 시점·소요시간·담당·비고는 표에만 있고 **읽는
+  판정이 없다**(3-7 이 만들어 주는 소요시간도 그렇다 — 1절 RTO 를 실측으로 채울 유일한 근거다).
+- **겹치는 칸을 대조한 적이 없다.** 표에 `부분 통과`, env 에 `정상` 을 넣으면 응답은 `ok` 다.
+  복구 뒤 env 만 손으로 되살리면 표와 **다른 날짜**가 판정이 된다. 어느 쪽도 오류를 내지 않는다.
+- **결과를 판독하지 못하면 `ok` 였다.** `normalizeResult` 가 `unknown` 을 돌려주면 fail/partial
+  분기를 비켜 가므로, 일자만 있고 결과 칸이 비거나 다른 문구인 상태가 **「리허설 통과」**로
+  나갔다(4절 복구에서 키 하나만 빠져도 그렇게 된다). 표 쪽은 `auditRehearsalRows` 가
+  `UNKNOWN_RESULT` 로 잡는데 env 쪽에는 같은 점검이 없었다 — **같은 기록인데 한쪽만 점검됐다.**
+  2026-10-20 에 `unknown_result` 로 분리했다(위 환경변수 표).
+
+확인(1줄 — 표와 응답을 함께 본다):
+
+```bash
+curl -s "$BASE/api/health" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const c=JSON.parse(s).checks.rehearsalLedger.detail;console.log(c.verdict,'basis='+c.basis,'env='+(c.envDate||'-'));console.log('differs:',(c.differs||[]).join(',')||'-','| undurable:',(c.undurable||[]).join(',')||'-');console.log(c.action)})"
+```
+
+표와 env 를 **값으로** 대조하려면(저장소에서 — 런타임은 문서를 읽지 않는다):
+
+```bash
+node --input-type=module -e "import fs from 'node:fs';import {reconcileLedger,ledgerText,parseLedgerTable,latestLedgerRow,ledgerRestoreLines} from './src/lib/rehearsalLedger.ts';const md=fs.readFileSync('RUNBOOK.md','utf8');console.log(ledgerText(reconcileLedger({env:process.env,markdown:md})).join('\n'));console.log('--- 복원 줄(값을 지어내지 않는다) ---');console.log(ledgerRestoreLines(latestLedgerRow(parseLedgerTable(md).rows)).join('\n'))"
+```
+
+| `verdict` | 뜻 | 할 일 |
+| --- | --- | --- |
+| `no_record` | 양쪽에 기록이 없다(**평상시**) | **판정 보류다.** 미실시는 `checks.recovery` 가 `missing` 으로 말한다 |
+| `unreadable_table` | 6절 표를 찾지 못했다 | 「일치한다」로 올리지 않는다. 표 헤더(`일자`·`검증 결과`)가 바뀌었으면 함께 본다 |
+| `unreadable_date` | 일자 키에 값이 있는데 **날짜로 읽히지 않는다** | 대시보드에는 넣어 둔 것으로 보이지만 판정은 기록 없음으로 본다 — `YYYY-MM-DD` 로 다시 적는다 |
+| `unreadable_result` | 일자는 있는데 **결과를 읽을 수 없다** | **통과가 아니라 판독 불가다.** 표의 `검증 결과` 와 같은 값을 env 에 적는다 |
+| `undurable` | 판정이 읽는 값이 **env 에만 있다** | 위 표에 그 열을 만들고 같은 값을 적는다(CI 가 먼저 막지만, 비켜 간 경우를 런타임이 드러낸다) |
+| `table_only` | 표에는 있는데 **env 가 비어 있다** | 복구·롤백으로 사라졌을 수 있다 — 위 복원 줄을 만들어 넣는다 |
+| `env_only` | env 에는 있는데 **표에 그 행이 없다** | 저장소에 근거가 없다(담당·소요시간·대상 시점은 되찾을 수 없다) — 표에 그 행을 적는다 |
+| `date_mismatch`·`result_mismatch`·`kind_mismatch`·`scope_mismatch` | 두 기록이 **다른 말을 한다** | 어느 쪽이 사실인지 판정이 정하지 않는다 — 표를 정본으로 보고 env 를 맞추거나 표를 고친다 |
+| `ok` | 겹치는 칸이 일치한다 | 다음 리허설에서도 **표와 env 를 함께** 갱신한다 |
+
+어긋남의 방향 세 가지:
+
+| 방향 키 | 언제 | 누가 알아채는가 |
+| --- | --- | --- |
+| `judged_record_is_the_volatile_one` | 판정이 읽는 env 가 시크릿 유실·프로젝트 재생성으로 사라진다 | **아무도** — 신선도는 `missing`, 범위는 판정 보류로 내려앉고 저장소의 표는 그대로 남는다 |
+| `rollback_restores_old_record` | Promote 롤백이 **옛 env 스냅샷**으로 되돌린다(5-1) | 아무도 — 날짜가 기한 안이면 `ok` 가 유지되고 범위 유실은 degraded 조차 아니다 |
+| `two_records_drift_apart` | 표에만 적거나 env 만 갱신한다 | 아무도 — 어느 쪽도 오류를 내지 않는다 |
+
+**기록의 집은 `lib/rehearsalLedger.ts` 의 `LEDGER_FIELDS` 가 정본이다**(칸마다 표 열·env 키·
+읽는 판정·한쪽이 사라지면 생기는 일). 테스트가 **실제 이 문서의 표**와 양방향으로 대조한다 —
+열 순서가 바뀌거나(`auditColumnOrder`: 위치 기반 파서가 **다른 칸을 그 칸으로 읽는다**),
+판정이 읽는 값이 표에 칸 없이 env 에만 생기면 CI 가 실패한다.
+
+※ 이 판정이 보장하지 **못하는** 것(`detail.limits` 로 함께 나온다):
+`basis` 가 `env` 면 **표를 보지 않았다**(런타임은 저장소 파일을 읽지 않는다 — 값 대조는 위
+명령과 CI 가 한다) · 대조는 **표의 최신 행**만 본다 · `ok` 는 「두 기록이 같다」까지이고
+**둘 다 틀렸을 수 있다** · 표에만 있는 칸은 읽는 판정이 없다(`unjudged`) · 담당은 **env 에
+담지 않는다**(공개 응답 PII — 저장소까지 잃는 사고에는 되찾을 근거가 없다) · 범위 값의 단위
+목록 해석은 6-2 가 한다.
+
+※ `required: false` 라 어느 경우에도 503 이 되지 않는다. 응답에는 판정·일자·칸 이름만 담는다 —
+담당·비고·범위 **값**은 담지 않는다.
+
 ### 리허설 체크리스트
 
 - [ ] **시작 전에** 리허설 대상 배포에만 `RECOVERY_REHEARSAL_ACTIVE=true` 를 선언하고 재배포했다 —
@@ -1523,7 +1602,12 @@ curl -s "$BASE/api/health" | node -e "let s='';process.stdin.on('data',d=>s+=d).
       `not_applicable`(반영 OFF) 또는 `normal`(반영 ON) 로 돌아왔다
 - [ ] 표·env 를 적은 뒤 **그 기록이 판정에 닿았는지** — `checks.recovery.detail.rehearsal.status`
       가 `ok` 로 바뀌었다. `RECOVERY_REHEARSAL_INTERVAL_DAYS` 가 비어 있으면 기한 판정이 보류되어
-      「적었는데 아무것도 바뀌지 않는」 상태가 남는다(위 **기한 추적** 표)
+      「적었는데 아무것도 바뀌지 않는」 상태가 남는다(위 **기한 추적** 표).
+      `unknown_result` 면 결과 칸을 **판독할 수 없는 것**이다 — 통과가 아니다(6-4)
+- [ ] 그 **두 기록이 같은 말을 하는지** — `checks.rehearsalLedger.detail.verdict` 가 `ok` 다(6-4).
+      표의 `범위` 열에는 `RECOVERY_LAST_REHEARSAL_SCOPE` 와 **같은 값**을 적었다. 값 대조는
+      6-4 의 저장소 명령으로 한 번 더 본다(`basis` 가 `env` 인 응답은 **표를 보지 않은 판정**이다).
+      `table_only` 는 판정이 읽는 env 가 비어 있다는 뜻이고, `env_only` 는 저장소에 근거가 없다는 뜻이다
 - [ ] 리허설 중 **배포 롤백(Promote)을 쓰지 않았다** — `checks.deployPin.detail.verdict` 가
       `off` 다(쓰면 차단·DB 교체·기준 지문이 옛 배포의 env 스냅샷으로 함께 되돌아간다. 5-1).
 - [ ] `RECOVERY_REHEARSAL_ACTIVE` 를 지웠다 — `checks.rehearsalScope.detail.verdict` 가 `normal` 로

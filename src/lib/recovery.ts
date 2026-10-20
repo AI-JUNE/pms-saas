@@ -32,7 +32,14 @@ export interface RehearsalIssue {
   message: string;
 }
 
-export type RehearsalHealth = 'missing' | 'stale' | 'failing' | 'ok';
+/**
+ * `unknown_result` 는 **판독 불가**다 — 통과도 실패도 아니다.
+ * 이 갈래가 없던 동안에는 `RECOVERY_LAST_REHEARSAL` 만 있고 결과 칸이 비거나 읽히지 않는 상태가
+ * fail/partial 분기를 비켜 가 `ok`(= 「리허설 통과」)로 나갔다. §4 복구에서 키 하나만 빠져도
+ * 그렇게 된다(표 쪽은 auditRehearsalRows 가 UNKNOWN_RESULT 로 잡는데 env 쪽에는 점검이 없었다).
+ * 두 기록 대조는 `lib/rehearsalLedger.ts`(RUNBOOK §6-4)가 한다.
+ */
+export type RehearsalHealth = 'missing' | 'unknown_result' | 'stale' | 'failing' | 'ok';
 
 export interface RehearsalFreshness {
   status: RehearsalHealth;
@@ -236,6 +243,21 @@ export function rehearsalFreshness(args: {
   }
   const ageDays = Math.max(0, dayIndex(isoOf(now)) - dayIndex(last.date));
   const dueDate = interval ? addDays(last.date, interval) : null;
+  // 판독 불가를 통과로 올리지 않는다(fail-safe). 기한 판정보다 앞에 둔다 —
+  // 결과를 모르는 기록은 기한 안이어도 「검증됐다」의 근거가 되지 못한다.
+  if (last.result === 'unknown') {
+    return {
+      status: 'unknown_result',
+      lastDate: last.date,
+      lastResult: last.result,
+      ageDays,
+      dueDate,
+      intervalDays: interval,
+      action:
+        '리허설 일자는 있는데 검증 결과를 읽을 수 없다 — 통과가 아니라 판독 불가다. ' +
+        'RUNBOOK 6절 표의 `검증 결과` 와 같은 값(정상/부분 통과/실패)을 RECOVERY_LAST_REHEARSAL_RESULT 에 적는다(6-4).',
+    };
+  }
   if (last.result === 'fail' || last.result === 'partial') {
     return {
       status: 'failing',

@@ -23,6 +23,7 @@ import { periodicCheckHealth } from '@/lib/periodicCheck';
 import { rateLimitResponse, RL } from '@/lib/ratelimit';
 import { recoveryReadinessCheck } from '@/lib/recoveryVerify';
 import { rehearsalCoverageCheck } from '@/lib/rehearsalCoverage';
+import { rehearsalLedgerCheck } from '@/lib/rehearsalLedger';
 import { rehearsalObservationCheck } from '@/lib/rehearsalObservation';
 import { rehearsalScopeCheck } from '@/lib/rehearsalScope';
 import { pitrWindowCheck } from '@/lib/recoveryWindow';
@@ -181,6 +182,17 @@ export async function GET(req: Request) {
   // 여기서 그 축을 분리해, 리허설 뒤에 들어온 단위와 범위 기록에 없는 단위를 드러낸다.
   // 단위 키(소절 번호)·판정·날짜·개수만 담고(담당자·비고 없음) required: false 라 503 이 되지 않는다.
   checks.rehearsalCoverage = rehearsalCoverageCheck();
+
+  // 그 리허설 기록이 **어디에 남아 있는가**(RUNBOOK §6·§6-4). 위 두 판정(신선도·범위)의 입력은
+  // 전부 env 스냅샷 하나인데, 같은 기록이 §6 표에도 있고 **그 둘이 대조된 적이 없었다**.
+  // 판정이 읽는 쪽(env)은 §4 가 「복구 대상」으로 선언한 자리이고 §5-1 Promote 는 옛 배포의
+  // env 스냅샷으로 되돌아간다 — 사라지면 신선도는 `missing`, 범위는 `unrecorded`(판정 보류)로
+  // 내려앉는데 저장소의 표에는 그 리허설이 그대로 남아 있다(되찾을 수 있는데 아무도 되찾지 않는다).
+  // 거꾸로 소요시간·담당·비고는 표에만 있어 읽는 판정이 없고, 범위는 표에 칸이 없어 집이 하나였다.
+  // 결과를 **판독하지 못하면** fail/partial 분기를 비켜 `ok` 가 됐던 구멍도 여기서 드러낸다.
+  // 런타임은 저장소 파일을 읽지 않으므로 `basis: 'env'` 로 **표를 보지 않았다는 사실을 함께** 적는다.
+  // 판정·일자·칸 이름만 담고(담당·비고·설정값 없음) required: false 라 503 이 되지 않는다.
+  checks.rehearsalLedger = rehearsalLedgerCheck();
 
   // 배포 롤백이 유지되고 있는지(RUNBOOK §5·§5-1). §5 2단계는 「`commit` 이 롤백 대상과 일치하는지
   // 확인」인데 그 눈 확인은 **그 순간**만 말한다 — 이 배포 경로는 AutoPush(20분) → push →

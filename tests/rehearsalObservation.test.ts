@@ -66,6 +66,7 @@ import { securityReapplyCheck } from '../src/lib/postRestoreSecurity.ts';
 import { recoveryReadinessCheck } from '../src/lib/recoveryVerify.ts';
 import { pitrWindowCheck } from '../src/lib/recoveryWindow.ts';
 import { rehearsalCoverageCheck } from '../src/lib/rehearsalCoverage.ts';
+import { rehearsalLedgerCheck } from '../src/lib/rehearsalLedger.ts';
 import { rehearsalScopeCheck } from '../src/lib/rehearsalScope.ts';
 import { writeFreezeCheck } from '../src/lib/writeFreeze.ts';
 
@@ -115,6 +116,7 @@ function buildChecks(env: Record<string, string | undefined>): Record<string, un
     assetCoverage: assetCoverageCheck({ env }),
     rehearsalScope: rehearsalScopeCheck({ env }),
     rehearsalCoverage: rehearsalCoverageCheck({ env }),
+    rehearsalLedger: rehearsalLedgerCheck({ env }),
     deployPin: deployPinCheck({ env }),
     disclosure: disclosureCheck({ env }),
   };

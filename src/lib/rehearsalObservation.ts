@@ -263,6 +263,16 @@ export const CHECK_OBSERVATIONS: readonly CheckObservation[] = [
     silent: '36항목 중 다섯만 수행한 리허설과 전부 수행한 리허설이 응답에서 구별되지 않는다',
   },
   {
+    check: 'rehearsalLedger',
+    role: 'observe',
+    field: 'verdict',
+    vocab: { file: 'src/lib/rehearsalLedger.ts', decl: 'LEDGER_VERDICTS' },
+    cited: true,
+    degradedWhen: [],
+    why: '위 두 판정(신선도·범위)의 입력인 env 기록이 **저장소의 §6 표와 같은 말을 하는지** 보는 칸이다(§6-4). 판정이 읽는 쪽은 복구·롤백으로 사라지는 쪽이고, 결과를 판독하지 못하면 `ok` 가 됐다',
+    silent: '기록이 env 에서만 사라지면 신선도는 `missing`·범위는 `unrecorded`(판정 보류)로 내려앉고, 저장소에 남은 리허설을 아무도 되찾지 않는다',
+  },
+  {
     check: 'deployPin',
     role: 'observe',
     field: 'verdict',

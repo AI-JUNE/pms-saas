@@ -230,6 +230,13 @@ export const PROCEDURE_UNITS: readonly ProcedureUnit[] = [
     cited: true,
     skipped: '체크리스트의 인용이 가리킬 곳을 잃은 채로 리허설이 돌아, `undefined` 를 「문제 없음」으로 읽는다',
   },
+  {
+    key: '6-4',
+    title: '리허설 기록이 어디에 남아 있는가 — 표와 env 의 대조',
+    since: '2026-10-20',
+    cited: true,
+    skipped: '표와 env 가 다른 말을 하는 채로 두어, 복구·롤백으로 판정 쪽 기록이 사라진 것을 아무도 되찾지 않는다',
+  },
 ];
 
 /**
