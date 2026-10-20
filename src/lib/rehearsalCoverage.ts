@@ -98,6 +98,13 @@ export const PROCEDURE_UNITS: readonly ProcedureUnit[] = [
     skipped: '첨부가 복구된다고 믿은 채 고지한다 — 복구 뒤 화면에 목록이 그대로 보여 차이가 드러나지 않는다',
   },
   {
+    key: '1-2',
+    title: '목표치(RTO/RPO) — 약속과 실측의 대조',
+    since: '2026-10-20',
+    cited: true,
+    skipped: '소요시간을 재 놓고도 목표와 견주지 않아, 리허설이 「정상」인데 약속의 몇 배가 걸렸는지 아무도 모른다',
+  },
+  {
     key: '2-1',
     title: '점검이 밀렸는지 드러내기 — 날짜 없는 설정값의 신선도',
     since: '2026-10-13',

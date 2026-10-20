@@ -85,8 +85,12 @@ test('집이 하나인 칸·읽는 판정이 없는 칸을 숨기지 않는다',
   assert.ok(single.includes('duration'), '소요시간은 표에만 있다');
   assert.ok(single.includes('owner'), '담당은 표에만 있다');
   const unjudged = unjudgedFields();
-  assert.ok(unjudged.includes('duration'), '소요시간은 적히지만 읽는 판정이 없다');
+  assert.ok(unjudged.includes('target'), '복구 대상 시점은 적히지만 읽는 판정이 없다');
   assert.ok(unjudged.includes('note'), '비고는 적히지만 읽는 판정이 없다');
+  // 소요시간은 2026-10-20(§1-2)에 읽는 판정이 생겼다 — 목표(RTO)와 견주는 자리다.
+  assert.ok(!unjudged.includes('duration'), '소요시간은 §1-2 가 읽는다');
+  const duration = LEDGER_FIELDS.find((f) => f.key === 'duration');
+  assert.match(duration?.judgedBy ?? '', /recoveryObjectives/);
 });
 
 test('auditFieldHomes: 선언이 실제 집과 다르거나 env 전용이면 잡는다', () => {

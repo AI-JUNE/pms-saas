@@ -21,6 +21,7 @@ import { lossNoticeCheck } from '@/lib/lossNotice';
 import { securityReapplyCheck } from '@/lib/postRestoreSecurity';
 import { periodicCheckHealth } from '@/lib/periodicCheck';
 import { rateLimitResponse, RL } from '@/lib/ratelimit';
+import { recoveryObjectivesCheck } from '@/lib/recoveryObjectives';
 import { recoveryReadinessCheck } from '@/lib/recoveryVerify';
 import { rehearsalCoverageCheck } from '@/lib/rehearsalCoverage';
 import { rehearsalLedgerCheck } from '@/lib/rehearsalLedger';
@@ -88,6 +89,16 @@ export async function GET(req: Request) {
   // 서비스가 이미 멈춘 뒤다. 평상시에 미설정을 드러내 그 순서를 뒤집는다.
   // 사건별 손상 시각 T 는 여기서 판정하지 않는다(설정 여부·보존 시간만, required: false).
   checks.recoveryWindow = pitrWindowCheck();
+
+  // 그 절차가 지키기로 한 **수치**(RUNBOOK §1·§1-2). 위 체크들이 말하는 것은 하나같이 「그 단계를
+  // 했는가」인데, 이 절차가 약속한 것은 단계가 아니라 §1 의 RTO·RPO 두 수치다 — 그리고 그 칸은
+  // 작성 이후 줄곧 `[확인 필요]` 였고 **읽는 코드가 하나도 없어 비어 있다는 사실조차 나오지 않았다**
+  // (보존기간 쪽 `[확인 필요]` 는 recoveryWindow 가 드러내 평상시에 사람을 찌른다 — 목표치에는 그런
+  // 장치가 없었다). 그래서 §3-7 이 분으로 확정하고 §3-10 이 **되돌릴 수 없는 고지**로 내보내는 구간이
+  // 약속을 넘겼는지 아무도 판정하지 않고, 넘긴 복구와 지킨 복구가 기록에서 구별되지 않는다.
+  // 목표를 적는 순간 생기는 모순(보존 창보다 긴 RTO·스냅샷 기한보다 촘촘한 RPO)도 여기서 본다.
+  // **수치는 담지 않는다** — 판정·키 이름·상태 어휘뿐이고 required: false 라 503 이 되지 않는다.
+  checks.recoveryObjectives = recoveryObjectivesCheck();
 
   // §2 정기 점검(월 1회)이 밀렸는지와, 그 점검만이 갱신하는 **날짜 없는 설정값**의 신선도.
   // 위 recoveryWindow 는 보존 시간이 설정돼 있으면 영구히 ok 다 — 플랜·보존 설정을 바꾼 뒤

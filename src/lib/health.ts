@@ -8,6 +8,7 @@ export type CheckName =
   | 'monitoring'
   | 'recovery'
   | 'recoveryWindow'
+  | 'recoveryObjectives'
   | 'periodicCheck'
   | 'envPresence'
   | 'writeFreeze'

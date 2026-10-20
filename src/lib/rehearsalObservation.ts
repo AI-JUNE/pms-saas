@@ -153,6 +153,16 @@ export const CHECK_OBSERVATIONS: readonly CheckObservation[] = [
     silent: '리허설이 보존 창 없이 돌아가고(`unknown_window` 는 「창 밖」이 아니라 「모른다」다) 그 공백이 복구일까지 남는다',
   },
   {
+    check: 'recoveryObjectives',
+    role: 'observe',
+    field: 'verdict',
+    vocab: { file: 'src/lib/recoveryObjectives.ts', decl: 'OBJECTIVE_VERDICTS' },
+    cited: true,
+    degradedWhen: ['normal', 'rehearsal', 'incident'],
+    why: '이 절차가 지키기로 한 **수치**(§1 RTO·RPO)가 적혀 있는지 보는 유일한 칸이다(§1-2). 비어 있으면 소요시간·유실 구간이 약속을 넘겼는지 판정되지 않는다',
+    silent: '리허설을 몇 번 해도 「목표 안에 끝났는가」가 계산되지 않고, 되돌릴 수 없는 고지에 구간만 적힌다 — 넘긴 복구와 지킨 복구가 기록에서 구별되지 않는다',
+  },
+  {
     check: 'periodicCheck',
     role: 'observe',
     field: 'verdict',

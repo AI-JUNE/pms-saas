@@ -63,6 +63,7 @@ import { closureCheck } from '../src/lib/incidentClosure.ts';
 import { lossNoticeCheck } from '../src/lib/lossNotice.ts';
 import { periodicCheckHealth } from '../src/lib/periodicCheck.ts';
 import { securityReapplyCheck } from '../src/lib/postRestoreSecurity.ts';
+import { recoveryObjectivesCheck } from '../src/lib/recoveryObjectives.ts';
 import { recoveryReadinessCheck } from '../src/lib/recoveryVerify.ts';
 import { pitrWindowCheck } from '../src/lib/recoveryWindow.ts';
 import { rehearsalCoverageCheck } from '../src/lib/rehearsalCoverage.ts';
@@ -105,6 +106,7 @@ function buildChecks(env: Record<string, string | undefined>): Record<string, un
     monitoring: { ok: true, required: false, detail: { enabled: false } },
     recovery: recoveryReadinessCheck({ env }),
     recoveryWindow: pitrWindowCheck({ env }),
+    recoveryObjectives: recoveryObjectivesCheck({ env }),
     periodicCheck: periodicCheckHealth({ env }),
     envPresence: envPresenceCheck({ env }),
     writeFreeze: writeFreezeCheck({ env }),
@@ -359,7 +361,7 @@ test('observationPhase: 선언이 있으면 리허설, 없이 차단이면 사�
 test('[실제 응답] 평상시 degraded 는 전건 설명돼 있다 ⬅ 「전 항목 정상」이 불가능했던 이유', () => {
   const split = classifyDegraded(NORMAL_CHECKS);
   assert.deepEqual(split.unexpected, [], '설명되지 않은 degraded 가 평상시에 있다');
-  for (const name of ['recovery', 'recoveryWindow', 'periodicCheck']) {
+  for (const name of ['recovery', 'recoveryWindow', 'recoveryObjectives', 'periodicCheck']) {
     assert.ok(split.expected.includes(name), `${name} 가 평상시 degraded 목록에서 빠졌다 — 사람 몫 설정이 비어 있는 상태다`);
   }
 });

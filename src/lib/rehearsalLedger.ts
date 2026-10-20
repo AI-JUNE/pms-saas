@@ -121,8 +121,8 @@ export const LEDGER_FIELDS: readonly LedgerField[] = [
     column: '소요시간',
     envKey: null,
     home: 'table_only',
-    judgedBy: null,
-    lost: '§1 의 RTO 를 실측으로 채울 유일한 근거가 사라진다(§3-7 `assessDuration` 이 만들어 주는 값인데 읽는 판정이 없다)',
+    judgedBy: 'lib/recoveryObjectives.ts rehearsalAttainment (§1-2 명령·CI 시점 — 런타임은 표를 읽지 않는다)',
+    lost: '§1 의 RTO 를 실측으로 채울 유일한 근거가 사라진다(§3-7 `assessDuration` 이 만들어 주는 값이고, 2026-10-20 에 §1-2 가 그 칸을 읽는 판정이 됐다)',
   },
   {
     key: 'result',

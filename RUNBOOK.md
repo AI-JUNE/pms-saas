@@ -25,7 +25,10 @@
   `checks.recoveryWindow` 가 미설정을 평상시에 드러내고, 3절 3단계가 기계적으로 판정된다(아래 3-6).
   임의 기본 보존기간은 쓰지 않는다(Neon 플랜마다 다르다).
 - 목표 복구시간(RTO)·목표 복구시점(RPO): `[확인 필요 — 계약 확정 후 기재]`
-  ※ 실측 전에는 임의 수치를 적지 않는다.
+  ※ 실측 전에는 임의 수치를 적지 않는다. 확정하면 이 줄에 `RTO 240분`·`RPO 60분` 꼴로 적고
+  **같은 수치를 환경변수 `RECOVERY_RTO_MINUTES`·`RECOVERY_RPO_MINUTES`(분)에 함께 넣는다** —
+  그때부터 `GET /api/health` 의 `checks.recoveryObjectives` 가 공백을 평상시에 드러내고,
+  6절 표의 `소요시간`·3-7 의 유실 구간이 **약속을 넘겼는지** 판정된다(아래 1-2).
 
 ### 1-1. 첨부 본문의 복구 경계 — 위 표가 코드와 어긋나면
 
@@ -71,6 +74,82 @@
 `metadata_only` 는 「문서와 코드가 같다」는 뜻이지 **「첨부가 복구된다」는 뜻이 아니다** ·
 이 배포의 설정만 본다 · 첨부 **메타 행**의 유실은 4단계 행 수 대조로도 드러나지 않는다 ·
 위 표의 나머지 네 줄은 각 절의 체크가 본다.
+
+### 1-2. 목표치(RTO/RPO) — 약속과 실측의 대조
+
+3·4·5·6절의 판정은 소절 20개로 쪼개져 전부 기계화됐는데, 그것들이 말하는 것은 하나같이
+**「그 단계를 했는가」**다. 이 절차가 지키기로 한 것은 단계가 아니라 위 두 수치이고, 그 칸은
+작성 이후 줄곧 `[확인 필요]` 였다. 그래서:
+
+- **비어 있다는 사실이 어디에도 드러나지 않았다.** 같은 1절의 다른 `[확인 필요]`(PITR 보존기간)는
+  `checks.recoveryWindow` 가 평상시에 드러내 사람을 찌른다. 목표치 칸에는 **읽는 코드가 하나도
+  없어서** 영구히 비어 있어도 전 응답이 `ok` 였다 — 가장 조용한 방향이다(아무것도 나빠지지 않는다).
+- **그래서 어떤 판정도 「늦었다」·「많이 잃었다」를 말하지 못한다.** 3-7 은 유실 구간을 분으로
+  확정하고 3-10 은 그 구간을 **되돌릴 수 없는 고지**로 내보내는데, 그 수치가 약속을 넘겼는지는
+  아무도 판정하지 않는다. 고지문에는 구간만 적히고 「약속은 얼마였는가」가 없다 — 받는 쪽은 그것이
+  예정된 범위인지 알 수 없고, **넘긴 복구와 지킨 복구가 기록에서 구별되지 않는다.**
+- **실측과 목표가 만나는 자리가 없었다.** 6-4 가 적어 둔 그대로다 — 소요시간은 6절 표에만 살고
+  (읽는 판정이 없었다) 목표치는 어디에도 없으니, 리허설을 열 번 해도 「목표 안에 끝났는가」는
+  한 번도 계산되지 않는다. 2026-10-20 에 `소요시간` 칸의 읽는 판정이 이 절이 됐다.
+
+**값은 환경변수에서만 읽는다**(`RECOVERY_RTO_MINUTES`·`RECOVERY_RPO_MINUTES`, **분 정수**).
+`4h`·`4시간`·`0`·소수는 받지 않는다(`invalid`) — 「4」가 분인지 시간인지 모르는 값을 코드가
+해석해 주지 않는다. 업계 관행(RTO 4시간 등) **기본값도 만들지 않는다**: 비어 있으면 `unset`
+(= 「약속이 없다」)이고 판정을 지어내지 않는다.
+
+확인(평상시):
+
+```bash
+curl -s "$BASE/api/health" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const c=JSON.parse(s).checks.recoveryObjectives.detail;console.log(c.verdict,'rto='+c.rto,'rpo='+c.rpo);console.log('conflicts:',(c.conflicts||[]).join(',')||'-','| attainment:',c.attainment.rto+'/'+c.attainment.rpo);console.log(c.action)})"
+```
+
+리허설·사건 뒤 **실측과 견주기**(저장소에서 — 런타임은 6절 표를 읽지 않는다):
+
+```bash
+node --input-type=module -e "import fs from 'node:fs';import {rehearsalAttainment,objectivesText,reconcileDocumented} from './src/lib/recoveryObjectives.ts';const md=fs.readFileSync('RUNBOOK.md','utf8');console.log(objectivesText().join('\n'));const a=rehearsalAttainment({markdown:md});console.log('표 최신 행 소요시간 대 RTO:',a.rto.attainment,a.rto.overBy===null?'':'초과 '+a.rto.overBy+'분');const r=reconcileDocumented({markdown:md});console.log('1절 표기:',r.doc.state,'| 어긋남:',r.differs.join(',')||'-','| 문서에 없음:',r.undocumented.join(',')||'-')"
+```
+
+| `verdict` | 뜻 | 할 일 |
+| --- | --- | --- |
+| `unset` | 목표 2건이 비어 있다(**지금 상태**) | 1절 `[확인 필요]` 그대로다 — 계약·약관의 수치를 확인해 두 키(분)와 1절 표기를 **함께** 채운다 |
+| `partial` | 한쪽만 적혀 있다 | 나머지 한쪽 대조는 `unjudged`(= **판정 못 한 것**, 통과가 아니다)로 남는다 — 두 수치는 함께 정한다 |
+| `invalid` | 값이 **분 정수**로 읽히지 않는다 | 분으로 다시 적는다(단위 표기를 해석해 주지 않는다) |
+| `breached` | 실측이 목표를 넘겼다 | 고지문(3-10)·6절 표 비고에 **약속 대비 초과**를 함께 적는다. 수치를 깎지 않는다 |
+| `infeasible` | 목표가 다른 설정값과 **모순**이다 | 아래 표의 종류별 조치. 설정과 목표 중 어느 쪽을 고칠지는 사람이 정한다 |
+| `ok` | 목표가 적혀 있고 모순이 없으며 실측도 목표 안이다 | **「약속이 적혀 있다」까지다** — 지킬 수 있다는 뜻이 아니다 |
+
+목표를 적는 순간 드러나는 모순 두 가지(어느 쪽도 오류를 내지 않는다):
+
+| 종류 | 언제 | 무엇이 조용해지는가 | 조치 |
+| --- | --- | --- | --- |
+| `rto_exceeds_retention` | RTO 가 PITR 보존 창(`RECOVERY_PITR_RETENTION_HOURS`)보다 길다 | 목표 시간 안에 끝내도 그 사이 T 가 **창 밖으로 밀려** 복구 자체가 불가능해진다(3-6 `deadline`) | 보존 창을 늘리거나(플랜 변경) 목표를 창 안으로 줄인다 |
+| `rpo_below_baseline_resolution` | RPO 가 스냅샷 갱신 기한(`RECOVERY_BASELINE_MAX_AGE_DAYS`)보다 짧다 | 복구 뒤 3절 4단계 대조는 **스냅샷 시점까지**만 보장하므로(4-10 `blindWindow`) 지켜도 증명되지 않는다 | 기한을 목표 안으로 줄이거나(2절 점검 주기) 목표를 그 해상도에 맞춘다 |
+
+> 상대 설정값을 **모르면 모순 없음으로 올리지 않는다** — `unjudgedConflicts` 로 「대조하지 못했다」를
+> 따로 적는다(「대조했는데 문제 없었다」와 다르다).
+
+어긋남의 방향 세 가지(전부 응답은 200 이라 사람 눈으로는 알아챌 수 없다):
+
+| 방향 키 | 언제 | 누가 알아채는가 |
+| --- | --- | --- |
+| `objective_stays_blank` | 1절 `[확인 필요]` 가 비어 있는 동안 | **아무도** — 전 절차가 「단계를 했는가」만 말하고, 비어 있다는 사실조차 응답에 없었다 |
+| `promise_outgrows_setting` | 계약으로 목표가 촘촘해지는데 보존 창·스냅샷 기한은 그대로다 | 아무도 — 모순은 복구일에야 드러난다 |
+| `measure_lives_only_in_table` | 실측은 6절 표에만, 목표는 env 에만 있다 | 아무도 — 둘이 만나는 자리가 없어 목표 대비 판정이 생기지 않는다 |
+
+**정본은 `lib/recoveryObjectives.ts` 의 `OBJECTIVES`** 이고 목표마다 약속의 내용·실측을 만드는
+곳·그 실측이 사는 집·비어 있으면 생기는 일을 적어 둔다. 테스트가 **실제 이 문서와 6절 표의
+기록 정본**을 매번 대조한다 — 이 절이 사라지거나, 두 키가 문서에서 빠지거나, `소요시간` 칸의
+읽는 판정이 다시 없어지면 CI 가 실패한다.
+
+※ 이 판정이 보장하지 **못하는** 것(`detail.limits` 로 함께 나온다):
+목표치는 **사람이 적은 계약 수치**다(계약·약관이 바뀌어도 코드는 모른다 — 2절 점검에서 함께 확인한다) ·
+`ok` 는 「약속이 적혀 있다」까지이고 **지킬 수 있다는 뜻이 아니다** ·
+RTO 실측은 6절 표에만 있어 런타임 `attainment.rto` 는 `unjudged` 다(대조는 위 명령·CI 가 한다) ·
+RPO 실측은 3-7 구간이라 **시간**이고 실제로 잃은 행 수는 아무도 세지 않는다 ·
+`met` 은 **이번 한 번**에 대한 사실이다 · 공개 응답에는 **수치를 담지 않는다**(목표 분·실측 분·초과 분) ·
+약속을 **누구에게** 했는지는 코드가 모른다(고지 대상 판정은 3-10 이 한다).
+
+※ `required: false` 라 어느 경우에도 503 이 되지 않는다. 목표치 기재·계약 확인은 **[사람 수행 필요]**.
 
 ## 2. 정기 점검 (월 1회)
 
@@ -990,6 +1069,11 @@ Vercel 환경변수는 DB 백업에 포함되지 않으므로 별도 보관한�
 콘솔의 「복구 가능 시점」을 확인해 적는다. **미설정이면 복구 시점이 창 안인지 판정하지 않는다**(`unknown_window`) —
 임의 기본 보존기간을 쓰지 않는다. 유실되면 복구일 3단계에서야 복구 불가가 드러난다(그때는 2단계 쓰기
 차단으로 서비스가 이미 멈춘 뒤다) `[확인 필요]`
+`RECOVERY_RTO_MINUTES` · `RECOVERY_RPO_MINUTES` — 1절 **목표 복구시간·목표 복구시점**(분 정수. 위 1-2).
+이 절차가 지키기로 한 유일한 수치이고 **미설정이 지금 상태**다 — 비어 있으면 6절 표 `소요시간` 과
+3-7 유실 구간을 견줄 대상이 없어 「늦었다」·「많이 잃었다」를 어떤 판정도 말하지 못한다
+(되돌릴 수 없는 고지에 구간만 적힌다). 임의 기본 목표치를 쓰지 않는다. 유실되면 같은 상태로
+되돌아가고 그 사실은 `checks.recoveryObjectives` 가 `unset` 으로 드러낸다 `[확인 필요]`
 `RECOVERY_WRITE_FREEZE` — 쓰기 차단(읽기전용 모드) 스위치. 위 3-3. **평상시에는 반드시 없어야 한다** —
 복구 때 켠 뒤 지우지 않으면 복구가 끝난 서비스가 읽기전용으로 남는다(`/api/health` 가 `degraded`로만 드러낸다).
 복구 후 확인 순서 2번에서 `PAYMENTS_LIVE`·`BILLING_APPLY_LIVE` 와 함께 OFF 인지 재확인한다.
@@ -1398,11 +1482,13 @@ curl -s "$BASE/api/health" | node -e "let s='';process.stdin.on('data',d=>s+=d).
   `정상` 이 남는다.
 - **달성할 수 없는 항목이 하나 있었다** — 「`GET /api/health` 전 항목 정상」. 복구 관련 체크는
   **의도적으로** `ok: false` 를 낸다: 평상시에도 `recovery`(리허설 미실시)·`recoveryWindow`
-  (보존기간 `[확인 필요]`)·`periodicCheck`(월 점검 미기록)가 그렇고, 리허설 중에는
+  (보존기간 `[확인 필요]`)·`recoveryObjectives`(목표치 `[확인 필요]`)·`periodicCheck`
+  (월 점검 미기록)가 그렇고, 리허설 중에는
   `writeFreeze`·`rehearsalScope`·`postRestoreSecurity`·`externalState`·`lossNotice` 가 더해진다.
   그래서 그 항목은 통과할 수 없고 담당자는 체크하고 넘어가게 된다 — 체크리스트에서 유일한 포괄
   항목이므로, 그렇게 묻히는 것은 그 항목 하나가 아니라 **아무도 따로 보지 않는 모든 체크의 실패**다.
-- **읽히지 않는 장치가 쌓인다.** 체크는 19개인데 체크리스트가 칸을 인용하는 것은 11개뿐이었다.
+- **읽히지 않는 장치가 쌓인다.** 체크는 20개(2026-10-20 기준)인데 체크리스트가 칸을 인용하는
+  것은 11개뿐이었다.
   특히 `disclosure`(2-3 가림)는 **복구 중에만** 작동하고 리허설은 사건 표지를 실제로 넣어 보는
   유일한 기회인데, 그 가림이 걸리는지 한 번도 확인된 적이 없다.
 
@@ -1461,8 +1547,9 @@ curl -s "$BASE/api/health" | node -e "let s='';process.stdin.on('data',d=>s+=d).
 - **칸이 서로 달랐다.** 범위(`RECOVERY_LAST_REHEARSAL_SCOPE` — 6-2 판정의 전부)는 표에 칸이
   없어 **env 에만** 살았다. 5-1 이 적어 둔 대로 Promote 롤백은 **옛 배포의 env 스냅샷**으로
   돌아가므로 롤백 한 번에 그 기록이 옛 값·공백으로 되돌아가는데, 그것은 판정 보류라서
-  **degraded 조차 아니다.** 거꾸로 복구 대상 시점·소요시간·담당·비고는 표에만 있고 **읽는
-  판정이 없다**(3-7 이 만들어 주는 소요시간도 그렇다 — 1절 RTO 를 실측으로 채울 유일한 근거다).
+  **degraded 조차 아니다.** 거꾸로 복구 대상 시점·담당·비고는 표에만 있고 **읽는 판정이 없다**.
+  소요시간도 그랬는데 — 1절 RTO 를 실측으로 채울 유일한 근거다 — 2026-10-20 에 1-2 가 그 칸을
+  읽는 판정이 됐다(`rehearsalAttainment`. 런타임이 아니라 **저장소 명령·CI 시점**에 돈다).
 - **겹치는 칸을 대조한 적이 없다.** 표에 `부분 통과`, env 에 `정상` 을 넣으면 응답은 `ok` 다.
   복구 뒤 env 만 손으로 되살리면 표와 **다른 날짜**가 판정이 된다. 어느 쪽도 오류를 내지 않는다.
 - **결과를 판독하지 못하면 `ok` 였다.** `normalizeResult` 가 `unknown` 을 돌려주면 fail/partial
@@ -1531,6 +1618,10 @@ node --input-type=module -e "import fs from 'node:fs';import {reconcileLedger,le
 - [ ] 보존 창 길이가 **설정돼 있는지** — `checks.recoveryWindow.detail.retentionConfigured` 가
       `true`. `false` 면 §3-6 이 `unknown_window`(= 「창 밖」이 아니라 **「모른다」**)에서 멈추므로
       파괴적 단계로 넘어가지 않는다
+- [ ] 지킬 **약속이 적혀 있는지** — `checks.recoveryObjectives.detail.verdict` 가 `ok` 다(1-2).
+      `unset` 이면 1절이 `[확인 필요]` 그대로이므로 아래 소요시간·유실 구간이 **목표를 넘겼는지
+      판정되지 않는다**(판정 보류이고 통과가 아니다). `infeasible` 이면 `detail.conflicts` 의 모순을
+      먼저 본다 — 목표 시간 안에 끝내도 복구가 불가능하거나, 지켜도 증명되지 않는 약속이다
 - [ ] 그 값이 **최근 확인된 값**인지 — `checks.periodicCheck.detail.verdict` 가 `ok` 이고
       `detail.untrusted` 가 비어 있다(`overdue`·`absent` 면 §3-6 판정이 옛 플랜 기준이다. 2-1)
 - [ ] 복구 시점을 §3-6 명령으로 산출했다 — `verdict` 가 `ok` 이고 ε 의 근거(원인 작업 직전 기록)를 적었다
@@ -1587,6 +1678,10 @@ node --input-type=module -e "import fs from 'node:fs';import {reconcileLedger,le
       `due` 가 뜨는 것까지가 점검 대상이다(채우면 「고지했다」는 거짓 근거가 남는다)
 - [ ] 소요시간 측정(§3-7 `assessDuration`: 1단계 중단 결정 ~ 7단계 차단 해제) 및 위 표 기록
       — 비고 칸은 §3-10 `recordRemark()` 가 구간·고지 시각과 함께 만들어 준다
+- [ ] 그 소요시간을 **목표와 견주었다** — 1-2 의 저장소 명령으로 표의 최신 행을 대조해
+      `checks.recoveryObjectives.detail.attainment.rto` 가 `met` 인지 본다. `exceeded` 면 초과분을
+      표 비고에 적는다(수치를 깎지 않는다). `unjudged` 는 목표·실측 중 하나가 없다는 뜻이고 통과가 아니다 —
+      런타임 응답은 6절 표를 읽지 않으므로 평상시에는 늘 `unjudged` 다
 - [ ] **수행한 절차 단위**를 §6-2 명령으로 산출해 `RECOVERY_LAST_REHEARSAL_SCOPE` 에 적었다 —
       건너뛴 단위는 **손으로 지웠다**(지우지 않으면 표의 `정상` 과 같은 값이 된다).
       `checks.rehearsalCoverage.detail.verdict` 가 `ok` 이고 `uncovered` 가 비어 있다.
