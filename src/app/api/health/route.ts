@@ -25,6 +25,7 @@ import { recoveryObjectivesCheck } from '@/lib/recoveryObjectives';
 import { recoveryReadinessCheck } from '@/lib/recoveryVerify';
 import { rehearsalCoverageCheck } from '@/lib/rehearsalCoverage';
 import { rehearsalLedgerCheck } from '@/lib/rehearsalLedger';
+import { rehearsalKindCheck } from '@/lib/rehearsalKind';
 import { rehearsalObservationCheck } from '@/lib/rehearsalObservation';
 import { rehearsalOutcomeCheck } from '@/lib/rehearsalOutcome';
 import { rehearsalScopeCheck } from '@/lib/rehearsalScope';
@@ -217,6 +218,19 @@ export async function GET(req: Request) {
   // `met`(약속을 지켰다)을 냈다. 여기서 미통과를 **단위로 귀속**하고 재수행 대상을 산출한다.
   // 단위 키(소절 번호)·판정·날짜·개수만 담고(소요시간·담당·비고 없음) required: false 다.
   checks.rehearsalOutcome = rehearsalOutcomeCheck();
+
+  // 그 기록이 **연습인가 사건인가**(RUNBOOK §6·§6-6). §6 표 둘째 열 `유형(정기/사건)` 과
+  // RECOVERY_LAST_REHEARSAL_KIND 는 2026-09-21 부터 적혀 있었고 `lib/recovery.ts` 가 표·env
+  // 양쪽에서 받아 적고 있었는데, **그 칸을 읽는 판정이 하나도 없었다**(§6-4 기록 정본이
+  // `judgedBy: null` 로 그 사실을 적어 두었다). 그래서 「절차를 검증한 연습」과 「실제로 일어난
+  // 사건」이 같은 말로 취급됐다 — 신선도는 일자·결과만 보므로 사건 복구가 **리허설 기한을
+  // 리셋**하고(정기 리허설을 한 번도 하지 않아도 `ok` 가 유지된다), 런타임 RPO 실측은
+  // RECOVERY_RESTORE_POINT·RECOVERY_WRITE_FREEZE_AT 만 보는데 그 두 키는 **리허설 체크리스트가
+  // 채우라고 지시하는 값**이라 연습 구간이 그대로 `attainment.rpo` 가 되어 `met`(약속을 지켰다)·
+  // `exceeded`(→ 종합 `breached`)를 냈다. 여기서 기록 축(표 열·env)과 런타임 축(§6-1 선언)을
+  // 합쳐 실측의 출처를 판정하고, 연습 구간은 §1-2 대조에서 뺀다.
+  // 판정·유형·날짜·키 이름만 담고(구간 분·소요시간·담당 없음) required: false 다.
+  checks.rehearsalKind = rehearsalKindCheck();
 
   // 배포 롤백이 유지되고 있는지(RUNBOOK §5·§5-1). §5 2단계는 「`commit` 이 롤백 대상과 일치하는지
   // 확인」인데 그 눈 확인은 **그 순간**만 말한다 — 이 배포 경로는 AutoPush(20분) → push →

@@ -59,6 +59,7 @@ import { restorePointFromEnv } from './lossNotice.ts';
 import { baselineMaxAgeDays } from './recoveryBaseline.ts';
 import { retentionHours } from './recoveryWindow.ts';
 import { latestLedgerRow, parseLedgerTable, type LedgerField, type LedgerRow } from './rehearsalLedger.ts';
+import { kindState, measurementOrigin, roleFor, type KindState, type MeasurementOrigin } from './rehearsalKind.ts';
 import { attainmentEligibility, type AttainmentEligibility } from './rehearsalOutcome.ts';
 
 /** 응답·문서에서 근거 절을 찾을 수 있게 한다 */
@@ -400,6 +401,7 @@ export const OBJECTIVE_LIMITS: readonly string[] = [
   '`met` 은 **이번 한 번**에 대한 사실이다 — 다음 사건의 규모를 말하지 않는다',
   '공개 응답에는 **수치를 담지 않는다**(목표 분·실측 분·초과 분). 판정·키 이름·boolean 뿐이다',
   '약속을 **누구에게** 했는지(계약 상대·약관 조항)는 코드가 모른다 — 고지 대상 판정은 §3-10 이 한다',
+  '리허설 선언(§6-1) 중에 잰 구간은 **약속 대조에서 뺀다**(§6-6 `measurementOrigin`) — 연습값으로 `met`·`exceeded` 를 내지 않는다. 선언 없이 리허설하면 그 구간은 사건 실측으로 세어진다',
 ];
 
 export interface ObjectiveAssessment {
@@ -417,6 +419,8 @@ export interface ObjectiveAssessment {
   attainment: Record<ObjectiveKey, AttainmentResult>;
   /** 실측이 목표를 넘긴 목표 */
   breached: ObjectiveKey[];
+  /** 그 실측이 **사건의 것인가 연습의 것인가**(§6-6). `withheld` 면 대조에서 뺐다 */
+  measurement: MeasurementOrigin;
   action: string;
   caveats: readonly string[];
 }
@@ -458,10 +462,20 @@ export function assessObjectives(args?: ObjectiveInput): ObjectiveAssessment {
       args && 'baselineMaxAgeDays' in args ? (args.baselineMaxAgeDays ?? null) : baselineMaxAgeDays(env),
   });
 
+  // §6-6: 리허설 선언 중의 구간은 **연습값**이다 — 체크리스트가 채우라고 지시하는 두 키
+  // (RECOVERY_RESTORE_POINT·RECOVERY_WRITE_FREEZE_AT)가 그대로 실측이 되면, 고지 대상도
+  // 유실도 없는 연습이 `met`(약속을 지켰다)이나 `exceeded`(→ `breached`)로 기록된다.
+  // 선언을 판독할 수 없을 때도 「사건이다」로 올리지 않는다(판정 보류가 통과보다 앞이다).
+  const origin = measurementOrigin({ env });
+  const envRpo = origin.trusted ? measuredEnv.rpoMinutes : null;
   const attainment: Record<ObjectiveKey, AttainmentResult> = {
     rto: compareToObjective('rto', values.rto.minutes, args?.measured?.rto ?? measuredEnv.rtoMinutes),
-    rpo: compareToObjective('rpo', values.rpo.minutes, args?.measured?.rpo ?? measuredEnv.rpoMinutes),
+    rpo: compareToObjective('rpo', values.rpo.minutes, args?.measured?.rpo ?? envRpo),
   };
+  const withheldHere = origin.withheld && (args?.measured?.rpo ?? null) === null;
+  if (withheldHere) {
+    attainment.rpo = { ...attainment.rpo, note: `연습 구간이라 약속 대조에서 뺐다(§6-6) — ${origin.why}` };
+  }
   const breached = OBJECTIVES.filter((o) => attainment[o.key].attainment === 'exceeded').map((o) => o.key);
 
   const verdict: ObjectiveVerdict =
@@ -488,6 +502,7 @@ export function assessObjectives(args?: ObjectiveInput): ObjectiveAssessment {
     unjudgedConflicts: feas.unjudged,
     attainment,
     breached,
+    measurement: origin,
     action: ACTION[verdict],
     caveats: OBJECTIVE_LIMITS,
   };
@@ -502,12 +517,22 @@ export interface RehearsalAttainment {
   rto: AttainmentResult;
   /** 그 행의 소요시간이 **RTO 실측 자격**이 있는가(§6-5) */
   eligibility: AttainmentEligibility;
+  /** 그 행이 연습인가 사건인가(§6-6) */
+  kind: KindState;
+  /** 그 소요시간이 약속의 **실측**인가 **하한**인가 */
+  basis: 'measurement' | 'lower_bound' | 'unknown';
   /** 그 리허설에서는 실제 유실이 없다 — 구간 대조는 사건에서만 한다 */
   note: string;
 }
 
 export const REHEARSAL_HAS_NO_LOSS =
   '리허설에는 고지 대상 유실이 없으므로 RPO 대조는 하지 않는다(§3-7 구간은 실제 사건에서만 생긴다)';
+
+export const INCIDENT_HAS_LOSS =
+  '사건 행이다 — 유실 구간(RPO 실측)은 §3-7 이 산출하고 런타임 `attainment.rpo` 가 대조한다(§6-6)';
+
+export const KIND_UNREAD_NOTE =
+  '유형을 읽을 수 없어 이 소요시간이 연습값인지 사건 실측인지 모른다(§6-6) — `met` 을 「약속을 지킬 수 있다」로 읽지 않는다';
 
 /**
  * §6 표의 **최신 행 소요시간**을 RTO 와 견준다 — `LEDGER_FIELDS.duration` 을 **읽는 판정**이
@@ -526,11 +551,22 @@ export function rehearsalAttainment(args: {
   const values = objectivesFromEnv(args?.env ?? process.env);
   const row = latestLedgerRow(parseLedgerTable(args?.markdown).rows);
   const eligibility = attainmentEligibility(row);
+  // §6-6: 그 행이 연습인지 사건인지 함께 말한다. 리허설에는 1단계 중단 결정·실사용자 트래픽·
+  // 고지가 없으므로 그 소요시간은 **하한**이고, `met` 은 「약속을 지킬 수 있다」가 아니다.
+  const kind = row ? kindState(row.kind) : 'absent';
+  const role = roleFor(kind);
   return {
     row,
     rto: compareToObjective('rto', values.rto.minutes, eligibility.eligible && row ? row.durationMin : null),
     eligibility,
-    note: REHEARSAL_HAS_NO_LOSS,
+    kind,
+    basis: role ? role.rtoEvidence : 'unknown',
+    note:
+      !row || kind === 'regular'
+        ? REHEARSAL_HAS_NO_LOSS
+        : kind === 'incident'
+          ? INCIDENT_HAS_LOSS
+          : KIND_UNREAD_NOTE,
   };
 }
 
@@ -616,6 +652,9 @@ export function recoveryObjectivesCheck(args?: ObjectiveInput): {
       conflicts: a.conflicts,
       unjudgedConflicts: a.unjudgedConflicts.length,
       attainment: { rto: a.attainment.rto.attainment, rpo: a.attainment.rpo.attainment },
+      // 그 실측이 사건의 것인가 연습의 것인가(§6-6). 값·구간 분은 담지 않는다
+      measurement: a.measurement.measurement,
+      measurementOrigin: a.measurement.origin,
       breached: a.breached,
       drifts: OBJECTIVE_DRIFTS.map((d) => d.key),
       runbook: OBJECTIVES_RUNBOOK_REF,

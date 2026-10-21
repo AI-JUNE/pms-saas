@@ -149,6 +149,13 @@ RPO 실측은 3-7 구간이라 **시간**이고 실제로 잃은 행 수는 아�
 `met` 은 **이번 한 번**에 대한 사실이다 · 공개 응답에는 **수치를 담지 않는다**(목표 분·실측 분·초과 분) ·
 약속을 **누구에게** 했는지는 코드가 모른다(고지 대상 판정은 3-10 이 한다).
 
+※ **실측의 출처를 함께 본다**(2026-10-21, 6-6). RPO 실측은 `RECOVERY_RESTORE_POINT`·
+`RECOVERY_WRITE_FREEZE_AT` 로만 산출되는데 그 두 키는 **리허설 체크리스트가 채우라고 지시하는
+값**이다 — 그래서 리허설 중의 구간이 그대로 `met`·`exceeded`(→ `breached`)를 냈다. 이제 리허설
+선언(6-1)이 켜진 배포의 구간은 `measurement: withheld` 로 **대조에서 뺀다**(`attainment.rpo` 는
+`unjudged`). 6절 표 `소요시간` 쪽은 유형을 응답에 함께 적는다 — `정기` 행의 `met` 은 **하한**이고
+「약속을 지킬 수 있다」가 아니다(리허설에는 1단계 중단 결정·실사용자 트래픽·고지가 없다).
+
 ※ `required: false` 라 어느 경우에도 503 이 되지 않는다. 목표치 기재·계약 확인은 **[사람 수행 필요]**.
 
 ## 2. 정기 점검 (월 1회)
@@ -1050,6 +1057,9 @@ Vercel 환경변수는 DB 백업에 포함되지 않으므로 별도 보관한�
 #### 4-7. 복구 리허설 (6절과 같은 키)
 
 `RECOVERY_REHEARSAL_INTERVAL_DAYS` · `RECOVERY_LAST_REHEARSAL` · `RECOVERY_LAST_REHEARSAL_RESULT` · `RECOVERY_LAST_REHEARSAL_KIND` — 의미는 6절 표 참조.
+`RECOVERY_LAST_REHEARSAL_KIND` 는 2026-10-21 부터 **판정이 읽는다**(아래 6-6) — 그전에는 표·env 양쪽에
+적히면서 읽는 판정이 없었고(6-4 가 `judgedBy: null` 로 적어 두었다), 그래서 **사건 복구가 리허설 기한을
+리셋**했다. 이 묶음은 **마지막 정기 리허설**의 기록으로 두고, 사건은 6절 표에 행으로만 남긴다.
 `RECOVERY_LAST_REHEARSAL_SCOPE` — 마지막 리허설이 **수행한 절차 단위** 목록(아래 6-2).
 신선도 판정(`checks.recovery`)은 **일자와 결과 두 칸만** 보므로, 리허설 **뒤에 추가된 소절**은
 한 번도 수행되지 않았는데도 `ok` 로 남았다 — 이 기록이 그 축을 본다. **유실되면 범위 판정이
@@ -1342,6 +1352,9 @@ node --input-type=module -e "import {deployRollbackStatus,rollbackText} from './
 > 마지막 `미통과 단위` 열은 2026-10-21 에 만들었다: `검증 결과` 는 전체 **한 칸**이라
 > `부분 통과` 를 적어도 **어느 단위가 걸렸는지** 적을 자리가 없었고, 그래서 범위 판정은
 > `ok`(「단위 N/N 검증」)인데 재수행 대상은 산출되지 않았다(아래 6-5).
+> `유형` 열은 처음부터 있었지만 **읽는 판정이 2026-10-21 까지 없었다**(6-4 가 `judgedBy: null` 로
+> 적어 두었다) — 그래서 「절차를 검증한 연습」과 「실제로 일어난 사건」이 전 판정에서 같은 말이었다
+> (아래 6-6). 이 표에는 **두 유형을 함께** 적고, 환경변수 한 벌은 마지막 **정기** 행의 값으로 둔다.
 
 ### 기한 추적 (자동)
 
@@ -1356,7 +1369,7 @@ node --input-type=module -e "import {deployRollbackStatus,rollbackText} from './
 | `RECOVERY_REHEARSAL_INTERVAL_DAYS` | 예: `180` | 리허설 주기(일). **미설정이면 기한 판정을 하지 않는다** — 임의 기본 주기를 쓰지 않는다 `[확인 필요]` |
 | `RECOVERY_LAST_REHEARSAL` | `YYYY-MM-DD` | 마지막 리허설 일자. 형식 밖·비실존 날짜·미래 날짜는 무효 처리 |
 | `RECOVERY_LAST_REHEARSAL_RESULT` | `정상` / `부분 통과` / `실패` | `실패`·`부분 통과`는 `failing`. **판독할 수 없으면(비었거나 다른 문구) `unknown_result`** — 둘 다 `ok`가 아니다(2026-10-20 분리. 그전에는 **판독 불가가 `ok` 로 나갔다** — 아래 6-4) |
-| `RECOVERY_LAST_REHEARSAL_KIND` | `정기` / `사건` | 선택 |
+| `RECOVERY_LAST_REHEARSAL_KIND` | `정기` / `사건` | 그 기록이 **연습인가 사건인가** — 아래 6-6. **판정이 읽는다**(비우면 `unknown_kind` = 판정 보류이고 통과가 아니다). 이 한 벌은 **마지막 정기 리허설**의 값으로 둔다 — 사건은 위 표에 행으로 남기고 env 는 바꾸지 않는다(사건은 절차의 **사용**이고 검증이 아니어서 리허설 기한을 리셋하지 않는다). 같은 값을 위 표 `유형` 열에도 적는다(6-4) |
 | `RECOVERY_LAST_REHEARSAL_SCOPE` | `asOf=…;rev=…;units=1-1,2-1,…` | 그 리허설이 **수행한 절차 단위**. 위 네 칸은 「언제·결과」만 말하고 **「무엇을 검증했는가」는 말하지 않는다** — 아래 6-2. 같은 값을 위 표 `범위` 열에도 적는다(6-4) |
 | `RECOVERY_LAST_REHEARSAL_UNPASSED` | `asOf=…;units=3-6,3-7` | 그 리허설이 **통과하지 못한 절차 단위**. 범위는 수행 여부만 보므로 `부분 통과`·`실패` 가 **어느 단위에서 났는지**는 이 칸만 말한다 — 아래 6-5. 전부 통과했으면 **비워 둔다**(비운 채 결과가 미통과면 `unattributed` 가 뜬다). 같은 값을 위 표 `미통과 단위` 열에도 적는다 |
 
@@ -1705,6 +1718,82 @@ node --input-type=module -e "import fs from 'node:fs';import {parseLedgerTable} 
 `required: false` 라 어느 경우에도 503 이 되지 않고, 응답에는 단위 키·판정·날짜·개수만 담는다
 (소요시간·담당·비고 없음).
 
+### 6-6. 그 기록이 **연습인가 사건인가** — 유형의 구분
+
+위 표의 둘째 열은 **`유형(정기/사건)`** 이고 같은 값을 `RECOVERY_LAST_REHEARSAL_KIND` 에도 적는다.
+`lib/recovery.ts` 는 그 칸을 표·환경변수 양쪽에서 **받아 적고 있었다**. 그런데 **읽는 판정이 하나도
+없었다** — 6-4 기록 정본이 그 사실을 `judgedBy: null` 로 스스로 적어 두었다(`ledger_field_unread`).
+그래서 「절차를 검증한 연습」과 「실제로 일어난 사건」이 전 판정에서 **같은 말**이었다.
+
+- **기한이 사건으로 리셋된다**(`interval_reset_by_incident`). 신선도(`checks.recovery`)는 일자와
+  결과만 본다. 3절 8단계가 지시하는 대로 사건 복구를 기록하면 경과일수가 0 이 되고 기한이 밀려
+  `ok` 가 된다 — **정기 리허설을 한 번도 하지 않아도** 사건이 날 때마다 「검증됐다」가 유지된다.
+  그런데 위 머리말은 리허설을 「운영 DB가 **아닌** 복구 브랜치에서」로 정의하고, 아래 체크리스트의
+  여러 항목은 「리허설이라면 ~까지가 점검 대상」(고지를 **발신하지 않고** `due` 를 보는 것 · 기준
+  스냅샷을 **덮지 않는** 것 · `blockers` 가 **차 있는 것**을 확인하는 것)으로 **사건에서는 성립하지
+  않는 점검**이다. 사건은 절차의 **사용**이고 검증이 아니다.
+- **연습으로 잰 수치가 약속의 실측이 된다**(`rpo_from_rehearsal`). 런타임 RPO 실측은
+  `RECOVERY_RESTORE_POINT`·`RECOVERY_WRITE_FREEZE_AT` 만 보는데(1-2), 그 두 키는 **아래 체크리스트가
+  채우라고 지시하는 값**이다. 그래서 리허설 중의 구간이 그대로 `attainment.rpo` 가 되어
+  `met`(= 약속을 지켰다)이나 `exceeded` 를 내고, `exceeded` 면 종합 판정이 **`breached`**(「고지문과
+  6절 표 비고에 약속 대비 초과를 적으라」)까지 간다 — **고지 대상도 유실도 없는 연습**에서.
+- **표 최신 행의 소요시간도 출처를 말하지 않았다**(`rto_basis_unknown`). 1-2 의 대조는 2026-10-21
+  부터 `검증 결과` 를 게이트로 쓰지만(6-5) **유형은 보지 않았다**. 리허설에는 1단계 「중단 결정」도,
+  실사용자 트래픽도, 고지도 없으므로 그 소요시간은 구조적으로 **하한**이다.
+- **사건 행이 미통과 단위를 「해소」한다**(`resolution_by_incident`). 6-5 의 해소는 뒤 행의 범위·
+  미통과 칸만 보므로, 손상 유형이 범위를 고른 사건 행이 지난 리허설의 미통과를 지운다.
+
+- `GET /api/health` → `checks.rehearsalKind` (`lib/rehearsalKind.ts`, **required: false**)
+
+확인(1줄):
+
+```bash
+curl -s "$BASE/api/health" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const c=JSON.parse(s).checks.rehearsalKind.detail;console.log(c.verdict,'kind='+c.kind,'origin='+c.origin,'measurement='+c.measurement);console.log('기한 리셋 자격:',c.resetsInterval,'| 약속 실측 자격:',c.measurementEligible);console.log(c.action)})"
+```
+
+표의 **이력**에서 정기 행 기준 기한과 해소의 귀속을 산출한다(저장소에서 — 런타임은 문서를 읽지 않는다):
+
+```bash
+node --input-type=module -e "import fs from 'node:fs';import {parseLedgerTable} from './src/lib/rehearsalLedger.ts';import {intervalText} from './src/lib/rehearsalKind.ts';const md=fs.readFileSync('RUNBOOK.md','utf8');console.log(intervalText({rows:parseLedgerTable(md).rows,intervalDays:Number(process.env.RECOVERY_REHEARSAL_INTERVAL_DAYS)||null}).join('\n'))"
+```
+
+| `verdict` | 뜻 | 할 일 |
+| --- | --- | --- |
+| `no_record` | 기록이 없다(**평상시**) | **판정 보류다.** 미실시는 `checks.recovery` 가 `missing` 으로 말한다 |
+| `unknown_kind` | 기록은 있는데 **유형을 읽을 수 없다** | **통과가 아니다.** `정기`/`사건` 을 환경변수와 표 `유형` 열에 같은 값으로 적는다 — 유형을 모르면 그 기록이 「검증됐다」의 근거인지 알 수 없는데 기한은 리셋된다 |
+| `contradicts_declaration` | 기록은 `사건` 인데 배포는 **리허설 선언 중**이다 | 둘 중 하나가 틀렸다 — 리허설이면 유형을 `정기` 로, 실제 사건이면 선언(`RECOVERY_REHEARSAL_ACTIVE`)을 지운다(6-1) |
+| `interval_reset_by_incident` | 기록이 `사건` 이다 | 사건은 위 표에 행으로 남기고 환경변수 한 벌은 **마지막 정기 리허설**의 값으로 둔다 — 정기 행 기준 기한은 위 저장소 명령이 산출한다 |
+| `rehearsal_measure` | 리허설 선언 중에 **유실 구간 키가 채워져 있다** | 그 구간을 **약속 대조에서 뺐다**(`attainment.rpo` 가 `unjudged`). 리허설 중에는 **정상**이고, 끝나면 두 키를 지운다 |
+| `ok` | 유형이 적혀 있고 런타임 선언과 어긋나지 않는다 | 다음 기록에서도 표와 환경변수에 **같은 값**을 적는다 |
+
+어긋남의 방향 세 가지(전부 응답은 200 이다):
+
+| 방향 키 | 언제 | 무엇이 조용해지는가 |
+| --- | --- | --- |
+| `incident_overwrites_rehearsal` | 사건 복구를 끝내고 `RECOVERY_LAST_REHEARSAL*` 한 벌에 그 값을 적는다 | 마지막 **정기** 리허설의 일자·범위·미통과가 함께 덮인다(6-4 대조도 최신 행만 본다) — 기한은 리셋되고 재수행 대상은 짧아진다 |
+| `drill_becomes_promise` | 리허설이 구간 키를 채운 채 돌아간다 | 연습 구간이 약속 대비 판정(`met`·`exceeded` → `breached`)이 되고 3-10 고지 문구 틀까지 만들어진다 |
+| `declaration_left_on` | 리허설 선언을 켠 채 사건이 난다 | 사건의 실측이 판정 보류로 빠진다 — 그 사실은 6-1 이 말하므로 여기서 다시 세지 않는다 |
+
+**두 유형의 자격**(정본은 `lib/rehearsalKind.ts` 의 `KIND_ROLES`):
+
+| 유형 | 보증하는 것 | 기한 리셋 | 약속 실측 | 미통과 해소 |
+| --- | --- | --- | --- | --- |
+| `정기` | 복구 브랜치에서 절차 단위를 **수행해 봤다** | 한다 | **하한**이다(중단 결정·실트래픽·고지가 없다) | 한다 |
+| `사건` | 실제 복구의 **소요시간·유실 구간** | 하지 않는다 | **실측**이다 | 하지 않는다(통과 판정을 한 적이 없다) |
+
+※ 이 판정이 보장하지 **못하는** 것(`detail.limits` 로 함께 나온다):
+유형은 **사람이 적는 한 칸**이다(사건을 `정기` 로 적으면 이 판정도 같이 틀린다 — 표와 환경변수의
+대조는 6-4 가 한다) · 런타임 축은 **그 배포의 선언**뿐이고 선언 없이 리허설하면 그 구간은 사건
+실측으로 세어진다(6-1) · 사건 복구가 절차를 **더 많이** 수행했을 수도 있다(이 판정은 「검증 자격」만
+말하고 수행량은 6-2, 통과는 6-5 가 말한다) · 기한을 리셋하지 않는다는 것은 **정기 리허설 주기**에
+대한 말이고 사건 기록을 지우라는 뜻이 아니다 · 표의 **이력**은 런타임이 보지 않는다(위 저장소 명령과
+CI 가 본다) · `ok` 는 「두 축이 서로 맞는다」까지다.
+
+※ **임의 귀속 금지** — 유형이 비어 있으면 「정기였을 것」으로 올리지 않고(`unknown_kind` 는 **판정을
+못 한 것**이다. 6-2 `unrecorded`·6-5 `unattributed` 와 같은 규율), 코드가 유형을 고르지도 않는다.
+**신규 환경변수 0 · 신규 조회·쓰기·DDL 0** — 이미 받아 적고 있던 칸을 읽는다. `required: false` 라
+어느 경우에도 503 이 되지 않고, 응답에는 판정·유형·날짜·키 이름만 담는다(구간 분·소요시간·담당 없음).
+
 ### 리허설 체크리스트
 
 - [ ] **시작 전에** 리허설 대상 배포에만 `RECOVERY_REHEARSAL_ACTIVE=true` 를 선언하고 재배포했다 —
@@ -1771,6 +1860,11 @@ node --input-type=module -e "import fs from 'node:fs';import {parseLedgerTable} 
       (리허설이라면 2절 4번 스냅샷을 떠 두는 것까지가 점검 대상이다)
 - [ ] 유실 구간을 §3-7 명령으로 산출했다 — `verdict` 가 `ok` 이고 `notice` 를 기록했다
       (리허설이라면 고지 대상은 없지만 **구간을 산출할 수 있는지**가 점검 대상이다)
+- [ ] 그 구간이 **약속 대조에서 빠졌는지** — `checks.rehearsalKind.detail.measurement` 가
+      `withheld` 이고 `checks.recoveryObjectives.detail.attainment.rpo` 가 `unjudged` 다(§6-6).
+      리허설 중에는 그것이 **정상 결과**다 — 여기서 `met`·`exceeded` 가 나오면 고지 대상도 유실도
+      없는 **연습값**이 약속 기록이 된 것이고(`exceeded` 면 종합 판정이 `breached` 까지 간다),
+      그때는 리허설 선언(§6-1)이 이 배포에 반영되지 않은 것이다
 - [ ] 구간의 **시작**을 3단계에서 적어 두었다 — `checks.lossNotice.detail.restorePointRecorded` 가
       `true`. 끝만 있으면 `basis_missing` 이고, 그 상태로 표지를 지우면 구간을 되찾을 수 없다(§3-10)
 - [ ] 고지 발신 시각을 `RECOVERY_LOSS_NOTICE_AT` 에 적었다 — `checks.lossNotice.detail.state` 가
@@ -1811,6 +1905,11 @@ node --input-type=module -e "import fs from 'node:fs';import {parseLedgerTable} 
       표의 `범위` 열에는 `RECOVERY_LAST_REHEARSAL_SCOPE` 와 **같은 값**을 적었다. 값 대조는
       6-4 의 저장소 명령으로 한 번 더 본다(`basis` 가 `env` 인 응답은 **표를 보지 않은 판정**이다).
       `table_only` 는 판정이 읽는 env 가 비어 있다는 뜻이고, `env_only` 는 저장소에 근거가 없다는 뜻이다
+- [ ] 그 기록의 **유형**을 표 `유형` 열과 `RECOVERY_LAST_REHEARSAL_KIND` 에 **같은 값**(`정기`)으로
+      적었다 — `checks.rehearsalKind.detail.verdict` 가 `ok` 다(§6-6). `unknown_kind` 는 「연습인지
+      사건인지 모른다」는 뜻이고 **통과가 아니다**(그 상태로도 기한은 리셋된다). 실제 **사건** 복구는
+      이 환경변수를 바꾸지 않고 표에 행으로만 남긴다 — 사건은 절차의 **사용**이고 검증이 아니어서
+      정기 리허설 기한을 리셋하지 않는다(`interval_reset_by_incident`)
 - [ ] 리허설 중 **배포 롤백(Promote)을 쓰지 않았다** — `checks.deployPin.detail.verdict` 가
       `off` 다(쓰면 차단·DB 교체·기준 지문이 옛 배포의 env 스냅샷으로 함께 되돌아간다. 5-1).
 - [ ] `RECOVERY_REHEARSAL_ACTIVE` 를 지웠다 — `checks.rehearsalScope.detail.verdict` 가 `normal` 로

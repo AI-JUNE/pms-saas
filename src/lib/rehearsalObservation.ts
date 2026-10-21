@@ -293,6 +293,16 @@ export const CHECK_OBSERVATIONS: readonly CheckObservation[] = [
     silent: '미통과가 어느 단위인지 남지 않아 다음 리허설의 재수행 대상에서 빠지고, `부분 통과` 의 소요시간이 §1-2 의 RTO 실측으로 쓰여 `met` 이 된다',
   },
   {
+    check: 'rehearsalKind',
+    role: 'observe',
+    field: 'verdict',
+    vocab: { file: 'src/lib/rehearsalKind.ts', decl: 'KIND_VERDICTS' },
+    cited: true,
+    degradedWhen: ['rehearsal'],
+    why: '그 기록이 **연습인가 사건인가**를 보는 칸이다(§6-6). §6 표 `유형` 열과 env 는 2026-09-21 부터 적혀 있었는데 읽는 판정이 없어, 사건 복구가 리허설 기한을 리셋하고 리허설 중의 구간이 §1 약속의 실측이 됐다',
+    silent: '정기 리허설을 한 번도 하지 않아도 사건마다 `checks.recovery` 가 `ok` 로 돌아오고, 연습으로 잰 구간이 `attainment.rpo` 의 `met`·`exceeded` 로 기록된다',
+  },
+  {
     check: 'deployPin',
     role: 'observe',
     field: 'verdict',

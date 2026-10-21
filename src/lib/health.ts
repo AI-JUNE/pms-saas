@@ -22,6 +22,7 @@ export type CheckName =
   | 'rehearsalCoverage'
   | 'rehearsalLedger'
   | 'rehearsalOutcome'
+  | 'rehearsalKind'
   | 'rehearsalObservation'
   | 'deployPin'
   | 'disclosure';

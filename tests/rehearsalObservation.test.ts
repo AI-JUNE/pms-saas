@@ -68,6 +68,7 @@ import { recoveryReadinessCheck } from '../src/lib/recoveryVerify.ts';
 import { pitrWindowCheck } from '../src/lib/recoveryWindow.ts';
 import { rehearsalCoverageCheck } from '../src/lib/rehearsalCoverage.ts';
 import { rehearsalLedgerCheck } from '../src/lib/rehearsalLedger.ts';
+import { rehearsalKindCheck } from '../src/lib/rehearsalKind.ts';
 import { rehearsalOutcomeCheck } from '../src/lib/rehearsalOutcome.ts';
 import { rehearsalScopeCheck } from '../src/lib/rehearsalScope.ts';
 import { writeFreezeCheck } from '../src/lib/writeFreeze.ts';
@@ -121,6 +122,7 @@ function buildChecks(env: Record<string, string | undefined>): Record<string, un
     rehearsalCoverage: rehearsalCoverageCheck({ env }),
     rehearsalLedger: rehearsalLedgerCheck({ env }),
     rehearsalOutcome: rehearsalOutcomeCheck({ env }),
+    rehearsalKind: rehearsalKindCheck({ env }),
     deployPin: deployPinCheck({ env }),
     disclosure: disclosureCheck({ env }),
   };

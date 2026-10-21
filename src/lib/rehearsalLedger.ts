@@ -105,8 +105,9 @@ export const LEDGER_FIELDS: readonly LedgerField[] = [
     column: '유형',
     envKey: 'RECOVERY_LAST_REHEARSAL_KIND',
     home: 'both',
-    judgedBy: null,
-    lost: '정기·사건 구분이 사라진다(판정에는 쓰이지 않고 사후 조사에서 읽는다)',
+    judgedBy: 'lib/rehearsalKind.ts assessKind (§6-6)',
+    lost:
+      '정기·사건 구분이 사라진다 — 그러면 사건 복구가 리허설 기한을 리셋하고(신선도는 일자·결과만 본다) 리허설 중에 잰 유실 구간이 §1 약속의 실측이 된다(2026-10-21 까지 이 칸은 `judgedBy: null` 이었다 — 집이 둘인데 **읽는 판정이 없는** 상태였다)',
   },
   {
     key: 'target',
