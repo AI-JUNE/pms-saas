@@ -3036,7 +3036,13 @@ function statusKind(v){ var s=String(v||'').toLowerCase().trim();
   return null; }
 function durOf(v){ if(v==null||v==='')return null; var s=String(v);
   if(/\d{4}[-./]\d{1,2}[-./]\d{1,2}/.test(s))return null;
+  /* "3분 20초"·"1시간 2분" — 집계표 경로(tval)와 같은 해석. 예전엔 tsec 이 앞 숫자만 읽어 3분 20초 = 3 이 됐다(10-21) */
+  var km=s.trim().match(/^(?:(\d+)\s*시간)?\s*(?:(\d+)\s*분)?\s*(?:(\d+(?:\.\d+)?)\s*초)?$/);
+  if(km&&(km[1]||km[2]||km[3]))return (+(km[1]||0))*3600+(+(km[2]||0))*60+(+(km[3]||0));
   return tsec(s); }
+/* 단위가 칸에 적혀 있나(0:12 · 0:03:20 · 3분 20초 · 45초). 적혀 있으면 tsec 이 이미 초로 바꿨으므로 fixUnit 으로 다시 추정하지 않는다.
+   (10-20 조사 P1 · 승인 #23 안 A: 대기 중앙값이 20초 미만이면 fixUnit 이 '분' 으로 오판해 ×60 하던 문제) */
+function unitWritten(v){ return typeof v==='string' && /[:：]|\d\s*(시간|분|초)/.test(v); }
 /* 시간대 셀: "09", "9시", "09:00~10:00", "오후 2시", 엑셀 시각(0.375) */
 function hourCell(v){ if(v==null||v==='')return null;
   if(typeof v==='number'){ if(v>=0&&v<1)return Math.floor(v*24+1e-6); if(v>=0&&v<=23&&v===Math.floor(v))return v; return null; }
@@ -3092,25 +3098,27 @@ function logStatsV2(rows,H,dir){
     var row=rows[r]; if(!row||!row.length)continue;
     if(isSummaryRow(row))continue;
     var dt=ix.date!=null?cellDateStr(row[ix.date]):'';
-    var talk=ix.talk!=null?durOf(row[ix.talk]):(ix.talkAvg!=null?durOf(row[ix.talkAvg]):null);
-    var wait=ix.wait!=null?durOf(row[ix.wait]):(ix.waitAvg!=null?durOf(row[ix.waitAvg]):null);
-    var acw=ix.acw!=null?durOf(row[ix.acw]):(ix.acwAvg!=null?durOf(row[ix.acwAvg]):null);
+    var talkRaw=ix.talk!=null?row[ix.talk]:(ix.talkAvg!=null?row[ix.talkAvg]:null);
+    var waitRaw=ix.wait!=null?row[ix.wait]:(ix.waitAvg!=null?row[ix.waitAvg]:null);
+    var acwRaw=ix.acw!=null?row[ix.acw]:(ix.acwAvg!=null?row[ix.acwAvg]:null);
+    var talk=talkRaw!=null?durOf(talkRaw):null, wait=waitRaw!=null?durOf(waitRaw):null, acw=acwRaw!=null?durOf(acwRaw):null;
     var sk=ix.status!=null?statusKind(row[ix.status]):null;
     if(!dt.trim()&&talk==null&&wait==null&&sk==null)continue;
     var rawStatus=ix.status!=null?String(row[ix.status]||'').trim():null;
     recs.push({dt:dt,talk:talk,wait:wait,acw:acw,sk:sk,rawStatus:rawStatus,
+      talkU:unitWritten(talkRaw),waitU:unitWritten(waitRaw),acwU:unitWritten(acwRaw),
       type:ix.type!=null?String(row[ix.type]||'').trim():null,
       team:ix.team!=null?String(row[ix.team]||'').trim():null,
       agent:ix.agent!=null?String(row[ix.agent]||'').trim():null});
-    if(talk!=null&&talk>0)talkVals.push(talk);
-    if(wait!=null&&wait>0)waitVals.push(wait); }
+    if(talk!=null&&talk>0&&!unitWritten(talkRaw))talkVals.push(talk);
+    if(wait!=null&&wait>0&&!unitWritten(waitRaw))waitVals.push(wait); }
   if(!recs.length)return null;
   var tf=fixUnit(talkVals,'통화시간'), wf=fixUnit(waitVals,'대기시간');
   if(tf.note)st.notes.push('통화시간: '+tf.note);
   if(wf.note)st.notes.push('대기시간: '+wf.note);
   recs.forEach(function(c){
     st.tot++; st.rows++;
-    var talk=c.talk!=null?c.talk*tf.f:null, wait=c.wait!=null?c.wait*wf.f:null, acw=c.acw!=null?c.acw*tf.f:null;
+    var talk=c.talk!=null?c.talk*(c.talkU?1:tf.f):null, wait=c.wait!=null?c.wait*(c.waitU?1:wf.f):null, acw=c.acw!=null?c.acw*(c.acwU?1:tf.f):null;
     var kind=c.sk;
     if(kind)st.statusUsed=true;
     if(!kind){

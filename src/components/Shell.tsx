@@ -10,6 +10,7 @@ import {
   FileSearch,
 } from 'lucide-react';
 import { Logo } from './Logo';
+import { clearAppStorage } from '@/lib/appStorage';
 import { GowonMark } from './GowonMark';
 import { filterNav, canAccessScreen, type Principal } from '@/lib/screenAccess';
 
@@ -116,7 +117,12 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
   }, [cq, cmd]);
 
   function pickProject(id: number) { localStorage.setItem('pms.project', String(id)); setPid(id); setOpenMenu(null); location.reload(); }
-  async function logout() { await fetch('/api/auth/logout', { method: 'POST' }); router.push('/login'); }
+  // wipe=true: 공용 PC 용 — 같은 오리진의 제안 앱 브라우저 저장(결과·고객사 자료·키)까지 지운다(appStorage.ts, 외부 오픈 관문 S-1)
+  async function logout(wipe = false) {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    if (wipe) { try { clearAppStorage(window.localStorage); } catch { /* 저장소 접근 불가 — 로그아웃은 그대로 진행 */ } }
+    router.push('/login');
+  }
   const unread = notifs.filter((n) => !n.isRead).length;
   const curProj = projects.find((p) => p.id === pid);
   // 역할 등급(lib/screenAccess) — /api/auth/me 가 오기 전(null)에는 관리 화면을 숨긴다(업무 화면은 그대로).
@@ -202,7 +208,8 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
                 <Link href="/settings" className="menu-item" onClick={() => setOpenMenu(null)}><Settings style={{ width: 16 }} />내 계정·설정</Link>
                 {canAccessScreen(principal, '/audit') && <Link href="/audit" className="menu-item" onClick={() => setOpenMenu(null)}><Activity style={{ width: 16 }} />감사 로그</Link>}
                 <div className="menu-sep" />
-                <button className="menu-item" onClick={logout}><LogOut style={{ width: 16 }} />로그아웃</button>
+                <button className="menu-item" onClick={() => logout()}><LogOut style={{ width: 16 }} />로그아웃</button>
+                <button className="menu-item" title="공용 PC 에서 사용할 때 — 제안 앱의 분석 결과·고객사 자료·API 키를 이 브라우저에서 지웁니다" onClick={() => { if (window.confirm('이 PC 의 제안 앱 데이터(분석 결과·고객사 자료·API 키)를 지우고 로그아웃할까요? 지운 데이터는 되살릴 수 없습니다.')) logout(true); }}><LogOut style={{ width: 16 }} />로그아웃 + 이 PC 앱 데이터 삭제</button>
               </div>
             )}
           </div>

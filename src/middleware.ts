@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { applySecurityHeaders } from './lib/securityHeaders';
 import { freezeDecision, freezeLogLine, freezeResponseBody } from './lib/writeFreeze';
+import { verifyCookie } from './lib/sessionSig';
 const COOKIE = process.env.SESSION_COOKIE || 'pms_session';
 // ⚠️ 세션 게이트 접두사. 여기서 **빼면** 그 화면이 로그인 없이 열린다 — 추가는 안전, 삭제는 위험.
 //   '/apps' 는 제안 앱(2026-09-29 편입). matcher 가 제외하는 건 _next/static·_next/image·favicon 뿐이라
@@ -13,7 +14,7 @@ const COOKIE = process.env.SESSION_COOKIE || 'pms_session';
 //   공개 경로(/, /lp, /pricing, /login, /reset-password, /terms, /privacy)·/api·/health 는 여기 넣지 않는다 — lib/appRoutes PUBLIC_SCREENS 가 정본.
 const P = ['/dashboard','/projects','/phases','/members','/requirements','/issues','/risks','/tasks','/backlog','/documents','/interfaces','/infra','/firewall','/procurement','/boards','/meetings','/notifications','/apps',
   '/mywork','/todos','/reports','/weekly','/snapshots','/rtm','/form-definitions','/tests','/test-cycles','/calendar','/workload','/admin','/audit','/settings'];
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   let res: NextResponse;
   // RUNBOOK §3 2단계(쓰기 차단) — 복구 작업 중 운영 DB 에 들어오는 쓰기를 막는다.
@@ -36,7 +37,8 @@ export function middleware(req: NextRequest) {
         'Cache-Control': 'no-store',
       },
     });
-  } else if (P.some((p) => pathname.startsWith(p)) && !req.cookies.get(COOKIE)) {
+  } else if (P.some((p) => pathname.startsWith(p)) && !(await verifyCookie(req.cookies.get(COOKIE)?.value, process.env.SESSION_SECRET))) {
+    // SESSION_SECRET 이 있으면 서명까지 확인(위조 쿠키 차단, 외부 오픈 관문 I-2 · sessionSig.ts). 없으면 예전처럼 존재만 본다.
     const url = req.nextUrl.clone(); url.pathname = '/login'; res = NextResponse.redirect(url);
   } else {
     res = NextResponse.next();

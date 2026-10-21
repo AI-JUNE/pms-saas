@@ -130,6 +130,7 @@ export const ENV_VARS: EnvVar[] = [
   { key: 'SITE_URL', kind: 'config', group: '사이트', note: 'canonical·robots·sitemap 의 정본 origin' },
   { key: 'NEXT_PUBLIC_SITE_URL', kind: 'config', group: '사이트', note: 'SITE_URL 대체값. 클라이언트 번들에 인라인된다' },
   { key: 'NEXT_PUBLIC_ERM_URL', kind: 'config', group: '사이트', note: '사내 제안분석(ERM) 바로가기. 미설정 시 링크를 만들지 않는다(주소를 지어내지 않는다)' },
+  { key: 'SESSION_SECRET', kind: 'secret', group: '사이트', note: '세션 쿠키 서명 키(32자 이상). 있으면 미들웨어가 위조 쿠키를 거른다. 넣는 순간 기존 세션이 모두 무효(전원 재로그인). 미설정·32자 미만이면 서명 꺼짐(쿠키 존재만 확인)' },
 
   // ── 배포 롤백(RUNBOOK §5·§5-1) ──
   { key: 'DEPLOY_PINNED_COMMIT', kind: 'config', group: '배포 롤백', note: 'RUNBOOK §5 롤백 대상 커밋(7~40자리 16진수). 평상시 미설정이 정상 — 적어 두면 롤백이 AutoPush 에 밀려 풀린 사실이 /api/health 의 checks.deployPin 에 drifted 로 남는다. 수정 배포 후에는 지운다' },
