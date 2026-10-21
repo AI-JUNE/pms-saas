@@ -59,6 +59,7 @@ import { restorePointFromEnv } from './lossNotice.ts';
 import { baselineMaxAgeDays } from './recoveryBaseline.ts';
 import { retentionHours } from './recoveryWindow.ts';
 import { latestLedgerRow, parseLedgerTable, type LedgerField, type LedgerRow } from './rehearsalLedger.ts';
+import { attainmentEligibility, type AttainmentEligibility } from './rehearsalOutcome.ts';
 
 /** 응답·문서에서 근거 절을 찾을 수 있게 한다 */
 export const OBJECTIVES_RUNBOOK_REF = 'RUNBOOK §1 · §1-2';
@@ -499,6 +500,8 @@ export interface RehearsalAttainment {
   row: LedgerRow | null;
   /** 그 행의 소요시간 대 RTO */
   rto: AttainmentResult;
+  /** 그 행의 소요시간이 **RTO 실측 자격**이 있는가(§6-5) */
+  eligibility: AttainmentEligibility;
   /** 그 리허설에서는 실제 유실이 없다 — 구간 대조는 사건에서만 한다 */
   note: string;
 }
@@ -510,6 +513,11 @@ export const REHEARSAL_HAS_NO_LOSS =
  * §6 표의 **최신 행 소요시간**을 RTO 와 견준다 — `LEDGER_FIELDS.duration` 을 **읽는 판정**이
  * 여기서 처음 생긴다(§6-4 가 「적히지만 읽는 판정이 없다」고 적어 둔 칸이다).
  * 문서 원문은 **인자로 받는다**(이 모듈은 파일을 읽지 않는다).
+ *
+ * 2026-10-21: **`검증 결과` 를 먼저 본다**(§6-5 `attainmentEligibility`). 그전에는 결과를 보지
+ * 않아 `부분 통과` 리허설의 소요시간이 그대로 실측이 됐는데, 절차를 끝까지 가지 않은 리허설은
+ * 당연히 짧으므로 **약속을 지킨 것(`met`)으로 기록된다** — 수치를 깎지 않으면서 그렇게 된다.
+ * 자격이 없으면 실측을 넘기지 않아 `unjudged`(= 판정 보류) 로 남는다.
  */
 export function rehearsalAttainment(args: {
   markdown: unknown;
@@ -517,9 +525,11 @@ export function rehearsalAttainment(args: {
 }): RehearsalAttainment {
   const values = objectivesFromEnv(args?.env ?? process.env);
   const row = latestLedgerRow(parseLedgerTable(args?.markdown).rows);
+  const eligibility = attainmentEligibility(row);
   return {
     row,
-    rto: compareToObjective('rto', values.rto.minutes, row ? row.durationMin : null),
+    rto: compareToObjective('rto', values.rto.minutes, eligibility.eligible && row ? row.durationMin : null),
+    eligibility,
     note: REHEARSAL_HAS_NO_LOSS,
   };
 }

@@ -283,6 +283,16 @@ export const CHECK_OBSERVATIONS: readonly CheckObservation[] = [
     silent: '기록이 env 에서만 사라지면 신선도는 `missing`·범위는 `unrecorded`(판정 보류)로 내려앉고, 저장소에 남은 리허설을 아무도 되찾지 않는다',
   },
   {
+    check: 'rehearsalOutcome',
+    role: 'observe',
+    field: 'verdict',
+    vocab: { file: 'src/lib/rehearsalOutcome.ts', decl: 'OUTCOME_VERDICTS' },
+    cited: true,
+    degradedWhen: [],
+    why: '`검증 결과` 가 `부분 통과`·`실패` 일 때 **어느 단위가 통과하지 못했는지**를 보는 칸이다(§6-5). 범위 판정은 적힌 단위를 통과 여부와 무관하게 covered 로 세므로 `ok` 를 내고, 신선도의 「실패 항목을 조치하라」는 가리킬 목록이 없었다',
+    silent: '미통과가 어느 단위인지 남지 않아 다음 리허설의 재수행 대상에서 빠지고, `부분 통과` 의 소요시간이 §1-2 의 RTO 실측으로 쓰여 `met` 이 된다',
+  },
+  {
     check: 'deployPin',
     role: 'observe',
     field: 'verdict',

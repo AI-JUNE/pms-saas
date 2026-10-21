@@ -244,6 +244,13 @@ export const PROCEDURE_UNITS: readonly ProcedureUnit[] = [
     cited: true,
     skipped: '표와 env 가 다른 말을 하는 채로 두어, 복구·롤백으로 판정 쪽 기록이 사라진 것을 아무도 되찾지 않는다',
   },
+  {
+    key: '6-5',
+    title: '리허설이 무엇을 통과했는가 — 미통과 단위의 귀속',
+    since: '2026-10-21',
+    cited: true,
+    skipped: '「부분 통과」가 어느 단위에서 났는지 적지 않아, 범위 판정은 `ok`(전 단위 검증)인데 재수행 대상은 산출되지 않는다 — 같은 단위를 또 건너뛰어도 신호가 없다',
+  },
 ];
 
 /**

@@ -3,6 +3,18 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-10-21 (배치 200 — 배포 대기, 「수행했다」와 「통과했다」가 한 칸에 섞여 있었다)
+- ★ **COMMERCIAL_READINESS 잔여 `[ ]` 는 여전히 «복구 리허설 실시·기록»(사람 수행) 1건뿐** → §6-2(범위)·§6-4(기록의 집)의 전제는 「수행했다 = 검증됐다」다. 그런데 §6 표의 `검증 결과` 어휘에는 **`부분 통과`** 가 있고 `rehearsalFreshness` 는 그것을 `failing` 으로 판정하면서 「**실패 항목을 조치하고** 재리허설한다」고 지시한다 — **그 「실패 항목」을 적는 칸이 표에도 환경변수에도 없었다**(결과는 전체 한 칸, 범위는 수행 여부 한 축).
+- 🐞 **두 판정이 서로 다른 말을 하는데 아무도 합쳐 보지 않았다** — 범위에 전 단위를 적고 결과를 `부분 통과` 로 적으면 `checks.rehearsalCoverage` 는 `ok`(「단위 N/N 검증」)이고 `checks.recovery` 는 `failing` 이다(`assessCoverage` 는 기록에 **적힌** 단위를 통과 여부와 무관하게 covered 로 센다). 그 `ok` 를 읽는 쪽(§2-2 `signal`·§2 월 점검·마켓플레이스 보안 설명)은 그것을 「절차가 검증됐다」로 읽는다.
+- 🐞 **그래서 재수행 대상이 산출되지 않았다** — 다음 리허설 담당자가 체크리스트 첫 항목에서 받는 안내는 `addedSinceRehearsal`(리허설 **뒤에** 들어온 단위)뿐이고, 통과하지 못한 단위는 **범위에 들어 있으니 `uncovered` 도 아니어서** 어느 목록에도 없다. 같은 단위를 또 건너뛰어도 신호가 없다.
+- 🐞 **한 번 덮으면 되찾을 수 없다** — 판정이 읽는 쪽은 환경변수 한 벌이라 다음 리허설이 결과를 `정상` 으로 적는 순간 사실 자체가 사라진다(§6-4 대조도 **최신 행**만 본다). 표에 남은 옛 행을 **거슬러 읽는 판정이 없었다.**
+- 🐞 **그 값이 §1 의 약속을 재는 자가 됐다** — §1-2 `rehearsalAttainment` 는 표 최신 행의 `소요시간` 을 RTO 실측으로 쓰면서 `검증 결과` 를 **보지 않았다.** 절차를 끝까지 가지 않은 리허설은 당연히 짧으므로 `부분 통과` 의 소요시간이 그대로 `met`(= 목표를 지켰다)이 된다 — **수치를 깎지 않으면서** 약속을 지킨 것으로 기록되는 가장 조용한 방향이다.
+- 신규 `lib/rehearsalOutcome.ts`(순수 — DB·next·fs 미접근, **신규 조회·쓰기·DDL 0**, env 는 인자로 받는다): 「통과」의 경계 `outcomeState`(**`pass` 만 통과** — 「부분 통과」를 올리지 않고 판독 불가는 통과도 미통과도 아니다), 거짓이 되는 판정 정본 `OUTCOME_MISREADS` 4건, 기록 판독 `parseUnpassedRecord`(3형식 · 받지 않는 칸의 **값은 되돌려 주지 않는다** · `units=none` 은 「없음」 명시)·왕복 `unpassedLine`, 판정 `assessOutcome` → `no_rehearsal`/`unreadable_result`/`invalid_record`/`unknown_units`/**`unattributed`**/**`contradicts_result`**/**`outside_scope`**/**`attributed`**/`ok`, **재수행 대상 `remediationUnits`**(미통과 ∪ `uncovered` ∪ `addedSinceRehearsal` — 합집합), 표 이력 `outstandingUnits`(미해소 미통과 · **뒤 행의 범위에 들어 있고 미통과로 적히지 않을 때만 해소**), **RTO 실측 자격 `attainmentEligibility`**, `OUTCOME_DRIFTS` 3방향·`OUTCOME_LIMITS` 7건, 출력 4종, health 체크 `rehearsalOutcomeCheck`, 정적 점검 7종.
+- `lib/recoveryObjectives.ts` `rehearsalAttainment` 가 **`검증 결과` 를 먼저 본다**(자격 없으면 실측을 넘기지 않아 `unjudged`). `lib/recovery.ts` 의 `failing` action 이 §6-5 를 가리킨다. `api/health` 에 `checks.rehearsalOutcome` 추가(**required: false**, `rehearsalObservation` **앞에**).
+- 신규 env 1건 `RECOVERY_LAST_REHEARSAL_UNPASSED`(**임시 키가 아니다** — 영구 기록) · §6 표 **`미통과 단위` 열 신설**(맨 뒤) · 기록 정본 `LEDGER_FIELDS` 8→9칸 · 절차 단위 `6-5` · 관측 정본 등록. `RUNBOOK` **§6-5 신설** + §6 표·환경변수 표·§4-7 갱신 + 체크리스트 2항목.
+- 검증: tests/rehearsalOutcome.test.ts 26건 포함 **전체 822건 통과**, `tsc --noEmit` rc=0, `rehearsalOutcome.ts` lines 100%·branches 86.82%·funcs 97.37%, 전체 lines 99.63%.
+- 남은 사람 몫: 리허설 수행 후 표 `미통과 단위` 열과 환경변수를 **함께** 기재 **[사람 수행 필요]**.
+
 ## 2026-10-20 (배치 199 — 배포 대기, 절차가 지키기로 한 **수치**(RTO/RPO)를 읽는 코드가 하나도 없었다)
 - ★ **COMMERCIAL_READINESS 잔여 `[ ]` 는 여전히 «복구 리허설 실시·기록»(사람 수행) 1건뿐** → 소절 20개의 판정은 하나같이 **「그 단계를 했는가」**를 말한다. 그런데 이 절차가 지키기로 한 것은 단계가 아니라 수치 둘이다 — §1 의 **목표 복구시간(RTO)·목표 복구시점(RPO)**. 그 칸은 작성 이후 줄곧 `[확인 필요 — 계약 확정 후 기재]` 였고 **읽는 코드가 하나도 없었다.**
 - 🐞 **비어 있다는 사실조차 응답에 없었다** — 같은 §1 의 다른 `[확인 필요]`(PITR 보존기간)는 배치183 이 `checks.recoveryWindow` 로 **평상시에** 드러내 사람을 찌른다. 목표치에는 그런 장치가 없어 **영구히 비어 있어도 전 응답이 `ok`** 였다(가장 조용한 방향 — 아무것도 나빠지지 않는다).

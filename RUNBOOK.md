@@ -1057,6 +1057,11 @@ Vercel 환경변수는 DB 백업에 포함되지 않으므로 별도 보관한�
 위 네 칸은 **6절 표에도 같은 값이 있다**(`범위` 열 포함 — 2026-10-20 신설). 이 묶음이 유실되면
 표에서 되돌릴 수 있고, 그 복원 줄은 6-4 의 저장소 명령이 만들어 준다(`checks.rehearsalLedger` 가
 두 기록의 어긋남을 드러낸다 — `table_only` 가 바로 「유실됐는데 표에는 남아 있다」는 상태다).
+`RECOVERY_LAST_REHEARSAL_UNPASSED` — 마지막 리허설이 **통과하지 못한 절차 단위** 목록(아래 6-5).
+위 범위 기록은 **수행 여부**만 보고 `검증 결과` 는 전체 한 칸이라, `부분 통과` 를 적어도 어느
+단위가 걸렸는지 적을 자리가 없었다 — 그래서 범위 판정은 `ok`(「단위 N/N 검증」)이고 신선도의
+「실패 항목을 조치하라」가 **가리킬 목록이 없었다**. **유실되면 재수행 대상이 조용히 짧아진다**
+(판정은 `unattributed` 로 내려앉는다). 6절 표 `미통과 단위` 열에 같은 값이 있어 되돌릴 수 있다.
 `RECOVERY_CHECK_INTERVAL_DAYS` · `RECOVERY_LAST_CHECK` — **2절 정기 점검**의 주기(일)와 마지막 점검 일자(위 2-1).
 점검 일자는 **날짜를 품지 않는 설정값**(`RECOVERY_PITR_RETENTION_HOURS`·`RECOVERY_EXPECTED_DB`)의
 **유일한 확인 시점**이다 — 유실되면 그 값들이 언제 기준인지 알 수 없어지고(`unconfirmed`),
@@ -1325,14 +1330,17 @@ node --input-type=module -e "import {deployRollbackStatus,rollbackText} from './
 > 이어서, 스코프를 틀리면 **운영 배포에 걸리면서도 체크리스트가 요구하는 그 응답**이 나온다.
 > 대상 배포에 `RECOVERY_REHEARSAL_ACTIVE=true` 를 선언하고 `checks.rehearsalScope` 로 확인한다.
 
-| 일자 | 유형(정기/사건) | 복구 대상 시점 | 소요시간 | 검증 결과 | 담당 | 비고 | 범위 |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| (미실시) | | | | | | 최초 리허설 예정 `[확인 필요]` | |
+| 일자 | 유형(정기/사건) | 복구 대상 시점 | 소요시간 | 검증 결과 | 담당 | 비고 | 범위 | 미통과 단위 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| (미실시) | | | | | | 최초 리허설 예정 `[확인 필요]` | | |
 
 > 열 순서는 `lib/recovery.ts` 의 파서가 **위치로** 읽는다 — 새 열은 **맨 뒤에** 붙인다(6-4
-> `auditColumnOrder` 가 매번 고정한다). 마지막 `범위` 열은 2026-10-20 에 만들었다: 그 값
+> `auditColumnOrder` 가 매번 고정한다). `범위` 열은 2026-10-20 에 만들었다: 그 값
 > (`RECOVERY_LAST_REHEARSAL_SCOPE`)이 **env 에만 살아 있어서** Promote 롤백·시크릿 유실로
 > 사라지면 범위 판정이 `unrecorded`(판정 보류)로 조용히 내려앉았다(아래 6-4).
+> 마지막 `미통과 단위` 열은 2026-10-21 에 만들었다: `검증 결과` 는 전체 **한 칸**이라
+> `부분 통과` 를 적어도 **어느 단위가 걸렸는지** 적을 자리가 없었고, 그래서 범위 판정은
+> `ok`(「단위 N/N 검증」)인데 재수행 대상은 산출되지 않았다(아래 6-5).
 
 ### 기한 추적 (자동)
 
@@ -1349,6 +1357,7 @@ node --input-type=module -e "import {deployRollbackStatus,rollbackText} from './
 | `RECOVERY_LAST_REHEARSAL_RESULT` | `정상` / `부분 통과` / `실패` | `실패`·`부분 통과`는 `failing`. **판독할 수 없으면(비었거나 다른 문구) `unknown_result`** — 둘 다 `ok`가 아니다(2026-10-20 분리. 그전에는 **판독 불가가 `ok` 로 나갔다** — 아래 6-4) |
 | `RECOVERY_LAST_REHEARSAL_KIND` | `정기` / `사건` | 선택 |
 | `RECOVERY_LAST_REHEARSAL_SCOPE` | `asOf=…;rev=…;units=1-1,2-1,…` | 그 리허설이 **수행한 절차 단위**. 위 네 칸은 「언제·결과」만 말하고 **「무엇을 검증했는가」는 말하지 않는다** — 아래 6-2. 같은 값을 위 표 `범위` 열에도 적는다(6-4) |
+| `RECOVERY_LAST_REHEARSAL_UNPASSED` | `asOf=…;units=3-6,3-7` | 그 리허설이 **통과하지 못한 절차 단위**. 범위는 수행 여부만 보므로 `부분 통과`·`실패` 가 **어느 단위에서 났는지**는 이 칸만 말한다 — 아래 6-5. 전부 통과했으면 **비워 둔다**(비운 채 결과가 미통과면 `unattributed` 가 뜬다). 같은 값을 위 표 `미통과 단위` 열에도 적는다 |
 
 > 담당자 이름·비고는 환경변수에 넣지 않는다(공개 엔드포인트 노출 방지). 사람 정보는 위 표에만 둔다.
 
@@ -1605,6 +1614,96 @@ node --input-type=module -e "import fs from 'node:fs';import {reconcileLedger,le
 ※ `required: false` 라 어느 경우에도 503 이 되지 않는다. 응답에는 판정·일자·칸 이름만 담는다 —
 담당·비고·범위 **값**은 담지 않는다.
 
+### 6-5. 리허설이 **무엇을 통과했는가** — 미통과 단위의 귀속
+
+6-2 는 **어느 단위를 수행했는가**, 6-4 는 **그 기록이 어디에 남아 있는가**를 기계화했다. 둘이
+깔고 있는 문장은 하나다 — 「수행했다 = 검증됐다」. 그런데 위 표의 `검증 결과` 어휘에는
+**`부분 통과`** 가 있고, `lib/recovery.ts` 는 그것을 `failing` 으로 판정하면서 「**실패 항목을
+조치하고** 재리허설한다」고 지시한다 — **그 「실패 항목」을 적는 칸이 표에도 환경변수에도
+없었다.** 결과는 전체 한 칸이고 범위는 수행 여부 한 축이라, 「무엇이 통과하지 못했는가」가
+들어갈 자리가 없다.
+
+- **두 판정이 서로 다른 말을 하는데 아무도 합쳐 보지 않았다.** 범위에 전 단위를 적고 결과를
+  `부분 통과` 로 적으면 `checks.rehearsalCoverage` 는 `ok`(「단위 N/N 검증」)이고
+  `checks.recovery` 는 `failing` 이다 — `assessCoverage` 는 기록에 **적힌** 단위를 통과 여부와
+  무관하게 covered 로 세기 때문이다(그 모듈의 한계로 선언돼 있다). 그 `ok` 를 읽는 쪽
+  (2-2 `signal` · 2절 월 점검 · 마켓플레이스 보안 설명)은 그것을 「절차가 검증됐다」로 읽는다.
+- **그래서 재수행 대상이 산출되지 않는다.** 다음 리허설 담당자가 체크리스트 첫 항목에서 받는
+  안내는 `addedSinceRehearsal`(리허설 **뒤에** 절차에 들어온 단위)뿐이다. 통과하지 못한 단위는
+  **범위에 들어 있으니 `uncovered` 도 아니어서** 어느 목록에도 나타나지 않는다 — 같은 단위를
+  또 건너뛰어도 아무 신호가 없다.
+- **한 번 덮으면 되찾을 수 없다.** 판정이 읽는 쪽은 환경변수 한 벌이라 다음 리허설이 결과를
+  `정상` 으로 적는 순간 미통과 사실이 사라진다(6-4 의 대조도 **최신 행**만 본다). 표에는 옛 행이
+  남지만 그 행을 **거슬러 읽는 판정이 없었다.**
+- **그 값이 1절의 약속을 재는 자가 됐다.** 1-2 `rehearsalAttainment` 는 표 최신 행의 `소요시간`
+  을 RTO 실측으로 쓰면서 `검증 결과` 를 **보지 않았다.** 절차를 끝까지 가지 않은 리허설은 당연히
+  짧으므로 `부분 통과` 의 소요시간이 그대로 `met`(= 목표를 지켰다)이 된다 — **수치를 깎지
+  않으면서** 약속을 지킨 것으로 기록되는, 가장 조용한 방향이다. 2026-10-21 부터 그 대조는
+  `attainmentEligibility` 를 통과 게이트로 쓴다(`정상` 만 실측 자격이 있고, 아니면 `unjudged`).
+
+- `GET /api/health` → `checks.rehearsalOutcome` (`lib/rehearsalOutcome.ts`, **required: false**)
+
+확인(1줄):
+
+```bash
+curl -s "$BASE/api/health" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const c=JSON.parse(s).checks.rehearsalOutcome.detail;console.log(c.verdict,'state='+c.state,'rtoMeasurable='+c.durationTrusted);console.log('미통과:',(c.unpassed||[]).join(',')||'-','| 재수행 대상:',(c.remediation||[]).join(',')||'-');console.log(c.action)})"
+```
+
+미통과 단위를 기록할 줄을 만든다(건너뛴 단위를 **손으로 지운 뒤** 쓴다):
+
+```bash
+node --input-type=module -e "import {unpassedLine} from './src/lib/rehearsalOutcome.ts';console.log('RECOVERY_LAST_REHEARSAL_UNPASSED='+unpassedLine(process.argv.slice(1),new Date().toISOString().slice(0,10)))" 3-6 3-7
+```
+
+표의 **이력**을 거슬러 미해소 미통과를 뽑는다(저장소에서 — 런타임은 문서를 읽지 않는다):
+
+```bash
+node --input-type=module -e "import fs from 'node:fs';import {parseLedgerTable} from './src/lib/rehearsalLedger.ts';import {outstandingText} from './src/lib/rehearsalOutcome.ts';console.log(outstandingText(parseLedgerTable(fs.readFileSync('RUNBOOK.md','utf8')).rows).join('\n'))"
+```
+
+| `verdict` | 뜻 | 할 일 |
+| --- | --- | --- |
+| `no_rehearsal` | 리허설 기록이 없다(**평상시**) | **판정 보류다.** 미실시는 `checks.recovery` 가 `missing` 으로 말한다 |
+| `unreadable_result` | 결과 칸을 판독할 수 없다 | 통과 여부를 가릴 수 없다 — 표와 같은 값(정상/부분 통과/실패)을 환경변수에 적는다(6-4) |
+| `invalid_record` | 미통과 기록에 **해석하지 못한 토큰**이 있다 | 일부만 읽으면 재수행 대상이 짧아진다 — 위 명령이 출력한 꼴로 다시 적는다 |
+| `unknown_units` | 절차 단위가 아닌 키가 적혀 있다 | 소절 번호(예: `3-6`)로만 적는다 — 가리킬 소절이 없으면 재수행 대상이 되지 못한다 |
+| `unattributed` | 결과는 미통과인데 **어느 단위인지 없다** | **판정을 못 한 것이고 통과가 아니다.** 이 상태로 끝내면 다음 리허설이 재수행 대상을 산출할 수 없다 |
+| `contradicts_result` | 결과는 `정상` 인데 미통과 단위가 적혀 있다 | 둘 중 하나가 틀렸다 — 통과했다면 칸을 비우고, 아니면 결과를 `부분 통과` 로 고친다 |
+| `outside_scope` | 미통과 단위가 **범위 기록에 없다** | 수행하지 않은 단위를 「통과하지 못했다」로 적은 것이다 — 범위(6-2)와 함께 맞춘다 |
+| `attributed` | 미통과가 단위로 귀속됐다 | `detail.remediation` 을 **다음 리허설 범위**에 넣는다. 실패 자체는 `checks.recovery` 가 `failing` 으로 말한다 |
+| `ok` | 결과와 미통과 기록이 서로 맞는다 | 다음 리허설에서도 **표와 환경변수를 함께** 갱신한다 |
+
+귀속하지 않으면 **거짓이 되는 판정** 네 가지(응답 `detail.misreads`):
+`coverage_counts_unpassed`(범위 판정이 `ok` 를 낸다) · `freshness_points_nowhere`(「실패 항목을
+조치하라」가 가리킬 목록이 없다) · `rto_from_unpassed`(끝까지 가지 않은 소요시간이 RTO `met` 이
+된다) · `next_scope_blind`(다음 리허설 안내에서 빠진다).
+
+어긋남의 방향 세 가지:
+
+| 방향 키 | 언제 | 누가 알아채는가 |
+| --- | --- | --- |
+| `attribution_lost` | 다음 리허설이 결과를 `정상` 으로 적는다 | **아무도** — 환경변수는 한 벌이라 덮이고, 표의 옛 행을 거슬러 읽는 것은 위 저장소 명령뿐이다 |
+| `scope_without_result` | 범위에는 적고 미통과 칸은 비워 둔다 | 아무도 — 범위는 `ok`, 신선도는 `failing` 이고 어느 단위인지는 어디에도 없다 |
+| `result_without_scope` | 미통과 칸에 **범위 밖** 단위를 적는다 | 아무도 — 재수행 대상은 맞아도 범위 기록이 거짓이 된다 |
+
+**재수행 대상은 세 목록의 합집합이다**(`remediationUnits`): 미통과 ∪ 범위에 없는 단위
+(`uncovered`) ∪ 리허설 뒤에 들어온 단위(`addedSinceRehearsal`). 서로 다른 이유로 「아직
+검증되지 않았다」를 뜻하므로, 어느 하나만 보면 나머지가 조용히 빠진다.
+
+※ 이 판정이 보장하지 **못하는** 것(`detail.limits` 로 함께 나온다):
+기록은 「통과하지 못했다고 **적었다**」는 뜻이다 · 단위는 **소절**이라 그 안의 체크리스트 항목
+중 무엇이 걸렸는지는 말하지 않는다 · `attributed` 는 **근거가 갖춰졌다**는 뜻이고 「해소됐다」가
+아니다 · 런타임은 저장소 파일을 읽지 않으므로 표의 이력은 위 명령과 CI 가 본다 · `ok` 는 「이번
+기록이 서로 맞는다」까지이고 **둘 다 틀렸을 수 있다** · 재수행 대상은 **목록**이고 기한을 말하지
+않는다(주기는 `RECOVERY_REHEARSAL_INTERVAL_DAYS` 가 정하고 임의 재시도 기한을 만들지 않는다) ·
+3절 1~8단계 본 절차는 단위로 세지 않는다.
+
+※ **임의 귀속 금지** — 기록이 없으면 「전 단위를 통과했을 것」으로 올리지 않고(`unattributed`),
+어느 단위가 실패했는지 코드가 고르지도 않는다. `no_rehearsal`·`unreadable_result`·`attributed`
+는 `ok` 로 둔다(미실시·판독 불가·실패는 `checks.recovery` 가 이미 말한다 — **중복 보고 금지**).
+`required: false` 라 어느 경우에도 503 이 되지 않고, 응답에는 단위 키·판정·날짜·개수만 담는다
+(소요시간·담당·비고 없음).
+
 ### 리허설 체크리스트
 
 - [ ] **시작 전에** 리허설 대상 배포에만 `RECOVERY_REHEARSAL_ACTIVE=true` 를 선언하고 재배포했다 —
@@ -1686,6 +1785,14 @@ node --input-type=module -e "import fs from 'node:fs';import {reconcileLedger,le
       건너뛴 단위는 **손으로 지웠다**(지우지 않으면 표의 `정상` 과 같은 값이 된다).
       `checks.rehearsalCoverage.detail.verdict` 가 `ok` 이고 `uncovered` 가 비어 있다.
       일부만 수행했다면 `procedure_changed` 가 **정상이고**, 그 목록이 다음 리허설의 범위다
+- [ ] 수행했지만 **통과하지 못한 단위**를 `RECOVERY_LAST_REHEARSAL_UNPASSED` 와 위 표
+      `미통과 단위` 열에 적었다 — `checks.rehearsalOutcome.detail.verdict` 가 `attributed` 다
+      (6-5). 전부 통과했다면 칸을 **비워 두고** `ok` 를 본다. `unattributed` 는 「결과는 미통과인데
+      어느 단위인지 없다」는 뜻이고 **통과가 아니다** — 그 상태로 끝내면 범위 판정은 `ok`
+      (「단위 N/N 검증」)인데 다음 리허설이 재수행 대상을 산출할 수 없다
+- [ ] 그 판정의 `detail.remediation`(미통과 ∪ 범위에 없는 단위 ∪ 리허설 뒤에 들어온 단위)을
+      **다음 리허설 범위로 적어 두었다**. `durationTrusted` 가 `false` 면 이번 소요시간은 RTO
+      실측 자격이 없다(끝까지 가지 않은 수치다) — 위 `attainment.rto` 는 `unjudged` 가 정상이다
 - [ ] 표지를 지우기 **전에** `checks.lossNotice.detail.canClearMarkers` 가 `true` 이고
       `blockers` 가 비어 있음을 확인했다(§3 8단계 4번) — 리허설에서는 고지 기록이 없으므로
       `blockers` 가 **차 있는 것이 정상**이고, 그 사실을 확인하는 것이 점검 대상이다

@@ -266,7 +266,9 @@ export function rehearsalFreshness(args: {
       ageDays,
       dueDate,
       intervalDays: interval,
-      action: '마지막 리허설이 완전 통과가 아니다. 실패 항목을 조치하고 재리허설한다.',
+      action:
+        '마지막 리허설이 완전 통과가 아니다. 통과하지 못한 **절차 단위**를 RUNBOOK 6-5 의 ' +
+        '`미통과 단위` 칸에 적고(그 목록이 없으면 재수행 대상이 산출되지 않는다) 그 단위를 조치해 재리허설한다.',
     };
   }
   if (dueDate && isoOf(now) > dueDate) {

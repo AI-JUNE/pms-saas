@@ -26,6 +26,7 @@ import { recoveryReadinessCheck } from '@/lib/recoveryVerify';
 import { rehearsalCoverageCheck } from '@/lib/rehearsalCoverage';
 import { rehearsalLedgerCheck } from '@/lib/rehearsalLedger';
 import { rehearsalObservationCheck } from '@/lib/rehearsalObservation';
+import { rehearsalOutcomeCheck } from '@/lib/rehearsalOutcome';
 import { rehearsalScopeCheck } from '@/lib/rehearsalScope';
 import { pitrWindowCheck } from '@/lib/recoveryWindow';
 import { writeFreezeCheck } from '@/lib/writeFreeze';
@@ -204,6 +205,18 @@ export async function GET(req: Request) {
   // 런타임은 저장소 파일을 읽지 않으므로 `basis: 'env'` 로 **표를 보지 않았다는 사실을 함께** 적는다.
   // 판정·일자·칸 이름만 담고(담당·비고·설정값 없음) required: false 라 503 이 되지 않는다.
   checks.rehearsalLedger = rehearsalLedgerCheck();
+
+  // 그 리허설이 **무엇을 통과했는가**(RUNBOOK §6·§6-5). 위 두 판정은 「수행했다 = 검증됐다」를
+  // 깔고 있는데, §6 표의 `검증 결과` 어휘에는 `부분 통과` 가 있고 신선도는 그것을 `failing` 으로
+  // 판정하면서 「**실패 항목을 조치하고** 재리허설한다」고 지시한다 — 그 「실패 항목」을 적는 칸이
+  // 표에도 env 에도 없었다. 그래서 전 단위를 범위에 적고 결과를 `부분 통과` 로 적으면 범위 판정은
+  // `ok`(「단위 N/N 검증」)이고 신선도는 `failing` 이라 두 판정이 다른 말을 하는데, **어느 단위인지는
+  // 어디에도 없다**. 통과하지 못한 단위는 범위에 들어 있으니 `uncovered` 도 아니어서 다음 리허설
+  // 안내에서도 빠지고, 결과를 `정상` 으로 덮는 순간 사실 자체가 사라진다. 게다가 §1-2 는 그 행의
+  // `소요시간` 을 결과와 무관하게 RTO 실측으로 써서 — 끝까지 가지 않은 리허설은 당연히 짧으므로 —
+  // `met`(약속을 지켰다)을 냈다. 여기서 미통과를 **단위로 귀속**하고 재수행 대상을 산출한다.
+  // 단위 키(소절 번호)·판정·날짜·개수만 담고(소요시간·담당·비고 없음) required: false 다.
+  checks.rehearsalOutcome = rehearsalOutcomeCheck();
 
   // 배포 롤백이 유지되고 있는지(RUNBOOK §5·§5-1). §5 2단계는 「`commit` 이 롤백 대상과 일치하는지
   // 확인」인데 그 눈 확인은 **그 순간**만 말한다 — 이 배포 경로는 AutoPush(20분) → push →

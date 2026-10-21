@@ -75,7 +75,7 @@ export type LedgerHome = 'both' | 'table_only' | 'env_only';
 
 export interface LedgerField {
   /** 기록의 칸 */
-  key: 'date' | 'kind' | 'target' | 'duration' | 'result' | 'owner' | 'note' | 'scope';
+  key: 'date' | 'kind' | 'target' | 'duration' | 'result' | 'owner' | 'note' | 'scope' | 'unpassed';
   /** §6 표의 열 이름(없으면 null) */
   column: string | null;
   /** 환경변수 키(없으면 null) */
@@ -156,6 +156,14 @@ export const LEDGER_FIELDS: readonly LedgerField[] = [
     judgedBy: 'lib/rehearsalCoverage.ts assessCoverage',
     lost: '범위 판정이 `unrecorded`(= 판정 불가)로 떨어진다 — **degraded 가 아니라 판정 보류**라서 가장 조용하다. 2026-10-20 에 표에 칸을 만들어 집을 둘로 늘렸다',
   },
+  {
+    key: 'unpassed',
+    column: '미통과 단위',
+    envKey: 'RECOVERY_LAST_REHEARSAL_UNPASSED',
+    home: 'both',
+    judgedBy: 'lib/rehearsalOutcome.ts assessOutcome (§6-5)',
+    lost: '`검증 결과` 가 `부분 통과`·`실패` 일 때 **어느 단위가 통과하지 못했는지**가 사라진다 — 범위 판정은 그 단위를 covered 로 세므로 `ok` 이고, 다음 리허설의 재수행 대상에서 조용히 빠진다(2026-10-21 신설. 그전에는 `rehearsalFreshness` 가 「실패 항목을 조치하라」고 지시하면서 **가리킬 목록이 없었다**)',
+  },
 ];
 
 /**
@@ -172,6 +180,7 @@ export const TABLE_COLUMNS: readonly string[] = [
   '담당',
   '비고',
   '범위',
+  '미통과 단위',
 ];
 
 /** `parseRehearsalTable` 이 위치로 읽는 칸 — 이 순서가 바뀌면 그 파서가 어긋난다 */
@@ -191,6 +200,8 @@ export interface LedgerRow {
   note: string;
   /** 범위 기록 원문. 단위 목록 해석은 §6-2 가 한다 */
   scope: string;
+  /** 미통과 단위 기록 원문. 해석·판정은 §6-5 가 한다 */
+  unpassed: string;
 }
 
 export interface LedgerTable {
@@ -271,6 +282,7 @@ export function parseLedgerTable(markdown: unknown): LedgerTable {
         owner: cellAt(cells, index['담당']),
         note: cellAt(cells, index['비고']),
         scope: cellAt(cells, index['범위']),
+        unpassed: cellAt(cells, index['미통과 단위']),
       });
     }
     return { found: true, header, index, rows: rows.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)) };
@@ -525,6 +537,9 @@ export function ledgerRestoreLines(row: LedgerRow | null): string[] {
     `RECOVERY_LAST_REHEARSAL_RESULT=${resultText}`,
     `RECOVERY_LAST_REHEARSAL_KIND=${kindText}`,
     `RECOVERY_LAST_REHEARSAL_SCOPE=${row.scope || '[확인 필요]'}`,
+    // 미통과 칸은 **비어 있는 것이 정상**(전부 통과)이라 `[확인 필요]` 로 메우지 않는다 —
+    // 값이 있을 때만 복원한다. 비었는데 결과가 미통과면 §6-5 가 `unattributed` 로 말한다.
+    ...(row.unpassed ? [`RECOVERY_LAST_REHEARSAL_UNPASSED=${row.unpassed}`] : []),
   ];
 }
 
