@@ -19,6 +19,11 @@
  *   - `ok`/`short`/`empty`/`incomplete`/`no_baseline`/`unverified` 로 판정하고,
  *   - 다음 점검에 쓸 스냅샷 문자열을 **그대로 붙여 넣을 수 있게** 돌려준다(`snapshotLine`).
  *
+ * 2026-10-22: 그 판정은 테이블 **전체를 한 규칙으로** 봤다 — 「적으면 확인 필요(정상 삭제로도
+ * 줄어든다)」. 그 말이 맞는 것은 사용자가 지울 수 있는 테이블뿐이고 `audit_log` 에서는 거짓이다
+ * (앱이 지우지 않는다). 그래서 감소의 뜻은 `lib/countSemantics.ts` 가 테이블마다 판정하고,
+ * 「세지 않아서 보이지 않던」 `attachments` 를 핵심 테이블에 더했다(§1-1 의 선언된 사각지대).
+ *
  * 원칙
  * - DB·`process.env`·파일시스템 미접근. 조회는 호출부(라우트)가 하고 여기서는 조립·해석만 한다.
  * - **임의 기준치 금지**: 기준 스냅샷이 없으면 `ok` 로 올리지 않고 `no_baseline` 로 남긴다.
@@ -27,6 +32,10 @@
  * - 식별자는 화이트리스트 정규식을 통과한 것만 SQL 에 넣는다(문자열 보간 지점이므로).
  */
 
+import {
+  bodyOutsideCaveats, classifyShortfalls,
+  type ShrinkClassification, type ShrinkRow,
+} from './countSemantics.ts';
 import { parseRehearsalDate, recoveryCheck } from './recovery.ts';
 import {
   assessBaselineAge, baselineAgeLine, baselineMaxAgeDays, snapshotAdoption,
@@ -53,6 +62,11 @@ export const CORE_TABLE_ROLES: readonly { table: string; why: string }[] = [
   { table: 'risks', why: '리스크 — 대응 이력이 사라지면 재작성이 불가능하다' },
   { table: 'documents', why: '산출물 — 승인 이력이 붙어 있어 재생성할 수 없다' },
   { table: 'audit_log', why: '감사 이력 — 사후 조사·법적 보존 대상이라 재생성이 불가능하다' },
+  // 2026-10-22 추가. §1-1 이 2026-10-16 에 「그 메타 행조차 4단계가 세지 않는다」고 스스로 적어 둔
+  // 사각지대다 — 첨부는 부모를 FK 로 참조하지 않으므로(`entity`·`entity_id` 소프트 참조) 부모
+  // 행 수는 첨부에 대해 아무 말도 하지 않는다. 본문은 처음부터 보관되지 않으니(§1-1) 이 목록이
+  // 첨부에 관해 남아 있는 전부다. **세기 시작했다는 것이 「첨부가 복구된다」는 뜻은 아니다**(§3-11).
+  { table: 'attachments', why: '첨부 메타 — 본문이 없어 **목록이 전부**다. 부모(documents·issues)만 세면 통째로 비어도 드러나지 않는다(§1-1)' },
 ];
 
 export const CORE_TABLES: readonly string[] = CORE_TABLE_ROLES.map((r) => r.table);
@@ -242,14 +256,29 @@ export const ACTION_DATA_INCOMPLETE =
 export const ACTION_DATA_EMPTY =
   '테이블은 있으나 핵심 테이블이 전부 0건이다 — 스키마만 만들어졌고 데이터는 복원되지 않았다. 전환하지 말 것(RUNBOOK §3 4단계)';
 export const ACTION_DATA_SHORT =
-  '기준 스냅샷보다 적은 테이블이 있다 — 정상 삭제분인지 유실인지 확인한 뒤에만 전환할 것(RUNBOOK §3 4단계)';
+  '기준 스냅샷보다 적은 테이블이 있다 — 정상 삭제분인지 유실인지 확인한 뒤에만 전환할 것(RUNBOOK §3 4단계·§3-11)';
+/**
+ * 「정상 삭제로도 줄어든다」가 **맞지 않는** 테이블이 줄었을 때. 앱에 삭제 경로가 없는 테이블
+ * (`audit_log`·`users`·`organizations`·`memberships`)의 감소는 정상 운영의 결과로 설명되지 않는다.
+ */
+export const ACTION_DATA_UNEXPLAINED_SHORT =
+  '감소를 **정상 운영으로 설명할 수 없는** 테이블이 있다(data.unexplained) — 앱에 삭제 경로가 없는 테이블이다. ' +
+  '유실로 다루고 §3-5 로 보존한 감사로그 사본과 대조할 것. 설명되기 전에는 전환하지 말 것(RUNBOOK §3-11)';
 export const ACTION_DATA_NO_BASELINE =
   '기준 스냅샷(RECOVERY_DATA_BASELINE)이 없거나 핵심 테이블을 덜 덮어 대조하지 못했다 — 전환하지 말 것(uncovered 참고). ' +
   'snapshot 값은 **정상 운영 중**(RUNBOOK §2 월 점검)에만 기준치로 넣는다 — 복구 검증 중에 넣으면 복구 대상 DB 를 자기 자신과 비교하게 된다';
 
-/** `ok` 가 무엇을 보장하지 **않는지**. 응답·로그에 함께 내보내 과신을 막는다 */
+/**
+ * `ok` 가 무엇을 보장하지 **않는지**. 응답·로그에 함께 내보내 과신을 막는다.
+ *
+ * ⚠️ 마지막 문장을 「short 는 유실 확정이 아니다」 **한 문장으로 되돌리지 않는다** — 핵심 테이블
+ * 가운데 그 말이 맞는 것은 사용자가 지울 수 있는 것들뿐이고, `audit_log` 처럼 앱이 지우지 않는
+ * 테이블에서는 거짓이다(§3-11 `COUNT_MISREADS`).
+ */
 export const DATA_CAVEAT =
-  'ok 는 「기준 스냅샷(asOf) 시점 이상의 행 수」까지만 뜻한다. 스냅샷 이후에 생긴 행의 유실은 이 점검으로 알 수 없다(RPO 구간). short 는 유실 확정이 아니라 확인 필요다 — 정상 삭제로도 줄어든다.';
+  'ok 는 「기준 스냅샷(asOf) 시점 이상의 행 수」까지만 뜻한다. 스냅샷 이후에 생긴 행의 유실은 이 점검으로 알 수 없다(RPO 구간). ' +
+  'short 가 유실 확정인지는 **테이블마다 다르다** — 사용자가 지울 수 있는 테이블은 유실 확정이 아니라 확인 필요이지만(정상 삭제로도 줄어든다), ' +
+  '앱에 삭제 경로가 없는 테이블의 감소는 정상 운영으로 설명되지 않는다(RUNBOOK §3-11. 테이블별 뜻은 shrink·unexplained 를 본다).';
 
 export interface DataVerification {
   verdict: DataVerdict;
@@ -260,6 +289,15 @@ export interface DataVerification {
   rows: CountRow[];
   /** 기준치보다 적은 테이블 */
   shortfalls: { table: string; baseline: number; actual: number; missing: number }[];
+  /**
+   * 그 감소가 **무엇을 뜻하는가** — 테이블마다 다르다(§3-11).
+   * 「정상 삭제로도 줄어든다」는 설명은 사용자가 지울 수 있는 테이블에만 맞는다.
+   */
+  shrink: ShrinkRow[];
+  /** 감소를 **정상 운영으로 설명할 수 없는** 테이블(§3-11 `unexplained`) */
+  unexplained: string[];
+  /** 대조에 들어왔지만 **행이 돌아와도 복구되지 않는 것**이 있는 테이블의 주의(첨부 본문 등) */
+  rowCaveats: string[];
   /** DB 에 아예 없는 핵심 테이블 */
   missingTables: string[];
   /** 있는데 행 수를 판독하지 못한 테이블 */
@@ -319,11 +357,15 @@ export function verifyRowCounts(input: {
       : [...tables],
     age,
     caveat: DATA_CAVEAT,
+    // 대조에 들어온 테이블 가운데 **행 수가 말하지 못하는 것**(첨부 본문 — 처음부터 보관되지
+    // 않는다). 세기 시작한 날 생기는 새 오해를 판정과 같은 자리에서 막는다(§3-11·§1-1).
+    rowCaveats: bodyOutsideCaveats(tables),
   };
 
   if (input.counts === null) {
     return {
       ...base, verdict: 'unverified', ok: false, rows: [], shortfalls: [],
+      shrink: [], unexplained: [],
       missingTables: [], unreadable: [...tables], totalRows: null,
       action: ACTION_DATA_UNVERIFIED, snapshot: null,
       snapshotUse: snapshotAdoption('unverified'),
@@ -369,8 +411,13 @@ export function verifyRowCounts(input: {
     Object.fromEntries(rows.filter((r) => r.actual !== null).map((r) => [r.table, r.actual as number])),
     isoDay(input.now ?? new Date()),
   );
+  // 감소한 테이블마다 그 감소가 **무엇을 뜻하는지** 붙인다(§3-11). 한 문장으로 뭉개면
+  // `audit_log`·`users` 의 감소가 「정상 삭제로도 줄어든다」로 설명되는데, 그 테이블들에는
+  // 앱 안의 삭제 경로가 없다 — 가장 단단한 증거가 가장 약한 문장으로 읽힌다.
+  const shrinkage: ShrinkClassification = classifyShortfalls(shortfalls);
   const common = {
     ...base, rows, shortfalls, missingTables, unreadable,
+    shrink: shrinkage.rows, unexplained: shrinkage.unexplained,
     totalRows, snapshot: snapshot || null,
   };
 
@@ -381,7 +428,10 @@ export function verifyRowCounts(input: {
   if (missingTables.length) return out('incomplete', ACTION_DATA_INCOMPLETE);
   if (counted === 0) return out('unverified', ACTION_DATA_UNVERIFIED);
   if (zeros === counted) return out('empty', ACTION_DATA_EMPTY);
-  if (shortfalls.length) return out('short', ACTION_DATA_SHORT);
+  // `short` 는 그대로 `short` 다(판정 어휘를 늘리지 않는다) — 다른 것은 **다음에 할 일**이다.
+  if (shortfalls.length) {
+    return out('short', shrinkage.unexplained.length ? ACTION_DATA_UNEXPLAINED_SHORT : ACTION_DATA_SHORT);
+  }
   if (!baseline || unjudged > 0) return out('no_baseline', ACTION_DATA_NO_BASELINE);
   // 수치는 기준치 이상이다. 그 기준치를 「손상 전」으로 믿을 수 있는지가 마지막 관문이다.
   if (age.status === 'stale') return out('stale', age.action);
@@ -433,6 +483,8 @@ export function recoveryVerifyLogLine(v: RecoveryVerification): string {
   parts.push(baselineAgeLine(v.data.age));
   if (v.data.uncovered.length) parts.push(`uncovered=${v.data.uncovered.join('|')}`);
   if (v.data.shortfalls.length) parts.push(`short=${v.data.shortfalls.map((s) => s.table).join('|')}`);
+  // 설명되지 않는 감소분은 테이블 이름만 따로 적는다 — 로그에서 「확인 필요」와 섞이지 않게(§3-11).
+  if (v.data.unexplained.length) parts.push(`unexplained=${v.data.unexplained.join('|')}`);
   if (v.data.missingTables.length) parts.push(`missing=${v.data.missingTables.join('|')}`);
   if (v.data.unreadable.length) parts.push(`unreadable=${v.data.unreadable.length}`);
   return parts.join(' ');

@@ -113,15 +113,19 @@ test('본문을 보관하게 되면: unprotected — 경계 밖이라고 말하�
   assert.deepEqual([...COVERAGE_VERDICTS], ['metadata_only', 'unsupported', 'unprotected']);
 });
 
-test('4단계가 첨부 테이블을 **세지 않는** 사각지대를 숨기지 않는다', () => {
-  assert.equal(CORE_TABLE_ROLES.some((r) => r.table === ATTACHMENT_TABLE), false);
-  assert.equal(attachmentCoverage({}).countedInCoreTables, false);
+test('4단계가 첨부 테이블을 **세고 있는지**를 숨기지 않는다(2026-10-22 §3-11)', () => {
+  assert.equal(CORE_TABLE_ROLES.some((r) => r.table === ATTACHMENT_TABLE), true);
+  assert.equal(attachmentCoverage({}).countedInCoreTables, true);
   assert.deepEqual(auditCoreTableBlindSpot(), []);
-  // 들어가는 날이 오면 설명을 함께 고치라고 말한다(사각지대가 사라지면 이 절의 전제가 바뀐다).
-  const counted = auditCoreTableBlindSpot([...CORE_TABLE_ROLES, { table: ATTACHMENT_TABLE, why: '' }]);
-  assert.equal(counted.length, 1);
-  assert.match(counted[0], /ASSET_LIMITS 를 함께 고칠 것/);
-  assert.ok(ASSET_LIMITS.some((l) => l.includes(ATTACHMENT_TABLE)), '한계 목록에 이 사각지대가 없다');
+  // 다시 빠지면 CI 가 실패한다 — 응답·화면은 그대로 돌기 때문에 사람 눈으로는 알아챌 수 없는 회귀다.
+  const dropped = auditCoreTableBlindSpot(CORE_TABLE_ROLES.filter((r) => r.table !== ATTACHMENT_TABLE));
+  assert.equal(dropped.length, 1);
+  assert.match(dropped[0], /사각지대가 돌아왔다/);
+  // 세기 시작했으므로 「행 수 ok 는 목록에 대한 말이다」가 한계 목록에 남아 있어야 한다.
+  const silentOk = auditCoreTableBlindSpot(CORE_TABLE_ROLES, ['관계없는 한계']);
+  assert.equal(silentOk.length, 1);
+  assert.match(silentOk[0], /목록.*에 대한 판정/);
+  assert.ok(ASSET_LIMITS.some((l) => l.includes(ATTACHMENT_TABLE)), '한계 목록에 첨부 테이블 설명이 없다');
   // metadata_only 가 「복구된다」는 뜻이 아니라는 사실도 한계로 내보낸다.
   assert.ok(ASSET_LIMITS.some((l) => /복구된다」는 뜻이 아니다/.test(l)));
 });

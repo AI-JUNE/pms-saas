@@ -196,6 +196,14 @@ export const PROCEDURE_UNITS: readonly ProcedureUnit[] = [
     skipped: '고지 근거(구간의 두 끝)를 만들어 본 적이 없어, 표지를 지운 뒤 고지 여부를 물을 대상이 없다',
   },
   {
+    key: '3-11',
+    title: '행 수 감소의 뜻 — 테이블마다 다르다',
+    since: '2026-10-22',
+    cited: true,
+    skipped:
+      '`short` 를 테이블 이름만 보고 「정상 삭제일 수 있다」로 넘겨, 앱이 지우지 않는 테이블(감사로그 = §3-5 조사 근거 자신)의 감소를 설명 없이 전환한다',
+  },
+  {
     key: '4-10',
     title: '복구 후 확인 순서',
     since: '2026-09-30',

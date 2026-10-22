@@ -14,9 +14,13 @@
  *      담당자는 이 표 한 줄을 근거로 「첨부는 DB 백업에 포함되니 돌아온다」고 판단하고 고객에게도
  *      그렇게 고지한다. 복구 뒤 화면에는 첨부 목록이 그대로 보이므로 차이가 드러나지도 않는다.
  *
- *  (2) **그 목록조차 §3 4단계가 세지 않는다.** 핵심 테이블 12개(`CORE_TABLE_ROLES`)에 `attachments`
- *      가 없다 — 첨부 메타 행이 통째로 비어도 행 수 대조는 `ok` 이고 6단계는 테이블 존재만 본다.
- *      첨부는 `documents`·`issues` 에 달리는데 그 **부모만** 세고 있다.
+ *  (2) **그 목록조차 §3 4단계가 세지 않았다.** 핵심 테이블(`CORE_TABLE_ROLES`)에 `attachments` 가
+ *      없어 첨부 메타 행이 통째로 비어도 행 수 대조는 `ok` 였다 — 첨부는 `documents`·`issues` 에
+ *      달리는데 그 **부모만** 세고 있었고, 첨부는 부모를 FK 로 참조하지 않으므로 부모 행 수는
+ *      첨부에 대해 아무 말도 하지 않는다. **2026-10-22 에 핵심 테이블로 들어갔다**(§3-11) —
+ *      그래서 아래 `silent`·`ASSET_LIMITS` 는 그 사실을 반영한 문장이고, 빠지면
+ *      `auditCoreTableBlindSpot` 이 CI 에서 실패시킨다. 단 **세는 것은 목록뿐**이다:
+ *      행이 돌아와도 본문은 처음부터 없으므로 그 `ok` 를 「첨부가 복구됐다」로 읽지 않는다.
  *
  *  (3) **외부 스토리지를 켜는 순간 표가 거짓이 된다.** `attachments` 테이블에는 이미 `provider`·
  *      `storage_key` 칼럼이 있다 — `STORAGE_PROVIDER` 에 값이 들어가고 어댑터가 배선되면 본문은
@@ -120,11 +124,12 @@ export const PROTECTED_ASSETS: readonly ProtectedAsset[] = [
       `\`${ATTACHMENT_TABLE}\` 테이블의 **메타데이터뿐** — 파일명·크기·형식·만료일(\`status=metadata_only\`). ` +
       '`lib/attachments.ts` 의 어떤 어댑터도 `canStore: true` 가 아니라 **본문은 어디에도 보관되지 않는다**',
     backupBy: '해당 없음 — 보관하는 본문이 없다. 메타 행만 DB 백업에 포함된다',
-    restorePath: '§1-1(외부 스토리지를 켜면 §3 경계 밖으로 나간다)',
+    restorePath: '§1-1(외부 스토리지를 켜면 §3 경계 밖으로 나간다) · 메타 행 수는 §3 4단계가 센다(§3-11)',
     mechanism: 'checks.assetCoverage',
     silent:
-      `§3 4단계 핵심 테이블 ${CORE_TABLE_ROLES.length}개에 \`${ATTACHMENT_TABLE}\` 이 **없다** — 메타 행이 통째로 ` +
-      '비어도 행 수 대조는 `ok` 이고, 복구 뒤 화면에는 첨부 목록이 그대로 보여 차이가 드러나지 않는다',
+      `메타 행 수는 §3 4단계 핵심 테이블 ${CORE_TABLE_ROLES.length}개에 들어 있으나(2026-10-22, §3-11) ` +
+      '그 `ok` 는 **목록**에 대한 말이다 — 복구 뒤 화면에는 첨부 목록이 그대로 보여 「본문이 원래 없었다」와 ' +
+      '「복구됐다」가 구분되지 않는다',
   },
 ];
 
@@ -200,7 +205,7 @@ export interface AttachmentCoverage {
   /** 본문이 §3 시점 복구의 경계 안인가 */
   inRestoreScope: boolean;
   table: string;
-  /** §3 4단계가 이 테이블을 세는가 — **false 가 현재 상태**다 */
+  /** §3 4단계가 이 테이블을 세는가 — **2026-10-22 부터 true**(§3-11). 세는 것은 목록뿐이다 */
   countedInCoreTables: boolean;
   action: string;
   caveats: readonly string[];
@@ -259,7 +264,7 @@ export const ASSET_LIMITS: readonly string[] = [
   '이 판정은 **본문이 어디에 있는가**까지만 말한다 — 메타 행이 복구됐는지는 §3 4단계가, 행이 가리키는 객체가 실재하는지는 아무도 보지 않는다',
   '`metadata_only` 는 「문서와 코드가 같다」는 뜻이지 **「첨부가 복구된다」는 뜻이 아니다** — 돌아오는 것은 목록이다',
   '이 배포의 설정만 본다 — 같은 DB 를 쓰는 다른 배포가 저장소를 켜 두었으면 여기서는 보이지 않는다',
-  `§3 4단계 핵심 테이블에 \`${ATTACHMENT_TABLE}\` 이 없어, 첨부 **메타 행**의 유실은 행 수 대조로도 드러나지 않는다`,
+  `§3 4단계가 \`${ATTACHMENT_TABLE}\` 메타 행 수를 세지만(2026-10-22, §3-11) 그것은 **목록**에 대한 판정이고, 기준 스냅샷이 그 테이블을 덮기 전까지는 \`uncovered\` 로 대조 자체가 되지 않는다`,
   '§1 표의 나머지 네 줄(DB·소스코드·배포·시크릿)은 각 절의 체크가 보고, 이 체크는 다섯 번째 줄만 본다',
 ];
 
@@ -341,7 +346,7 @@ export function assetCoverageCheck(args?: {
       bodyLocation: c.bodyLocation,
       inRestoreScope: c.inRestoreScope,
       table: c.table,
-      /** §3 4단계가 이 테이블을 세는가 — false 가 현재 상태이고, 그 사실을 숨기지 않는다 */
+      /** §3 4단계가 이 테이블을 세는가 — true 가 현재 상태다(§3-11). 목록에 대한 판정이라는 사실은 limits 에 있다 */
       countedInCoreTables: c.countedInCoreTables,
       assets: PROTECTED_ASSETS.map((a) => ({ key: a.key, asset: a.asset, backupBy: a.backupBy, mechanism: a.mechanism })),
       drifts: COVERAGE_DRIFTS.map((d) => d.key),
@@ -410,16 +415,34 @@ export function auditSchemaSource(src: unknown): string[] {
 }
 
 /**
- * §3 4단계가 첨부 테이블을 **세지 않는** 사각지대가 그대로인지 확인한다.
- * 핵심 테이블에 들어가면 위 `silent` 설명과 `ASSET_LIMITS` 가 낡으므로 함께 고쳐야 한다.
+ * §3 4단계가 첨부 테이블을 **세고 있는지**와, 그 사실이 설명과 맞는지 확인한다.
+ *
+ * 2026-10-16~10-22 사이에는 이 함수가 반대 방향이었다 — 「세지 않는」 사각지대가 그대로인지 보고,
+ * 핵심 테이블에 들어가는 날 설명을 함께 고치라고 실패시켰다. 2026-10-22 에 들어갔으므로(§3-11)
+ * 지금 지켜야 하는 것은 **빠지지 않는 것**이다: 빠지면 첨부 메타 행의 유실이 다시 보이지 않게
+ * 되는데 응답·화면은 그대로 돈다. 그리고 들어간 뒤에도 「행 수가 곧 복구」가 아니라는 사실이
+ * `ASSET_LIMITS` 에 남아 있어야 한다(세기 시작한 날 생기는 새 오해다).
  */
-export function auditCoreTableBlindSpot(roles: readonly { table: string }[] = CORE_TABLE_ROLES): string[] {
+export function auditCoreTableBlindSpot(
+  roles: readonly { table: string }[] = CORE_TABLE_ROLES,
+  limits: readonly string[] = ASSET_LIMITS,
+): string[] {
   const counted = roles.some((r) => r.table === ATTACHMENT_TABLE);
-  if (!counted) return [];
-  return [
-    `§3 4단계 핵심 테이블에 ${ATTACHMENT_TABLE} 이 들어갔다 — 「행 수로도 드러나지 않는다」는 설명의 ` +
-      '전제가 바뀌었으니 PROTECTED_ASSETS 의 silent 와 ASSET_LIMITS 를 함께 고칠 것',
-  ];
+  const problems: string[] = [];
+  if (!counted) {
+    problems.push(
+      `§3 4단계 핵심 테이블에서 ${ATTACHMENT_TABLE} 이 빠졌다 — 첨부 메타 행이 통째로 비어도 행 수 대조가 ` +
+        'ok 를 낸다(§1-1 의 사각지대가 돌아왔다). CORE_TABLE_ROLES 에 되돌릴 것',
+    );
+    return problems;
+  }
+  if (!limits.some((l) => /목록/.test(l) && l.includes(ATTACHMENT_TABLE))) {
+    problems.push(
+      `세기 시작했으므로 ASSET_LIMITS 에 「${ATTACHMENT_TABLE} 의 ok 는 **목록**에 대한 판정이다」가 남아 있어야 한다 — ` +
+        '빠지면 행 수 ok 가 「첨부가 복구됐다」로 읽힌다(§1-1 이 고지에 넣지 말라고 한 바로 그 문장이다)',
+    );
+  }
+  return problems;
 }
 
 /** RUNBOOK 에서 §1 절만 잘라낸다(§2 전까지). 못 찾으면 빈 문자열 — 지어내지 않는다 */

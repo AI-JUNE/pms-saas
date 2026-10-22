@@ -201,16 +201,16 @@ test('[회귀] 기준일 없는 스냅샷은 ok 로 올라가지 않는다(undat
 });
 
 test('[회귀] 기준 스냅샷이 덜 덮은 테이블은 0건이어도 미판정이다', () => {
-  // users 만 기준치가 있고 나머지 11개는 전부 0건 — 예전에는 이것이 ok 였다
+  // users 만 기준치가 있고 나머지는 전부 0건 — 예전에는 이것이 ok 였다
   // (empty 는 전건 0일 때만 걸리고, 0건은 미판정에서 빠져 있었다).
   const v = verifyRowCounts({
     counts: fill(0, { users: 5 }), present: ALL,
     baseline: parseCountBaseline('asOf=2026-10-01,users=1'), now: NOW, maxAgeDays: 35,
   });
   assert.equal(v.verdict, 'no_baseline');
-  assert.equal(v.ok, false, '11개 테이블이 비어 있는데 전환 가능으로 나오면 안 된다');
+  assert.equal(v.ok, false, '덮이지 않은 테이블이 비어 있는데 전환 가능으로 나오면 안 된다');
   assert.deepEqual(v.uncovered, ALL.filter((t) => t !== 'users').sort(), '어느 테이블이 안 덮였는지 알려준다');
-  assert.equal(v.rows.filter((r) => r.state === 'unjudged').length, 11);
+  assert.equal(v.rows.filter((r) => r.state === 'unjudged').length, ALL.length - 1);
   assert.match(v.action!, /uncovered/);
 
   // 전건을 덮으면 uncovered 가 비고 정상 판정으로 돌아온다
