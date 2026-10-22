@@ -303,6 +303,16 @@ export const CHECK_OBSERVATIONS: readonly CheckObservation[] = [
     silent: '정기 리허설을 한 번도 하지 않아도 사건마다 `checks.recovery` 가 `ok` 로 돌아오고, 연습으로 잰 구간이 `attainment.rpo` 의 `met`·`exceeded` 로 기록된다',
   },
   {
+    check: 'restorePointRecord',
+    role: 'observe',
+    field: 'verdict',
+    vocab: { file: 'src/lib/restorePointRecord.ts', decl: 'RECORD_VERDICTS' },
+    cited: true,
+    degradedWhen: ['rehearsal', 'incident'],
+    why: '유실 구간의 두 끝이 **영구 기록으로 옮겨졌는지** 보는 칸이다(§6-7). 그 두 끝은 복구 뒤 지우는 임시 키에만 있었고, 표의 `복구 대상 시점`·`비고` 는 §6-4 가 `judgedBy: null` 로 적어 둔 칸이었다',
+    silent: '표지를 지우는 순간 구간이 사라져 §1 RPO 대조가 영구히 `unjudged` 가 되고, 고지한 수치가 무엇이었는지도 남지 않는다 — 표에는 행이 그대로 있어 아무도 알아채지 못한다',
+  },
+  {
     check: 'deployPin',
     role: 'observe',
     field: 'verdict',

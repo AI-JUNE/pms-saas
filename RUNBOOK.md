@@ -1355,6 +1355,10 @@ node --input-type=module -e "import {deployRollbackStatus,rollbackText} from './
 > `유형` 열은 처음부터 있었지만 **읽는 판정이 2026-10-21 까지 없었다**(6-4 가 `judgedBy: null` 로
 > 적어 두었다) — 그래서 「절차를 검증한 연습」과 「실제로 일어난 사건」이 전 판정에서 같은 말이었다
 > (아래 6-6). 이 표에는 **두 유형을 함께** 적고, 환경변수 한 벌은 마지막 **정기** 행의 값으로 둔다.
+> `복구 대상 시점` 과 `비고` 도 **읽는 판정이 2026-10-22 까지 없었다** — 그 두 칸은 유실 구간의
+> 두 끝이 남는 **유일한 영구 자리**이고(두 값의 환경변수는 복구 뒤 지우는 임시 키다), 시점은
+> **타임존을 붙인 ISO** 로 적는다(없으면 UTC 로 읽혀 9시간 어긋난다). 비고 문구는 3-10
+> `recordRemark()` 가 만들어 준다(아래 6-7).
 
 ### 기한 추적 (자동)
 
@@ -1794,6 +1798,79 @@ CI 가 본다) · `ok` 는 「두 축이 서로 맞는다」까지다.
 **신규 환경변수 0 · 신규 조회·쓰기·DDL 0** — 이미 받아 적고 있던 칸을 읽는다. `required: false` 라
 어느 경우에도 503 이 되지 않고, 응답에는 판정·유형·날짜·키 이름만 담는다(구간 분·소요시간·담당 없음).
 
+### 6-7. **무엇으로** 복구했는가 — 복구 대상 시점·유실 구간의 영구 기록
+
+6-4 기록 정본은 두 칸을 `judgedBy: null`(= 적히지만 **읽는 판정이 없다**)로 남겨 두었다 —
+`복구 대상 시점` 과 `비고`. 그 둘은 하필 **유실 구간의 두 끝**이 사는 자리다.
+
+- **구간의 두 끝은 지워지는 쪽에만 있었다**(`markers_cleared_without_record`).
+  시작 `RECOVERY_RESTORE_POINT` 과 끝 `RECOVERY_WRITE_FREEZE_AT` 은 둘 다 **임시 키**이고,
+  3절 7·8단계와 아래 체크리스트는 그것을 **지우라고 지시한다**. 지운 뒤 남는 영구 기록은 위 표의
+  `복구 대상 시점` 과 `비고`(3-10 `recordRemark()` 문구)뿐인데 **그 둘을 읽는 판정이 없었다**.
+  그래서 사건이 끝나는 순간 1절 **RPO 를 실측으로 견줄 근거가 영구히 사라진다** — RTO 쪽은
+  2026-10-20 에 1-2 가 표의 `소요시간` 을 읽는 판정이 됐지만, RPO 쪽은 런타임 환경변수뿐이어서
+  표지를 지우면 `attainment.rpo` 가 영구히 `unjudged` 다. 아무것도 나빠지지 않는다 — 응답은 200
+  이고 표에는 행이 그대로 남아 있다.
+- **그 칸은 파싱조차 되지 않았다**(`target_column_moved` 와 같은 뿌리다). `lib/recovery.ts` 의 표
+  파서는 이 칸을 「자유 문자열, 파싱하지 않음」으로 받아 적고 `auditRehearsalRows` 는 일자·결과·
+  담당만 본다. 그래서 **판독 불가**(「어제 밤」)·**타임존 없는 값**(3-6 이 경고한 그 함정 — UTC 로
+  읽혀 한국시간 기준 9시간 이른 시점이 된다. 날짜만 적은 칸도 같다)·**행 일자보다 뒤인 값**(복구는
+  과거로 되감는 것이다)이 전부 「기록됨」으로 보였다.
+- **같은 사실의 두 기록을 대조한 적이 없다**(`remark_format_changed` 가 그것을 더 조용하게 만든다).
+  `복구 대상 시점` 과 비고의 구간 시작은 같은 순간을 적는 두 칸이고, **되돌릴 수 없는 고지**에 나간
+  수치는 비고 쪽이다. 고지 **발신 시각**도 그렇다 — `RECOVERY_LOSS_NOTICE_AT` 역시 임시 키라서
+  비고에 옮겨 적지 않으면 「고지했는가」를 물을 대상 자체가 사라진다(3-10).
+- **ε 의 전례가 닿지 않는다.** 3-6 은 ε 기본값을 금지하고 근거로 고르라고 하지만 리허설에는 원인
+  작업이 없어 ε 가 매번 눈대중이다. 축적된 유일한 전례가 이 칸인데 읽는 쪽이 없었다.
+
+- `GET /api/health` → `checks.restorePointRecord` (`lib/restorePointRecord.ts`, **required: false**)
+
+확인(1줄 — 표지가 남아 있는 동안 「옮겨 적었는가」를 본다):
+
+```bash
+curl -s "$BASE/api/health" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const c=JSON.parse(s).checks.restorePointRecord.detail;console.log(c.verdict,'basis='+c.basis,'durable='+c.durable);console.log('표지 판독 불가:',(c.unreadableMarkers||[]).join(',')||'-');console.log(c.action)})"
+```
+
+영구 기록 쪽은 **저장소에서** 판정한다(런타임은 6절 표를 읽지 않는다 — `basis` 가 `env` 인 응답은
+표를 보지 않은 판정이다):
+
+```bash
+node --input-type=module -e "import fs from 'node:fs';import {parseLedgerTable,latestLedgerRow} from './src/lib/rehearsalLedger.ts';import {assessRecord,recordText,restorePrecedents} from './src/lib/restorePointRecord.ts';const md=fs.readFileSync('RUNBOOK.md','utf8');const rows=parseLedgerTable(md).rows;console.log(recordText(assessRecord({row:latestLedgerRow(rows),env:process.env})));console.log('전례:',JSON.stringify(restorePrecedents(rows)))"
+```
+
+| `verdict` | 뜻 | 할 일 |
+| --- | --- | --- |
+| `no_record` | 기록이 없다(**평상시**) | **판정 보류다.** 미실시는 `checks.recovery` 가 `missing` 으로 말한다 |
+| `ephemeral_only` | 구간 값이 **지워지는 쪽에만** 있다 | 8단계 4번(표지 삭제) **전에** 위 표 `복구 대상 시점`·`비고` 에 옮겨 적는다. 지운 뒤에는 되찾을 수 없다 |
+| `unreadable_target` | `복구 대상 시점` 을 시각으로 읽을 수 없다 | **타임존을 붙인 ISO**(`2026-10-09T12:55:00+09:00`)로 고쳐 적는다. 판독 불가는 「기록 없음」도 「기록됨」도 아니다 |
+| `zoneless_target` | 타임존 없이 적혀 있다 | UTC 로 읽혀 한국시간 기준 **9시간 이른 시점**이 된다(3-6). 오프셋을 붙여 다시 적는다 |
+| `target_after_date` | 복구 시점이 그 행 **일자보다 뒤**다 | 복구는 과거로 되감는 것이다 — 타임존 누락·오타가 제1 용의자다 |
+| `window_disagrees` | 표 칸과 비고의 구간 **시작이 다르다** | 같은 순간을 적는 두 칸이고 고지에 나간 수치는 비고 쪽이다. 어느 쪽이 실제 적용 시점인지 확인해 맞춘다(코드가 고르지 않는다) |
+| `window_unrecorded` | **사건** 행인데 비고에 구간이 없다 | 3-7 로 산출해 3-10 문구를 적는다. 표지를 이미 지웠다면 **구간을 추정하지 말고** 그 사실을 적는다 |
+| `notice_unrecorded` | 구간은 적혔는데 **고지 발신 시각**이 없다 | `RECOVERY_LOSS_NOTICE_AT` 도 임시 키다 — 비고에 옮겨 적는다. 리허설이라면 발신하지 않았다는 사실을 적는다 |
+| `ok` | 두 칸이 서로 맞는다 | 표지를 지워도 1절 RPO 대조와 사후 조사의 근거가 남는다 |
+
+어긋남의 방향 세 가지(전부 응답은 200 이다):
+
+| 방향 키 | 언제 | 무엇이 조용해지는가 |
+| --- | --- | --- |
+| `markers_cleared_without_record` | 7·8단계대로 표지를 지우면서 표에 옮겨 적지 않는다 | 구간의 두 끝이 함께 사라지고 1절 RPO 대조가 영구히 `unjudged` 가 된다 |
+| `remark_format_changed` | 3-10 비고 문구의 모양이 바뀐다 | 파서가 구간을 되읽지 못해 `window_unrecorded` 로 내려앉는다 — 기록은 멀쩡히 적혀 있는데 판정만 사라진다 |
+| `target_column_moved` | 표의 열 순서·칸 이름이 바뀐다 | 위치 기반 파서가 다른 칸을 복구 시점으로 읽는다(6-4 `auditColumnOrder` 가 고정한다) |
+
+※ 이 판정이 보장하지 **못하는** 것(`detail.limits` 로 함께 나온다):
+`ok` 는 「두 칸이 서로 맞는다」까지이고 **둘 다 틀렸을 수 있다**(원문 대조 대상은 Neon 콘솔과 3-5
+보존본이다) · 구간은 **시간 범위**일 뿐 유실 건수·대상을 말하지 않는다 · 전례는 **되감은 거리**를
+말할 뿐 ε(분)을 산출해 주지 않는다(일자 칸은 날짜뿐이다) · `target_after_date` 는 **날짜 경계**로만
+본다 · 비고의 자유 메모는 읽지 않는다 · `ephemeral_only` 는 「표에 없다」가 아니라 「지워지는 쪽에
+값이 있고 표를 보지 않았다」는 뜻이다 · **연습 행의 구간은 RPO 실측으로 쓰지 않는다**(6-6).
+
+※ **값을 지어내지 않는다** — 판독 못 한 시각을 「기록됨」으로 올리지 않고, 적힌 분과 두 끝의 차이가
+다르면 **어느 쪽도 채택하지 않으며**(손으로 고친 흔적이다), 표를 자동으로 채우지 않는다.
+**신규 환경변수 0 · 신규 조회·쓰기·DDL 0** — 이미 적게 되어 있던 두 칸을 읽는다. `required: false` 라
+어느 경우에도 503 이 되지 않고, 응답에는 판정·칸 상태·boolean 만 담는다(**시각·분 값 없음** — 무인증
+응답이라 구간을 역산하는 데 쓰인다).
+
 ### 리허설 체크리스트
 
 - [ ] **시작 전에** 리허설 대상 배포에만 `RECOVERY_REHEARSAL_ACTIVE=true` 를 선언하고 재배포했다 —
@@ -1875,7 +1952,8 @@ CI 가 본다) · `ok` 는 「두 축이 서로 맞는다」까지다.
 - [ ] 그 소요시간을 **목표와 견주었다** — 1-2 의 저장소 명령으로 표의 최신 행을 대조해
       `checks.recoveryObjectives.detail.attainment.rto` 가 `met` 인지 본다. `exceeded` 면 초과분을
       표 비고에 적는다(수치를 깎지 않는다). `unjudged` 는 목표·실측 중 하나가 없다는 뜻이고 통과가 아니다 —
-      런타임 응답은 6절 표를 읽지 않으므로 평상시에는 늘 `unjudged` 다
+      런타임 응답은 6절 표를 읽지 않으므로 평상시에는 늘 `unjudged` 다. 같은 명령이 **사건 행의
+      비고에 적힌 구간**을 RPO 와도 견준다(6-7 — 연습 행은 `rpoWithheld` 로 빠진다)
 - [ ] **수행한 절차 단위**를 §6-2 명령으로 산출해 `RECOVERY_LAST_REHEARSAL_SCOPE` 에 적었다 —
       건너뛴 단위는 **손으로 지웠다**(지우지 않으면 표의 `정상` 과 같은 값이 된다).
       `checks.rehearsalCoverage.detail.verdict` 가 `ok` 이고 `uncovered` 가 비어 있다.
@@ -1891,6 +1969,13 @@ CI 가 본다) · `ok` 는 「두 축이 서로 맞는다」까지다.
 - [ ] 표지를 지우기 **전에** `checks.lossNotice.detail.canClearMarkers` 가 `true` 이고
       `blockers` 가 비어 있음을 확인했다(§3 8단계 4번) — 리허설에서는 고지 기록이 없으므로
       `blockers` 가 **차 있는 것이 정상**이고, 그 사실을 확인하는 것이 점검 대상이다
+- [ ] 표지를 지우기 **전에** 구간의 두 끝과 고지 시각을 위 표 `복구 대상 시점`·`비고` 에 옮겨
+      적었다 — `checks.restorePointRecord.detail.verdict` 가 `ephemeral_only` 다(6-7). 표지가 남아
+      있는 동안에는 그것이 **정상 결과**이고(런타임은 표를 읽지 않는다 — `basis` 가 `env` 다),
+      지운 뒤에는 되찾을 수 없다. 시점은 **타임존을 붙인 ISO** 로 적는다
+- [ ] 적은 뒤 **저장소 명령으로** 그 두 칸을 판정해 `verdict` 가 `ok` 다 — `zoneless_target`·
+      `window_disagrees`·`notice_unrecorded` 는 기록이 서로 어긋났다는 뜻이고 통과가 아니다.
+      리허설이라면 고지를 발신하지 않으므로 비고에 **발신하지 않았다는 사실**을 적는다
 - [ ] `RECOVERY_RESTORE_POINT` 를 지웠다 — `checks.lossNotice.detail.state` 가 `normal`
 - [ ] `RECOVERY_WRITE_FREEZE_AT` 를 지웠다 — `checks.incidentClosure.detail.state` 가 `normal`
 - [ ] `RECOVERY_SECURITY_REAPPLIED_AT` 를 지웠다 — `checks.postRestoreSecurity.detail.state` 가 `normal`

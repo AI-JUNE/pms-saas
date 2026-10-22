@@ -114,8 +114,8 @@ export const LEDGER_FIELDS: readonly LedgerField[] = [
     column: '복구 대상 시점',
     envKey: null,
     home: 'table_only',
-    judgedBy: null,
-    lost: '그 리허설이 **어느 시점으로** 복구해 봤는지가 사라진다 — §3-6 ε 선택의 유일한 전례다',
+    judgedBy: 'lib/restorePointRecord.ts assessRecord (§6-7)',
+    lost: '그 리허설이 **어느 시점으로** 복구해 봤는지가 사라진다 — §3-6 ε 선택의 유일한 전례이고, 유실 구간의 **시작**이 남는 유일한 영구 자리다(2026-10-22 까지 이 칸은 `judgedBy: null` 이었다 — 파서가 「자유 문자열, 파싱하지 않음」으로 받아 적기만 했다)',
   },
   {
     key: 'duration',
@@ -146,8 +146,9 @@ export const LEDGER_FIELDS: readonly LedgerField[] = [
     column: '비고',
     envKey: null,
     home: 'table_only',
-    judgedBy: null,
-    lost: '§3-10 `recordRemark()` 가 만들어 주는 구간·고지 시각 메모가 사라진다(읽는 판정은 없다)',
+    judgedBy: 'lib/restorePointRecord.ts parseRemarkWindow (§6-7 — 구간·고지 시각만. 자유 메모는 읽지 않는다)',
+    lost:
+      '§3-10 `recordRemark()` 가 만들어 주는 구간·고지 시각 메모가 사라진다 — 유실 구간의 **끝**과 고지 수행 근거가 남는 유일한 영구 자리다(두 값의 env 는 복구 뒤 지우는 임시 키다. 2026-10-22 에 §6-7 이 읽는 판정이 됐다)',
   },
   {
     key: 'scope',

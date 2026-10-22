@@ -258,6 +258,14 @@ export const PROCEDURE_UNITS: readonly ProcedureUnit[] = [
     cited: true,
     skipped: '유형을 적지 않아 사건 복구가 리허설 기한을 리셋하고(정기 리허설 없이도 `ok` 가 유지된다), 리허설 중에 잰 구간이 §1 약속의 실측으로 기록된다',
   },
+  {
+    key: '6-7',
+    title: '무엇으로 복구했는가 — 복구 대상 시점·유실 구간의 영구 기록',
+    since: '2026-10-22',
+    cited: true,
+    skipped:
+      '구간의 두 끝을 표로 옮겨 적지 않은 채 표지를 지워, 유실 구간과 고지 수치를 되찾을 수 없게 된다(§1 RPO 대조는 영구히 `unjudged` 다)',
+  },
 ];
 
 /**

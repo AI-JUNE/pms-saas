@@ -23,6 +23,7 @@ export type CheckName =
   | 'rehearsalLedger'
   | 'rehearsalOutcome'
   | 'rehearsalKind'
+  | 'restorePointRecord'
   | 'rehearsalObservation'
   | 'deployPin'
   | 'disclosure';

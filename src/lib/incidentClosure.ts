@@ -352,7 +352,12 @@ export interface IncidentRecordInput extends LossWindowInput {
 }
 
 export interface IncidentRecordDraft {
-  /** §6 표 문법 그대로의 한 줄(`| 일자 | 유형 | 복구 대상 시점 | 소요시간 | 검증 결과 | 담당 | 비고 |`) */
+  /**
+   * §6 표 문법 그대로의 한 줄.
+   * 열은 `일자 | 유형 | 복구 대상 시점 | 소요시간 | 검증 결과 | 담당 | 비고 | 범위 | 미통과 단위` 다 —
+   * **칸 수를 표와 맞춘다**(2026-10-22). 모자라면 붙여 넣은 행에서 뒤쪽 신설 열이
+   * 조용히 빈 칸이 되고, 그 두 칸(§6-2 범위·§6-5 미통과)은 판정의 입력이다.
+   */
   row: string;
   /** 사람이 채워야 하는 칸 */
   missing: string[];
@@ -386,7 +391,8 @@ export function incidentRecordDraft(input: IncidentRecordInput): IncidentRecordD
   if (duration.verdict !== 'ok') missing.push('소요시간');
 
   // 검증 결과·담당은 사람 몫 — 자동으로 「정상」을 적으면 리허설 신선도 판정이 거짓 ok 가 된다.
-  missing.push('검증 결과', '담당');
+  // 범위도 사람 몫이다(§6-2 — 어느 단위를 수행했는지는 코드가 고르지 않는다).
+  missing.push('검증 결과', '담당', '범위');
 
   const remark =
     loss.verdict === 'ok'
@@ -395,7 +401,11 @@ export function incidentRecordDraft(input: IncidentRecordInput): IncidentRecordD
   if (loss.verdict !== 'ok') missing.push('비고(유실 구간)');
 
   return {
-    row: `| ${date} | ${kind} | ${point} | ${duration.cell} | ${UNKNOWN_CELL} | ${UNKNOWN_CELL} | ${remark} |`,
+    // 뒤의 두 칸은 §6 표의 `범위`·`미통과 단위` 다 — 미통과는 **비워 둔다**(비운 것이 「전부
+    // 통과」주장이 아니고, 결과 칸이 placeholder 인 동안 §6-5 는 귀속을 요구하지 않는다).
+    row:
+      `| ${date} | ${kind} | ${point} | ${duration.cell} | ${UNKNOWN_CELL} | ${UNKNOWN_CELL} | ${remark} ` +
+      `| ${UNKNOWN_CELL} |  |`,
     missing,
     loss,
     duration,

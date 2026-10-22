@@ -71,6 +71,7 @@ import { rehearsalLedgerCheck } from '../src/lib/rehearsalLedger.ts';
 import { rehearsalKindCheck } from '../src/lib/rehearsalKind.ts';
 import { rehearsalOutcomeCheck } from '../src/lib/rehearsalOutcome.ts';
 import { rehearsalScopeCheck } from '../src/lib/rehearsalScope.ts';
+import { restorePointRecordCheck } from '../src/lib/restorePointRecord.ts';
 import { writeFreezeCheck } from '../src/lib/writeFreeze.ts';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
@@ -123,6 +124,7 @@ function buildChecks(env: Record<string, string | undefined>): Record<string, un
     rehearsalLedger: rehearsalLedgerCheck({ env }),
     rehearsalOutcome: rehearsalOutcomeCheck({ env }),
     rehearsalKind: rehearsalKindCheck({ env }),
+    restorePointRecord: restorePointRecordCheck({ env }),
     deployPin: deployPinCheck({ env }),
     disclosure: disclosureCheck({ env }),
   };

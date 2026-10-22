@@ -30,6 +30,7 @@ import { rehearsalObservationCheck } from '@/lib/rehearsalObservation';
 import { rehearsalOutcomeCheck } from '@/lib/rehearsalOutcome';
 import { rehearsalScopeCheck } from '@/lib/rehearsalScope';
 import { pitrWindowCheck } from '@/lib/recoveryWindow';
+import { restorePointRecordCheck } from '@/lib/restorePointRecord';
 import { writeFreezeCheck } from '@/lib/writeFreeze';
 
 // ★ route.ts에서는 HTTP 메서드와 Next 설정 외 export 금지(Vercel 빌드 실패 원인).
@@ -231,6 +232,18 @@ export async function GET(req: Request) {
   // 합쳐 실측의 출처를 판정하고, 연습 구간은 §1-2 대조에서 뺀다.
   // 판정·유형·날짜·키 이름만 담고(구간 분·소요시간·담당 없음) required: false 다.
   checks.rehearsalKind = rehearsalKindCheck();
+
+  // 그 기록이 **지워지는 쪽에만 있는가**(RUNBOOK §6·§6-7). 위 판정들이 읽는 기록 중 유실 구간의
+  // 두 끝 — 시작(RECOVERY_RESTORE_POINT)·끝(RECOVERY_WRITE_FREEZE_AT) — 은 둘 다 **임시 키**이고
+  // §3 7·8단계는 그것을 지우라고 지시한다. 지운 뒤 남는 영구 기록은 §6 표의 `복구 대상 시점` 과
+  // `비고` 뿐인데 **그 두 칸을 읽는 판정이 없었다**(§6-4 기록 정본이 `judgedBy: null` 로 적어
+  // 두었다). 그래서 사건이 끝나는 순간 §1 RPO 를 실측으로 견줄 근거가 영구히 사라지고
+  // (RTO 쪽은 2026-10-20 에 표의 `소요시간` 을 읽는 판정이 생겼다), 표 칸은 파싱조차 되지 않아
+  // 판독 불가·타임존 없는 값·행 일자보다 뒤인 값이 모두 「기록됨」으로 보였다.
+  // 그래서 **표지가 남아 있는 동안**(= 아직 옮겨 적을 수 있는 동안) 미기록을 드러낸다.
+  // 판정·칸 상태·boolean 만 담는다 — **시각·분 값은 담지 않는다**(무인증 응답이라 구간을
+  // 역산하는 데 쓰인다). required: false 라 503 이 되지 않는다.
+  checks.restorePointRecord = restorePointRecordCheck();
 
   // 배포 롤백이 유지되고 있는지(RUNBOOK §5·§5-1). §5 2단계는 「`commit` 이 롤백 대상과 일치하는지
   // 확인」인데 그 눈 확인은 **그 순간**만 말한다 — 이 배포 경로는 AutoPush(20분) → push →

@@ -61,6 +61,7 @@ import { retentionHours } from './recoveryWindow.ts';
 import { latestLedgerRow, parseLedgerTable, type LedgerField, type LedgerRow } from './rehearsalLedger.ts';
 import { kindState, measurementOrigin, roleFor, type KindState, type MeasurementOrigin } from './rehearsalKind.ts';
 import { attainmentEligibility, type AttainmentEligibility } from './rehearsalOutcome.ts';
+import { recordedLossMinutes } from './restorePointRecord.ts';
 
 /** 응답·문서에서 근거 절을 찾을 수 있게 한다 */
 export const OBJECTIVES_RUNBOOK_REF = 'RUNBOOK §1 · §1-2';
@@ -521,6 +522,10 @@ export interface RehearsalAttainment {
   kind: KindState;
   /** 그 소요시간이 약속의 **실측**인가 **하한**인가 */
   basis: 'measurement' | 'lower_bound' | 'unknown';
+  /** 그 행 **비고**에 적힌 유실 구간 대 RPO(§6-7 — 영구 기록에서 읽는다) */
+  rpo: AttainmentResult;
+  /** 그 구간을 실측으로 쓰지 않은 이유(쓸 때는 null) */
+  rpoWithheld: string | null;
   /** 그 리허설에서는 실제 유실이 없다 — 구간 대조는 사건에서만 한다 */
   note: string;
 }
@@ -530,6 +535,9 @@ export const REHEARSAL_HAS_NO_LOSS =
 
 export const INCIDENT_HAS_LOSS =
   '사건 행이다 — 유실 구간(RPO 실측)은 §3-7 이 산출하고 런타임 `attainment.rpo` 가 대조한다(§6-6)';
+
+export const ELIGIBILITY_WITHHELD =
+  '그 기록은 RTO·RPO 실측 자격이 없다(§6-5 `검증 결과` 가 통과가 아니다) — 끝까지 가지 않은 절차의 수치다';
 
 export const KIND_UNREAD_NOTE =
   '유형을 읽을 수 없어 이 소요시간이 연습값인지 사건 실측인지 모른다(§6-6) — `met` 을 「약속을 지킬 수 있다」로 읽지 않는다';
@@ -555,12 +563,18 @@ export function rehearsalAttainment(args: {
   // 고지가 없으므로 그 소요시간은 **하한**이고, `met` 은 「약속을 지킬 수 있다」가 아니다.
   const kind = row ? kindState(row.kind) : 'absent';
   const role = roleFor(kind);
+  // §6-7: RPO 실측의 **영구** 근거는 표의 `비고` 뿐이다 — 런타임이 읽는 두 키는 복구 뒤 지운다.
+  // 자격(§6-5)이 없으면 수치를 넘기지 않는다(끝까지 가지 않은 기록의 구간은 실측이 아니다).
+  const recorded = recordedLossMinutes(row);
+  const rpoEligible = eligibility.eligible && recorded.withheld === null;
   return {
     row,
     rto: compareToObjective('rto', values.rto.minutes, eligibility.eligible && row ? row.durationMin : null),
     eligibility,
     kind,
     basis: role ? role.rtoEvidence : 'unknown',
+    rpo: compareToObjective('rpo', values.rpo.minutes, rpoEligible ? recorded.minutes : null),
+    rpoWithheld: rpoEligible ? null : (recorded.withheld ?? ELIGIBILITY_WITHHELD),
     note:
       !row || kind === 'regular'
         ? REHEARSAL_HAS_NO_LOSS
