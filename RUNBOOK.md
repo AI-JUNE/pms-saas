@@ -2034,7 +2034,94 @@ node --input-type=module -e "import fs from 'node:fs';import {parseLedgerTable} 
 원문 `kindRaw` 를 남기는 것이 전부다). `required: false` 라 어느 경우에도 503 이 되지 않고,
 응답에는 판정·목적·개수·칸 이름만 담는다(소요시간·담당·비고 없음).
 
+### 6-9. 체크리스트의 **칸 상태**는 누구의 것인가 — 판본과 수행 기록
+
+6절 표에는 두 겹의 보호가 있다 — 머리말의 「**자동화 에이전트는 이 표를 임의로 채우지 않는다**」
+한 줄과, 그 문구가 사라지면 CI 를 실패시키는 점검이다. 그런데 **같은 절에 사람이 손으로 상태를
+적는 자리가 하나 더 있다**: 아래 체크리스트의 `- [ ]` 칸이다. 그 칸에는 두 보호가 **하나도
+없었다.**
+
+- **체크는 수행보다 오래 남는다**(`carried_over_ticks`). 체크리스트는 저장소 파일 **한 벌**이고
+  수행 단위로 복사되지 않는다. 한 번 체크하면 다음 리허설과 **다음 사건 복구**가 그 체크를
+  물려받아 이미 수행된 것으로 보이는 항목을 건너뛰는데, 체크 상태를 읽는 판정은 **어디에도
+  없다**(전 판정이 환경변수와 6절 표만 본다 — `basis` 가 `env` 인 그 응답들이다).
+- **커밋할 의도 없이도 영구화된다**(`autopush_commits_ticks`). 이 저장소는 AutoPush 가 20분마다
+  **미커밋 변경까지** 커밋·배포한다 — 복구·리허설 중에 열어 둔 체크 몇 개가 그대로 판본이 된다.
+- **같은 문법이 「완료」로 쓰이는 파일이 같은 저장소에 있다**(`same_syntax_as_backlog`).
+  `COMMERCIAL_READINESS.md` 에서 `- [ ]`→`- [x]` 는 **자동 개발이 매 배치 수행하는 동작**이다.
+  문법이 한 글자도 다르지 않은데 표에만 있던 보호가 칸에는 없었다.
+- **체크에는 「누구의 것인가」가 없다**(`no_run_identity`). 6-8 은 같은 표의 행을 연습·사건·점검
+  세 목적으로 갈라 놓았는데, 체크 칸에는 일자도 유형도 없다 — 올바르게 체크된 체크리스트조차
+  6절 표의 **어느 행에도 귀속되지 않는다**(수행 기록으로 쓸 수 없으면서 다음 수행만 오염시킨다).
+- **그 상태가 판독 단계에서 접혔다**(`box_folded_at_parse`). 6-3 의 항목 추출 정규식은
+  `\[[ xX]\]` 였다 — `[ ]` 와 `[x]` 가 그 순간 **같은 항목**이 되어 체크 상태를 본 판정이 하나도
+  없었고, 그 밖의 글자(`- [-]`)가 든 줄은 **항목으로 세어지지도 않았다**(단위 인용 대조에서
+  조용히 빠진다. 칸의 글자를 `mark` 로 담는 것으로 고쳤다).
+- **단위보다 잘다**(`coarser_than_units`). 6-2 범위 기록은 **소절 단위**라 한 단위가 들고 있는
+  항목이 몇 개인지 말하지 않는다 — 그 한계는 적혀 있었지만 **셀 수단이 없었다**.
+
+**판본 규율.** 수행할 때는 아래 목록을 **복사해 복사본에 체크**하고(보관은 저장소 밖 — 3-5 와
+같은 규율), 저장소 파일의 칸은 비워 둔다. 수행 기록은 6절 표(일자·유형·범위·미통과 단위)와
+환경변수에만 남는다 — 체크 칸은 **할 일 목록**이고 기록이 아니다.
+
+런타임 체크는 **만들지 않았다** — 체크 상태는 저장소에만 있고 런타임은 문서를 읽지 않으므로,
+`/api/health` 에 실으면 그 응답 자신이 거짓 보증이 된다(`lib/schemaBaseline.ts`·
+`lib/countSemantics.ts` 와 같은 자리다). 판정은 아래 저장소 명령과 CI 가 한다.
+
+```bash
+node --input-type=module -e "import fs from 'node:fs';import {checklistStatus,unitItemLoad,parseChecklistBoxes,unitsWithoutItems} from './src/lib/rehearsalChecklist.ts';const md=fs.readFileSync('RUNBOOK.md','utf8');console.log(checklistStatus(md).text);const b=parseChecklistBoxes(md)||[];console.log('항목 없는 단위:',unitsWithoutItems(b).join(',')||'-');console.log(unitItemLoad(b).filter(l=>l.items.length>0).map(l=>l.unit+':'+l.items.length).join(' '))"
+```
+
+범위 기록(6-2)을 **항목 목록으로 푸는** 명령 — 소절 선언이 어느 항목을 덮는지 본다:
+
+```bash
+node --input-type=module -e "import fs from 'node:fs';import {parseCoverageRecord} from './src/lib/rehearsalCoverage.ts';import {parseChecklistBoxes,checklistScopePlan} from './src/lib/rehearsalChecklist.ts';const b=parseChecklistBoxes(fs.readFileSync('RUNBOOK.md','utf8'))||[];const p=checklistScopePlan(b,parseCoverageRecord(process.env.RECOVERY_LAST_REHEARSAL_SCOPE));console.log('범위 안:',p.inScope.join(',')||'-');console.log('범위 밖:',p.outOfScope.join(',')||'-');console.log('본 절차(범위 무관):',p.unattributed.length+'항목');console.log(p.note)"
+```
+
+| `verdict` | 뜻 | 할 일 |
+| --- | --- | --- |
+| `no_checklist` | 체크리스트 구간을 찾을 수 없다 | **「항목이 없다」가 아니라 판정 불가다.** 제목이 바뀌었는지 본다(6-3 인용 대조·6-2 `cited` 판정도 함께 멈춘다) |
+| `all_checked` | 판본의 전 항목이 체크돼 있다 | 칸을 전부 `- [ ]` 로 되돌린다 — 다음 사건 복구가 전 항목을 「이미 했다」로 물려받는 상태다 |
+| `carried_over` | 체크가 남아 있는 칸이 있다 | 그 칸을 되돌리고 수행 기록은 6절 표·환경변수에만 남긴다(체크에는 일자·유형이 없다) |
+| `unreadable_box` | 칸의 글자를 판독할 수 없다(`- []`·`- [-]`) | `- [ ]` 로 고친다 — 깃허브가 체크박스로 그리지 않고, 그 줄은 항목 인용 대조에서 빠졌다 |
+| `ok` | 판본의 칸이 전부 비어 있다 | 수행은 복사본에서 하고, 기록은 6절 표·환경변수에 남긴다 |
+
+두 기록의 집(`CHECKLIST_HOMES`):
+
+| 무엇 | 어디 | 수행 단위로 새로 생기는가 | 누가 읽는가 |
+| --- | --- | --- | --- |
+| 체크 칸 `- [ ]`/`- [x]` | 저장소 `RUNBOOK.md` **한 벌**(AutoPush 가 미커밋 변경까지 커밋) | X | **아무도** — 전 판정이 env·표만 본다 |
+| 언제·무엇을·어디까지 했는가 | 6절 표 + 환경변수(6-2 범위 · 6-5 미통과 · 6-8 유형) | O | `checks.recovery`·`checks.rehearsalCoverage`·`checks.rehearsalOutcome`·`checks.ledgerPurpose` |
+
+어긋남의 방향 세 가지:
+
+| 방향 키 | 언제 | 누가 알아채는가 |
+| --- | --- | --- |
+| `ticks_outlive_the_run` | 수행 중 체크한 칸이 그대로 커밋돼 판본이 된다 | 2026-10-23 까지 **아무도** — 이제 `auditBoxesOpen` 이 CI 에서 잡는다 |
+| `items_appended_after_ticks` | 배치가 항목을 뒤에 덧붙여 앞은 `[x]`, 새 항목만 `[ ]` 로 남는다 | 아무도 — 6-2 는 소절만 세므로 항목이 늘어난 사실이 체크 상태에 가려진다 |
+| `box_state_dropped_at_parse` | 6-3 추출이 칸의 글자를 다시 접는다(`[ xX]` 꼴) | `auditBoxStateKept`(CI) — 접히면 체크를 읽는 판정이 영구히 사라지는데 응답은 그대로 돈다 |
+
+※ 이 판정이 보장하지 **못하는** 것(`CHECKLIST_LIMITS` 로 함께 나온다):
+저장소 파일만 본다(런타임 응답에는 체크 상태가 없다) · 빈 칸이 「수행하지 않았다」는 뜻이
+아니고 체크가 「수행했다」는 뜻도 아니다 — 말하는 것은 **판본이 깨끗한가**뿐이다 ·
+복사본에 체크했는지·보관했는지는 **저장소 밖**이라 말하지 못한다 · 단위 귀속은 항목 본문이
+**소절 번호를 인용하는지**로만 본다(6-2 와 같은 규칙. 번호를 인용하지 않는 항목은 3절 1~8단계
+본 절차 항목이다) · 항목 수는 **문서 상태**이고 사람의 수행을 보장하지 않는다 ·
+한 글자 괄호로 시작하는 불릿(`- [a](link)`)도 판독 불가 칸으로 보고된다 ·
+이 장치는 판본이 **거짓 근거가 되는 길**만 막고 수행 자체는 사람 몫이다.
+
+※ **신규 환경변수 0 · 신규 조회·쓰기·DDL 0 · 신규 런타임 체크 0** — 이미 적게 되어 있던 칸을
+읽는다(판정은 `lib/rehearsalChecklist.ts`, 칸의 글자 보존은 `lib/rehearsalObservation.ts`
+`ChecklistItem.mark`). CI 가 매번 **전 칸이 비어 있는지**와 머리말 규율 문구를 검사한다.
+
 ### 리허설 체크리스트
+
+> **이 목록은 판본이다 — 저장소 파일의 칸에는 체크하지 않는다.** 수행할 때는 이 목록을
+> **복사해** 복사본에 체크하고(보관은 저장소 밖 — 3-5 와 같은 규율), 수행 기록은 6절 표
+> (일자·유형·범위·미통과 단위)와 환경변수에만 남긴다. 저장소 칸에 체크가 남으면 **다음
+> 리허설·다음 사건 복구가 그 체크를 물려받는다** — AutoPush 가 미커밋 변경까지 커밋하므로
+> 커밋할 의도 없이도 영구화되고, 체크 상태를 읽는 판정은 어디에도 없다(아래 6-9. CI 가 매번
+> 전 칸이 비어 있는지 검사한다). 자동화 에이전트는 이 칸도 **임의로 채우지 않는다.**
 
 - [ ] **시작 전에** 리허설 대상 배포에만 `RECOVERY_REHEARSAL_ACTIVE=true` 를 선언하고 재배포했다 —
       `checks.rehearsalScope.detail.verdict` 가 `rehearsal` 이다(§6-1). 운영 배포에서 같은 응답이
@@ -2180,4 +2267,9 @@ node --input-type=module -e "import fs from 'node:fs';import {parseLedgerTable} 
       코드 회귀가 끼어들면 `git revert` 재배포로 처리한다
 - [ ] 리허설 중 AutoPush 가 새 배포를 만들었어도 `checks.writeFreeze.detail.frozen` 이 `true` 로
       유지됐다(재배포는 **현재** env 를 받는다 — 유지되지 않으면 스코프를 잘못 넣은 것이다)
+- [ ] 체크를 **저장소 파일에 하지 않았다** — 이 목록의 복사본에 체크했고 `RUNBOOK.md` 의 칸은
+      전부 비어 있다(6-9 저장소 명령 `verdict` 가 `ok`). AutoPush 가 미커밋 변경까지 커밋하므로
+      열어 둔 체크도 판본이 된다
+- [ ] 수행 기록을 6절 표와 환경변수에만 남겼다 — 체크 상태에는 **일자도 유형도 없어** 어느
+      수행의 것인지 말하지 못한다(6-9 `no_run_identity`). 복사본은 저장소 밖에 보관했다
 - [ ] 리허설 브랜치 정리

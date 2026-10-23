@@ -478,6 +478,16 @@ export interface ChecklistItem {
   index: number;
   /** 항목 전문(이어진 줄을 합친다) */
   text: string;
+  /**
+   * 칸 안의 글자 **원문**(`' '`·`'x'`·`'X'`·그 밖). 2026-10-23 신설 —
+   * 그전에는 칸 안의 글자를 그 셋만 받는 문자 클래스로 걸러, 비어 있는 칸과 체크된 칸이
+   * **같은 항목**이 되어 체크 상태를 본 판정이 하나도 없었고(§6-9), 그 밖의 글자가 든 줄은
+   * **항목으로 세어지지도 않았다**.
+   * 판정은 `lib/rehearsalChecklist.ts`(§6-9)가 한다 — 여기서는 **접지 않고 담기만** 한다.
+   */
+  mark: string;
+  /** `- [x]` 인가. 판독 불가 칸은 `false` 이고 그 구분은 `mark` 로 한다 */
+  checked: boolean;
 }
 
 const CHECKLIST_HEADING = /^###\s*리허설 체크리스트\s*$/m;
@@ -492,15 +502,21 @@ export function checklistSection(runbookSrc: unknown): string | null {
   return next < 0 ? rest : rest.slice(0, next);
 }
 
-/** `- [ ]` 항목을 이어진 줄까지 합쳐 뽑는다 */
+/**
+ * `- [ ]` 항목을 이어진 줄까지 합쳐 뽑는다.
+ *
+ * 칸 안의 글자는 **무엇이든 받아** `mark` 에 담는다(`- [-]` 처럼 모르는 글자가 들어간 줄을
+ * 떨어뜨리면 그 항목이 인용 대조에서 조용히 빠진다). 상태 판정은 §6-9 가 한다.
+ */
 export function parseChecklistItems(runbookSrc: unknown): ChecklistItem[] {
   const section = checklistSection(runbookSrc);
   if (section === null) return [];
   const items: ChecklistItem[] = [];
   for (const line of section.split(/\r?\n/)) {
-    const started = /^\s*-\s*\[[ xX]\]\s*(.*)$/.exec(line);
+    const started = /^\s*-\s*\[([^\]]?)\]\s*(.*)$/.exec(line);
     if (started) {
-      items.push({ index: items.length + 1, text: started[1].trim() });
+      const mark = started[1];
+      items.push({ index: items.length + 1, text: started[2].trim(), mark, checked: mark === 'x' || mark === 'X' });
       continue;
     }
     if (items.length > 0 && /^\s+\S/.test(line)) {
