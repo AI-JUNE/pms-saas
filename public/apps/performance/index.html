@@ -2551,11 +2551,20 @@ function b64FromBuf(buf){ var u=new Uint8Array(buf), s='', CH=32768;
   for(var i=0;i<u.length;i+=CH)s+=String.fromCharCode.apply(null,u.subarray(i,Math.min(i+CH,u.length)));
   return btoa(s); }
 var PDF_CACHE_KEY='cx_pdf_tbl_cache_v1';
-function pdfCacheGet(k){ try{ var c=JSON.parse(localStorage.getItem(PDF_CACHE_KEY)||'{}'); return c[k]||null; }catch(e){ return null; } }
+/* E7: AI 표 추출 캐시 보관 상한 — 키마다 최근 6건 · 90일(3003·3004 결과 보관 10개·90일과 같은 기간).
+   지난 항목은 읽을 때 무시하고, 쓸 때와 화면을 열 때 지운다. 고객사 데이터·자료실·체크리스트·인터뷰 캐시는 대상 아님(§2 — 설계안). */
+var AI_CACHE_MAX=6, AI_CACHE_TTL=90*864e5, AI_CACHE_SWEEP_KEYS=['cx_pdf_tbl_cache_v1','cx_img_tbl_cache_v1'];
+function aiCacheFresh(v,now){ return !!v&&typeof v==='object'&&(now-(+v.ts||0))<AI_CACHE_TTL; }
+function aiCachePrune(c,now){ var out={}; Object.keys(c||{}).filter(function(k){ return aiCacheFresh(c[k],now); })
+  .sort(function(a,b){ return c[b].ts-c[a].ts; }).slice(0,AI_CACHE_MAX).forEach(function(k){ out[k]=c[k]; }); return out; }
+function aiCacheSweep(now){ now=now||Date.now(); AI_CACHE_SWEEP_KEYS.forEach(function(key){ try{ var s=localStorage.getItem(key); if(s==null)return;
+  var c=JSON.parse(s)||{}, p=aiCachePrune(c,now), n=Object.keys(p).length; if(n===Object.keys(c).length)return;
+  if(n)localStorage.setItem(key,JSON.stringify(p)); else localStorage.removeItem(key); }catch(e){} }); }
+function pdfCacheGet(k){ try{ var c=JSON.parse(localStorage.getItem(PDF_CACHE_KEY)||'{}'); return aiCacheFresh(c[k],Date.now())?c[k]:null; }catch(e){ return null; } }
 function pdfCachePut(k,tables){ try{ var c=JSON.parse(localStorage.getItem(PDF_CACHE_KEY)||'{}');
   c[k]={ts:Date.now(),tables:tables};
-  var ks=Object.keys(c); if(ks.length>6){ ks.sort(function(a,b){return c[a].ts-c[b].ts;}); delete c[ks[0]]; }
-  localStorage.setItem(PDF_CACHE_KEY,JSON.stringify(c)); }catch(e){} }
+  localStorage.setItem(PDF_CACHE_KEY,JSON.stringify(aiCachePrune(c,Date.now()))); }catch(e){} }
+aiCacheSweep();
 /* 응답 본문·사용량 — 세 공급자 공통 */
 function llmText(prov,j){ if(prov==='claude')return (j.content||[]).map(function(c){return c.text||'';}).join('');
   if(prov==='gemini')return ((((j.candidates||[])[0]||{}).content||{}).parts||[]).map(function(p){return p.text||'';}).join('');
@@ -2618,10 +2627,9 @@ async function shrinkImageForLLM(buf,mime,o){ o=o||{}; var maxEdge=o.maxEdge||IM
       if(b64.length<=maxB64) return {b64:b64,mime:'image/jpeg',w:w,h:h,srcW:W,srcH:H,resized:true,quality:QS[qi]}; }
     w=Math.max(1,Math.round(w*0.8)); h=Math.max(1,Math.round(h*0.8)); }
   throw new Error('이미지를 전송 한도('+(maxB64/1e6).toFixed(1)+'MB) 이하로 줄이지 못함'); }
-function imgCacheGet(k){ try{ var c=JSON.parse(localStorage.getItem(IMG_CACHE_KEY)||'{}'); return c[k]||null; }catch(e){ return null; } }
+function imgCacheGet(k){ try{ var c=JSON.parse(localStorage.getItem(IMG_CACHE_KEY)||'{}'); return aiCacheFresh(c[k],Date.now())?c[k]:null; }catch(e){ return null; } }
 function imgCachePut(k,v){ try{ var c=JSON.parse(localStorage.getItem(IMG_CACHE_KEY)||'{}'); v.ts=Date.now(); c[k]=v;
-  var ks=Object.keys(c); if(ks.length>6){ ks.sort(function(a,b){return c[a].ts-c[b].ts;}); delete c[ks[0]]; }
-  localStorage.setItem(IMG_CACHE_KEY,JSON.stringify(c)); }catch(e){} }
+  localStorage.setItem(IMG_CACHE_KEY,JSON.stringify(aiCachePrune(c,Date.now()))); }catch(e){} }
 function parseLLMJson(text){ var clean=String(text||'').replace(/```json|```/g,'').trim();
   var s=clean.indexOf('{'), e=clean.lastIndexOf('}'); if(s<0||e<=s)throw new Error('응답에서 JSON을 찾지 못함');
   try{ return JSON.parse(clean.slice(s,e+1)); }catch(x){ throw new Error('응답 JSON 형식 오류'); } }
@@ -3847,7 +3855,7 @@ function aiReadinessHTML(cfg){ cfg=cfg||{}; var has=!!cfg.key, prov=cfg.provider
    +'<table style="width:100%;border-collapse:collapse;font-size:12.3px"><tr style="color:var(--text3);font-size:11.5px"><td style="padding:4px 8px">기능</td><td style="padding:4px 8px">언제 쓰이나</td><td style="padding:4px 8px">1회 예상 비용</td></tr>'
    +AI_FEATURES.map(function(f){ return '<tr style="border-top:1px solid var(--surface2)"><td style="padding:6px 8px;font-weight:700;white-space:nowrap">'+f.t+'</td><td style="padding:6px 8px;color:var(--text2)">'+f.when+'</td><td style="padding:6px 8px;color:var(--text3);white-space:nowrap">'+won(f)+'</td></tr>'; }).join('')
    +'</table><div style="font-size:11.5px;color:var(--text3);margin-top:8px;line-height:1.6">· 세 공급자(Claude·OpenAI·Gemini) 모두 네 기능을 지원합니다. 보내기 전에 매번 <b>전송 동의창</b>이 뜹니다.<br>'
-   +'· 같은 파일을 다시 분석하면 저장된 결과(캐시 '+cache+'건)를 써서 0원입니다. 외부 전송 기록 '+audit+'건이 이 브라우저에 남아 있습니다.<br>'
+   +'· 같은 파일을 다시 분석하면 저장된 결과(캐시 '+cache+'건)를 써서 0원입니다. 표 추출 캐시는 90일이 지나면 자동으로 지워집니다. 외부 전송 기록 '+audit+'건이 이 브라우저에 남아 있습니다.<br>'
    +'· 위 "연결 테스트"는 짧은 확인 1회(약 ₩1 미만)입니다. 예상 비용은 단가 입력값 기준 추정이며 실제 청구는 공급자 기준입니다.</div>'
    +'<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button type="button" class="btn btn-ghost btn-sm" onclick="clearAICaches()">AI 결과 캐시 비우기</button>'
    +(has?'<button type="button" class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="removeAIKey()">이 브라우저에서 키 삭제</button>':'')+'</div>'; }
