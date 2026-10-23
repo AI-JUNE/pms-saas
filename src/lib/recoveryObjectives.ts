@@ -58,7 +58,8 @@ import { assessLossWindow, freezeAtFromEnv } from './incidentClosure.ts';
 import { restorePointFromEnv } from './lossNotice.ts';
 import { baselineMaxAgeDays } from './recoveryBaseline.ts';
 import { retentionHours } from './recoveryWindow.ts';
-import { latestLedgerRow, parseLedgerTable, type LedgerField, type LedgerRow } from './rehearsalLedger.ts';
+import { latestRehearsalRow } from './ledgerPurpose.ts';
+import { parseLedgerTable, type LedgerField, type LedgerRow } from './rehearsalLedger.ts';
 import { kindState, measurementOrigin, roleFor, type KindState, type MeasurementOrigin } from './rehearsalKind.ts';
 import { attainmentEligibility, type AttainmentEligibility } from './rehearsalOutcome.ts';
 import { recordedLossMinutes } from './restorePointRecord.ts';
@@ -557,7 +558,10 @@ export function rehearsalAttainment(args: {
   env?: Record<string, string | undefined>;
 }): RehearsalAttainment {
   const values = objectivesFromEnv(args?.env ?? process.env);
-  const row = latestLedgerRow(parseLedgerTable(args?.markdown).rows);
+  // §6-8: **점검 행을 뺀** 최신 행을 읽는다. §2 월 점검은 매월 이 표에 행을 남기므로 거의 항상
+  // 그 행이 최신인데, 점검은 §3 절차를 하나도 수행하지 않고 몇 분이면 끝나며 결과는 `정상` 이라
+  // §6-5 자격 게이트를 그대로 통과한다 — 복구를 한 적이 없는 수치로 `met` 이 나왔다.
+  const row = latestRehearsalRow(parseLedgerTable(args?.markdown).rows);
   const eligibility = attainmentEligibility(row);
   // §6-6: 그 행이 연습인지 사건인지 함께 말한다. 리허설에는 1단계 중단 결정·실사용자 트래픽·
   // 고지가 없으므로 그 소요시간은 **하한**이고, `met` 은 「약속을 지킬 수 있다」가 아니다.

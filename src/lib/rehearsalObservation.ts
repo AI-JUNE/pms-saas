@@ -313,6 +313,16 @@ export const CHECK_OBSERVATIONS: readonly CheckObservation[] = [
     silent: '표지를 지우는 순간 구간이 사라져 §1 RPO 대조가 영구히 `unjudged` 가 되고, 고지한 수치가 무엇이었는지도 남지 않는다 — 표에는 행이 그대로 있어 아무도 알아채지 못한다',
   },
   {
+    check: 'ledgerPurpose',
+    role: 'observe',
+    field: 'verdict',
+    vocab: { file: 'src/lib/ledgerPurpose.ts', decl: 'PURPOSE_VERDICTS' },
+    cited: true,
+    degradedWhen: [],
+    why: '§6 표의 행이 **무엇의 기록인가**를 보는 칸이다(§6-8). 같은 표에 §2 월 점검 행도 들어오는데 `유형` 어휘에는 그것을 적을 값이 없었고, `normalizeKind` 는 부분 문자열 `정기` 로 판정해 「정기 점검」을 리허설 행으로 세었다',
+    silent: '리허설을 한 번도 하지 않아도 월 점검이 기한을 매월 리셋하고, 몇 분짜리 점검 소요시간이 §1 RTO 의 `met` 근거가 된다',
+  },
+  {
     check: 'deployPin',
     role: 'observe',
     field: 'verdict',

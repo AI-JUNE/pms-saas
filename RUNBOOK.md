@@ -194,7 +194,14 @@ RPO 실측은 3-7 구간이라 **시간**이고 실제로 잃은 행 수는 아�
      **켜 둔 스위치가 선행 값 없이 아무 일도 하지 않는 상태**다(아래 4-12).
 5. `GET /api/health` 의 `checks.recovery.detail.baseline.status` 가 `ok` 인지 확인
    (`stale`/`undated`/`absent` 면 위 3번이 밀린 것이다. `unjudged` 는 기한 미설정 상태).
-6. 아래 6절 리허설 표에 점검 결과 1줄 기록.
+6. 아래 6절 표에 점검 결과 1줄 기록 — **`유형` 열에는 `점검` 이라고 적는다**(아래 6-8).
+   - ⚠️ 이 행은 **리허설이 아니다.** 월 점검은 3절 절차를 하나도 수행하지 않는다 — 그런데
+     `정기`(또는 「정기 점검」) 로 적으면 판정이 그것을 **복구 브랜치에서의 연습**으로 세어
+     리허설 기한을 매월 리셋하고, 1-2 가 그 행의 `소요시간` 을 RTO 실측으로 읽는다.
+   - `소요시간`·`복구 대상 시점`·`범위`·`미통과 단위` 칸은 **비워 둔다**(수행하지 않은 것이다).
+   - **환경변수는 바꾸지 않는다** — `RECOVERY_LAST_REHEARSAL`·`RECOVERY_LAST_REHEARSAL_KIND`
+     한 벌은 마지막 **정기 리허설**의 값이다. 점검 날짜는 아래 7번 `RECOVERY_LAST_CHECK` 다.
+     (6-4 가 표와 env 의 불일치를 알려 주더라도 **점검 쪽을 env 로 올리지 않는다**.)
 7. **점검을 마친 날짜를 `RECOVERY_LAST_CHECK` 에 적는다**(`YYYY-MM-DD`).
    이 날짜가 위 1·4번이 다루는 **날짜 없는 설정값들의 유일한 확인 시점**이다(아래 2-1).
    적지 않으면 반년 거른 배포와 지난주 점검한 배포가 `GET /api/health` 에서 똑같이 보인다.
@@ -1409,7 +1416,7 @@ node --input-type=module -e "import {deployRollbackStatus,rollbackText} from './
 > 이어서, 스코프를 틀리면 **운영 배포에 걸리면서도 체크리스트가 요구하는 그 응답**이 나온다.
 > 대상 배포에 `RECOVERY_REHEARSAL_ACTIVE=true` 를 선언하고 `checks.rehearsalScope` 로 확인한다.
 
-| 일자 | 유형(정기/사건) | 복구 대상 시점 | 소요시간 | 검증 결과 | 담당 | 비고 | 범위 | 미통과 단위 |
+| 일자 | 유형(정기/사건/점검) | 복구 대상 시점 | 소요시간 | 검증 결과 | 담당 | 비고 | 범위 | 미통과 단위 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | (미실시) | | | | | | 최초 리허설 예정 `[확인 필요]` | | |
 
@@ -1427,6 +1434,11 @@ node --input-type=module -e "import {deployRollbackStatus,rollbackText} from './
 > 두 끝이 남는 **유일한 영구 자리**이고(두 값의 환경변수는 복구 뒤 지우는 임시 키다), 시점은
 > **타임존을 붙인 ISO** 로 적는다(없으면 UTC 로 읽혀 9시간 어긋난다). 비고 문구는 3-10
 > `recordRemark()` 가 만들어 준다(아래 6-7).
+> `유형` 의 셋째 값 `점검` 은 2026-10-23 에 만들었다: **2절 6번이 월 점검 결과를 같은 표에**
+> 적으라고 지시하는데 어휘가 `정기/사건` 둘뿐이라 적을 값이 없었고, `normalizeKind` 는 부분
+> 문자열 `정기` 로 판정하므로 2절의 절 이름 그대로 「정기 점검」이라고 적어도 **정기 리허설
+> 행**이 됐다(아래 6-8). 환경변수 한 벌은 그대로 마지막 **정기 리허설**의 값이고, 점검은
+> 표에 행으로만 남긴다.
 
 ### 기한 추적 (자동)
 
@@ -1441,7 +1453,7 @@ node --input-type=module -e "import {deployRollbackStatus,rollbackText} from './
 | `RECOVERY_REHEARSAL_INTERVAL_DAYS` | 예: `180` | 리허설 주기(일). **미설정이면 기한 판정을 하지 않는다** — 임의 기본 주기를 쓰지 않는다 `[확인 필요]` |
 | `RECOVERY_LAST_REHEARSAL` | `YYYY-MM-DD` | 마지막 리허설 일자. 형식 밖·비실존 날짜·미래 날짜는 무효 처리 |
 | `RECOVERY_LAST_REHEARSAL_RESULT` | `정상` / `부분 통과` / `실패` | `실패`·`부분 통과`는 `failing`. **판독할 수 없으면(비었거나 다른 문구) `unknown_result`** — 둘 다 `ok`가 아니다(2026-10-20 분리. 그전에는 **판독 불가가 `ok` 로 나갔다** — 아래 6-4) |
-| `RECOVERY_LAST_REHEARSAL_KIND` | `정기` / `사건` | 그 기록이 **연습인가 사건인가** — 아래 6-6. **판정이 읽는다**(비우면 `unknown_kind` = 판정 보류이고 통과가 아니다). 이 한 벌은 **마지막 정기 리허설**의 값으로 둔다 — 사건은 위 표에 행으로 남기고 env 는 바꾸지 않는다(사건은 절차의 **사용**이고 검증이 아니어서 리허설 기한을 리셋하지 않는다). 같은 값을 위 표 `유형` 열에도 적는다(6-4) |
+| `RECOVERY_LAST_REHEARSAL_KIND` | `정기` / `사건` | 그 기록이 **연습인가 사건인가** — 아래 6-6. **판정이 읽는다**(비우면 `unknown_kind` = 판정 보류이고 통과가 아니다). 이 한 벌은 **마지막 정기 리허설**의 값으로 둔다 — 사건은 위 표에 행으로 남기고 env 는 바꾸지 않는다(사건은 절차의 **사용**이고 검증이 아니어서 리허설 기한을 리셋하지 않는다). 같은 값을 위 표 `유형` 열에도 적는다(6-4). **`점검` 은 이 키에 적지 않는다** — 2절 월 점검은 표에만 행으로 남긴다(아래 6-8 `check_in_env`) |
 | `RECOVERY_LAST_REHEARSAL_SCOPE` | `asOf=…;rev=…;units=1-1,2-1,…` | 그 리허설이 **수행한 절차 단위**. 위 네 칸은 「언제·결과」만 말하고 **「무엇을 검증했는가」는 말하지 않는다** — 아래 6-2. 같은 값을 위 표 `범위` 열에도 적는다(6-4) |
 | `RECOVERY_LAST_REHEARSAL_UNPASSED` | `asOf=…;units=3-6,3-7` | 그 리허설이 **통과하지 못한 절차 단위**. 범위는 수행 여부만 보므로 `부분 통과`·`실패` 가 **어느 단위에서 났는지**는 이 칸만 말한다 — 아래 6-5. 전부 통과했으면 **비워 둔다**(비운 채 결과가 미통과면 `unattributed` 가 뜬다). 같은 값을 위 표 `미통과 단위` 열에도 적는다 |
 
@@ -1939,6 +1951,89 @@ node --input-type=module -e "import fs from 'node:fs';import {parseLedgerTable,l
 어느 경우에도 503 이 되지 않고, 응답에는 판정·칸 상태·boolean 만 담는다(**시각·분 값 없음** — 무인증
 응답이라 구간을 역산하는 데 쓰인다).
 
+### 6-8. 그 행이 **무엇의 기록인가** — 리허설·사건·월 점검의 구분
+
+6-6 은 이 표의 「연습」과 「사건」을 갈라 놓았다. 그런데 **같은 표에 행을 적으라고 지시하는 절이
+하나 더 있다** — 2절 「정기 점검(월 1회)」 6번이다. 월 점검은 3절 절차를 **하나도 수행하지
+않는다**(콘솔에서 보존 창 확인 · `/api/health` 읽기 · 기준 스냅샷 복사). 그런데 그 행이 들어갈
+`유형` 칸의 어휘는 `정기/사건` 둘뿐이어서 **점검을 적을 값이 없었고**, 세 갈래가 모두 거짓으로
+끝났다.
+
+- **「정기」라고 적으면 연습이 된다**(`token_overlap`). `lib/recovery.ts` 의 `normalizeKind` 는
+  부분 문자열로 판정하므로(`s.includes('정기')`) 2절의 절 이름 그대로 「정기 점검」이라고 적어도
+  `periodic` 이다 — **6-6 이 사건에 대해 막아 둔 길이 월 점검에는 열려 있다**
+  (`interval_reset_by_check`). 6-6 `intervalBasis` 는 그 행을 정기 리허설로 세어 기한을 매월
+  리셋하고, 그러면 리허설을 **한 번도 하지 않아도** 「검증됐다」가 영구히 유지된다.
+- **그 행이 1절 약속의 실측이 된다**(`rto_from_check`). 1-2 `rehearsalAttainment` 는
+  `latestLedgerRow` 로 **표의 최신 행**을 읽는데, 월 점검은 매월 들어오므로 거의 항상 그 행이
+  최신이다. 점검은 몇 분이면 끝나고 결과는 `정상` 으로 적히므로 6-5 자격 게이트를 그대로 통과해
+  `attainment.rto` 가 `met`(= 목표를 지켰다)이 된다 — **복구를 한 적이 없는 수치로.**
+- **비워 두는 길도 「정기」로 몰린다**(`blank_pushed_to_regular`·`ledger_pushes_promotion`).
+  칸을 비우면 6-6 이 매월 `unknown_kind`(degraded)를 내고, 6-4 는 표와 env 를 대조해
+  `date_mismatch` 로 「같은 값으로 맞추라」고 지시한다 — 맞추는 방향은 **점검을 리허설 env 로
+  올리는 쪽**이다. 기록을 지키려고 만든 판정이 점검을 리허설로 승격시킨다.
+- **구별할 근거가 파싱 단계에서 사라졌다**(`raw_folded_at_parse`). `parseLedgerTable` 은
+  `유형` 칸을 `normalizeKind` 로 **접어서** `LedgerRow.kind` 에 담았다 — 「정기 점검」과 「정기」가
+  그 순간 같은 값이 되어 뒤의 어떤 판정도 둘을 되살릴 수 없었다(`kindRaw` 신설).
+
+어느 단계도 오류를 내지 않는다 — 응답은 전부 200 이고 표에는 행이 가지런히 쌓인다.
+
+- `GET /api/health` → `checks.ledgerPurpose` (`lib/ledgerPurpose.ts`, **required: false**)
+
+확인(1줄 — env 쪽만 본다. 런타임은 표를 읽지 않는다):
+
+```bash
+curl -s "$BASE/api/health" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const c=JSON.parse(s).checks.ledgerPurpose.detail;console.log(c.verdict,'basis='+c.basis,'env='+c.envPurpose);console.log(c.action)})"
+```
+
+표 쪽은 **저장소에서** 판정한다(`basis` 가 `env` 인 응답은 표를 보지 않은 판정이다):
+
+```bash
+node --input-type=module -e "import fs from 'node:fs';import {parseLedgerTable} from './src/lib/rehearsalLedger.ts';import {ledgerPurposeStatus,displacedLatest} from './src/lib/ledgerPurpose.ts';const rows=parseLedgerTable(fs.readFileSync('RUNBOOK.md','utf8')).rows;console.log(ledgerPurposeStatus(process.env,rows).text);console.log('가림:',JSON.stringify(displacedLatest(rows).displacedBy))"
+```
+
+| `verdict` | 뜻 | 할 일 |
+| --- | --- | --- |
+| `no_record` | 기록이 없다(**평상시**) | **판정 보류다.** 미실시는 `checks.recovery` 가 `missing` 으로 말한다 |
+| `ambiguous_purpose` | 두 갈래의 말이 겹쳐 있다(「정기 점검」) | **코드가 고르지 않는다.** 연습이면 `정기`, 2절 월 점검이면 `점검` 하나만 적는다 |
+| `check_in_env` | 점검 기록이 **리허설 env 로 올라갔다** | 환경변수 한 벌을 마지막 **정기 리허설**의 값으로 되돌린다. 점검 날짜는 `RECOVERY_LAST_CHECK` 다(2-1) |
+| `check_latest` | 표의 최신 행이 **점검 행**이다 | 정상 상태일 수 있다 — 다만 표를 손으로 볼 때 리허설 기록은 그 아래 행이다. 1-2 는 점검 행을 빼고 읽는다 |
+| `unknown_purpose` | 목적을 읽을 수 없는 행이 있다 | `정기`/`사건`/`점검` 중 하나를 적는다. 비워 두면 6-6 이 매월 판정 보류를 낸다 |
+| `ok` | 세 목적이 제 자리에 있다 | 다음 기록에서도 월 점검은 `점검`, 리허설은 `정기` 로 적는다 |
+
+세 목적의 자격(`PURPOSE_ROLES` — 6-6 `KIND_ROLES` 와 **양방향**으로 맞춘다. 어긋나면 CI 실패):
+
+| 값 | 적는 곳 | 수행하는 것 | 기한 리셋 | RTO 근거 | 미통과 해소 | 범위 귀속 |
+| --- | --- | --- | --- | --- | --- | --- |
+| `정기` | 6절 체크리스트 | 복구 브랜치에서 3절 단위 수행 | O | 하한 | O | O |
+| `사건` | 3절 8단계 | 실제 복구(절차의 **사용**) | X | 실측 | X | X |
+| `점검` | 2절 6번 | 2절 1~7번 — **3절 절차는 하나도 수행하지 않는다** | X | 없음 | X | X |
+
+점검 행이 **비워 두어야 하는 칸**: `소요시간`(1-2 가 RTO 실측으로 읽는다) · `복구 대상 시점`
+(6-7 이 유실 구간의 시작으로 읽는다) · `범위`(6-2 가 수행 단위로 읽는다) · `미통과 단위`
+(6-5 가 재수행 대상 산출에 쓴다).
+
+어긋남의 방향 세 가지(전부 응답은 200 이다):
+
+| 방향 키 | 언제 | 무엇이 조용해지는가 |
+| --- | --- | --- |
+| `section_disagreement` | 6절 머리말은 이 표를 「복구 리허설 기록」으로 정의하는데 2절 6번은 월 점검을 같은 표에 적으라고 지시한다 | 성격이 다른 행이 섞이고, 판정은 전부 「리허설 표」라는 전제로 최신 행을 읽는다 |
+| `vocabulary_gap` | 표 머리의 어휘가 `정기/사건` 둘로 되돌아간다 | 적는 사람이 `정기` 와 공란 중에서 고르는데 **두 길이 모두 정기 리허설로 끝난다** |
+| `token_overlap` | `normalizeKind` 가 부분 문자열 `정기` 로 판정한다 | 「정기 점검」이 리허설 행이 된다 — 글자는 점검이라고 적혀 있는데 판정은 연습이다 |
+
+※ 이 판정이 보장하지 **못하는** 것(`detail.caveats` 로 함께 나온다):
+목적은 **사람이 적는 한 칸**이라 월 점검을 `정기` 로 적으면 이 판정도 같이 틀린다(코드는 행의
+실제 성격을 알지 못한다) · 점검 행을 뺐다는 것이 「리허설을 했다」는 뜻이 아니다 ·
+이 판정은 **어휘와 env 승격**만 보고, 월 점검을 실제로 수행했는지·밀렸는지는
+`checks.periodicCheck`(2-1)가 말한다 · `ambiguous`·판독 불가 행은 **빼지 않는다**(점검으로
+추정해서 빼면 실제 리허설 기록이 조용히 사라진다) · 점검 행의 빈 칸 규율은 **권고**이고 빈 칸은
+「수행하지 않았다」와 「적기를 빠뜨렸다」를 구분하지 않는다 · 런타임은 저장소 문서를 읽지 않는다 ·
+2절과 6절을 **같은 표**에 두기로 한 결정 자체는 바꾸지 않았다(표를 나눌지는 사람 판단이다).
+
+※ **신규 환경변수 0 · 신규 조회·쓰기·DDL 0** — 이미 적게 되어 있던 칸을 읽는다(파서가 버리던
+원문 `kindRaw` 를 남기는 것이 전부다). `required: false` 라 어느 경우에도 503 이 되지 않고,
+응답에는 판정·목적·개수·칸 이름만 담는다(소요시간·담당·비고 없음).
+
 ### 리허설 체크리스트
 
 - [ ] **시작 전에** 리허설 대상 배포에만 `RECOVERY_REHEARSAL_ACTIVE=true` 를 선언하고 재배포했다 —
@@ -2071,6 +2166,13 @@ node --input-type=module -e "import fs from 'node:fs';import {parseLedgerTable,l
       사건인지 모른다」는 뜻이고 **통과가 아니다**(그 상태로도 기한은 리셋된다). 실제 **사건** 복구는
       이 환경변수를 바꾸지 않고 표에 행으로만 남긴다 — 사건은 절차의 **사용**이고 검증이 아니어서
       정기 리허설 기한을 리셋하지 않는다(`interval_reset_by_incident`)
+- [ ] 그 행이 **월 점검 행과 섞이지 않았는지** — `checks.ledgerPurpose.detail.verdict` 가 `ok`
+      이고 `detail.envPurpose` 가 `rehearsal` 이다(6-8). 2절 월 점검은 같은 표에 `점검` 행으로만
+      남기고 **환경변수는 바꾸지 않는다** — `check_in_env` 는 점검이 리허설 기록으로 승격됐다는
+      뜻이고, 그 상태로 두면 리허설을 하지 않아도 기한이 매월 리셋된다.
+      `ambiguous_purpose`(「정기 점검」처럼 두 말이 겹친 칸)도 **통과가 아니다**
+- [ ] 저장소 명령으로 표 쪽도 판정했다 — `displacedBy` 가 비어 있거나, 비어 있지 않다면
+      그 점검 행이 **리허설 수치를 들고 있지 않다**(`detail.checkRowCells` 가 비어 있다. 6-8)
 - [ ] 리허설 중 **배포 롤백(Promote)을 쓰지 않았다** — `checks.deployPin.detail.verdict` 가
       `off` 다(쓰면 차단·DB 교체·기준 지문이 옛 배포의 env 스냅샷으로 함께 되돌아간다. 5-1).
 - [ ] `RECOVERY_REHEARSAL_ACTIVE` 를 지웠다 — `checks.rehearsalScope.detail.verdict` 가 `normal` 로

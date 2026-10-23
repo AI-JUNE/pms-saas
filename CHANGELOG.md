@@ -3,6 +3,17 @@
 > 야간 자동 개발이 매 실행마다 최신 항목을 **맨 위에** 추가합니다.
 > 아침에 `배포.ps1` 실행 → GitHub 푸시 → Vercel 자동배포.
 
+## 2026-10-23 (배치 204 — 배포 대기, 「월 점검」이 같은 표에서 **리허설로 세어졌다**)
+- ★ **COMMERCIAL_READINESS 잔여 `[ ]` 는 여전히 «복구 리허설 실시·기록»(사람 수행) 1건뿐** → §6-6 은 §6 표의 「연습」과 「사건」을 갈라 놓았는데, **같은 표에 행을 적으라고 지시하는 절이 하나 더 있었다** — §2 「정기 점검(월 1회)」 6번 「아래 6절 리허설 표에 점검 결과 1줄 기록」. 월 점검은 §3 절차를 **하나도 수행하지 않는다**(콘솔에서 보존 창 확인·`/api/health` 읽기·기준 스냅샷 복사). 그런데 `유형` 칸의 어휘는 `정기/사건` 둘뿐이라 **점검을 적을 값이 없었다.**
+- 🐞 **「정기」로 적으면 연습이 된다** — `normalizeKind` 는 부분 문자열로 판정하므로(`s.includes('정기')`) §2 의 절 이름 그대로 「정기 점검」이라고 적어도 `periodic` 이다. **§6-6 이 사건에 대해 막아 둔 길이 월 점검에는 그대로 열려 있었다** — `intervalBasis` 가 그 행을 정기 리허설로 세어 기한을 **매월** 리셋하므로, 리허설을 **한 번도 하지 않아도** 「검증됐다」가 영구히 유지된다.
+- 🐞 **그 행이 §1 약속의 실측이 된다** — §1-2 `rehearsalAttainment` 는 `latestLedgerRow` 로 **표의 최신 행**을 읽는데 월 점검은 매월 들어와 거의 항상 최신이다. 점검은 몇 분이고 결과는 `정상` 이라 §6-5 자격 게이트를 그대로 통과해 `attainment.rto` 가 `met`(목표를 지켰다)이 된다 — **복구를 한 적이 없는 수치로**.
+- 🐞 **비워 두는 길도 「정기」로 몰린다** — 칸을 비우면 §6-6 이 매월 `unknown_kind`(degraded)를 내고, §6-4 는 `date_mismatch` 로 「표와 env 를 같은 값으로 맞추라」고 지시한다. 맞추는 방향이 **점검을 리허설 env 로 올리는 쪽**이다 — 기록을 지키려고 만든 판정이 승격을 밀어 준다.
+- 🐞 **구별할 근거가 파싱 단계에서 사라졌다** — `parseLedgerTable` 이 `유형` 칸을 `normalizeKind` 로 **접어서** 담아 「정기 점검」과 「정기」가 그 순간 같은 값이 됐다(`LedgerRow.kindRaw` 신설).
+- 신규 `lib/ledgerPurpose.ts`(순수 — DB·next·fs·`process.env` 미접근, **신규 env 0 · 신규 조회·쓰기·DDL 0** — 이미 적게 되어 있던 칸을 읽는다): 목적의 경계 `purposeState`(**「정기 점검」은 `ambiguous`** — 두 토큰이 겹치면 어느 쪽도 고르지 않는다), 원문 우선 판독 `purposeOfRow`(원문이 없으면 점검으로 **추정하지 않는다**), 세 목적의 자격 정본 `PURPOSE_ROLES`(§6-6 `KIND_ROLES` 와 **양방향** 일치 — 어긋나면 CI 실패), 거짓이 되는 판정 `PURPOSE_MISREADS` 5건, 판정 `assessPurpose` → `no_record`/**`ambiguous_purpose`**/**`check_in_env`**(값·일자 두 경로)/**`check_latest`**/`unknown_purpose`/`ok`, `rehearsalRows`·`latestRehearsalRow`(**점검만 뺀다**), `displacedLatest`·`promotedIntoEnv`·`checkRowShape`, `PURPOSE_DRIFTS` 3방향·`PURPOSE_LIMITS` 7건, 출력 3종, 정적 점검 7종.
+- `lib/rehearsalLedger.ts`: `LedgerRow.kindRaw`(표 칸 원문) 신설 + §6-4 기록 정본 `kind.judgedBy` 에 §6-8 추가. `lib/recoveryObjectives.ts`: `rehearsalAttainment` 가 **`latestRehearsalRow`** 로 읽는다(점검 행 제외). `api/health` 에 `checks.ledgerPurpose` 추가(**required: false**, `rehearsalObservation` **앞에**). 절차 단위 `6-8`·관측 정본(`degradedWhen: []`) 등록.
+- `RUNBOOK` **§6-8 신설**(판정 표·세 목적의 자격 표·거짓이 되는 판정 5건·어긋남 표·확인 1줄·저장소 명령·사각지대) + §2 6번 재작성(**`점검` 값 지시 + 비워 둘 칸 + env 금지**)·§6 표 머리 어휘 `정기/사건/점검`·env 표 갱신 + 리허설 체크리스트 2항목.
+- 검증: `tsc --noEmit` rc=0 · `npm test` 922건 전건 통과(신규 `tests/ledgerPurpose.test.ts` 24건) · 커버리지 `ledgerPurpose.ts` lines 100%·branches 85.55%·funcs 100%, 전체 lines 99.63%. 신규 테이블·DDL·env 0.
+
 ## 2026-10-22 (배치 203 — 배포 대기, 행 수가 줄어든 **뜻**이 테이블마다 다른데 한 문장이었다)
 - ★ **COMMERCIAL_READINESS 잔여 `[ ]` 는 여전히 «복구 리허설 실시·기록»(사람 수행) 1건뿐** → §3 4단계 행 수 대조는 5단계 전환의 게이트(`switchReady`)인데, 그 판정은 핵심 테이블 **전체를 한 규칙으로** 봤다 — 「적으면 `short`, 유실 확정이 아니라 확인 필요다(**정상 삭제로도 줄어든다**)」. 그 한 문장이 응답·로그·RUNBOOK 에 그대로 적혀 있었는데, 핵심 테이블 가운데 그 말이 맞는 것은 **사용자가 지울 수 있는 것들뿐**이다.
 - 🐞 **`audit_log` 에서 그 설명은 거짓이다** — 이 앱은 감사 행을 **지우지 않는다**(`lib/audit.ts` 는 insert 만, 조회는 `/api/audit`·`/api/admin/security-events` 뿐, `AUDIT_RETENTION_DAYS` 는 「자동 삭제는 없다」). 그러니 이 테이블의 감소는 「정상 삭제」로 설명될 수 없고, 하필 **§3-5 가 「복구가 되돌리기 전에 DB 밖으로 내보내라」고 지시한 조사 근거 자신**이다. 가장 단단한 증거가 가장 약한 문장으로 읽히고, 담당자는 그 `short` 를 보고 4단계 지시(「감소분을 설명할 수 있을 때만 전환」)대로 넘어간다.

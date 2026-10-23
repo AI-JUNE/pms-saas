@@ -24,6 +24,7 @@ export type CheckName =
   | 'rehearsalOutcome'
   | 'rehearsalKind'
   | 'restorePointRecord'
+  | 'ledgerPurpose'
   | 'rehearsalObservation'
   | 'deployPin'
   | 'disclosure';

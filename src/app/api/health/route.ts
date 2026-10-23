@@ -7,6 +7,7 @@ import { dbIdentityCheck } from '@/lib/dbIdentity';
 import { deployPinCheck } from '@/lib/deployRollback';
 import { envPresenceCheck } from '@/lib/envPresence';
 import { externalStateCheck } from '@/lib/externalReconcile';
+import { ledgerPurposeCheck } from '@/lib/ledgerPurpose';
 import { buildHealthBody, sanitizeError, statusCode, type Checks } from '@/lib/health';
 import {
   DETAIL_TOKEN_HEADER,
@@ -244,6 +245,18 @@ export async function GET(req: Request) {
   // 판정·칸 상태·boolean 만 담는다 — **시각·분 값은 담지 않는다**(무인증 응답이라 구간을
   // 역산하는 데 쓰인다). required: false 라 503 이 되지 않는다.
   checks.restorePointRecord = restorePointRecordCheck();
+
+  // 그 표의 행이 **무엇의 기록인가**(RUNBOOK §2·§6·§6-8). §6-6 은 「연습」과 「사건」을 갈라
+  // 놓았는데, 같은 표에 행을 적으라고 지시하는 절이 하나 더 있다 — §2 월 점검 6번이다.
+  // 월 점검은 §3 절차를 **하나도 수행하지 않지만**(콘솔 확인·헬스 읽기·스냅샷 복사) 표의
+  // `유형` 어휘에는 그것을 적을 값이 없었고(`정기/사건`), `normalizeKind` 는 부분 문자열
+  // `정기` 로 판정하므로 §2 의 절 이름 그대로 「정기 점검」이라고 적어도 정기 리허설 행이 된다 —
+  // 기한이 **매월** 리셋되고(리허설을 한 번도 하지 않아도 `ok` 가 유지된다), §1-2 는 표의
+  // **최신 행**을 읽으므로 몇 분짜리 점검 소요시간이 RTO `met`(약속을 지켰다)이 됐다.
+  // 비워 두는 길도 §6-6 이 매월 `unknown_kind` 를 내므로 결국 `정기` 로 몰린다.
+  // 여기서 `점검` 어휘를 만들고 점검 행을 리허설 판정에서 빼며, env 승격을 드러낸다.
+  // 판정·목적·개수·칸 이름만 담고(소요시간·담당·비고 없음) required: false 다.
+  checks.ledgerPurpose = ledgerPurposeCheck();
 
   // 배포 롤백이 유지되고 있는지(RUNBOOK §5·§5-1). §5 2단계는 「`commit` 이 롤백 대상과 일치하는지
   // 확인」인데 그 눈 확인은 **그 순간**만 말한다 — 이 배포 경로는 AutoPush(20분) → push →

@@ -105,7 +105,7 @@ export const LEDGER_FIELDS: readonly LedgerField[] = [
     column: '유형',
     envKey: 'RECOVERY_LAST_REHEARSAL_KIND',
     home: 'both',
-    judgedBy: 'lib/rehearsalKind.ts assessKind (§6-6)',
+    judgedBy: 'lib/rehearsalKind.ts assessKind (§6-6) · lib/ledgerPurpose.ts assessPurpose (§6-8 — 원문 `kindRaw` 로 월 점검을 가른다)',
     lost:
       '정기·사건 구분이 사라진다 — 그러면 사건 복구가 리허설 기한을 리셋하고(신선도는 일자·결과만 본다) 리허설 중에 잰 유실 구간이 §1 약속의 실측이 된다(2026-10-21 까지 이 칸은 `judgedBy: null` 이었다 — 집이 둘인데 **읽는 판정이 없는** 상태였다)',
   },
@@ -195,6 +195,11 @@ export interface LedgerRow {
   row: number;
   date: string;
   kind: RehearsalKind;
+  /**
+   * `유형` 칸의 **원문**. `kind` 는 `normalizeKind` 로 접은 값이라 「정기 점검」(§2 월 점검)과
+   * 「정기」(리허설)가 그 순간 같은 값이 된다 — 그 구별은 §6-8 이 이 원문으로만 할 수 있다.
+   */
+  kindRaw: string;
   target: string;
   durationMin: number | null;
   result: RehearsalResult;
@@ -278,6 +283,7 @@ export function parseLedgerTable(markdown: unknown): LedgerTable {
         row: n,
         date,
         kind: normalizeKind(cellAt(cells, index['유형'])),
+        kindRaw: cellAt(cells, index['유형']),
         target: cellAt(cells, index['복구 대상 시점']),
         durationMin: parseDurationMin(cellAt(cells, index['소요시간'])),
         result: normalizeResult(cellAt(cells, index['검증 결과'])),

@@ -274,6 +274,14 @@ export const PROCEDURE_UNITS: readonly ProcedureUnit[] = [
     skipped:
       '구간의 두 끝을 표로 옮겨 적지 않은 채 표지를 지워, 유실 구간과 고지 수치를 되찾을 수 없게 된다(§1 RPO 대조는 영구히 `unjudged` 다)',
   },
+  {
+    key: '6-8',
+    title: '그 행이 무엇의 기록인가 — 리허설·사건·월 점검의 구분',
+    since: '2026-10-23',
+    cited: true,
+    skipped:
+      '§2 월 점검 행을 `정기` 로 적어(어휘에 `점검` 이 없으면 그렇게 된다) 리허설 기한이 매월 리셋되고, 몇 분짜리 점검 소요시간이 §1 RTO 의 `met` 근거가 된다',
+  },
 ];
 
 /**
