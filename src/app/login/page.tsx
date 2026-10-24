@@ -12,7 +12,8 @@ export default function LoginPage() {
   const set = (k: string) => (e: any) => setForm({ ...form, [k]: e.target.value });
   // 클라이언트 입력 검증(서버 왕복 전 빈 값·형식 오류 색출) — 순수 표시/게이트, API·스키마 무영향
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim());
-  const pwOk = form.password.length >= 8;
+  // 8자 규칙은 가입에만 — 로그인은 기존 비밀번호를 서버가 판정한다(짧은 옛 비밀번호면 버튼이 영영 꺼져 있던 문제, 10-24)
+  const pwOk = mode === 'login' ? form.password.length > 0 : form.password.length >= 8;
   const agreeOk = mode === 'login' || (agree.terms && agree.privacy);
   const regOk = mode === 'login' || (form.name.trim().length > 0 && (form.orgName.trim().length > 0 || form.inviteCode.trim().length > 0));
   const canSubmit = emailOk && pwOk && regOk && agreeOk;
@@ -36,9 +37,15 @@ export default function LoginPage() {
   }, []);
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!canSubmit) { setErr(hint || '입력값을 확인하세요'); return; }
+    // 브라우저 자동 채움은 onChange 없이 값만 넣는 경우가 있다 → 제출 때 칸의 실제 값을 다시 읽는다(10-24)
+    const fd = new FormData(e.currentTarget as HTMLFormElement);
+    const email = String(fd.get('email') ?? form.email).trim(), password = String(fd.get('password') ?? form.password);
+    const sent = { ...form, email, password };
+    if (email !== form.email || password !== form.password) setForm(sent);
+    const okNow = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && (mode === 'login' ? password.length > 0 : password.length >= 8) && regOk && agreeOk;
+    if (!okNow) { setErr(hint || (!email ? '이메일을 입력하세요.' : !password ? '비밀번호를 입력하세요.' : '입력값을 확인하세요')); return; }
     setErr(''); setBusy(true);
-    const res = await fetch(mode === 'login' ? '/api/auth/login' : '/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(mode === 'register' ? { ...form, agree } : form) });
+    const res = await fetch(mode === 'login' ? '/api/auth/login' : '/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(mode === 'register' ? { ...sent, agree } : sent) });
     setBusy(false);
     if (res.ok) router.push('/dashboard'); else { const d = await res.json().catch(() => ({})); setErr(d.message || '오류가 발생했습니다'); }
   }
@@ -72,8 +79,8 @@ export default function LoginPage() {
           <div className="field"><label>조직명 <span style={{fontWeight:400,color:'var(--text-3)'}}>(초대 코드로 합류 시 생략 가능)</span></label><input className="in" value={form.orgName} onChange={set('orgName')} placeholder="우리 회사" /></div>
           <div className="field"><label>초대 코드 <span style={{fontWeight:400,color:'var(--text-3)'}}>(선택 · 팀 합류 시)</span></label><input className="in" value={form.inviteCode} onChange={set('inviteCode')} placeholder="관리자에게 받은 코드" style={{textTransform:'uppercase'}} /></div>
         </>)}
-        <div className="field"><label>이메일</label><input className="in" type="email" value={form.email} onChange={set('email')} placeholder="you@company.com" /></div>
-        <div className="field"><label>비밀번호</label><input className="in" type="password" value={form.password} onChange={set('password')} placeholder="8자 이상" />
+        <div className="field"><label>이메일</label><input className="in" type="email" name="email" autoComplete="username" value={form.email} onChange={set('email')} onInput={set('email')} placeholder="you@company.com" /></div>
+        <div className="field"><label>비밀번호</label><input className="in" type="password" name="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={form.password} onChange={set('password')} onInput={set('password')} placeholder={mode === 'login' ? '비밀번호' : '8자 이상'} />
           {mode === 'login' && <a href="/reset-password" style={{ display: 'inline-block', marginTop: 6, fontSize: 12.5, color: 'var(--brand-600)', fontWeight: 700 }}>비밀번호를 잊으셨나요?</a>}
         </div>
         {mode === 'register' && (
@@ -89,7 +96,7 @@ export default function LoginPage() {
           </div>
         )}
         {hint && <p className="muted" style={{ textAlign: 'center', margin: '2px 0 0', fontSize: 12, color: '#2457C5' }}>{hint}</p>}
-        <button className="btn btn-pri" style={{ width: '100%', justifyContent: 'center', marginTop: 8, padding: 11 }} disabled={busy || !canSubmit} title={!canSubmit ? (hint || '이메일·비밀번호(8자 이상)를 입력하세요') : ''}>{busy ? '처리 중…' : mode === 'login' ? '로그인' : '가입하고 시작하기'}</button>
+        <button className="btn btn-pri" style={{ width: '100%', justifyContent: 'center', marginTop: 8, padding: 11 }} disabled={busy} aria-disabled={!canSubmit} title={!canSubmit ? (hint || '이메일·비밀번호(8자 이상)를 입력하세요') : ''}>{busy ? '처리 중…' : mode === 'login' ? '로그인' : '가입하고 시작하기'}</button>
       </form>
       <p className="muted" style={{ textAlign: 'center', marginTop: 18 }}>처음이신가요? 상단 '회원가입'으로 관리자 계정을 만드세요.</p>
     </div></div>
