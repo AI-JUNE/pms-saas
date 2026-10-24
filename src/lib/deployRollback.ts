@@ -47,6 +47,7 @@
  */
 import { EXPECTED_DB_ENV, DB_URL_ENV } from './dbIdentity.ts';
 import { buildInfo } from './health.ts';
+import { assessIdentityPhase, type PhaseBasis } from './identityPhase.ts';
 import { FREEZE_AT_ENV } from './incidentClosure.ts';
 import { WRITE_FREEZE_ENV, writeFreezeEnabled } from './writeFreeze.ts';
 
@@ -119,6 +120,7 @@ export const ROLLBACK_LIMITS: readonly string[] = [
   '이 판정은 **이 배포 자신**만 말한다 — Preview 배포·다른 alias 가 함께 떠 있는 경우는 보지 않는다',
   '7자리 접두사 비교다 — 서로 다른 커밋이 같은 7자리 접두사를 가지면 구분하지 못한다(드물지만 0 은 아니다)',
   `롤백은 \`main\` 을 고치지 않는다 — 원인 커밋이 \`main\` 에 남아 있는 동안 AutoPush 는 계속 그 코드를 배포하려 한다(${AUTOPUSH_INTERVAL_MIN}분 주기)`,
+  `\`phase\` 는 **국면을 추정한 값**이다 — \`after_switch\` 는 \`${EXPECTED_DB_ENV}\` 단독으로도 나오고, 그 값은 평상시에 남겨 두어도 되는 값이다(§3-12). \`phaseCorroborated\` 가 false 면 「전환 이후다」가 아니라 **구분되지 않았다**는 뜻이다`,
 ];
 
 export interface DeployPin {
@@ -184,6 +186,12 @@ export type RollbackPhase = (typeof ROLLBACK_PHASES)[number];
  * 지금이 §3 복구 중인가. 쓰기 차단이 걸려 있으면 2~7단계 진행 중이고(가장 위험하다),
  * 차단은 풀렸는데 기준 지문이 남아 있으면 5단계 전환 이후다. 둘 다 없으면 평상시다.
  * **env 해석만** 한다 — 조회 0.
+ *
+ * ⚠️ `after_switch` 는 **기준 지문 단독**으로 나온다. 그 값은 §3-4·§2 4번이 **평상시에
+ * 남겨 두어도 된다**고 한 값이고 §3 8단계 4번의 삭제 목록에도 없으므로, 남기는 운용에서는
+ * 이 판정이 평상시로 **돌아오지 않는다**. 그래서 이 함수의 값만 보지 말고
+ * `assessRollbackRisk().phaseCorroborated`(= 지문 밖의 사건 표지가 있는가)를 함께 본다 —
+ * false 면 「전환 이후다」가 아니라 **구분되지 않았다**는 뜻이다(§3-12 `identityPhase.ts`).
  */
 export function rollbackPhase(env: Record<string, string | undefined> = process.env): RollbackPhase {
   if (writeFreezeEnabled(env)) return 'frozen';
@@ -206,12 +214,26 @@ export const CAVEAT_ROLLBACK_LOSES_FREEZE =
   `운영은 쓰기를 계속 받고, 그 쓰기는 전환에서 **조용히 사라진다**. \`${FREEZE_AT_ENV}\` 도 함께 사라져 ` +
   '유실 구간의 끝을 확정할 수 없게 된다(§3-7)';
 
+export const CAVEAT_PHASE_UNCORROBORATED =
+  `\`${EXPECTED_DB_ENV}\` 만으로 국면을 판정했다 — 그 값은 §3-4·§2 4번이 **평상시에 남겨 두어도 된다**고 한 ` +
+  '값이고 §3 8단계 4번의 삭제 목록에도 없다. 그래서 위 「되돌아가는 설정」 목록과 손상 DB 경고는 ' +
+  '**평상시 고정에서는 거짓일 수 있다**(§3-12). 반대로 「표지가 없으니 평상시다」로 내려 주지도 않는다 — ' +
+  '§3 2·3단계 기록을 거른 복구도 표지가 0 이다';
+
 export interface RollbackRisk {
   phase: RollbackPhase;
   /** 「코드만 되돌린다」(§5 머리말의 약속)가 지금 성립하는가 */
   codeOnly: boolean;
   /** 롤백 대상 배포에 **없을** 설정 키(이름만 — 값은 담지 않는다) */
   atRisk: string[];
+  /**
+   * `phase` 가 **기준 지문 밖의 근거**를 가지고 있는가(§3-12). `after_switch` 인데 false 면
+   * 「전환 이후다」가 아니라 **평상시 고정과 구분되지 않았다**는 뜻이다 — 그래도 Promote 는
+   * 열어 주지 않는다(표지를 적지 않은 복구도 같은 모습이다).
+   */
+  phaseCorroborated: boolean;
+  /** 국면 판정의 근거(§3-12 `PHASE_BASES`) */
+  phaseBasis: PhaseBasis;
   action: string;
   caveats: string[];
 }
@@ -224,8 +246,20 @@ export const ACTION_RISK_FROZEN =
   '코드 회귀가 복구를 막고 있다면 롤백(Promote) 대신 `git revert` 로 **새 배포**를 만든다 — 그러면 현재 env 가 그대로 유지된다';
 
 export const ACTION_RISK_AFTER_SWITCH =
-  '§3 5단계 전환 이후다(기준 지문이 설정돼 있다) — Promote 로 되돌리면 복구 브랜치 연결이 함께 되돌아간다. ' +
-  '`git revert` 재배포를 쓰고, 되돌린 뒤 `checks.dbIdentity.detail.verdict` 가 여전히 `match` 인지 확인한다';
+  '§3 5단계 전환 이후다(기준 지문이 설정돼 있고 사건 표지도 함께 있다) — Promote 로 되돌리면 복구 브랜치 연결이 ' +
+  '함께 되돌아간다. `git revert` 재배포를 쓰고, 되돌린 뒤 `checks.dbIdentity.detail.verdict` 가 여전히 `match` 인지 확인한다';
+
+/**
+ * 기준 지문**만** 들어 있는 상태. §3-4·§2 4번은 그 값을 평상시에 남겨 두어도 된다고 하고
+ * §3 8단계 4번은 그것을 지우라고 하지 않으므로, 이 국면은 **평상시 고정과 구분되지 않는다**.
+ * 그래도 Promote 는 열지 않는다 — §3 2·3단계 기록을 거른 복구도 표지가 0 이라 같은 모습이고,
+ * 그때 Promote 는 복구를 조용히 무효화한다.
+ */
+export const ACTION_RISK_AFTER_SWITCH_UNCORROBORATED =
+  '기준 지문만 들어 있고 사건 표지는 하나도 없다 — **§3 5단계 전환 이후인지 평상시 연결 대상 고정인지 ' +
+  '이 값만으로는 구분되지 않는다**(§3-12). 구분되지 않는 동안에는 **Promote 를 쓰지 않고** ' +
+  '`git revert` 재배포를 쓴다. 사건이 끝난 것이라면 §3 8단계 4번에서 지문의 **처분을 확정**한다 — ' +
+  '남기기로 했다면 이 국면이 평상시 상태라는 사실을 §6 표 비고에 적어 둔다';
 
 /**
  * 지금 배포를 되돌리면 **무엇이 함께 되돌아가는가**. env 이름만 열거하고 값은 담지 않는다.
@@ -233,6 +267,7 @@ export const ACTION_RISK_AFTER_SWITCH =
  */
 export function assessRollbackRisk(env: Record<string, string | undefined> = process.env): RollbackRisk {
   const phase = rollbackPhase(env);
+  const ip = assessIdentityPhase({ env });
   const atRisk: string[] = [];
   const caveats: string[] = [CAVEAT_ENV_SNAPSHOT];
 
@@ -247,11 +282,24 @@ export function assessRollbackRisk(env: Record<string, string | undefined> = pro
     caveats.push(CAVEAT_ROLLBACK_LOSES_RECOVERY);
   }
 
+  // 지문 단독으로 `after_switch` 가 된 경우 — 「운영이 다시 손상된 DB 를 본다」는 위 문장이
+  // 평상시 고정에서는 거짓이다. 지우지 않고 **구분되지 않았다는 사실을 함께** 내보낸다.
+  const uncorroborated = phase === 'after_switch' && !ip.corroborated;
+  if (uncorroborated) caveats.push(CAVEAT_PHASE_UNCORROBORATED);
+
   return {
     phase,
     codeOnly: phase === 'normal',
     atRisk,
-    action: phase === 'frozen' ? ACTION_RISK_FROZEN : phase === 'after_switch' ? ACTION_RISK_AFTER_SWITCH : ACTION_RISK_NORMAL,
+    phaseCorroborated: ip.corroborated,
+    phaseBasis: ip.basis,
+    action: uncorroborated
+      ? ACTION_RISK_AFTER_SWITCH_UNCORROBORATED
+      : phase === 'frozen'
+        ? ACTION_RISK_FROZEN
+        : phase === 'after_switch'
+          ? ACTION_RISK_AFTER_SWITCH
+          : ACTION_RISK_NORMAL,
     caveats,
   };
 }
@@ -320,7 +368,8 @@ export function deployRollbackStatus(env: Record<string, string | undefined> = p
 /** 사람이 읽는 요약(§5-1 의 1줄 명령이 출력하는 것) */
 export function rollbackText(s: ReturnType<typeof deployRollbackStatus>): string {
   const lines = [
-    `[${s.verdict}] pinned=${s.pinned ?? '(미설정)'} actual=${s.actual ?? '(모름)'} phase=${s.risk.phase}`,
+    `[${s.verdict}] pinned=${s.pinned ?? '(미설정)'} actual=${s.actual ?? '(모름)'} ` +
+      `phase=${s.risk.phase}${s.risk.phaseCorroborated ? '' : '(구분되지 않음)'} basis=${s.risk.phaseBasis}`,
     `→ ${s.action}`,
     `→ ${s.risk.action}`,
   ];
@@ -372,6 +421,9 @@ export function deployPinCheck(args?: {
       pinned: pin.pinned,
       actual: pin.actual,
       phase: risk.phase,
+      /** `after_switch` 가 기준 지문 단독인지(= 평상시 고정과 구분되지 않는지) — §3-12 */
+      phaseCorroborated: risk.phaseCorroborated,
+      phaseBasis: risk.phaseBasis,
       codeOnly: risk.codeOnly,
       atRisk: risk.atRisk,
       pinKey: PIN_ENV,
@@ -447,5 +499,9 @@ export function auditRunbookRollback(md: unknown): string[] {
     problems.push(`§5 가 복구 중(${WRITE_FREEZE_ENV} ON) 롤백 금지를 적지 않는다`);
   }
   if (!/checks\.deployPin/.test(sec5)) problems.push('§5 가 확인 수단(checks.deployPin)을 적지 않는다');
+  // 0단계의 「phase 가 normal 이 아니면 Promote 금지」는 평상시 고정에서도 늘 참이 된다 —
+  // 그 사실(§3-12)이 §5 에서 사라지면 담당자는 평상시 경고를 사건 경고로 읽는다.
+  if (!/3-12/.test(sec5)) problems.push('§5 가 §3-12(국면이 구분되지 않는 경우)를 가리키지 않는다');
+  if (!/phaseCorroborated/.test(sec5)) problems.push('§5 0단계가 phaseCorroborated 확인을 적지 않는다');
   return problems;
 }

@@ -186,6 +186,10 @@ RPO 실측은 3-7 구간이라 **시간**이고 실제로 잃은 행 수는 아�
 4. 환경변수 스냅샷이 최신인지 확인(4절). `RECOVERY_EXPECTED_DB` 를 남겨 두었다면
    `checks.dbIdentity.detail.verdict` 가 `match` 인지 함께 본다 — `mismatch` 면 연결 대상이
    바뀐 것이다(의도한 변경이면 지문을 갱신한다. 3-4).
+   - ⚠️ **남겨 두는 운용에서는 `checks.deployPin.detail.phase` 가 평상시에도 `after_switch` 다**
+     (그 값이 국면의 단독 근거다). 그때 `phaseCorroborated` 가 `false` 인 것이 **평상시 상태**이고,
+     사건 중이라는 뜻이 아니다 — 두 국면을 구분하는 방법은 아래 **3-12** 에 있다.
+     지문을 남기지 않기로 했다면 이 줄은 할 일이 없다(`unset` 이 평상시다).
    - **설정 키 이름 스냅샷 갱신** — `GET /api/health` 의 `checks.envPresence.detail.snapshot`
      문자열을 그대로 복사해 `RECOVERY_ENV_BASELINE` 에 넣는다(`asOf=…;keys=A,B` — **값은 담기지
      않는다. 키 이름뿐이다**). 이것이 복구일에 「무엇이 빠졌는가」를 판정할 **유일한 기준**이다
@@ -534,6 +538,17 @@ RPO 실측은 3-7 구간이라 **시간**이고 실제로 잃은 행 수는 아�
       같은 자리에서 `RECOVERY_RESTORE_POINT`·`RECOVERY_LOSS_NOTICE_AT`·
       `RECOVERY_SECURITY_REAPPLIED_AT`·`RECOVERY_EXTERNAL_RECONCILED_AT` 도 지운다 —
       남으면 다음 사건에서 **옛 시각이 「고지·재적용·대조했다」는 근거**로 쓰인다(`stale_record`).
+      - ⚠️ **`RECOVERY_EXPECTED_DB`(기준 지문)의 처분을 여기서 확정한다**(아래 **3-12**).
+        이 키는 위 목록에 **들어 있지 않다** — 3-4 가 「지워도 되고 남겨도 된다」고 하기 때문이다.
+        그런데 그 값이 `checks.deployPin.detail.phase` 를 `after_switch` 로 만드는 **단독 근거**라서,
+        남기기로 하면 그 국면이 **평상시로 돌아오지 않는다**(§5 0단계의 Promote 금지가 늘 떠 있게 된다).
+        · **남긴다**(연결 대상 고정 — §2 4번이 매월 `match` 를 보는 운용): 6절 표 비고에
+        「지문 고정 유지」를 적어 두고, 이후 `phase: after_switch` + `phaseCorroborated: false` 가
+        **평상시 상태**임을 알고 본다.
+        · **지운다**(평상시 미설정 — 3-4 판정 표의 `unset`): 위 표지들과 같은 자리에서 지운다.
+        그러면 §2 4번의 `match` 확인은 할 일이 없어진다.
+        어느 쪽이든 **한쪽으로 확정**한다 — 확정하지 않으면 다음 사건에서 그 국면이 사건인지
+        평상시인지 아무도 말할 수 없다.
       - ⚠️ **지우기 전에 2·3번이 끝났는지 본다** — `checks.lossNotice.detail.canClearMarkers` 가
         **`true`** 이고 `blockers` 가 비어 있을 때만 지운다. 지운 뒤에는 구간의 두 끝이 모두 사라져
         구간을 되찾을 수도, 「고지했는가」를 물을 수도 없다 — **고지 없이 끝낸 복구와 제대로 끝낸
@@ -696,6 +711,10 @@ PITR 복구 브랜치는 기존 테이블을 그대로 물려받으므로 6단�
 - 복구가 끝난 뒤 `RECOVERY_EXPECTED_DB` 는 **지워도 되고 남겨도 된다.** 남겨 두면 이후 누군가
   `DATABASE_URL` 을 바꿨을 때 `mismatch` 로 드러난다(연결 대상 고정). 엔드포인트를 의도적으로
   바꿀 때 함께 갱신하는 것을 잊으면 거짓 경고가 나므로, 그때는 §2 월 점검에서 같이 본다.
+  - ⚠️ **그 자유에는 값이 붙는다** — 같은 값이 `checks.deployPin.detail.phase` 를 `after_switch`
+    (= §3 5단계 전환 이후)로 만드는 **단독 근거**다. 남기면 그 국면이 평상시로 돌아오지 않고,
+    위 판정 표의 `unset` 행이 「평상시 상태」라고 적은 것과도 어긋난다(§2 4번을 수행하는 배포의
+    평상시 상태는 `match` 다). 어느 쪽을 택할지와 그 국면을 어떻게 읽을지는 아래 **3-12** 가 다룬다.
 - 신규 조회·쓰기 0 — 판정은 환경변수 해석만으로 한다. `tests/dbIdentity.test.ts` 가 실제
   `src/db/index.ts` 원문을 점검해 **DB 클라이언트가 다른 연결 키로 옮겨 가면 CI 를 실패시킨다**
   (지문이 엉뚱한 DB 를 가리키면서 계속 `match` 를 내는 것이 가장 조용한 회귀다). `/api/health`·
@@ -1083,6 +1102,66 @@ node --input-type=module -e "import {lossNoticeStatus} from './src/lib/lossNotic
   4단계 응답에서 `unexplained` 가 사라지거나, 핵심 테이블에서 `attachments` 가 다시 빠지면 CI 가
   실패한다. 전부 **응답은 200** 이고 `verdict` 도 그대로라 사람 눈으로는 알아챌 수 없는 회귀다.
 
+### 3-12. 기준 지문이 **어느 국면의 기준인가** — 평상시 고정과 전환 이후의 구분
+
+5단계 전환은 `RECOVERY_EXPECTED_DB`(연결 대상 지문)로 확인하고(3-4), §5 0단계는 그 값이 들어 있으면
+**Promote 를 쓰지 말라**고 지시한다. 그 지시의 근거는 `lib/deployRollback.ts` `rollbackPhase()` 이고,
+판정 규칙은 한 줄이다 — **지문이 들어 있으면 `after_switch`(= 5단계 전환 이후)**.
+
+그런데 **같은 값이 평상시에도 들어 있어도 된다.** 3-4 마지막 줄이 「지워도 되고 **남겨도 된다**」고
+적고, §2 월 점검 4번은 「**남겨 두었다면** `match` 인지 **매월** 함께 본다」고 지시하며,
+`lib/periodicCheck.ts` `UNDATED_SETTINGS` 는 그 값의 신선도를 §2 점검 일자로 추적한다. 즉 **한 값에
+세 정본이 서로 다른 뜻을 부여**하고 있고(평상시 미설정 / 평상시 고정 / 사건 국면), 그 값에는
+**언제·왜 들어갔는지가 적히지 않는다** — 12자리 16진수 하나뿐이다. 그래서:
+
+| 어긋남 | 두 정본 | 무엇이 조용히 틀리는가 |
+| --- | --- | --- |
+| `normal_pin_reads_as_incident` | §2 4번·3-4(평상시에 남겨도 된다) ↔ `rollbackPhase()`(설정 = 전환 이후) | `phase` 가 영구히 `after_switch` 로 굳어 §5 0단계의 Promote 금지가 평상시에 늘 떠 있다 — **정작 사건 중에 응답이 달라지지 않아** 그 경고를 아무도 읽지 않게 된다 |
+| `no_clear_step` | §3 8단계 4번(표지를 지운다) ↔ `rollbackPhase()`(지문이 국면을 만든다) | 국면을 만드는 값이 **국면을 끝내는 단계의 목록에 없다** — 지우는 운용을 택해도 지우는 시점이 절차에 없다(§5 5단계에는 그 단계가 있다) |
+| `two_normals` | 3-4 판정 표(`unset` = 평상시 상태) ↔ §2 4번(평상시에 `match` 를 본다) | 같은 문서가 평상시를 두 가지로 적었다 — 어느 쪽이 평상시인지 모르는 채 §2 4번을 거르면 **거른 사실이 어느 판정에도 나타나지 않는다** |
+
+**판정 산출(1줄)** — 지금 들어 있는 지문이 어느 국면의 기준인지:
+
+```bash
+node --input-type=module -e "import {assessIdentityPhase,identityPhaseText} from './src/lib/identityPhase.ts'; console.log(identityPhaseText(assessIdentityPhase({env:process.env})))"
+```
+
+판정 표:
+
+| `verdict` | 뜻 | 할 일 |
+| --- | --- | --- |
+| `absent` | 지문 미설정 | 3-4 판정 표가 「평상시」라 부르는 상태다. 다만 §2 4번의 `match` 확인은 **수행해도 아무것도 말하지 않는다** |
+| `incident` | 지문이 있고 **사건 표지가 따로** 있다 | 사건·연습 국면이다 — Promote 를 쓰지 않고 `git revert` 재배포만 쓴다 |
+| `unreadable` | 지문을 읽을 수 없다 | 12자리 16진수만 넣는다(연결 문자열은 거절된다). 국면도 전환 확인도 이 값으로는 못 한다 |
+| `indistinguishable` | 지문만 있다 | **평상시 고정인지 전환 이후인지 구분할 수 없다.** Promote 는 그대로 닫아 두고, 사건이 끝난 것이면 §3 8단계 4번에서 **처분을 확정**한다 |
+
+사건 표지(지문과 **따로** 국면을 말해 주는 값. 지문 키는 **여기에 들어가지 않는다** — 들어가면
+§2 4번이 권하는 평상시 고정이 2-3 무인증 응답에서 「사건 중」으로 공표된다):
+`RECOVERY_WRITE_FREEZE`(스위치) · `RECOVERY_WRITE_FREEZE_AT` · `RECOVERY_RESTORE_POINT` ·
+`RECOVERY_LOSS_NOTICE_AT` · `RECOVERY_SECURITY_REAPPLIED_AT` · `RECOVERY_EXTERNAL_RECONCILED_AT` ·
+`RECOVERY_REHEARSAL_ACTIVE`(스위치).
+
+**어느 쪽으로 확정할지는 사람이 정한다** — 코드는 한쪽을 고르지 않는다. 확정 전까지
+`indistinguishable` 이 평상시 상태이고, 그동안 §5 0단계는 **닫힌 채로** 둔다.
+
+> 보장하지 못하는 것(`PHASE_LIMITS` — 판정과 함께 실려 나간다):
+> 지문에는 **언제·왜 들어갔는지가 없다**(신규 환경변수를 만들지 않았다) · 사건 표지가 0 이라는 것이
+> 「사건이 아니다」는 뜻은 **아니다**(§3 2·3단계 기록을 거른 복구도 0 이다 — 그래서
+> `indistinguishable` 에서 **Promote 를 열어 주지 않는다**) · 반대로 표지가 남아 있는 것이
+> 「복구 중」이라는 뜻도 아니다(8단계 4번을 거른 과거 사건의 잔류일 수 있다 — 그쪽은
+> `stale_record` 가 말한다) · 이 판정은 **국면**만 말한다(지문이 올바른 DB 를 가리키는지는
+> `checks.dbIdentity`, 그 DB 의 데이터는 4단계가 본다) · 이 배포 자신의 env 만 본다.
+
+- 신규 환경변수·조회·쓰기·DDL·런타임 체크 **0** — 판정은 이미 들어 있는 env 키의 **이름**만 본다.
+  `/api/health` 에 새 체크를 만들지 않고 `checks.deployPin.detail.phaseCorroborated`·`phaseBasis` 로
+  같은 자리에서 말한다(같은 국면을 두 번 보고하지 않는다 — `auditNoNewHealthCheck` 가 고정한다).
+- `tests/identityPhase.test.ts` 가 실제 `src/lib/deployRollback.ts`·`src/lib/envRegistry.ts`·
+  `src/lib/periodicCheck.ts`·`src/lib/healthDisclosure.ts`·이 문서 원문을 매번 점검한다 —
+  구분 여부를 응답에서 빼거나(판정만 하고 버리는 꼴 포함), 구분되지 않은 국면에서 평상시 조치를
+  내거나, 지문 키가 사건 표지로 들어가거나, §3 8단계 4번이 이 키의 처분을 다시 빼거나, 이 절이
+  사라지면 CI 가 실패한다. 전부 **응답은 200** 이고 `phase` 값도 그대로라 사람 눈으로는 알아챌 수
+  없는 회귀다.
+
 ## 4. 환경변수·시크릿 복구
 
 Vercel 환경변수는 DB 백업에 포함되지 않으므로 별도 보관한다.
@@ -1331,6 +1410,11 @@ DB 손상이 아니라 배포 회귀라면 배포만 되돌린다. 다만 **이 
 0. **선행 확인** — 지금이 3절 복구 중인가:
    `GET /api/health` 의 `checks.deployPin.detail.phase` 가 `normal` 이 아니면(`frozen`/`after_switch`)
    **Promote 를 쓰지 않는다**. `checks.deployPin.detail.atRisk` 에 되돌아갈 환경변수 이름이 적혀 있다.
+   - ⚠️ **`after_switch` 는 `phaseCorroborated` 와 함께 읽는다.** 그 값이 `false` 면 국면의 근거가
+     기준 지문 **하나뿐**이고, 그 지문은 3-4·§2 4번이 **평상시에 남겨 두어도 된다**고 한 값이다 —
+     즉 「복구 중」이 아니라 **구분되지 않은 상태**다(아래 3-12). 그래도 **Promote 는 쓰지 않는다**
+     (표지를 적지 않은 복구도 같은 모습이고, 그때 Promote 는 복구를 조용히 무효화한다).
+     그 상태에서 되돌려야 한다면 `git revert` 재배포를 쓴다 — 현재 env 가 그대로 유지된다.
    AutoPush(Windows 작업 스케줄러, 20분 주기)를 **먼저 멈춘다** — 멈추지 않으면 롤백은 최대 20분짜리다.
 1. 되돌릴 커밋을 고르고, **그 전체 해시를 `DEPLOY_PINNED_COMMIT` 에 넣는다**(4-11).
    `main` 이 회귀 커밋에 머물러 있는 동안은 롤백이 풀려도 아무 오류가 나지 않으므로, 이 고정이
@@ -2169,6 +2253,12 @@ node --input-type=module -e "import fs from 'node:fs';import {parseCoverageRecor
       비어도 대조는 그것을 말하지 않는다. 들어왔더라도 그 `ok` 는 **목록**에 대한 말이다(1-1)
 - [ ] 전환(§3 5단계) 리허설이라면 `RECOVERY_EXPECTED_DB` 를 넣고 재배포 후
       `checks.dbIdentity.detail.verdict` 가 `match` 인지 확인 — **재배포 없이는 반영되지 않는다**(§3-4)
+- [ ] 그 지문을 넣은 뒤 국면이 **구분되는지** 확인했다 — `checks.deployPin.detail.phase` 가
+      `after_switch` 이고 `phaseCorroborated` 가 `true` 다(§3-12). `false` 면 사건 표지를 하나도
+      적지 않은 것이고, 그 모습은 **평상시 연결 대상 고정과 글자 하나 다르지 않다**
+- [ ] 리허설을 마치며 지문의 **처분을 확정**했다(§3 8단계 4번·§3-12) — 지우거나, 남기기로 하고
+      6절 표 비고에 「지문 고정 유지」를 적었다. 확정하지 않으면 다음 사건에서 그 국면이 사건인지
+      평상시인지 아무도 말할 수 없다
 - [ ] 되살아난 세션의 유효 상한을 §3-8 명령으로 산출했다 — `verdict` 가 `ok` 이고 `latestExpiry` 를 적어 두었다
 - [ ] **해제 전에** 보안 상태를 재적용했다(§3 6-1단계) — 세션 폐기·비밀번호·토큰·잠금/권한 네 가지.
       리허설이라면 복구 브랜치에서 **세션 폐기까지는 실제로** 해 본다(그 뒤 다시 로그인되는지가 점검 대상이다)
