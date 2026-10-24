@@ -7,7 +7,7 @@ import {
   Bug, ShieldAlert, CalendarClock, Users, Bell, Search, LogOut, ChevronDown, Check, ClipboardCheck, CalendarDays,
   BarChart3, Activity, Settings, ShieldCheck, Command, User, GitBranch, Type, Circle, Menu, Camera,
   Share2, Server, Flame, ShoppingCart, MessageSquare, UserCheck, CalendarRange, Network, Gauge, ListChecks,
-  FileSearch,
+  FileSearch, Presentation,
 } from 'lucide-react';
 import { Logo } from './Logo';
 import { clearAppStorage } from '@/lib/appStorage';
@@ -56,6 +56,7 @@ const NAV = [
     { href: '/apps/quality', label: '제안 품질관리', icon: ClipboardCheck },
     { href: '/apps/strategy', label: '제안 전략도출', icon: GitBranch },
     { href: '/apps/performance', label: '고객 성과관리', icon: Gauge },
+    { href: '/apps/authoring', label: '제안 작성', icon: Presentation },
   ]},
   { group: '관리', items: [
     { href: '/admin', label: '사용자·권한', icon: ShieldCheck },

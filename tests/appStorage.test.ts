@@ -21,7 +21,7 @@ function keysUsed(html: string): string[] {
   return [...out];
 }
 
-for (const app of ['quality', 'strategy', 'performance']) {
+for (const app of ['quality', 'strategy', 'performance', 'authoring']) {
   test(`${app}: 사본이 쓰는 저장 키는 전부 삭제 대상에 포함`, () => {
     const html = fs.readFileSync(path.join(APPS, app, 'index.html'), 'utf8');
     const used = keysUsed(html);
@@ -32,7 +32,7 @@ for (const app of ['quality', 'strategy', 'performance']) {
 }
 
 test('목록의 정확 키는 실제로 어느 앱 사본에든 등장한다(죽은 항목 방지)', () => {
-  const all = ['quality', 'strategy', 'performance'].map((a) => fs.readFileSync(path.join(APPS, a, 'index.html'), 'utf8')).join('\n');
+  const all = ['quality', 'strategy', 'performance', 'authoring'].map((a) => fs.readFileSync(path.join(APPS, a, 'index.html'), 'utf8')).join('\n');
   const dead = Object.values(APP_STORAGE_KEYS).flat().filter((k) => !all.includes(k));
   assert.deepEqual(dead, []);
 });
