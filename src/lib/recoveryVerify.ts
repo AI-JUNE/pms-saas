@@ -33,6 +33,10 @@
  */
 
 import {
+  CAVEAT_SCOPE_NO_GATE, baselineScopeLine,
+  type BaselineScopeAssessment,
+} from './baselineScope.ts';
+import {
   bodyOutsideCaveats, classifyShortfalls,
   type ShrinkClassification, type ShrinkRow,
 } from './countSemantics.ts';
@@ -456,10 +460,23 @@ export interface RecoveryVerification {
   /** 다음에 할 일 한 줄. 스키마가 먼저다(스키마가 깨져 있으면 행 수는 의미가 없다) */
   action: string;
   caveat: string;
+  /**
+   * 위 `data` 판정이 **어느 배포의 기준치**를 읽었는가(§3-13). 호출부가 env 에서 판정해 넘긴다.
+   *
+   * 기준치는 한 벌이 아니다 — §2 월 점검은 **운영 스코프**에 넣고 §3 4단계는 **스테이징
+   * 스코프**에서 읽는다. `switchReady` 를 내리지는 않는다(어느 스코프에 두는 운용이 맞는지는
+   * 코드가 알 수 없다). 넘기지 않으면 null — 판정하지 않았다는 뜻이다.
+   */
+  baselineScope: BaselineScopeAssessment | null;
 }
 
-export function recoveryVerification(schema: SchemaVerification, data: DataVerification): RecoveryVerification {
+export function recoveryVerification(
+  schema: SchemaVerification,
+  data: DataVerification,
+  baselineScope?: BaselineScopeAssessment | null,
+): RecoveryVerification {
   const switchReady = schema.ok && data.ok;
+  const scope = baselineScope ?? null;
   return {
     schema,
     data,
@@ -467,7 +484,9 @@ export function recoveryVerification(schema: SchemaVerification, data: DataVerif
     action: switchReady
       ? ACTION_SWITCH_READY
       : (schema.action || data.action || ACTION_DATA_UNVERIFIED),
-    caveat: DATA_CAVEAT,
+    // 스코프 구분은 판정을 뒤집지 않는다 — 그 사실을 응답에 함께 적어 둔다(§3-13).
+    caveat: scope ? `${DATA_CAVEAT} ${CAVEAT_SCOPE_NO_GATE}.` : DATA_CAVEAT,
+    baselineScope: scope,
   };
 }
 
@@ -481,6 +500,8 @@ export function recoveryVerifyLogLine(v: RecoveryVerification): string {
     `switch_ready=${v.switchReady}`,
   ];
   parts.push(baselineAgeLine(v.data.age));
+  // 어느 배포의 기준치를 읽었는가 — 운영에서 뜬 응답과 스테이징에서 뜬 응답을 로그에서 구분한다(§3-13)
+  if (v.baselineScope) parts.push(baselineScopeLine(v.baselineScope));
   if (v.data.uncovered.length) parts.push(`uncovered=${v.data.uncovered.join('|')}`);
   if (v.data.shortfalls.length) parts.push(`short=${v.data.shortfalls.map((s) => s.table).join('|')}`);
   // 설명되지 않는 감소분은 테이블 이름만 따로 적는다 — 로그에서 「확인 필요」와 섞이지 않게(§3-11).

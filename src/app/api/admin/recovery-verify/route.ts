@@ -7,6 +7,7 @@ import { compareIdentity, gateSwitchReady, identityFromEnv, identityLogLine } fr
 import { handle, ok, ApiError, ERROR } from '@/lib/http';
 import { MIGRATION_DDL, expectedTables } from '@/lib/migrate';
 import { PRESENT_TABLES_SQL, normalizeTableNames, rowsOf, tableNamesFrom, verifySchema } from '@/lib/schemaVerify';
+import { baselineScopeFromEnv, baselineScopeLine } from '@/lib/baselineScope';
 import { baselineMaxAgeDays } from '@/lib/recoveryBaseline';
 import {
   CORE_TABLES, baselineFromEnv, coreCountSql, countsFrom,
@@ -64,9 +65,18 @@ export async function GET(req: Request) {
     // 기준 지문과 불일치일 때만 switchReady 를 내린다(미설정은 기존 판정을 끌어내리지 않는다).
     const identity = identityFromEnv();
     const idDecision = compareIdentity({ identity, expected: process.env.RECOVERY_EXPECTED_DB });
-    const result = gateSwitchReady(recoveryVerification(schema, data), identity, idDecision);
+    // 기준치가 **어느 배포의 벌인가**(RUNBOOK §3-13). §2 월 점검은 운영 스코프에 넣고 §3 4단계는
+    // 스테이징 스코프에서 읽으므로 두 벌이 존재하는데, 두 응답은 그대로 두면 글자 하나 다르지 않다.
+    // switchReady 는 내리지 않는다 — 어느 스코프에 두는 운용이 맞는지는 코드가 알 수 없다.
+    const baselineScope = baselineScopeFromEnv(process.env, data.age.status);
+    const result = gateSwitchReady(
+      recoveryVerification(schema, data, baselineScope), identity, idDecision,
+    );
 
-    console.log('[recovery-verify]', recoveryVerifyLogLine(result), identityLogLine(idDecision));
+    console.log(
+      '[recovery-verify]', recoveryVerifyLogLine(result), identityLogLine(idDecision),
+      baselineScopeLine(baselineScope),
+    );
     // 열람 이력 — 조직 컨텍스트가 없는 슈퍼관리자 작업이므로 보안 이벤트로 남긴다(수치·판정만).
     await auditSecurity(adminAccessEvent(new URL(req.url).pathname, req.method), {
       userId: u.id,
@@ -78,6 +88,8 @@ export async function GET(req: Request) {
         switchReady: result.switchReady,
         rows: data.totalRows,
         baselineAge: data.age.status,
+        // 어느 배포의 기준치로 판정했는가 — 스코프 이름·판정만(스냅샷 값은 담지 않는다)
+        baselineScope: baselineScope.verdict,
         // 어느 DB 를 세었는지 — 지문·판정만(연결 문자열·자격증명은 담지 않는다)
         dbIdentity: idDecision.verdict,
         dbFingerprint: idDecision.actual.fingerprint,
