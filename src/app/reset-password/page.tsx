@@ -62,7 +62,7 @@ export default function ResetPasswordPage() {
           <div role="status" className="card" style={{ padding: 14, fontSize: 13.5, lineHeight: 1.6 }}>
             <div style={{ fontWeight: 700, marginBottom: 6 }}>{done.message}</div>
             {done.delivery && done.delivery !== 'sent' && (
-              <div className="muted" style={{ fontSize: 12.5, color: '#be5535' }}>
+              <div className="muted" style={{ fontSize: 12.5, color: '#2457C5' }}>
                 현재 이 서비스에는 메일 발송이 연동되어 있지 않아 안내 메일이 실제로 전송되지 않습니다. 조직 관리자에게 「사용자·권한」 화면의 비밀번호 초기화를 요청해 주세요.
               </div>
             )}

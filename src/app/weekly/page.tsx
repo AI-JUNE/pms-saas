@@ -118,7 +118,7 @@ export default function Page() {
             note={`${md(mon)} ~ ${md(sun)} · 누적 ${nfmt(doneAll.length)}건`}
             empty="이번 주 마감·완료된 업무가 없습니다. (누적 완료는 상단 KPI 참조)"
             render={(r: any) => (<><span className="mono" style={{ fontSize: 11.5, color: 'var(--text-3)', minWidth: 66 }}>{r.code}</span><span style={{ flex: 1, fontSize: 13 }}>{r.name}</span><span className="muted" style={{ fontSize: 11 }}>{r.endDate || ''}</span><span className="muted" style={{ fontSize: 11.5 }}>{r.assignee || ''}</span></>)} />
-          <Block icon={Clock} title="진행중" color="#be5535" items={doing} empty="진행중인 업무가 없습니다."
+          <Block icon={Clock} title="진행중" color="#2457C5" items={doing} empty="진행중인 업무가 없습니다."
             render={(r: any) => (<><span className="mono" style={{ fontSize: 11.5, color: 'var(--text-3)', minWidth: 66 }}>{r.code}</span><span style={{ flex: 1, fontSize: 13 }}>{r.name}</span><span style={{ fontSize: 11.5, fontWeight: 700 }}>{r.progress || 0}%</span><span className="muted" style={{ fontSize: 11 }}>{r.endDate || ''}</span></>)} />
           <Block icon={CalendarRange} title="다음 주 예정" color="#0e9bb8" items={nextWeek}
             note={`${md(nMon)} ~ ${md(nSun)}`}

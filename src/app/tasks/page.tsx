@@ -35,7 +35,7 @@ export default function Page() {
       { key: 'board', label: '보드', render: (rows, openDetail) => (
         <Kanban rows={rows} openDetail={openDetail} titleKey="name" columns={[
           { key: 'todo', label: '할 일', color: '#94a3b8' },
-          { key: 'doing', label: '진행중', color: '#be5535' },
+          { key: 'doing', label: '진행중', color: '#2457C5' },
           { key: 'done', label: '완료', color: '#15a34a' },
         ]} />
       )},
@@ -91,7 +91,7 @@ export default function Page() {
         if (st === 'done' && pg < 100) { warn = '진척 미갱신'; wc = '#c0414f'; wt = `완료 상태인데 진척률이 ${pg}%입니다 — EVM(EV)·진척 평균이 실제보다 낮게 계산됩니다`; }
         else if (pg >= 100 && st !== 'done') { warn = '완료 처리 필요'; wt = '진척률 100%인데 상태가 완료가 아닙니다 — 완료 건수·주간보고 집계에서 빠집니다'; }
         else if (st === 'doing' && pg === 0) { warn = '미착수'; wt = '진행중으로 표시했지만 진척률이 0%입니다 — 실제 착수 여부를 확인하세요'; }
-        const col = st === 'done' ? '#2f8f5b' : pg >= 50 ? '#be5535' : '#94a3b8';
+        const col = st === 'done' ? '#2f8f5b' : pg >= 50 ? '#2457C5' : '#94a3b8';
         return <div className="row" style={{ gap: 8, whiteSpace: 'nowrap', cursor: 'help' }} title={wt}>
           <div className="bar"><i style={{ width: `${pg}%`, background: col }} /></div>
           <span className="muted" style={{ fontSize: 11.5, fontVariantNumeric: 'tabular-nums' }}>{pg}%</span>

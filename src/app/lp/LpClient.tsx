@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import Link from 'next/link';
 
 const css = `
-.lp{--lp-max:1160px;color:var(--text-1);background:var(--bg);overflow-x:hidden;--sh-sm:0 1px 2px rgba(120,62,30,.05),0 4px 14px rgba(120,62,30,.07);--sh:0 5px 18px rgba(120,62,30,.09);--sh-md:0 12px 34px rgba(120,62,30,.12);--sh-lg:0 26px 60px rgba(120,62,30,.18);--brand:#d95d31;--brand-600:#c2542f;--brand-700:#a8472b;--brand-50:#fdece4;--brand-100:#f6d4c6}
+.lp{--lp-max:1160px;color:var(--text-1);background:var(--bg);overflow-x:hidden;--sh-sm:0 1px 2px rgba(25,31,40,.05),0 4px 14px rgba(25,31,40,.07);--sh:0 5px 18px rgba(25,31,40,.09);--sh-md:0 12px 34px rgba(25,31,40,.12);--sh-lg:0 26px 60px rgba(25,31,40,.18);--brand:#2457C5;--brand-600:#1E4BB0;--brand-700:#1A3F94;--brand-50:#EEF3FD;--brand-100:#D3E0F8}
 .lp *{box-sizing:border-box}
 .lp .wrap{max-width:var(--lp-max);margin:0 auto;padding:0 24px}
 .lp .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:800;letter-spacing:.01em;color:var(--brand-600);background:var(--brand-50);border:1px solid var(--brand-100);padding:7px 15px;border-radius:999px}
@@ -12,7 +12,7 @@ const css = `
 .lp .sec-tag{font-size:11.5px;font-weight:850;letter-spacing:.16em;color:var(--brand-600);text-transform:uppercase}
 .lp h2{font-size:clamp(28px,4vw,45px);font-weight:850;letter-spacing:-.045em;line-height:1.12;margin:14px 0 0}
 .lp .lead{color:var(--text-2);font-size:clamp(14.5px,1.5vw,16.5px);line-height:1.72;margin:16px 0 0;max-width:640px}
-.lp .hl{background:linear-gradient(120deg,#d95d31,#f0a069);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.lp .hl{background:linear-gradient(120deg,#2457C5,#6C93E8);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 
 /* reveal + motion : visible by default; hidden only once JS marks .lp.anim */
 [data-reveal]{transition:opacity .7s cubic-bezier(.2,.7,.2,1),transform .7s cubic-bezier(.2,.7,.2,1)}
@@ -22,10 +22,10 @@ const css = `
 /* nav */
 /* 스티키 네비(높이 66px) 아래로 앵커 대상 섹션(#why·#features·#flow·#faq)이 파묻히지 않도록 스크롤 오프셋 확보 */
 .lp section[id]{scroll-margin-top:78px}
-.lp-nav{position:sticky;top:0;z-index:50;background:rgba(247,245,242,.82);backdrop-filter:saturate(1.5) blur(12px);border-bottom:1px solid var(--border)}
+.lp-nav{position:sticky;top:0;z-index:50;background:rgba(247,248,250,.82);backdrop-filter:saturate(1.5) blur(12px);border-bottom:1px solid var(--border)}
 .lp-nav .wrap{display:flex;align-items:center;height:66px;gap:16px}
 .lp-brand{display:flex;align-items:center;gap:11px}
-.lp-mark{width:38px;height:38px;border-radius:11px;background:linear-gradient(140deg,#d95d31,#f0a069);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(217,93,49,.32)}
+.lp-mark{width:38px;height:38px;border-radius:11px;background:linear-gradient(140deg,#2457C5,#6C93E8);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(36,87,197,.32)}
 .lp-brand b{font-weight:880;font-size:20px;letter-spacing:-.04em;display:block;line-height:1}
 .lp-brand span{display:block;font-size:9px;letter-spacing:.14em;color:var(--text-3);font-weight:800;text-transform:uppercase;margin-top:3px}
 .lp-nav .navlinks{display:flex;gap:2px;margin-left:20px}
@@ -33,8 +33,8 @@ const css = `
 .lp-nav .navlinks a:hover{background:var(--surface-3);color:var(--text-1)}
 .lp-nav .spacer{flex:1}
 .lp-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:800;font-size:14px;padding:11px 19px;border-radius:12px;transition:.16s;border:1px solid transparent;white-space:nowrap}
-.lp-btn.pri{background:linear-gradient(135deg,#f0a069,#d95d31);color:#fff;box-shadow:0 10px 22px rgba(217,93,49,.32),inset 0 1px 0 rgba(255,255,255,.28)}
-.lp-btn.pri:hover{background:linear-gradient(135deg,#e0824c,#a8472b);transform:translateY(-2px);box-shadow:0 14px 30px rgba(217,93,49,.42)}
+.lp-btn.pri{background:linear-gradient(135deg,#6C93E8,#2457C5);color:#fff;box-shadow:0 10px 22px rgba(36,87,197,.32),inset 0 1px 0 rgba(255,255,255,.28)}
+.lp-btn.pri:hover{background:linear-gradient(135deg,#4F7FE3,#1A3F94);transform:translateY(-2px);box-shadow:0 14px 30px rgba(36,87,197,.42)}
 .lp-btn.ghost{background:#fff;color:var(--text-1);border-color:var(--border-strong);box-shadow:var(--sh-sm)}
 .lp-btn.ghost:hover{background:var(--surface-2);border-color:var(--border-2);transform:translateY(-1px)}
 .lp-btn.lg{padding:14px 27px;font-size:15px;border-radius:14px}
@@ -43,10 +43,10 @@ const css = `
 /* hero */
 .lp-hero{padding:94px 0 52px;text-align:center;position:relative}
 .lp-hero::before{content:'';position:absolute;left:50%;top:-160px;transform:translateX(-50%);width:1200px;height:620px;background:
-  radial-gradient(closest-side at 50% 30%,rgba(230,145,95,.22),rgba(230,145,95,.08) 55%,transparent 72%);
+  radial-gradient(closest-side at 50% 30%,rgba(79,127,227,.22),rgba(79,127,227,.08) 55%,transparent 72%);
   pointer-events:none;animation:lp-float 16s ease-in-out infinite alternate;z-index:0}
 @keyframes lp-float{0%{transform:translate3d(0,0,0) scale(1)}100%{transform:translate3d(0,16px,0) scale(1.05)}}
-.lp-hero::after{content:'';position:absolute;inset:0;z-index:0;background-image:radial-gradient(rgba(217,93,49,.07) 1px,transparent 1.4px);background-size:26px 26px;-webkit-mask:radial-gradient(700px 400px at 50% 6%,#000,transparent 74%);mask:radial-gradient(700px 400px at 50% 6%,#000,transparent 74%);pointer-events:none}
+.lp-hero::after{content:'';position:absolute;inset:0;z-index:0;background-image:radial-gradient(rgba(36,87,197,.07) 1px,transparent 1.4px);background-size:26px 26px;-webkit-mask:radial-gradient(700px 400px at 50% 6%,#000,transparent 74%);mask:radial-gradient(700px 400px at 50% 6%,#000,transparent 74%);pointer-events:none}
 .lp-hero .wrap{position:relative;z-index:1}
 .lp-hero h1{font-size:clamp(36px,5.4vw,60px);font-weight:800;letter-spacing:-.035em;line-height:1.12;margin:24px auto 0;max-width:860px}
 .lp-hero .lead{margin:22px auto 0;text-align:center}
@@ -58,8 +58,8 @@ const css = `
 
 /* hero product shot */
 .lp-shot{margin:52px auto 0;max-width:1000px;position:relative}
-.lp-shot::after{content:'';position:absolute;left:6%;right:6%;bottom:-26px;height:60px;background:radial-gradient(60% 100% at 50% 0,rgba(138,58,35,.22),transparent 70%);filter:blur(6px);z-index:-1}
-.lp-fc{position:absolute;z-index:3;background:#fff;border:1px solid var(--border);border-radius:14px;padding:11px 15px;box-shadow:0 18px 44px rgba(120,62,30,.2);display:flex;align-items:center;gap:10px}
+.lp-shot::after{content:'';position:absolute;left:6%;right:6%;bottom:-26px;height:60px;background:radial-gradient(60% 100% at 50% 0,rgba(21,48,111,.22),transparent 70%);filter:blur(6px);z-index:-1}
+.lp-fc{position:absolute;z-index:3;background:#fff;border:1px solid var(--border);border-radius:14px;padding:11px 15px;box-shadow:0 18px 44px rgba(25,31,40,.2);display:flex;align-items:center;gap:10px}
 .lp-fc i{width:9px;height:9px;border-radius:50%;flex-shrink:0;display:block}
 .lp-fc b{font-size:13.5px;font-weight:850;letter-spacing:-.02em;display:block;line-height:1.2}
 .lp-fc span{font-size:10px;color:var(--text-3);font-weight:700}
@@ -78,14 +78,14 @@ const css = `
 /* bands */
 .lp-band{padding:92px 0}
 .lp-band.tint{background:linear-gradient(180deg,var(--surface-2),var(--bg) 60%)}
-.lp-band.grad{background:linear-gradient(150deg,#fbe7dc 0%,#faf1e9 45%,var(--bg) 100%)}
+.lp-band.grad{background:linear-gradient(150deg,#E3EBFB 0%,#F4F7FC 45%,var(--bg) 100%)}
 .lp-center{text-align:center;max-width:720px;margin:0 auto}
 .lp-center .lead{margin-left:auto;margin-right:auto}
 
 /* cards */
 .lp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:50px}
 .lp-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:24px;box-shadow:var(--sh-sm);transition:transform .18s,box-shadow .18s,border-color .18s}
-.lp-card:hover{transform:translateY(-5px);box-shadow:0 18px 42px rgba(217,93,49,.15);border-color:var(--brand-100)}
+.lp-card:hover{transform:translateY(-5px);box-shadow:0 18px 42px rgba(36,87,197,.15);border-color:var(--brand-100)}
 .lp-card .ic{width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:23px;background:linear-gradient(145deg,var(--brand-50),#fff);border:1px solid var(--brand-100);margin-bottom:15px;box-shadow:var(--sh-sm)}
 .lp-card h3{font-size:17px;font-weight:820;letter-spacing:-.025em;margin:0}
 .lp-card p{color:var(--text-2);font-size:13.5px;line-height:1.68;margin:9px 0 0}
@@ -113,7 +113,7 @@ const css = `
 
 /* avatars */
 .lp-av{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;flex-shrink:0}
-.lp-av.a1{background:linear-gradient(140deg,#d95d31,#f0a069)}.lp-av.a2{background:linear-gradient(140deg,#7c4dff,#a98bff)}
+.lp-av.a1{background:linear-gradient(140deg,#2457C5,#6C93E8)}.lp-av.a2{background:linear-gradient(140deg,#7c4dff,#a98bff)}
 .lp-av.a3{background:linear-gradient(140deg,#0e9bb8,#4bc6dd)}.lp-av.a4{background:linear-gradient(140deg,#15a34a,#54c47d)}
 
 /* dashboard mock */
@@ -128,7 +128,7 @@ const css = `
 .dash .lp-panel .pt{font-size:11px;font-weight:800;color:var(--text-2);letter-spacing:.01em;display:flex;justify-content:space-between;align-items:center}
 .dash .lp-panel .pt em{font-size:9.5px;color:var(--text-3);font-style:normal;font-weight:700}
 .dash .bars{display:flex;align-items:flex-end;gap:7px;height:70px;margin-top:12px}
-.dash .bars .cb{flex:1;border-radius:5px 5px 0 0;background:linear-gradient(180deg,#f0a069,#d95d31);transform:scaleY(1);transform-origin:bottom;transition:transform .8s cubic-bezier(.2,.7,.2,1)}
+.dash .bars .cb{flex:1;border-radius:5px 5px 0 0;background:linear-gradient(180deg,#6C93E8,#2457C5);transform:scaleY(1);transform-origin:bottom;transition:transform .8s cubic-bezier(.2,.7,.2,1)}
 .lp.anim .visual:not(.rvl) .dash .bars .cb{transform:scaleY(0)}
 .dash .mrow{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:11px}
 .dash .mrow:first-of-type{margin-top:12px}
@@ -145,7 +145,7 @@ const css = `
 .lp-gantt .gr{display:flex;align-items:center;gap:10px;margin-top:11px;position:relative}
 .lp-gantt .gr .lbl{width:100px;font-size:11.5px;font-weight:700;color:var(--text-2);flex-shrink:0;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lp-gantt .gr .track{flex:1;height:22px;background:var(--surface-3);border-radius:7px;position:relative}
-.lp-gantt .gr .bar2{position:absolute;top:0;height:22px;border-radius:7px;background:linear-gradient(90deg,#d95d31,#f0a069);transform:scaleX(1);transform-origin:left;transition:transform .9s cubic-bezier(.2,.7,.2,1);display:flex;align-items:center;padding:0 7px;gap:5px}
+.lp-gantt .gr .bar2{position:absolute;top:0;height:22px;border-radius:7px;background:linear-gradient(90deg,#2457C5,#6C93E8);transform:scaleX(1);transform-origin:left;transition:transform .9s cubic-bezier(.2,.7,.2,1);display:flex;align-items:center;padding:0 7px;gap:5px}
 .lp.anim .visual:not(.rvl) .lp-gantt .gr .bar2{transform:scaleX(0)}
 .lp-gantt .gr .bar2.b2{background:linear-gradient(90deg,#7c4dff,#a98bff)}
 .lp-gantt .gr .bar2.b3{background:linear-gradient(90deg,#0e9bb8,#4bc6dd)}
@@ -158,7 +158,7 @@ const css = `
 .lp-flow{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:46px}
 .flow-step{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:26px;box-shadow:var(--sh-sm);position:relative;overflow:hidden}
 .flow-step::after{content:attr(data-big);position:absolute;right:14px;bottom:-16px;font-size:78px;font-weight:900;color:var(--brand-50);letter-spacing:-.05em;line-height:1;pointer-events:none}
-.flow-step .no{position:relative;font-size:13px;font-weight:900;color:#fff;background:linear-gradient(140deg,#d95d31,#f0a069);width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 14px rgba(217,93,49,.28)}
+.flow-step .no{position:relative;font-size:13px;font-weight:900;color:#fff;background:linear-gradient(140deg,#2457C5,#6C93E8);width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 14px rgba(36,87,197,.28)}
 .flow-step h3{position:relative;font-size:18px;font-weight:840;margin:16px 0 0;letter-spacing:-.025em}
 .flow-step p{position:relative;color:var(--text-2);font-size:13.5px;line-height:1.62;margin:9px 0 0}
 @media(max-width:820px){.lp-flow{grid-template-columns:1fr}}
@@ -166,7 +166,7 @@ const css = `
 /* stats */
 .lp-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:46px}
 .stat{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:26px 20px;text-align:center;box-shadow:var(--sh-sm)}
-.stat .n{font-size:clamp(30px,4.2vw,44px);font-weight:900;letter-spacing:-.045em;font-variant-numeric:tabular-nums;background:linear-gradient(120deg,#d95d31,#f0a069);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1}
+.stat .n{font-size:clamp(30px,4.2vw,44px);font-weight:900;letter-spacing:-.045em;font-variant-numeric:tabular-nums;background:linear-gradient(120deg,#2457C5,#6C93E8);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1}
 .stat .l{font-size:13px;font-weight:780;color:var(--text-1);margin-top:12px}
 .stat .s{font-size:11px;color:var(--text-3);margin-top:5px;font-weight:650}
 .lp-note{text-align:center;font-size:11.5px;color:var(--text-3);margin-top:18px;font-weight:600}
@@ -175,7 +175,7 @@ const css = `
 /* voices */
 .lp-tg{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:46px}
 .tcard{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:24px;box-shadow:var(--sh-sm);display:flex;flex-direction:column}
-.tcard .stars{color:#f0a069;font-size:13px;letter-spacing:2px}
+.tcard .stars{color:#6C93E8;font-size:13px;letter-spacing:2px}
 .tcard .q{font-size:14px;line-height:1.7;color:var(--text-1);font-weight:600;margin:14px 0 18px;flex:1}
 .tcard .who{display:flex;align-items:center;gap:10px}
 .tcard .who .lp-av{width:34px;height:34px;font-size:12px}
@@ -204,7 +204,7 @@ const css = `
 
 /* final cta */
 .lp-final{margin:90px auto;max-width:var(--lp-max)}
-.lp-final .box{margin:0 24px;background:linear-gradient(135deg,#d95d31 0%,#a8472b 55%,#8a3a23 100%);border-radius:26px;padding:66px 32px;text-align:center;color:#fff;box-shadow:0 30px 70px rgba(138,58,35,.36);position:relative;overflow:hidden}
+.lp-final .box{margin:0 24px;background:linear-gradient(135deg,#2457C5 0%,#1A3F94 55%,#15306F 100%);border-radius:26px;padding:66px 32px;text-align:center;color:#fff;box-shadow:0 30px 70px rgba(21,48,111,.36);position:relative;overflow:hidden}
 .lp-final .box::before{content:'';position:absolute;inset:0;background:radial-gradient(460px 220px at 78% -10%,rgba(255,255,255,.2),transparent 66%)}
 .lp-final .box::after{content:'';position:absolute;left:-40px;bottom:-60px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.12),transparent 70%)}
 .lp-final h2{color:#fff;position:relative;font-size:clamp(27px,4vw,42px)}
@@ -285,7 +285,7 @@ const GanttMock = () => (
 const channels = ['프로젝트·단계', '요구사항·RTM', '업무·WBS', '이슈·리스크', '산출물·결재', '테스트·품질'];
 
 /**
- * 포털이 담는 다섯 서비스. 2026-09-29
+ * 포털이 담는 여섯 서비스. 2026-09-29 (10-24 제안 작성 추가)
  *
  * 문구는 **기능 서술만** 쓴다. 성과·정확도 수치를 넣지 않는다 —
  * 제안 4종은 아직 출력 품질을 실측하지 않았다(3002 배점표만 측정됨).
@@ -427,7 +427,7 @@ export default function LpClient() {
             제안부터 정산까지,<br /><span className="hl">하나의 화면</span>에서 관리합니다
           </h1>
           <p className="lead" data-reveal style={{ transitionDelay: '.1s' }}>
-            RFP 분석·제안 품질·수주 전략·프로젝트 수행·고객 성과까지 다섯 서비스를 한 포털에 담았습니다.
+            RFP 분석·제안 작성·제안 품질·수주 전략·프로젝트 수행·고객 성과까지 여섯 서비스를 한 포털에 담았습니다.
             일정이 밀려도, 요구사항이 바뀌어도 놓치지 않습니다. 계획과 실적의 차이를 성과지표로 먼저 보여줍니다.
           </p>
           <div className="lp-cta" data-reveal style={{ transitionDelay: '.15s' }}>
@@ -442,7 +442,7 @@ export default function LpClient() {
           </div>
           <div className="lp-shot visual" data-reveal style={{ transitionDelay: '.25s' }}>
             <div className="lp-fc lp-fc1"><i style={{ background: '#15a34a' }} /><div><b>SPI 1.04</b><span>일정 정상</span></div></div>
-            <div className="lp-fc lp-fc2"><i style={{ background: '#d95d31' }} /><div><b>결재 대기 3건</b><span>내 승인 필요</span></div></div>
+            <div className="lp-fc lp-fc2"><i style={{ background: '#2457C5' }} /><div><b>결재 대기 3건</b><span>내 승인 필요</span></div></div>
             <DashMock />
           </div>
         </div>
@@ -458,7 +458,7 @@ export default function LpClient() {
         <div className="wrap">
           <div className="lp-center" data-reveal>
             <span className="sec-tag">Suite</span>
-            <h2>제안부터 수행까지,<br /><span className="hl">다섯 서비스를 한 포털에서</span></h2>
+            <h2>제안부터 수행까지,<br /><span className="hl">여섯 서비스를 한 포털에서</span></h2>
             <p className="lead">
               RFP를 읽는 순간부터 프로젝트가 끝나고 고객 성과를 확인할 때까지.
               같은 로그인, 같은 화면 안에서 이어집니다.

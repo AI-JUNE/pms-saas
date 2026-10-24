@@ -17,7 +17,7 @@ export default function Page() {
       { key: 'board', label: '보드', render: (rows, openDetail) => (
         <Kanban rows={rows} openDetail={openDetail} titleKey="title" columns={[
           { key: 'todo', label: '할 일', color: '#94a3b8' },
-          { key: 'doing', label: '진행중', color: '#d95d31' },
+          { key: 'doing', label: '진행중', color: '#2457C5' },
           { key: 'done', label: '완료', color: '#2f8f5b' },
         ]} />
       )},
@@ -31,7 +31,7 @@ export default function Page() {
         const tip = `메모 ${ls.length}줄\n${ls.slice(0,8).map((s,i)=>`${i+1}. ${s}`).join('\n')}${ls.length>8?`\n… 외 ${ls.length-8}줄`:''}`;
         return (
           <span title={tip} style={{display:'inline-flex',alignItems:'center',gap:6,cursor:'help',maxWidth:260}}>
-            <span style={{display:'inline-block',padding:'1px 6px',borderRadius:4,fontSize:11,fontWeight:700,color:'var(--brand)',background:'rgba(190,85,53,.10)',whiteSpace:'nowrap'}}>{ls.length}줄</span>
+            <span style={{display:'inline-block',padding:'1px 6px',borderRadius:4,fontSize:11,fontWeight:700,color:'var(--brand)',background:'rgba(36,87,197,.10)',whiteSpace:'nowrap'}}>{ls.length}줄</span>
             <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:'#6b6b6b',fontSize:12}}>{ls[0]}</span>
           </span>
         );

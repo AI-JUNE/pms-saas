@@ -55,7 +55,7 @@ export default function Page() {
         const preview = items.slice(0, 3).join(' · ');
         const tip = `항목 ${nfmt(items.length)}개\n${items.map((s, i) => `${i + 1}. ${s}`).join('\n')}`;
         return <span title={tip} style={{display:'inline-flex',alignItems:'center',gap:6,maxWidth:280}}>
-          <b style={{fontSize:11.5,color:'var(--brand)',background:'rgba(190,85,53,.08)',borderRadius:99,padding:'1px 7px',whiteSpace:'nowrap'}}>{nfmt(items.length)}개</b>
+          <b style={{fontSize:11.5,color:'var(--brand)',background:'rgba(36,87,197,.08)',borderRadius:99,padding:'1px 7px',whiteSpace:'nowrap'}}>{nfmt(items.length)}개</b>
           <span className="muted" style={{fontSize:11.5,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{preview}{items.length > 3 ? ` 외 ${nfmt(items.length - 3)}` : ''}</span>
         </span>;
       }},

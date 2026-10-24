@@ -36,7 +36,7 @@ export default function Page() {
     if (!anyLink) { cov = '미연계'; col = '#94a3b8'; Icon = CircleDashed; bucket = 'unlinked'; }
     else if (openIss.length > 0 || testFail) { cov = testFail ? '테스트 실패' : '이슈 있음'; col = '#c0414f'; Icon = AlertTriangle; bucket = 'problem'; }
     else if ((lt.length === 0 || lt.every((t) => t.status === 'done')) && (ltest.length === 0 || ltest.every((t) => t.result === 'pass'))) { cov = '충족'; col = '#2f8f5b'; Icon = CheckCircle2; bucket = 'covered'; }
-    else { cov = '진행중'; col = '#be5535'; Icon = CircleDashed; bucket = 'progress'; }
+    else { cov = '진행중'; col = '#2457C5'; Icon = CircleDashed; bucket = 'progress'; }
     return { rq, lt, li, ltest, cov, col, Icon, bucket };
   });
   const covered = rows.filter((r) => r.bucket === 'covered').length;
@@ -52,7 +52,7 @@ export default function Page() {
   const CHIPS: { key: 'all' | 'covered' | 'progress' | 'problem' | 'unlinked'; label: string; n: number; color: string; tip: string }[] = [
     { key: 'all', label: '전체', n: rows.length, color: 'var(--text-2)', tip: '모든 요구사항 표시' },
     { key: 'covered', label: '충족', n: dist.covered, color: '#2f8f5b', tip: '연계 업무·테스트가 모두 완료/통과되고 미해결 이슈가 없는 요구사항' },
-    { key: 'progress', label: '진행중', n: dist.progress, color: '#be5535', tip: '연계는 있으나 아직 완료·통과되지 않은 요구사항' },
+    { key: 'progress', label: '진행중', n: dist.progress, color: '#2457C5', tip: '연계는 있으나 아직 완료·통과되지 않은 요구사항' },
     { key: 'problem', label: '이슈·실패', n: dist.problem, color: '#c0414f', tip: '미해결 이슈가 있거나 연계 테스트가 실패한 요구사항 — 즉시 대응 대상' },
     { key: 'unlinked', label: '미연계', n: dist.unlinked, color: '#94a3b8', tip: '연계된 업무·이슈·테스트가 하나도 없는 요구사항 — 추적 사각지대' },
   ];

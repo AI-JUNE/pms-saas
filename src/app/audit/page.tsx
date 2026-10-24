@@ -127,12 +127,12 @@ export default function Page() {
         <div className="sp" />
         <span className="sr-only" role="status">{!loaded ? '감사 로그 목록을 불러오는 중' : `감사 로그 ${nfmt(rows.length)}건 표시${filtered ? ' (검색 조건 적용)' : ''}`}</span>
         {loaded && todayCount > 0 && <span className="muted" style={{ marginRight: 4 }} title={`오늘 발생한 이력 ${nfmt(todayCount)}건입니다.`}>오늘 <b style={{ color: 'var(--brand)' }}>{nfmt(todayCount)}</b>건</span>}
-        <span className="muted" title={capture?.verdict === 'truncated' ? `표시한 ${nfmt(rows.length)}건 뒤에 더 오래된 기록이 남아 있습니다(1회 200건씩 이어 받습니다).` : `${filtered ? '검색 조건에 맞는 ' : ''}${nfmt(rows.length)}건을 모두 표시했습니다.`}>{nfmt(rows.length)}건{capture?.verdict === 'truncated' && <span style={{ color: '#be5535' }}>+</span>}</span>
+        <span className="muted" title={capture?.verdict === 'truncated' ? `표시한 ${nfmt(rows.length)}건 뒤에 더 오래된 기록이 남아 있습니다(1회 200건씩 이어 받습니다).` : `${filtered ? '검색 조건에 맞는 ' : ''}${nfmt(rows.length)}건을 모두 표시했습니다.`}>{nfmt(rows.length)}건{capture?.verdict === 'truncated' && <span style={{ color: '#2457C5' }}>+</span>}</span>
       </form>
-      {problems.length > 0 && <div className="muted" role="alert" style={{ fontSize: 12.5, color: '#be5535', marginBottom: 8 }}>{problems.join(' · ')}</div>}
+      {problems.length > 0 && <div className="muted" role="alert" style={{ fontSize: 12.5, color: '#2457C5', marginBottom: 8 }}>{problems.join(' · ')}</div>}
       {loaded && capture?.verdict === 'truncated' && (
-        <div className="card" role="alert" style={{ padding: '10px 12px', marginBottom: 8, borderColor: '#be5535', fontSize: 12.5, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <b style={{ color: '#be5535' }}>결과가 잘렸습니다</b>
+        <div className="card" role="alert" style={{ padding: '10px 12px', marginBottom: 8, borderColor: '#2457C5', fontSize: 12.5, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <b style={{ color: '#2457C5' }}>결과가 잘렸습니다</b>
           <span className="muted">{capture.action}</span>
           <div className="sp" />
           {capture.nextCursor != null && (

@@ -100,7 +100,7 @@ export default function Page() {
           : `허용 포트 ${nfmt(portWidth(p))}개${proto?` · ${proto}`:''}`;
         return <span className="row" style={{gap:6,whiteSpace:'nowrap'}} title={tip}>
           <span style={{color:col,fontWeight:col?700:undefined,fontFamily:'ui-monospace,monospace',fontSize:11.5,cursor:'help'}}>{p}{any?' ⚠':''}</span>
-          {proto && <span style={{fontSize:10.5,padding:'1px 5px',borderRadius:4,background:'rgba(190,85,53,.10)',color:'var(--brand)',fontWeight:600}}>{proto}</span>}
+          {proto && <span style={{fontSize:10.5,padding:'1px 5px',borderRadius:4,background:'rgba(36,87,197,.10)',color:'var(--brand)',fontWeight:600}}>{proto}</span>}
         </span>;
       }},
       // 사유·승인자: 승인 이후인데 증빙이 비면 경고(보안심사·감리 지적 대상)

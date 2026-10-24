@@ -34,7 +34,7 @@ export default function Page() {
       </div>
 
       <div className="kpis" style={{ marginBottom: 16 }}>
-        <div className="kpi k0"><div className="kpi-ic" style={{ background: 'rgba(190,85,53,.12)' }}><Users style={{ width: 18, color: 'var(--brand)' }} /></div>
+        <div className="kpi k0"><div className="kpi-ic" style={{ background: 'rgba(36,87,197,.12)' }}><Users style={{ width: 18, color: 'var(--brand)' }} /></div>
           <div className="kpi-label">집계 인원</div><div className="kpi-value">{rows ? nfmt(summary.total) : '–'}</div><div className="kpi-sub">배정 이력이 있는 담당자</div></div>
         <div className="kpi k3" title="부하(진행 업무+미결 이슈)가 최다 담당자의 70% 이상인 인원"><div className="kpi-ic" style={{ background: 'rgba(192,65,79,.12)' }}><Flame style={{ width: 18, color: '#c0414f' }} /></div>
           <div className="kpi-label">과부하</div><div className="kpi-value">{rows ? nfmt(summary.over) : '–'}</div><div className="kpi-sub">최다 대비 70%↑ 부하</div></div>

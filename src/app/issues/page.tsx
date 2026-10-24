@@ -59,7 +59,7 @@ const descCell = (_v: any, row: any) => {
   const tip = ls.slice(0, 8).map((l, i) => `${i + 1}. ${l}`).join('\n') + (ls.length > 8 ? `\n… 외 ${ls.length - 8}줄` : '');
   return (
     <div className="row" title={tip} style={{ gap: 6, cursor: 'help', maxWidth: 220, whiteSpace: 'nowrap' }}>
-      <span className="label-chip" style={{ color: '#be5535', fontSize: 11 }}>{ls.length}줄</span>
+      <span className="label-chip" style={{ color: '#2457C5', fontSize: 11 }}>{ls.length}줄</span>
       <span className="muted" style={{ fontSize: 11.5, overflow: 'hidden', textOverflow: 'ellipsis' }}>{ls[0]}</span>
     </div>
   );
@@ -127,7 +127,7 @@ const linkCell = (_v: any, row: any) => {
   return (
     <div className="row" style={{ gap: 4, whiteSpace: 'nowrap' }}>
       {req && (
-        <span className="label-chip" title={`연계 요구사항 ${req} — RTM에 추적됩니다`} style={{ color: '#be5535', fontFamily: 'ui-monospace,monospace', fontSize: 11, cursor: 'help' }}>
+        <span className="label-chip" title={`연계 요구사항 ${req} — RTM에 추적됩니다`} style={{ color: '#2457C5', fontFamily: 'ui-monospace,monospace', fontSize: 11, cursor: 'help' }}>
           {req}
         </span>
       )}

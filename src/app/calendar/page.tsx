@@ -37,7 +37,7 @@ export default function Page() {
     ]).then(([mt, tk, ts, is]) => {
       const out: Ev[] = [];
       (Array.isArray(mt) ? mt : []).forEach((x: any) => x.meetingDate && out.push({ date: x.meetingDate, label: x.title, kind: '회의', color: '#0e9bb8', href: '/meetings' }));
-      (Array.isArray(tk) ? tk : []).forEach((x: any) => x.endDate && x.status !== 'done' && out.push({ date: x.endDate, label: x.name, kind: '업무마감', color: '#be5535', href: '/tasks', owner: x.assignee || '' }));
+      (Array.isArray(tk) ? tk : []).forEach((x: any) => x.endDate && x.status !== 'done' && out.push({ date: x.endDate, label: x.name, kind: '업무마감', color: '#2457C5', href: '/tasks', owner: x.assignee || '' }));
       (Array.isArray(ts) ? ts : []).forEach((x: any) => x.dueDate && out.push({ date: x.dueDate, label: x.title, kind: '테스트기한', color: '#7c4dff', href: '/tests', owner: x.assignee || '' }));
       (Array.isArray(is) ? is : []).forEach((x: any) => x.dueDate && !['resolved', 'closed'].includes(x.status) && out.push({ date: x.dueDate, label: x.title, kind: '이슈기한', color: '#d98a16', href: '/issues', owner: x.assignee || '' }));
       setEvs(out); setLoaded(true);
@@ -86,7 +86,7 @@ export default function Page() {
         </div>
       </div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10, fontSize: 12 }}>
-        {[['회의', '#0e9bb8'], ['업무마감', '#be5535'], ['테스트기한', '#7c4dff'], ['이슈기한', '#d98a16']].map(([l, c]) => {
+        {[['회의', '#0e9bb8'], ['업무마감', '#2457C5'], ['테스트기한', '#7c4dff'], ['이슈기한', '#d98a16']].map(([l, c]) => {
           const off = hidden.has(l as string);
           return (
             <button key={l} type="button" onClick={() => toggleKind(l as string)} title={off ? `${l} 표시` : `${l} 숨기기`} aria-pressed={!off}

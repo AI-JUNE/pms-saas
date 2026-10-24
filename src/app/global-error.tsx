@@ -44,7 +44,7 @@ export default function GlobalError({
         }}
       >
         <main style={{ maxWidth: 480, padding: '40px 24px', textAlign: 'center' }}>
-          <div style={{ fontSize: 13, letterSpacing: 2, color: '#be5535', marginBottom: 12 }}>
+          <div style={{ fontSize: 13, letterSpacing: 2, color: '#2457C5', marginBottom: 12 }}>
             PRISM PMS
           </div>
           <h1 style={{ fontSize: 22, fontWeight: 600, margin: '0 0 12px' }}>
@@ -78,7 +78,7 @@ export default function GlobalError({
                 fontSize: 14,
                 borderRadius: 6,
                 border: 'none',
-                background: '#be5535',
+                background: '#2457C5',
                 color: '#fff',
                 cursor: 'pointer',
               }}

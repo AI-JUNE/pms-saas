@@ -90,7 +90,7 @@ export default function Page() {
     const tasksOk = l.tasks === 0 || l.tasksDone === l.tasks;
     const testsOk = l.tests === 0 || l.testsPass === l.tests;
     if (tasksOk && testsOk) return { t: '충족', c: '#2f8f5b' };
-    return { t: '진행중', c: '#be5535' };
+    return { t: '진행중', c: '#2457C5' };
   };
 
   return <ResourceView title="요구사항" subtitle="요구사항을 추적합니다." endpoint="/api/requirements" entity="requirements" projectScoped

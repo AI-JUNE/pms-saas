@@ -64,7 +64,7 @@ export default function Page() {
         }
         const tip = ls.slice(0,8).map((l,i)=>`${i+1}. ${l}`).join('\n') + (ls.length>8?`\n… 외 ${ls.length-8}줄`:'');
         return <div className="row" title={tip} style={{gap:6,cursor:'help',maxWidth:240,whiteSpace:'nowrap'}}>
-          <span className="label-chip" style={{color:'#be5535',fontSize:11}}>{ls.length}줄</span>
+          <span className="label-chip" style={{color:'#2457C5',fontSize:11}}>{ls.length}줄</span>
           <span className="muted" style={{fontSize:11.5,overflow:'hidden',textOverflow:'ellipsis'}}>{ls[0]}</span>
         </div>;
       }},

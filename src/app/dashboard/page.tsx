@@ -91,7 +91,7 @@ export default function Dashboard() {
   const openIssues = issues.filter((x: any) => !['resolved','closed'].includes(x.status));
   const avgProg = tasks.length ? Math.round(tasks.reduce((s: number, t: any) => s + (t.progress || 0), 0) / tasks.length) : 0;
   const kpis = [
-    { label: '프로젝트', n: projects.length, sub: `진행 ${nfmt(cnt(projects,'status','active'))}`, icon: FolderKanban, c: '#be5535', bg: '#fbeeea' },
+    { label: '프로젝트', n: projects.length, sub: `진행 ${nfmt(cnt(projects,'status','active'))}`, icon: FolderKanban, c: '#2457C5', bg: '#EAF0FC' },
     { label: '요구사항', n: requirements.length, sub: `승인 ${nfmt(cnt(requirements,'status','approved'))}`, icon: ClipboardList, c: '#0e9bb8', bg: '#e6f7fb' },
     { label: '열린 이슈', n: openIssues.length, sub: `전체 ${nfmt(issues.length)}`, icon: Bug, c: '#d98a16', bg: '#fdf3e3' },
     { label: '리스크', n: risks.length, sub: `${LABEL.high} ${nfmt(risks.filter((x:any)=>x.level==='high').length)}`, icon: ShieldAlert, c: '#c0414f', bg: '#fdedef' },
@@ -150,9 +150,9 @@ export default function Dashboard() {
       <div style={{ height: 18 }} />
       <div className="g3">
         <div className="card card-pad dash-card" style={{ animationDelay: '120ms' }}><div className="sect" style={{ marginBottom: 16 }}>이슈 상태</div>
-          <Donut mounted={mounted} data={[{ label: '열림', value: cnt(issues,'status','open'), color: '#be5535' },{ label: '진행중', value: cnt(issues,'status','in_progress'), color: '#d98a16' },{ label: '해결', value: cnt(issues,'status','resolved'), color: '#2f8f5b' },{ label: '종료', value: cnt(issues,'status','closed'), color: '#94a3b8' }]} /></div>
+          <Donut mounted={mounted} data={[{ label: '열림', value: cnt(issues,'status','open'), color: '#2457C5' },{ label: '진행중', value: cnt(issues,'status','in_progress'), color: '#d98a16' },{ label: '해결', value: cnt(issues,'status','resolved'), color: '#2f8f5b' },{ label: '종료', value: cnt(issues,'status','closed'), color: '#94a3b8' }]} /></div>
         <div className="card card-pad dash-card" style={{ animationDelay: '180ms' }}><div className="sect" style={{ marginBottom: 16 }}>업무 진척</div>
-          <Bars mounted={mounted} data={[{ label: '할 일', value: cnt(tasks,'status','todo'), color: '#94a3b8' },{ label: '진행중', value: cnt(tasks,'status','doing'), color: '#be5535' },{ label: '완료', value: cnt(tasks,'status','done'), color: '#2f8f5b' }]} /></div>
+          <Bars mounted={mounted} data={[{ label: '할 일', value: cnt(tasks,'status','todo'), color: '#94a3b8' },{ label: '진행중', value: cnt(tasks,'status','doing'), color: '#2457C5' },{ label: '완료', value: cnt(tasks,'status','done'), color: '#2f8f5b' }]} /></div>
         <div className="card card-pad dash-card" style={{ animationDelay: '240ms' }}><div className="sect" style={{ marginBottom: 16 }}>리스크 등급</div>
           <Bars mounted={mounted} data={[{ label: LABEL.high, value: cnt(risks,'level','high'), color: '#c0414f' },{ label: LABEL.medium, value: cnt(risks,'level','medium'), color: '#d98a16' },{ label: LABEL.low, value: cnt(risks,'level','low'), color: '#2f8f5b' }]} /></div>
         <div className="card card-pad dash-card" style={{ animationDelay: '300ms' }}><div className="sect" style={{ marginBottom: 16 }}>이슈 유형(트래커)</div>

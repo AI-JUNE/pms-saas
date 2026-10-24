@@ -41,7 +41,7 @@ export default function Page() {
         const tip = `참석자 ${nfmt(ps.length)}명\n${ps.map((p, i) => `${i + 1}. ${p}`).join('\n')}`;
         return (
           <span title={tip} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'help', maxWidth: 220 }}>
-            {chip(`${nfmt(ps.length)}명`, 'var(--brand)', 'rgba(190,85,53,.10)')}
+            {chip(`${nfmt(ps.length)}명`, 'var(--brand)', 'rgba(36,87,197,.10)')}
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#6b6b6b', fontSize: 12 }}>
               {head}{ps.length > 3 ? ` 외 ${nfmt(ps.length - 3)}` : ''}
             </span>

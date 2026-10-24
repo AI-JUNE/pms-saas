@@ -97,7 +97,7 @@ export default function Backlog() {
             const totalUnest = unest(issues);
             return (
               <div className="kpis" style={{ marginBottom: 16 }}>
-                <div className="kpi k0"><div className="kpi-ic" style={{ background: 'rgba(190,85,53,.12)' }}><ListChecks style={{ width: 18, color: 'var(--brand)' }} /></div>
+                <div className="kpi k0"><div className="kpi-ic" style={{ background: 'rgba(36,87,197,.12)' }}><ListChecks style={{ width: 18, color: 'var(--brand)' }} /></div>
                   <div className="kpi-label">전체 이슈</div><div className="kpi-value">{nfmt(issues.length)}</div><div className="kpi-sub">{nfmt(pts(issues))} pts</div></div>
                 <div className="kpi k2" title="스프린트에 배정되지 않은 대기 이슈"><div className="kpi-ic" style={{ background: 'rgba(217,138,22,.12)' }}><Inbox style={{ width: 18, color: '#d98a16' }} /></div>
                   <div className="kpi-label">백로그 대기</div><div className="kpi-value">{nfmt(backlogList.length)}</div><div className="kpi-sub">{nfmt(pts(backlogList))} pts 미계획</div></div>

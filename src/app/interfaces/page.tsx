@@ -31,7 +31,7 @@ export default function Page() {
           const head = ls[0].length > 22 ? `${ls[0].slice(0, 22)}…` : ls[0];
           const tip = ls.slice(0, 8).map((l, i) => `${i + 1}. ${l}`).join('\n') + (ls.length > 8 ? `\n… 외 ${ls.length - 8}줄` : '');
           return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, maxWidth: 220 }} title={`연동 규격 ${ls.length}줄\n${tip}`}>
-            <span className="pill" style={{ background: 'rgba(190,85,53,.12)', color: 'var(--brand)', fontSize: 10.5, fontWeight: 700 }}>{ls.length}줄</span>
+            <span className="pill" style={{ background: 'rgba(36,87,197,.12)', color: 'var(--brand)', fontSize: 10.5, fontWeight: 700 }}>{ls.length}줄</span>
             <span className="muted" style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{head}</span>
           </span>;
         }

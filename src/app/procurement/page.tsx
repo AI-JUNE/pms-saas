@@ -65,7 +65,7 @@ export default function Page() {
         const po = String(v ?? '').trim();
         const rc = String(row?.receiptDate ?? '').trim();
         const chips: any[] = [];
-        if (po) chips.push(<b key="po" title={`발주번호 ${po}`} style={{fontSize:11.5,color:'var(--brand)',background:'rgba(190,85,53,.08)',borderRadius:99,padding:'1px 7px',whiteSpace:'nowrap'}}>{po}</b>);
+        if (po) chips.push(<b key="po" title={`발주번호 ${po}`} style={{fontSize:11.5,color:'var(--brand)',background:'rgba(36,87,197,.08)',borderRadius:99,padding:'1px 7px',whiteSpace:'nowrap'}}>{po}</b>);
         if (rc) chips.push(<span key="rc" title={`입고일 ${rc}`} style={{fontSize:11.5,color:'#2f8f5b',fontWeight:700,whiteSpace:'nowrap'}}>입고 {rc}</span>);
         const warns: any[] = [];
         if (!po && ORDERED_UP.includes(st)) warns.push(<span key="w1" title="발주 이후 단계인데 발주번호(PO)가 기재되지 않았습니다 — 감리·정산 시 증빙 누락" style={{color:'#c0414f',fontWeight:700,fontSize:11.5,cursor:'help'}}>⚠ 발주번호 없음</span>);

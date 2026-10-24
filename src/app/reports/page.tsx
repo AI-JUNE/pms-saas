@@ -31,7 +31,7 @@ function xlsSheet(name: string, headers: string[], rows: (string | number)[][]) 
   return `<Worksheet ss:Name="${safe}"><Table>${head}${body}</Table></Worksheet>`;
 }
 function downloadWorkbook(sheets: string[]) {
-  const style = `<Styles><Style ss:ID="hd"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#BE5535" ss:Pattern="Solid"/></Style></Styles>`;
+  const style = `<Styles><Style ss:ID="hd"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#2457C5" ss:Pattern="Solid"/></Style></Styles>`;
   const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<?mso-application progid="Excel.Sheet"?>\n<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">${style}${sheets.join('')}</Workbook>`;
   const blob = new Blob(['﻿' + xml], { type: 'application/vnd.ms-excel;charset=utf-8' });
   const url = URL.createObjectURL(blob); const a = document.createElement('a');
@@ -64,7 +64,7 @@ function Burndown({ tasks }: { tasks: any[] }) {
       {[0,0.25,0.5,0.75,1].map((g,i)=><g key={i}><line x1={pad} y1={y(total*g)} x2={W-pad} y2={y(total*g)} stroke="var(--border)" strokeDasharray={i===0?'0':'2 4'} /><text x={pad-8} y={y(total*g)+3} textAnchor="end" fontSize="9.5" fill="var(--text-4)">{Math.round(total*g)}</text></g>)}
       <path d={area} fill="url(#bdArea)" />
       <path d={line(ideal)} fill="none" stroke="var(--text-4)" strokeWidth="1.8" strokeDasharray="5 5" />
-      <path className="gl" d={line(actual)} fill="none" stroke="url(#bdLine)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 3px 6px rgba(190,85,53,.22))' }} />
+      <path className="gl" d={line(actual)} fill="none" stroke="url(#bdLine)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 3px 6px rgba(36,87,197,.22))' }} />
       {actual.map((v,i)=> i%2===0 ? <circle key={i} cx={x(i)} cy={y(v)} r="3.2" fill="#fff" stroke="var(--brand)" strokeWidth="2" /> : null)}
       <g transform={`translate(${pad+4}, ${pad-16})`}>
         <line x1="0" y1="0" x2="18" y2="0" stroke="var(--text-4)" strokeWidth="1.8" strokeDasharray="5 5" /><text x="23" y="3.5" fontSize="10" fill="var(--text-3)">이상선</text>
@@ -100,7 +100,7 @@ function WeeklyTrend({ tasks }: { tasks: any[] }) {
       {[0, 0.25, 0.5, 0.75, 1].map((g, i) => <g key={i}><line x1={pad} y1={y(g * 100)} x2={W - pad} y2={y(g * 100)} stroke="var(--border)" strokeDasharray={i === 0 ? '0' : '2 4'} /><text x={pad - 8} y={y(g * 100) + 3} textAnchor="end" fontSize="9.5" fill="var(--text-4)">{Math.round(g * 100)}</text></g>)}
       {weeks.map((w, i) => i % 2 === 0 ? <text key={i} x={x(i)} y={H - pad + 16} textAnchor="middle" fontSize="9" fill="var(--text-4)">{fmt(w)}</text> : null)}
       <path d={path('plan')} fill="none" stroke="var(--text-4)" strokeWidth="1.8" strokeDasharray="5 5" />
-      <path className="gl" d={path('act')} fill="none" stroke="url(#wtLine)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 3px 6px rgba(190,85,53,.22))' }} />
+      <path className="gl" d={path('act')} fill="none" stroke="url(#wtLine)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 3px 6px rgba(36,87,197,.22))' }} />
       {ser.map((s, i) => i % 2 === 0 ? <circle key={i} cx={x(i)} cy={y(s.act)} r="3.2" fill="#fff" stroke="var(--brand)" strokeWidth="2" /> : null)}
       <g transform={`translate(${pad + 4}, ${pad - 16})`}>
         <line x1="0" y1="0" x2="18" y2="0" stroke="var(--text-4)" strokeWidth="1.8" strokeDasharray="5 5" /><text x="23" y="3.5" fontSize="10" fill="var(--text-3)">계획(기한도래)</text>
@@ -202,7 +202,7 @@ export default function Page() {
         <Stat icon={Gauge} label="평균 진척" value={avgProg + '%'} c="#2f8f5b" bg="#e9faf0" />
         <Stat icon={TrendingDown} label="열린 이슈" value={nfmt(issues.filter((i:any)=>!['resolved','closed'].includes(i.status)).length)} c="#d98a16" bg="#fdf3e3" />
         <Stat icon={BarChart3} label={`${LABEL.high || 'High'} 리스크`} value={nfmt(risks.filter((r:any)=>r.level==='high').length)} c="#c0414f" bg="#fdedef" />
-        <Stat icon={Users} label="참여 인원" value={nfmt(assignees.length)} c="#be5535" bg="#fbeeea" />
+        <Stat icon={Users} label="참여 인원" value={nfmt(assignees.length)} c="#2457C5" bg="#EAF0FC" />
       </div>
       <div style={{ height: 16 }} />
       <div className="card card-pad dash-card"><div className="sect" style={{ marginBottom: 8 }}>주간 진척 추이 <span style={{ fontSize: 11, color: 'var(--text-4)', fontWeight: 600 }}>(최근 10주 · 기한 도래 대비 완료 누적)</span></div><WeeklyTrend tasks={tasks} /></div>
@@ -212,7 +212,7 @@ export default function Page() {
           <div className="tbl-wrap"><table className="tbl"><thead><tr><th>기준</th><th>기준일</th><th>계획</th><th>실적</th><th style={{ minWidth: 150 }}>기성률</th></tr></thead>
             <tbody>{snapshots.slice(0, 12).map((s: any) => (
               <tr key={s.id}><td style={{ fontWeight: 650 }}>{s.label}</td><td className="muted">{s.snapshotDate || '\u2014'}</td><td>{s.plannedPct||0}%</td><td>{s.actualPct||0}%</td>
-                <td><div className="row" style={{ gap: 8 }}><div className="pbar" style={{ flex: 1 }}><i style={{ width: `${Math.min(100, s.billingPct||0)}%`, background: 'linear-gradient(90deg,#e6915f,#be5535)' }} /></div><span style={{ fontWeight: 800, fontSize: 12, minWidth: 34, textAlign: 'right' }}>{s.billingPct||0}%</span></div></td></tr>))}
+                <td><div className="row" style={{ gap: 8 }}><div className="pbar" style={{ flex: 1 }}><i style={{ width: `${Math.min(100, s.billingPct||0)}%`, background: 'linear-gradient(90deg,#4F7FE3,#2457C5)' }} /></div><span style={{ fontWeight: 800, fontSize: 12, minWidth: 34, textAlign: 'right' }}>{s.billingPct||0}%</span></div></td></tr>))}
             </tbody></table></div>)}
       </div>
       {finance.length > 0 && <>
@@ -225,7 +225,7 @@ export default function Page() {
               return <tr key={f.p.id}>
                 <td style={{ fontWeight: 650 }}>{f.p.name}</td>
                 <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{f.budget > 0 ? won(f.budget) : <span className="muted">—</span>}</td>
-                <td>{f.billPct == null ? <span className="muted" style={{ fontSize: 11.5 }} title="이 프로젝트에 기록된 기성고 스냅샷이 없습니다">스냅샷 없음</span> : <div className="row" style={{ gap: 8, alignItems: 'center' }} title={`최신 스냅샷 기준일 ${f.snap?.snapshotDate || '—'} · 기성률 ${f.billPct}%`}><div className="pbar" style={{ flex: 1 }}><i style={{ width: `${f.billPct}%`, background: 'linear-gradient(90deg,#e6915f,#be5535)' }} /></div><span style={{ fontWeight: 800, fontSize: 12, minWidth: 34, textAlign: 'right' }}>{f.billPct}%</span></div>}</td>
+                <td>{f.billPct == null ? <span className="muted" style={{ fontSize: 11.5 }} title="이 프로젝트에 기록된 기성고 스냅샷이 없습니다">스냅샷 없음</span> : <div className="row" style={{ gap: 8, alignItems: 'center' }} title={`최신 스냅샷 기준일 ${f.snap?.snapshotDate || '—'} · 기성률 ${f.billPct}%`}><div className="pbar" style={{ flex: 1 }}><i style={{ width: `${f.billPct}%`, background: 'linear-gradient(90deg,#4F7FE3,#2457C5)' }} /></div><span style={{ fontWeight: 800, fontSize: 12, minWidth: 34, textAlign: 'right' }}>{f.billPct}%</span></div>}</td>
                 <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{f.billPct != null && f.budget > 0 ? won(f.billAmt) : <span className="muted">—</span>}</td>
                 <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{f.procTotal > 0 ? <span title={`조달 ${nfmt(f.procCnt)}건 · 입고액 ${won(f.procReceived)}`} style={{ cursor: 'help' }}>{won(f.procTotal)}</span> : <span className="muted">—</span>}</td>
                 <td>{f.procRatio == null ? <span className="muted" style={{ fontSize: 11.5 }}>—</span> : <div className="row" style={{ gap: 8, alignItems: 'center' }} title={`계약금액 대비 조달총액 ${f.procRatio}%` + (over ? ' — 예산 초과' : '')}><div className="pbar" style={{ flex: 1 }}><i style={{ width: `${Math.min(100, f.procRatio)}%`, background: over ? '#c0414f' : '#5a7fb0' }} /></div><span style={{ fontWeight: 800, fontSize: 12, minWidth: 40, textAlign: 'right', color: over ? '#c0414f' : 'var(--text-2)' }}>{f.procRatio}%</span></div>}</td>

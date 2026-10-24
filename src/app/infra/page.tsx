@@ -43,7 +43,7 @@ export default function Page() {
         if (!loc && !rack) return <span className="muted" style={{fontSize:11.5}} title="사이트·랙 위치를 입력하면 표시됩니다">미지정</span>;
         return <span title={`위치 ${loc || '미지정'}${rack ? ` · 랙 ${rack}` : ' · 랙 미지정'}`} style={{cursor:'help'}}>
           {loc || <span className="muted">—</span>}
-          {rack && <span style={{marginLeft:6,fontSize:11.5,color:'var(--brand)',background:'rgba(190,85,53,.08)',borderRadius:99,padding:'1px 7px',whiteSpace:'nowrap'}}>{rack}</span>}
+          {rack && <span style={{marginLeft:6,fontSize:11.5,color:'var(--brand)',background:'rgba(36,87,197,.08)',borderRadius:99,padding:'1px 7px',whiteSpace:'nowrap'}}>{rack}</span>}
         </span>;
       }},
       // IP: 중복 등록(같은 IP를 쓰는 다른 자산) · 형식 오류 경고 — CMDB 신뢰도의 핵심

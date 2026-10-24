@@ -88,7 +88,7 @@ export default function LoginPage() {
             </label>
           </div>
         )}
-        {hint && <p className="muted" style={{ textAlign: 'center', margin: '2px 0 0', fontSize: 12, color: '#be5535' }}>{hint}</p>}
+        {hint && <p className="muted" style={{ textAlign: 'center', margin: '2px 0 0', fontSize: 12, color: '#2457C5' }}>{hint}</p>}
         <button className="btn btn-pri" style={{ width: '100%', justifyContent: 'center', marginTop: 8, padding: 11 }} disabled={busy || !canSubmit} title={!canSubmit ? (hint || '이메일·비밀번호(8자 이상)를 입력하세요') : ''}>{busy ? '처리 중…' : mode === 'login' ? '로그인' : '가입하고 시작하기'}</button>
       </form>
       <p className="muted" style={{ textAlign: 'center', marginTop: 18 }}>처음이신가요? 상단 '회원가입'으로 관리자 계정을 만드세요.</p>

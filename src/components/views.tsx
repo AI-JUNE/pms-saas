@@ -166,7 +166,7 @@ export function Gantt({ rows, openDetail, save, create }: { rows: any[]; openDet
   const pxDay = zoom === 'day' ? 26 : zoom === 'week' ? 11 : 4.6;
   const W = totalDays * pxDay;
   const LBL = 220, rowH = 40;
-  const color = (st: string) => st === 'done' ? '#2f8f5b' : st === 'doing' ? '#be5535' : '#94a3b8';
+  const color = (st: string) => st === 'done' ? '#2f8f5b' : st === 'doing' ? '#2457C5' : '#94a3b8';
   const xOf = (ms: number) => ((ms - min) / DAY) * pxDay;
 
   useEffect(() => {
@@ -340,7 +340,7 @@ export function Gantt({ rows, openDetail, save, create }: { rows: any[]; openDet
             <div style={{ position: 'absolute', left: LBL, top: 0, width: W, height: bodyH, pointerEvents: 'none' }}>
               {weekends.map((x, i) => <div key={'w' + i} style={{ position: 'absolute', left: x, width: pxDay, top: 0, height: bodyH, background: 'rgba(30,20,10,.035)' }} />)}
               {months.map((m, i) => <div key={'g' + i} style={{ position: 'absolute', left: m.left, top: 0, height: bodyH, borderLeft: '1px solid var(--surface-3)' }} />)}
-              {todayMid >= min && todayMid <= max && <div style={{ position: 'absolute', left: todayLeft, top: 0, height: bodyH, width: 2, background: 'rgba(190,85,53,.5)' }} />}
+              {todayMid >= min && todayMid <= max && <div style={{ position: 'absolute', left: todayLeft, top: 0, height: bodyH, width: 2, background: 'rgba(36,87,197,.5)' }} />}
             </div>
             {disp.map((d) => {
               if (d.kind === 'group') {

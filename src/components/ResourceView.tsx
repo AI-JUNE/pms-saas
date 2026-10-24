@@ -20,7 +20,7 @@ const STATUS_COLOR: Record<string, string> = {
   done: '#2f8f5b', approved: '#2f8f5b', resolved: '#2f8f5b', completed: '#2f8f5b', pass: '#2f8f5b', low: '#2f8f5b',
   closed: '#94a3b8', draft: '#94a3b8', planned: '#94a3b8', todo: '#94a3b8', na: '#94a3b8',
   open: '#0e9bb8', in_progress: '#0e9bb8', review: '#0e9bb8', dev: '#0e9bb8',
-  doing: '#be5535', requested: '#be5535',
+  doing: '#2457C5', requested: '#2457C5',
   identified: '#d98a16', mitigating: '#d98a16', medium: '#d98a16', pl: '#d98a16', ordered: '#d98a16',
   high: '#c0414f', critical: '#c0414f', rejected: '#c0414f', fail: '#c0414f', blocked: '#c0414f',
   pm: '#7c4dff',
@@ -295,7 +295,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
 
   function exportXlsx() {
     const esc = (v: string) => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const head = '<tr>' + columns.map((c) => `<th style="background:#be5535;color:#fff;font-weight:bold;border:1px solid #d9c3b8;padding:7px 10px;text-align:left">${esc(c.label)}</th>`).join('') + '</tr>';
+    const head = '<tr>' + columns.map((c) => `<th style="background:#2457C5;color:#fff;font-weight:bold;border:1px solid #d9c3b8;padding:7px 10px;text-align:left">${esc(c.label)}</th>`).join('') + '</tr>';
     const rows = view.map((r) => '<tr>' + columns.map((c) => `<td style="border:1px solid #e6ddd6;padding:6px 10px">${esc(exportCell(c, r))}</td>`).join('') + '</tr>').join('');
     const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>${title}</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body><table style="border-collapse:collapse;font-family:sans-serif;font-size:13px">${head}${rows}</table></body></html>`;
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel' }));

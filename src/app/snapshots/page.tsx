@@ -19,7 +19,7 @@ function noteCell(v: any) {
   const tip = ls.slice(0, 8).map((s, i) => `${i + 1}. ${s}`).join('\n') + (ls.length > 8 ? `\n… 외 ${ls.length - 8}줄` : '');
   return (
     <span title={tip} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'help', maxWidth: 260 }}>
-      {ls.length > 1 && <span style={{ fontSize: 10.5, fontWeight: 700, padding: '1px 6px', borderRadius: 999, background: 'rgba(190,85,53,.12)', color: 'var(--brand)', whiteSpace: 'nowrap' }}>{ls.length}줄</span>}
+      {ls.length > 1 && <span style={{ fontSize: 10.5, fontWeight: 700, padding: '1px 6px', borderRadius: 999, background: 'rgba(36,87,197,.12)', color: 'var(--brand)', whiteSpace: 'nowrap' }}>{ls.length}줄</span>}
       <span className="muted" style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{head}</span>
     </span>
   );
@@ -62,7 +62,7 @@ function gapCell(_v: any, r: any) {
       <span style={{ color, fontWeight: 700, fontSize: 12, fontVariantNumeric: 'tabular-nums' }}>{label}</span>
       {sv <= -10 && <span style={{ color: '#c0414f', fontSize: 11 }}>⚠</span>}
       {!!warn && (
-        <span style={{ fontSize: 10.5, padding: '1px 6px', borderRadius: 999, background: '#fbeee6', color: '#be5535', border: '1px solid #eed7c6', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: 10.5, padding: '1px 6px', borderRadius: 999, background: '#fbeee6', color: '#2457C5', border: '1px solid #eed7c6', whiteSpace: 'nowrap' }}>
           {bg >= 10 ? '기성 과다' : '기성 과소'}
         </span>
       )}
@@ -73,7 +73,7 @@ function gapCell(_v: any, r: any) {
 export default function Page() {
   return <ResourceView title="기성고·스냅샷" subtitle="기준 시점(차수·마일스톤)별 계획/실적 진척과 기성률을 기록합니다." endpoint="/api/snapshots" entity="snapshots" projectScoped
     emptyText="등록된 스냅샷이 없습니다. “새로 만들기”로 기준 시점별 계획/실적 진척과 기성률을 기록하세요."
-    columns={[{key:'code',label:'코드'},{key:'label',label:'기준',strong:true},{key:'snapshotDate',label:'기준일',render:dateCell},{key:'plannedPct',label:'계획',render:BAR},{key:'actualPct',label:'실적',render:BAR},{key:'gap',label:'괴리',render:gapCell},{key:'billingPct',label:'기성률',render:(v)=>(<div className="row" style={{gap:8}}><div className="bar" style={{minWidth:44}}><i style={{width:`${Math.min(100,v||0)}%`,background:'linear-gradient(90deg,#e6915f,#be5535)'}}/></div><span style={{fontWeight:700,fontSize:11.5}}>{v||0}%</span></div>)},{key:'note',label:'비고',render:noteCell}]}
+    columns={[{key:'code',label:'코드'},{key:'label',label:'기준',strong:true},{key:'snapshotDate',label:'기준일',render:dateCell},{key:'plannedPct',label:'계획',render:BAR},{key:'actualPct',label:'실적',render:BAR},{key:'gap',label:'괴리',render:gapCell},{key:'billingPct',label:'기성률',render:(v)=>(<div className="row" style={{gap:8}}><div className="bar" style={{minWidth:44}}><i style={{width:`${Math.min(100,v||0)}%`,background:'linear-gradient(90deg,#4F7FE3,#2457C5)'}}/></div><span style={{fontWeight:700,fontSize:11.5}}>{v||0}%</span></div>)},{key:'note',label:'비고',render:noteCell}]}
     fields={[
       {key:'label',label:'기준(차수/마일스톤)',required:true,placeholder:'예: 3월말 기성'},
       {key:'snapshotDate',label:'기준일',type:'date',half:true},
