@@ -346,9 +346,10 @@ RPO 실측은 3-7 구간이라 **시간**이고 실제로 잃은 행 수는 아�
 (`frozen: true` + `postRestoreSecurity: pending` → `recorded`)을 이 응답이 **먼저 알려 준다.**
 
 **가리는 장치** — 사건 표지가 환경변수에 들어가 있는 동안만, 무인증 요청에서 체크 **상세와
-이름**을 가린다. 사건 표지는 다음 일곱이고 전부 평상시 미설정이 정상이다(3 절 8단계 4번이
+이름**을 가린다. 사건 표지는 다음 여덟이고 전부 평상시 미설정이 정상이다(3 절 8단계 4번이
 지우라고 지시하는 키들이다): `RECOVERY_WRITE_FREEZE`(`'true'` 일 때만) ·
-`RECOVERY_WRITE_FREEZE_AT` · `RECOVERY_RESTORE_POINT` · `RECOVERY_LOSS_NOTICE_AT` ·
+`RECOVERY_WRITE_FREEZE_AT` · `RECOVERY_RESTORE_POINT` · `RECOVERY_EVIDENCE_PRESERVED_AT` ·
+`RECOVERY_LOSS_NOTICE_AT` ·
 `RECOVERY_SECURITY_REAPPLIED_AT` · `RECOVERY_EXTERNAL_RECONCILED_AT` ·
 `RECOVERY_REHEARSAL_ACTIVE`(`'true'` 일 때만).
 
@@ -401,6 +402,14 @@ RPO 실측은 3-7 구간이라 **시간**이고 실제로 잃은 행 수는 아�
    - ⚠️ **이 감사로그는 복구 대상과 같은 DB 에 있다.** 5단계 전환은 복구 시점 이후의 감사 이력을 함께
      되돌리므로, 조사 근거·원인 작업 기록·조사 자체의 열람 이력이 전부 사라진다. **3단계로 넘어가기 전에
      아래 3-5 의 보존을 먼저 한다.**
+     - ⚠️ **그 보존은 2단계 차단을 건 「뒤에」 한다** — 차단 전에 받으면 받은 시각부터 차단까지 들어온
+       쓰기의 감사 행이 보존본에 없고, 그 구간이 바로 유실 구간의 **끝부분**이다(「무엇이 사라졌는가」를
+       말해 줄 기록이 **사라지는 쪽에만** 남는다). 조회는 차단 중에도 그대로 열려 있다.
+     - ⚠️ **보존을 마친 시각을 `RECOVERY_EVIDENCE_PRESERVED_AT` 에 적는다**(아래 **3-15**). 이 절차에서
+       되돌릴 수 없는 일은 둘(8단계 2번의 대외 고지 · 전환으로 사라지는 감사 이력)인데 **이쪽에만**
+       수행 근거가 없었다 — 거르면 6-1단계 2·3번이 **대상을 추릴 출처 없이** 「완료」로 적힌다.
+       확인: `checks.incidentClosure.detail.evidenceState` 가 **`recorded`**,
+       `detail.evidenceCoverage` 가 **`ok`**.
    - ⚠️ **T 를 특정했으면 2단계로 넘어가기 전에 「그 시점으로 되돌릴 수 있는지」를 먼저 본다**(아래 3-6).
      T 가 PITR **보존 창** 밖이면 복구 자체가 불가능한데, 2단계는 **쓰기 차단(전 사용자 저장 503)**이다 —
      순서를 바꾸면 **복구는 불가능한데 서비스는 멈춘 상태**가 되고 그때는 선택지가 남지 않는다.
@@ -429,6 +438,10 @@ RPO 실측은 3-7 구간이라 **시간**이고 실제로 잃은 행 수는 아�
      없으면 가려지지 않는다 — `checks.disclosure.detail.verdict` 가 `exposed` 로 남는다.
    - ⚠️ **Vercel 트래픽 차단으로 대신하지 말 것** — 4단계의 `/api/admin/recovery-verify`,
      6단계의 `/api/admin/migrate`, 확인용 `/api/health` 가 모두 같은 배포 뒤에 있어 복구 자신이 막힌다.
+   - ⚠️ **차단이 걸린 것을 확인한 「직후」가 3-5 보존의 자리다** — 조회는 열려 있고, 쓰기는 더
+     들어오지 않으므로 이 시점의 내보내기가 유실 구간의 **끝까지** 덮는다. 마친 시각을
+     `RECOVERY_EVIDENCE_PRESERVED_AT` 에 적고 3단계로 넘어간다(아래 **3-15**). 먼저 3단계로
+     넘어가면 보존 대상이 줄지는 않지만, 전환(5단계)까지의 남은 시간이 그만큼 짧아진다.
 3. **복구 브랜치 생성** — Neon에서 시점 **T-ε** 로 *새 브랜치*를 만든다(운영 브랜치는 그대로 둔다).
    - 복구 시점과 보존 창 판정은 **아래 3-6 의 1줄 명령으로 산출한다**. ε(여유분)을 눈대중으로 정하지 않는다 —
      너무 작으면 손상 트랜잭션이 복구 브랜치에 그대로 들어오는데, **4단계 대조는 행 수만 보므로
@@ -494,6 +507,9 @@ RPO 실측은 3-7 구간이라 **시간**이고 실제로 잃은 행 수는 아�
       쿠키에 그대로 남아 있어 **로그인 없이** 쓸 수 있고, 어느 것이 공격자 것인지 구분할 수단이 없다.
    2. **대응 중 바꾼 비밀번호 재적용** — 옛 해시가 돌아와 **유출된 비밀번호가 다시 통한다**(사용자가
       새로 정한 비밀번호는 통하지 않는다). 대상은 §3-5 보존본의 보안 이벤트에서 추린다.
+      - ⚠️ **그 보존본이 있는지 먼저 본다** — `detail.evidenceAvailable` 이 **`available`** 이어야 한다
+        (아래 **3-15**). `unrecorded`·`carried_over` 면 이 단계의 대상 목록을 만들 출처가 없고,
+        그래도 5번 시각은 적을 수 있어 **수행하지 않은 단계가 `recorded` 로 보인다**.
    3. **복구 시점 이후 발급된 재설정 토큰 무효화** — `used_at` 이 지워져 이미 쓴 링크가 되살아난다.
    4. **잠근 계정·회수한 권한 재적용**(`users.is_active`·`memberships`).
    5. 마친 시각을 `RECOVERY_SECURITY_REAPPLIED_AT` 에 적는다 — 그 **뒤에** 7단계로 간다.
@@ -560,9 +576,9 @@ RPO 실측은 3-7 구간이라 **시간**이고 실제로 잃은 행 수는 아�
       비고 칸은 3-10 의 `recordRemark()` 가 구간과 **고지 시각**을 함께 만들어 준다.
    4. `RECOVERY_WRITE_FREEZE_AT` 를 **지운다.** 남겨 두면 다음 사건에서 **옛 시각이 구간의 끝**으로
       쓰인다. 평상시에 남아 있으면 `checks.incidentClosure.detail.state` 가 `stale_record` 로 드러난다.
-      같은 자리에서 `RECOVERY_RESTORE_POINT`·`RECOVERY_LOSS_NOTICE_AT`·
+      같은 자리에서 `RECOVERY_RESTORE_POINT`·`RECOVERY_EVIDENCE_PRESERVED_AT`·`RECOVERY_LOSS_NOTICE_AT`·
       `RECOVERY_SECURITY_REAPPLIED_AT`·`RECOVERY_EXTERNAL_RECONCILED_AT` 도 지운다 —
-      **다섯 키 전건을 지운다.** 남으면 다음 사건에서 **옛 시각이 「고지·재적용·대조했다」는
+      **여섯 키 전건을 지운다.** 남으면 다음 사건에서 **옛 시각이 「보존·고지·재적용·대조했다」는
       근거**로 쓰인다(`stale_record`).
       - ⚠️ **그 `stale_record` 를 「경고가 떠 있으니 괜찮다」로 읽지 않는다** — 그것은
         degraded(200)이라 상시로 읽는 쪽 어느 곳에도 닿지 않고(§2-2), **다음 사건에서 차단을
@@ -782,6 +798,12 @@ PITR 복구 브랜치는 기존 테이블을 그대로 물려받으므로 6단�
    - 받은 파일에는 행위자 **이름**이 들어 있다 — 접근통제되는 보관소에 둔다.
 3. `capture.verdict` 가 `truncated` 로 남은 채 전환하지 않는다. 그 상태는 「T 직전을 못 봤다」는 뜻이고,
    전환하면 다시 볼 기회가 없어진다. 커서로 끝까지 받을 수 없으면 기간을 더 좁혀 나눠 받는다.
+4. **마친 시각을 `RECOVERY_EVIDENCE_PRESERVED_AT` 에 적는다**(타임존 붙인 ISO. 아래 **3-15**).
+   이 단계는 오랫동안 **수행 기록이 없는 유일한 되돌릴 수 없는 단계**였다 — 거르면 전환 뒤에
+   보존했는지 **묻는 수단도, 물어서 알아낼 사실도** 남지 않고, 6-1단계 2·3번이 대상을 추릴
+   출처 없이 「완료」로 적힌다. 적은 시각은 8단계 4번에서 **다른 다섯 표지와 함께 지운다.**
+   - 순서: **2단계 차단 뒤**에 받는다. 차단 전에 받으면 그 뒤 차단까지의 감사 행이 보존본에
+     없고(`evidenceCoverage: uncovered`), 그 구간이 유실 구간의 끝부분이다.
 
 > **감사로그가 보장하지 못하는 것**(응답 `capture.limits` 에도 같은 목록이 나온다):
 > 앱을 거친 변경만 남는다 — `DATABASE_URL` 로 직접 붙은 쓰기(psql·Neon 콘솔)·DDL 은 기록되지 않는다 ·
@@ -1270,15 +1292,16 @@ curl -s -b "$COOKIE" https://<배포>/api/admin/recovery-verify \
 
 ### 3-14. 표지가 **이번 사건의 것인가** — 귀속의 기준점과 옛 기록
 
-§3 은 복구 중에만 들어 있는 **시각 기록 5개**를 단계마다 하나씩 남기고, 7단계(해제)는 그중 둘을
-선행 조건으로 걸며, 8단계 4번은 전건을 지우라고 지시한다. 그런데 그 다섯 값은 **각자 자기 모듈에서
+§3 은 복구 중에만 들어 있는 **시각 기록 6개**를 단계마다 하나씩 남기고, 7단계(해제)는 그중 둘을
+선행 조건으로 걸며, 8단계 4번은 전건을 지우라고 지시한다. 그런데 그 값들은 **각자 자기 모듈에서
 홀로** 판정됐고 규칙은 어느 쪽이든 한 줄이다 — 「차단이 걸려 있고 값이 읽히면 `recorded`」.
 **그 값이 언제 적힌 것인지는 보지 않았다.**
 
 | 키 | 적는 단계 | 홀로 읽을 때 | 옛 값이 남아 있으면 |
 | --- | --- | --- | --- |
-| `RECOVERY_WRITE_FREEZE_AT` | 2단계 | `checks.incidentClosure.detail.state` = `recorded` | **귀속의 기준점 자신이 틀린다** — 뒤따르는 네 판정까지 함께 틀린다 |
+| `RECOVERY_WRITE_FREEZE_AT` | 2단계 | `checks.incidentClosure.detail.state` = `recorded` | **귀속의 기준점 자신이 틀린다** — 뒤따르는 다섯 판정까지 함께 틀린다 |
 | `RECOVERY_RESTORE_POINT` | 3단계 | `checks.lossNotice.detail.restorePointRecorded` = `true` | 구간의 **시작**이 이르러 과대 구간이 나오는데 §3-7 은 `ok` 를 낸다 — 그 수치가 §3-10 의 **되돌릴 수 없는 고지**로 나간다 |
+| `RECOVERY_EVIDENCE_PRESERVED_AT` | §3-5(2단계 뒤·3단계 전) | `checks.incidentClosure.detail.evidenceState` = `recorded` | 보존하지 않은 복구가 「보존했다」로 보이고, 6-1단계 2·3번이 **대상을 추릴 출처 없이** 완료로 적힌다(§3-15) |
 | `RECOVERY_SECURITY_REAPPLIED_AT` | 6-1단계 5번 | `checks.postRestoreSecurity.detail.state` = `recorded` | 되살아난 세션·유출된 비밀번호가 **아직 통하는** 상태에서 7단계 문이 열린다(§3-8) |
 | `RECOVERY_EXTERNAL_RECONCILED_AT` | 6-2단계 5번 | `checks.externalState.detail.state` = `recorded` | 어긋난 플랜 위로 쓰기가 쌓여 **어느 것이 복구 탓인지 흐려진다**(§3-9) |
 | `RECOVERY_LOSS_NOTICE_AT` | 8단계 2번 | `checks.lossNotice.detail.state` = `notified` | 고지하지 않은 복구가 「고지했다」로 보이고 표지 삭제 게이트(`canClearMarkers`)까지 열린다(§3-10) |
@@ -1288,7 +1311,7 @@ curl -s -b "$COOKIE" https://<배포>/api/admin/recovery-verify \
 degraded 를 보지 못한다」고 적어 둔 그 신호다. 그리고 **다음 사건의 2단계에서 차단을 켜는 순간**
 `stale_record` 는 `recorded` 로 **뒤집힌다** — 하나 있던 경고가 사라지고, 7단계 선행 조건은 몇 달 전
 시각을 보고 통과한다. 이 축이 쓸모 있다는 것은 이미 한 번 확인됐다(§3-10 은 고지 시각이 구간의
-끝보다 앞이면 `notice_before_end` 를 낸다) — **나머지 네 값에만 그 대조가 없었다.**
+끝보다 앞이면 `notice_before_end` 를 낸다) — **나머지 값들에만 그 대조가 없었다.**
 
 **산출(1줄)** — 지금 들어 있는 표지가 서로 말이 되는지 본다(저장소에서 실행. env 만 본다).
 
@@ -1335,6 +1358,87 @@ node --experimental-strip-types -e "import('./src/lib/incidentTimeline.ts').then
   `INCIDENT_MARKERS` 와 갈리거나, `/api/health` 에 새 체크가 생기거나, 8단계 4번이 전건 삭제를
   지시하지 않게 되거나, 이 절의 판정 표에서 한 행이 빠지면 CI 가 실패한다. 전부 **응답은 200** 이고
   `state` 값도 그대로라 사람 눈으로는 알아챌 수 없는 회귀다.
+
+### 3-15. 근거 보존을 **수행했는가** — §3-5 의 수행 기록과 보존 범위
+
+이 절차에서 **되돌릴 수 없는 일은 둘**이다. 하나는 8단계 2번의 **대외 고지**(§3-10 이 「유일하게
+되돌릴 수 없는 산출물」이라 적어 두었다), 다른 하나는 **5단계 전환으로 사라지는 감사 이력**이다.
+`audit_log` 는 복구 대상과 같은 DB·같은 브랜치에 있고, `lib/recoveryVerify.ts` 의 `CORE_TABLE_ROLES`
+는 이 테이블을 「사후 조사·법적 보존 대상이라 **재생성이 불가능하다**」고 스스로 선언해 두었다.
+그래서 1단계는 「3단계로 넘어가기 전에 §3-5 의 보존을 먼저 한다」고 지시한다.
+
+**그런데 그 보존을 했는지는 어디에도 남지 않았다.** §3-14 의 표지 다섯 개 중 **어느 것도 §3-5 를
+가리키지 않는다** — 되돌릴 수 없는 두 일 가운데 한쪽에만 수행 근거가 있었다.
+
+| 보존을 거르면 | 그때 실패하는 검증 |
+| --- | --- |
+| 6-1단계 2번의 **대상 계정 목록**(「§3-5 보존본의 보안 이벤트에서 추린다」)을 만들 수 없다 | **없다** — 5번 시각은 그래도 적을 수 있어 `state: recorded` + `recordCorroborated: true` 가 나오고 7단계 문이 열린다 |
+| 6-1단계 3번의 **되살아난 재설정 토큰** 중 어느 것이 그 구간의 것인지 가릴 수 없다 | **없다** |
+| 4단계·§3-11 의 「감소분을 감사로그로 설명할 수 있을 때만 전환한다」가 설명할 근거 없이 통과한다 | **없다** — 4단계는 행 수만 센다 |
+| 8단계 3번·§6 표의 사건 기록을 **사람 기억으로** 적게 된다 | **없다** |
+| 1단계의 손상 범위를 전환 뒤에 **재조사할 수 없다** | **없다** — 그 구간은 비어 있는 것이 아니라 「아무 일도 없었던 것처럼」 보인다 |
+
+⚠️ **「끝까지 받았는가」도 응답 한 번뿐이었다.** §3-5 3번은 `capture.verdict` 가 `truncated` 인 채로
+전환하지 말라고 하는데(잘려 나가는 쪽이 바로 「T 직전」이다) 그 판정은 조회 응답에만 있다 —
+전환 뒤에는 **끝까지 받았는지 물을 자리가 없다.**
+
+⚠️ **보존을 차단 전에 받으면 구간의 끝부분이 빠진다.** 1단계는 「3단계 전에」까지만 말하므로
+2단계 차단 **전에** 내보내도 절차를 지킨 것이 된다. 그러면 받은 시각부터 차단까지 들어온 쓰기의
+감사 행이 보존본에 없고, 그 구간은 §3-7 유실 구간의 **끝부분** — 「무엇이 사라졌는가」를 말해 줄
+기록이 **사라지는 쪽에만** 남는다. 조회는 차단 중에도 열려 있으므로(차단은 쓰기만 막는다)
+**차단을 확인한 직후**가 보존의 자리다.
+
+**산출(1줄)** — 지금 들어 있는 보존 기록이 말이 되는지 본다(저장소에서 실행. env 만 본다).
+
+```bash
+node --experimental-strip-types -e "import('./src/lib/evidencePreservation.ts').then(m=>console.log(m.preservationText(m.assessPreservation({env:process.env}))))"
+```
+
+| `checks.incidentClosure.detail.evidenceState` | 뜻 | 무엇을 해야 하나 |
+| --- | --- | --- |
+| `normal` | 차단 OFF · 보존 기록 없음 = **평상시** | 할 일 없다. 복구에 들어가면 2단계 뒤에 적는다 |
+| `pending` | 차단 중인데 보존 기록이 없다 | §3-5 의 내보내기를 **지금** 끝내고 시각을 적는다. 3단계로 넘어가면 전환까지의 남은 시간이 짧아지고, 전환 뒤에는 되찾을 수 없다 |
+| `recorded` | 차단 중이고 보존을 마친 시각이 있다 | 6-1단계 2·3번의 대상을 그 보존본에서 추린다. **보존본의 완전성은 이 값이 보장하지 않는다** |
+| `invalid_record` | 값을 읽을 수 없다 | 타임존을 붙인 ISO 로 다시 적는다 — 판독 불가를 「없다」로도 「있다」로도 세지 않는다 |
+| `stale_record` | 차단은 OFF 인데 값이 남아 있다 | 8단계 4번에서 지운다. 남기면 **보존하지 않은 복구가 「보존했다」로** 보인다 |
+
+| `detail.evidenceCoverage` | 뜻 | 무엇을 해야 하나 |
+| --- | --- | --- |
+| `ok` | 보존이 차단 **뒤에** 끝났다 | 유실 구간의 끝까지 덮는다(끝까지 받았는지는 `capture.verdict` 의 몫이다) |
+| `uncovered` | 보존이 차단 **앞에** 끝났다 | 차단까지의 감사 행을 **다시 받아** 보존본을 잇고 시각을 갱신한다. 덮지 못한 구간은 `detail.evidenceUncoveredMinutes`(분) |
+| `unknown` | 두 시각 중 하나를 읽을 수 없다 | 「덮었다」로 올리지 않는다 — 앵커(2단계)부터 적는다 |
+
+6-1단계 담당자는 같은 판정을 **자기 자리에서** 한 칸으로 받는다 —
+`checks.postRestoreSecurity.detail.evidenceAvailable`:
+`available`(이번 사건의 보존 기록이 있다) / `unrecorded`(출처가 기록되지 않았다) /
+`carried_over`(옛 사건의 기록이다 — §3-14) / `unreadable` / `not_applicable`(평상시).
+
+> **판정 어휘와 `ok` 를 바꾸지 않았다.** 두 체크의 `state`·`ok` 는 그대로이고 degraded 도 늘지 않는다 —
+> 보존은 사람이 하는 일이고 코드가 대신할 수 없으므로, 미기록으로 `ok` 를 내리면 복구일에 거짓
+> 차단이 된다. 달라지는 것은 **다음에 할 일**이다.
+
+> **새 런타임 체크를 만들지 않았다.** 같은 국면을 `checks.incidentClosure`(귀속의 기준점을 쥐고 있다)·
+> `checks.postRestoreSecurity`(그 보존본을 쓰는 단계다)가 이미 보고하므로 **그 자리에서** 말한다.
+> `/api/health` 에 `checks.evidencePreservation` 이 생기면 CI 가 실패한다.
+
+> 보장하지 못하는 것(`PRESERVATION_LIMITS` — 판정과 함께 실려 나간다):
+> 이 표지는 사람이 적은 **주장**이고 보존본의 존재·완전성·보관 위치를 코드가 확인한 것이 아니다 ·
+> `capture.verdict` 가 `truncated` 였는지는 이 값으로 알 수 없다 · **DB 밖**에 두었는지도 알 수 없다
+> (같은 DB 안의 표·메모로 옮겨 적으면 전환과 함께 사라지는데 표지는 `recorded` 다) ·
+> `/api/audit` 는 조직 스코프라 **다른 조직의 업무 데이터 변경 이력**은 애초에 받을 수 없다
+> (§3-5 의 한계 — 이 표지는 「받을 수 있는 범위를 받았다」까지만 말한다) · 앵커가 없으면 귀속을
+> 말할 수 없다(§3-14 와 같은 한계) · **이 배포의 env 한 벌만** 본다(§3-13 과 같은 한계) ·
+> `recorded` 는 그 보존본으로 6-1단계를 **실제로 수행했다**는 뜻이 아니다.
+
+- 신규 조회·쓰기·DDL·런타임 체크 **0**. 환경변수는 `RECOVERY_EVIDENCE_PRESERVED_AT` **한 개**를
+  더하고(§3-14 의 여섯 번째 시각 기록 · 8단계 4번이 지우는 표지 · §4-7 임시 키),
+  공개 응답에 **보관 위치·티켓 번호·행위자는 담지 않는다.**
+- `tests/evidencePreservation.test.ts` 가 실제 `src/lib/evidencePreservation.ts`·
+  `src/lib/incidentClosure.ts`·`src/lib/postRestoreSecurity.ts`·`src/lib/healthDisclosure.ts`·
+  `src/lib/incidentTimeline.ts`·`src/lib/envPresence.ts`·`src/app/api/health/route.ts`·
+  이 문서 원문을 매번 점검한다 — 판정을 응답에서 빼거나, 표지가 정본·임시 키 목록에서 빠지거나,
+  `/api/health` 에 새 체크가 생기거나, 1·2단계가 §3-15 를 더 이상 가리키지 않거나, 이 절의 판정
+  표에서 한 행이 빠지면 CI 가 실패한다. 전부 **응답은 200** 이라 사람 눈으로는 알아챌 수 없는 회귀다.
 
 ## 4. 환경변수·시크릿 복구
 
@@ -1428,6 +1532,12 @@ Vercel 환경변수는 DB 백업에 포함되지 않으므로 별도 보관한�
 3단계는 브랜치 **지문**만 적으라고 지시했고 이 시점은 담당자 콘솔에만 있었다 — 산출(1단계)과
 고지(8단계) 사이에 조사·차단·검증·전환·재적용·대조가 들어 있어 사후에 되찾을 경로가 없다.
 3단계에서 넣고 8단계 4번에서 **지운다**. 평상시에는 없어야 한다.
+`RECOVERY_EVIDENCE_PRESERVED_AT` — **조사 근거 보존**(§3-5)을 마친 시각(타임존 붙인 ISO. 위 3-15).
+5단계 전환은 복구 시점 이후의 감사 이력을 되돌리고 그 테이블은 **재생성이 불가능한데**, 절차에서
+되돌릴 수 없는 두 일 가운데 **이쪽에만** 수행 근거가 없었다 — 거르면 6-1단계 2·3번이 대상을 추릴
+출처 없이 「완료」로 적히고 7단계 문이 열린다. 보존은 차단(2단계) **뒤**·브랜치 생성(3단계) **전**에
+하고(차단 전에 받으면 구간의 끝부분이 보존본에서 빠진다) 8단계 4번에서 **지운다**.
+평상시에는 없어야 한다.
 `RECOVERY_LOSS_NOTICE_AT` — **유실 구간 고지를 발신한** 시각(타임존 붙인 ISO. 위 3-10).
 이 절차에서 저장소 **밖으로 나가고 되돌릴 수 없는** 산출물은 이 고지뿐인데 수행 근거가 없었다
 (§6 표 비고의 「고지 완료 여부 확인」은 읽는 코드가 없는 메모다). 미기록 상태로 8단계 4번의 표지
@@ -2404,6 +2514,12 @@ node --input-type=module -e "import fs from 'node:fs';import {parseCoverageRecor
 - [ ] 그 `true` 를 확인한 시각을 `RECOVERY_WRITE_FREEZE_AT` 에 적었다 —
       `checks.incidentClosure.detail.state` 가 `recorded`(§3-7. 해제 후에는 이 시각을 알 수 없다)
 - [ ] 차단 중 쓰기가 실제로 거절되는지 1건 확인(예: `PATCH` 아무 자원 → `503` + `code: WRITE_FROZEN`)
+- [ ] 차단을 확인한 **직후** §3-5 보존을 받고 마친 시각을 `RECOVERY_EVIDENCE_PRESERVED_AT` 에 적었다 —
+      `checks.incidentClosure.detail.evidenceState` 가 `recorded`(§3-15. 전환 뒤에는 보존했는지
+      **물을 자리조차 없다**)
+- [ ] 그 보존이 유실 구간의 **끝까지** 덮는지 — `checks.incidentClosure.detail.evidenceCoverage` 가
+      `ok` 다(§3-15. `uncovered` 면 차단 **앞에** 받은 것이고, 덮지 못한 구간이
+      `detail.evidenceUncoveredMinutes` 분이다)
 - [ ] 사건 표지가 들어 있는 동안 **무인증 응답이 상세를 가리는지** —
       `checks.disclosure.detail.verdict` 가 `gated` 다. `HEALTH_DETAIL_TOKEN` 이 없으면 `exposed`
       가 나오는 것이 **정상 결과**이고, 리허설은 그 표지를 실제로 넣어 보는 **유일한 기회**이므로
@@ -2444,6 +2560,9 @@ node --input-type=module -e "import fs from 'node:fs';import {parseCoverageRecor
       리허설이라면 복구 브랜치에서 **세션 폐기까지는 실제로** 해 본다(그 뒤 다시 로그인되는지가 점검 대상이다)
 - [ ] 재적용 시각을 `RECOVERY_SECURITY_REAPPLIED_AT` 에 적었다 —
       `checks.postRestoreSecurity.detail.state` 가 `recorded`(차단 중 미기록이면 `pending` 이다)
+- [ ] 그 재적용의 **대상 목록을 추릴 출처가 있었는지** — `checks.postRestoreSecurity.detail.evidenceAvailable`
+      이 `available` 이다(§3-15). `unrecorded`·`carried_over` 면 2·3번은 **대상 없이** 적힌 것이고,
+      그래도 위 `state` 는 `recorded` 로 나온다
 - [ ] 그 `recorded` 가 **이번 사건의 것인지** 확인했다 — `checks.postRestoreSecurity.detail.recordCorroborated`
       가 `true` 다(§3-14). `false` 면 지난 복구가 남긴 시각이 **차단을 켠 순간 `recorded` 로 뒤집힌**
       것이고, 그 상태로는 이 단계를 하나도 수행하지 않고 7단계 선행 조건이 통과한다.
@@ -2512,11 +2631,13 @@ node --input-type=module -e "import fs from 'node:fs';import {parseCoverageRecor
       리허설이라면 고지를 발신하지 않으므로 비고에 **발신하지 않았다는 사실**을 적는다
 - [ ] `RECOVERY_RESTORE_POINT` 를 지웠다 — `checks.lossNotice.detail.state` 가 `normal`
 - [ ] `RECOVERY_WRITE_FREEZE_AT` 를 지웠다 — `checks.incidentClosure.detail.state` 가 `normal`
+- [ ] `RECOVERY_EVIDENCE_PRESERVED_AT` 를 지웠다 — `checks.incidentClosure.detail.evidenceState` 가
+      `normal`(남으면 다음 사건에서 **보존하지 않은 복구가 「보존했다」로** 보인다. §3-15)
 - [ ] `RECOVERY_SECURITY_REAPPLIED_AT` 를 지웠다 — `checks.postRestoreSecurity.detail.state` 가 `normal`
       (남으면 다음 사건에서 **옛 시각이 「재적용했다」는 근거**로 쓰인다)
 - [ ] `RECOVERY_EXTERNAL_RECONCILED_AT` 를 지웠다 — `checks.externalState.detail.state` 가
       `not_applicable`(반영 OFF) 또는 `normal`(반영 ON) 로 돌아왔다
-- [ ] 다섯 표지가 **전건** 지워졌는지 확인했다 — `checks.postRestoreSecurity.detail.timelineVerdict`
+- [ ] 여섯 표지가 **전건** 지워졌는지 확인했다 — `checks.postRestoreSecurity.detail.timelineVerdict`
       가 `absent` 다(§3-14). 하나라도 남으면 다음 사건에서 차단을 켜는 순간 `stale_record` 가
       `recorded` 로 뒤집혀 **경고가 정작 쓸모 있어지는 순간에 사라진다** — 지우는 것은 이번 사건의
       마무리가 아니라 다음 사건의 7단계 게이트를 살려 두는 일이다

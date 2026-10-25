@@ -48,6 +48,7 @@
  *   대상 목록은 §3-5 보존본에서 사람이 추린다. 이 모듈은 **무엇을·언제·어떤 순서로** 까지만 말한다.
  * - **새 거짓 ok 를 만들지 않는다**: 재적용을 기록했다는 것이 「되살아난 접근 수단이 없다」는 뜻이 아니다.
  */
+import { assessPreservation, evidenceAvailability } from './evidencePreservation.ts';
 import { parseInstant } from './incidentEvidence.ts';
 import { assessTimeline, markerCorroboration } from './incidentTimeline.ts';
 import { rollbackPhase, type RollbackPhase } from './deployRollback.ts';
@@ -447,6 +448,12 @@ export function securityReapplyCheck(args?: { env?: Record<string, string | unde
   const timeline = assessTimeline({ env });
   const corr = markerCorroboration(SECURITY_REAPPLIED_ENV, timeline);
 
+  // 2번·3번의 **대상 목록은 §3-5 보존본에서만 나온다**(이 모듈의 머리말이 그렇게 적어 두었다).
+  // 보존을 거르면 전환 뒤 그 목록을 만들 방법이 없는데 위 `state` 는 그래도 `recorded` 가 되고
+  // §3-14 귀속까지 통과한다 — **할 수 없었던 단계가 수행된 것으로** 7단계 문을 연다. 그래서
+  // 출처 유무를 같은 칸에서 함께 말한다(§3-15). `ok` 는 바꾸지 않는다.
+  const evidence = evidenceAvailability(assessPreservation({ env }));
+
   return {
     ok: state === 'normal' || state === 'recorded',
     required: false,
@@ -460,6 +467,11 @@ export function securityReapplyCheck(args?: { env?: Record<string, string | unde
       recordCorroborated: corr.corroborated,
       recordBasis: corr.basis,
       timelineVerdict: timeline.verdict,
+      /**
+       * 2·3번이 **대상을 추릴 출처**가 있는가(§3-15). `recorded` 는 「시각을 적었다」까지이고,
+       * 적을 수 있었다는 사실이 **추릴 수 있었다**는 뜻은 아니다.
+       */
+      evidenceAvailable: evidence.availability,
       /** 되돌아가는 보안 상태의 개수 — 내용은 §3-8 에 있다(응답에 계정 정보를 담지 않는다) */
       revertCount: SECURITY_REVERTS.length,
       sessionTtlDays: SESSION_TTL_DAYS,
@@ -468,7 +480,13 @@ export function securityReapplyCheck(args?: { env?: Record<string, string | unde
       runbook: SECURITY_RUNBOOK_REF,
       // 귀속을 말할 수 없는 기록은 **같은 칸에서** 그 사실을 함께 말한다 — `state` 만 읽는
       // 담당자(체크리스트가 그렇게 지시한다)에게 닿지 않으면 판정이 응답에만 남는다.
-      note: corr.basis === 'anchor' || corr.basis === 'absent' ? STATE_NOTE[state] : `${STATE_NOTE[state]} / ${corr.note}`,
+      note: [
+        STATE_NOTE[state],
+        corr.basis === 'anchor' || corr.basis === 'absent' ? null : corr.note,
+        evidence.availability === 'available' || evidence.availability === 'not_applicable' ? null : evidence.note,
+      ]
+        .filter((x) => x !== null)
+        .join(' / '),
     },
   };
 }

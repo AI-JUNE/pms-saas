@@ -38,6 +38,7 @@
 import { isSwitchOn, presenceOf } from './envPresence.ts';
 import { HEALTH_DEGRADED_HEADER } from './healthSignal.ts';
 import { FREEZE_AT_ENV } from './incidentClosure.ts';
+import { PRESERVED_AT_ENV } from './evidencePreservation.ts';
 import { EXTERNAL_RECONCILED_ENV } from './externalReconcile.ts';
 import { NOTICE_AT_ENV, RESTORE_POINT_ENV } from './lossNotice.ts';
 import { SECURITY_REAPPLIED_ENV } from './postRestoreSecurity.ts';
@@ -183,6 +184,7 @@ export const INCIDENT_MARKERS: readonly IncidentMarker[] = [
   { key: WRITE_FREEZE_ENV, kind: 'switch', means: '쓰기 차단(§3 2단계)이 걸려 있다 — 복구 중이다' },
   { key: FREEZE_AT_ENV, kind: 'record', means: '차단을 건 시각이 기록돼 있다(§3-7) — 사건 타임라인이 열려 있다' },
   { key: RESTORE_POINT_ENV, kind: 'record', means: '복구 시점(T-ε)이 기록돼 있다(§3-10) — 유실 구간의 **시작**이다' },
+  { key: PRESERVED_AT_ENV, kind: 'record', means: '조사 근거 보존(§3-5)을 마친 시각이 기록돼 있다(§3-15)' },
   { key: NOTICE_AT_ENV, kind: 'record', means: '유실 구간 고지를 발신한 시각이 기록돼 있다(§3 8단계 2번)' },
   { key: SECURITY_REAPPLIED_ENV, kind: 'record', means: '보안 상태 재적용 시각이 기록돼 있다(§3 6-1단계)' },
   { key: EXTERNAL_RECONCILED_ENV, kind: 'record', means: '외부 상태 대조 시각이 기록돼 있다(§3 6-2단계)' },

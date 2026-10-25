@@ -83,8 +83,11 @@ export interface TimelineMarker {
 /**
  * §3 이 복구 중에만 넣으라고 지시하는 **시각 기록** 전건. 스위치(`RECOVERY_WRITE_FREEZE`·
  * `RECOVERY_REHEARSAL_ACTIVE`)는 시각이 없어 귀속을 말할 수 없으므로 여기에 넣지 않는다 —
- * `healthDisclosure.INCIDENT_MARKERS` 의 `kind: 'record'` 와 **같은 다섯 건**이고,
+ * `healthDisclosure.INCIDENT_MARKERS` 의 `kind: 'record'` 와 **같은 여섯 건**이고,
  * 테스트가 양방향으로 대조한다.
+ *
+ * ※ 2026-10-25 에 `RECOVERY_EVIDENCE_PRESERVED_AT`(§3-5 보존 수행)이 더해졌다 — 그전에는
+ *   되돌릴 수 없는 두 일(대외 고지·전환으로 사라지는 감사 이력) 중 **한쪽에만** 표지가 있었다.
  */
 export const TIMELINE_MARKERS: readonly TimelineMarker[] = [
   {
@@ -110,9 +113,20 @@ export const TIMELINE_MARKERS: readonly TimelineMarker[] = [
     detectable: false,
   },
   {
+    key: 'RECOVERY_EVIDENCE_PRESERVED_AT',
+    step: '§3-5(조사 근거 보존 — 2단계 차단 뒤, 3단계 전)',
+    order: 2,
+    relation: 'after_anchor',
+    readAs: '`checks.incidentClosure.detail.evidenceState` 가 `recorded`',
+    carryOver:
+      '보존하지 않은 복구가 「보존했다」로 보이고, 6-1단계 2·3번이 **대상을 추릴 출처 없이** 완료로 적힌다 — ' +
+      '전환 뒤에는 그 이력이 없어지므로 **되찾을 경로가 없다**(§3-15)',
+    detectable: true,
+  },
+  {
     key: 'RECOVERY_SECURITY_REAPPLIED_AT',
     step: '§3 6-1단계 5번(보안 상태 재적용)',
-    order: 2,
+    order: 3,
     relation: 'after_anchor',
     readAs: '`checks.postRestoreSecurity.detail.state` 가 `recorded`',
     carryOver:
@@ -123,7 +137,7 @@ export const TIMELINE_MARKERS: readonly TimelineMarker[] = [
   {
     key: 'RECOVERY_EXTERNAL_RECONCILED_AT',
     step: '§3 6-2단계 5번(외부 상태 대조)',
-    order: 3,
+    order: 4,
     relation: 'after_anchor',
     readAs: '`checks.externalState.detail.state` 가 `recorded`',
     carryOver:
@@ -134,7 +148,7 @@ export const TIMELINE_MARKERS: readonly TimelineMarker[] = [
   {
     key: 'RECOVERY_LOSS_NOTICE_AT',
     step: '§3 8단계 2번(유실 고지)',
-    order: 4,
+    order: 5,
     relation: 'after_anchor',
     readAs: '`checks.lossNotice.detail.state` 가 `notified`',
     carryOver:
@@ -168,6 +182,14 @@ export interface TimelineMisread {
 }
 
 export const TIMELINE_MISREADS: readonly TimelineMisread[] = [
+  {
+    key: 'RECOVERY_EVIDENCE_PRESERVED_AT',
+    where: '`checks.incidentClosure.detail.evidenceState`',
+    says: '`recorded` — 「차단 중이고 보존을 마친 시각이 기록돼 있다」',
+    truth:
+      '이번 사건에서는 아무것도 내보내지 않았다. 6-1단계 2·3번이 추릴 출처가 없는데 ' +
+      '`evidenceAvailable` 이 `available` 로 나온다(§3-15)',
+  },
   {
     key: 'RECOVERY_SECURITY_REAPPLIED_AT',
     where: '`checks.postRestoreSecurity.detail.state`',

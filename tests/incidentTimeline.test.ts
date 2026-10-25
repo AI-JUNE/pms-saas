@@ -27,6 +27,7 @@ import { NOTICE_AT_ENV, RESTORE_POINT_ENV } from '../src/lib/lossNotice.ts';
 import { SECURITY_REAPPLIED_ENV, securityReapplyCheck } from '../src/lib/postRestoreSecurity.ts';
 import { EXTERNAL_RECONCILED_ENV, externalStateCheck } from '../src/lib/externalReconcile.ts';
 import { INCIDENT_MARKERS } from '../src/lib/healthDisclosure.ts';
+import { PRESERVED_AT_ENV } from '../src/lib/evidencePreservation.ts';
 import { PROCEDURE_UNITS } from '../src/lib/rehearsalCoverage.ts';
 import { parseChecklistBoxes, unitItemLoad } from '../src/lib/rehearsalChecklist.ts';
 
@@ -58,13 +59,13 @@ const FULL: Record<string, string | undefined> = {
 
 /* ─────────────────────────────── 정본 ─────────────────────────────── */
 
-test('정본: 시각 기록 5건 · 앵커 1건 · 모양 점검 통과', () => {
-  assert.equal(TIMELINE_MARKERS.length, 5);
+test('정본: 시각 기록 6건 · 앵커 1건 · 모양 점검 통과', () => {
+  assert.equal(TIMELINE_MARKERS.length, 6);
   assert.deepEqual(auditTimelineRegistry(), []);
   assert.equal(TIMELINE_MARKERS.filter((m) => m.relation === 'anchor').length, 1);
   assert.equal(ANCHOR_ENV, FREEZE_AT_ENV, '앵커가 §3-7 의 구간 끝 키와 갈라졌다');
   assert.deepEqual(recordKeys().sort(), [
-    EXTERNAL_RECONCILED_ENV, NOTICE_AT_ENV, RESTORE_POINT_ENV, SECURITY_REAPPLIED_ENV,
+    EXTERNAL_RECONCILED_ENV, NOTICE_AT_ENV, PRESERVED_AT_ENV, RESTORE_POINT_ENV, SECURITY_REAPPLIED_ENV,
   ].sort());
   // 사각지대 선언 — 앵커와 T-ε 은 대조 상대가 없다(그 사실을 숨기지 않는다)
   assert.equal(markerOf(ANCHOR_ENV)?.detectable, false);
@@ -254,7 +255,7 @@ test('출력: 사람이 읽는 요약은 할 일과 사각지대를 함께 낸�
   assert.ok(txt.includes('구분 불가(사각지대)'), 'T-ε 의 한계를 숨겼다');
 
   const s = timelineStatus(FULL);
-  assert.deepEqual([s.verdict, s.anchorKey, s.markers], ['consistent', ANCHOR_ENV, 5]);
+  assert.deepEqual([s.verdict, s.anchorKey, s.markers], ['consistent', ANCHOR_ENV, 6]);
   assert.equal(s.limits, TIMELINE_LIMITS.length);
   assert.equal(timelineStatus({}).verdict, 'absent');
 });
@@ -349,7 +350,7 @@ test('RUNBOOK: 8단계 4번이 표지 **전건** 삭제를 지시한다', () => 
 
   // 「전건」이라는 낱말은 8단계 2번(「통로는 전건 수동이다」)에도 있다 — 지시가 사라진 것을
   // 그 낱말로 가릴 수 없게 고정한다.
-  const loosened = RUNBOOK.replace(/\*\*다섯 키 전건을 지운다\.\*\* /, '');
+  const loosened = RUNBOOK.replace(/\*\*여섯 키 전건을 지운다\.\*\* /, '');
   assert.ok(
     auditRunbookTimeline(loosened).some((p) => p.includes('전건')),
     '전건 삭제 지시가 사라져도 통과했다 — 남은 표지가 다음 사건의 근거가 된다',
@@ -382,8 +383,10 @@ test('순수 모듈: `process.env`·DB·next·fs 미접근 · 신규 env 0', () 
   const body = MODULE_SRC.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
   assert.ok(!/process\.env/.test(body), 'env 는 인자로만 받는다');
   assert.ok(!/from\s+['"](next|drizzle|node:fs|@\/db)/.test(body));
-  // 새 키를 만들지 않았다 — 정본의 다섯 키는 모두 다른 모듈이 이미 쓰는 키다
-  const owned = [FREEZE_AT_ENV, RESTORE_POINT_ENV, SECURITY_REAPPLIED_ENV, EXTERNAL_RECONCILED_ENV, NOTICE_AT_ENV];
+  // 새 키를 만들지 않았다 — 정본의 여섯 키는 모두 다른 모듈이 이미 쓰는 키다
+  const owned = [
+    FREEZE_AT_ENV, RESTORE_POINT_ENV, PRESERVED_AT_ENV, SECURITY_REAPPLIED_ENV, EXTERNAL_RECONCILED_ENV, NOTICE_AT_ENV,
+  ];
   for (const m of TIMELINE_MARKERS) {
     assert.ok(owned.includes(m.key), `${m.key} 는 이 모듈이 새로 만든 키다 — §4 레지스트리에 함께 등록해야 한다`);
   }

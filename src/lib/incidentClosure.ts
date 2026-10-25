@@ -39,6 +39,7 @@
  *   폴백을 만들지 않는다). 참고용 경과시간은 `elapsedMinutes` 로 **따로** 둔다.
  * - **새 거짓 ok 를 만들지 않는다**: 구간을 확정했다는 것이 「이만큼만 유실됐다」는 뜻이 아니다.
  */
+import { assessPreservation } from './evidencePreservation.ts';
 import { parseInstant } from './incidentEvidence.ts';
 import { FREEZE_LIMITS, WRITE_FREEZE_ENV, writeFreezeEnabled } from './writeFreeze.ts';
 
@@ -467,6 +468,12 @@ export function closureCheck(args?: {
   else if (frozen) state = at ? 'recorded' : 'frozen_unrecorded';
   else state = at ? 'stale_record' : 'normal';
 
+  // §3-5 **조사 근거 보존**이 수행됐는지 같은 자리에서 함께 말한다(§3-15). 이 체크가 보는 시각이
+  // 바로 그 보존의 귀속 기준점이고, 쓸모 있는 시점도 같다 — 차단이 걸려 있는 동안(= 아직 전환
+  // 전인 동안)만 보존이 가능하다. **판정 어휘와 `ok` 는 바꾸지 않는다**: 보존은 사람이 하는 일이고
+  // 미기록으로 `ok` 를 내리면 복구일에 거짓 차단이 된다 — 달라지는 것은 **다음에 할 일**이다.
+  const evidence = assessPreservation({ env });
+
   return {
     ok: state === 'normal' || state === 'recorded',
     required: false,
@@ -477,8 +484,18 @@ export function closureCheck(args?: {
       frozenAt: at,
       switchKey: WRITE_FREEZE_ENV,
       recordKey: FREEZE_AT_ENV,
+      /** §3-5 보존 수행 기록의 상태(§3-15). 이 체크의 `state` 와 **같은 어휘**다 */
+      evidenceState: evidence.state,
+      /** 「그 보존 기록이 **이번 사건**의 것이라고 말할 수 있는가」 — 보존본의 완전성은 아니다 */
+      evidenceCorroborated: evidence.corroborated,
+      /** 보존본이 유실 구간의 **끝까지** 덮는가(`ok`/`uncovered`/`unknown`) */
+      evidenceCoverage: evidence.coverage.verdict,
+      /** 보존본이 덮지 못한 구간(분). 수치를 지어내지 않으므로 그 밖에는 null */
+      evidenceUncoveredMinutes: evidence.coverage.minutes,
       runbook: CLOSURE_RUNBOOK_REF,
-      note: STATE_NOTE[state],
+      // 보존 쪽에 할 일이 있으면 **같은 칸에서** 함께 말한다 — `state` 만 읽는 담당자에게
+      // 닿지 않으면 판정이 응답에만 남는다(§3-14 가 같은 이유로 둔 배선이다).
+      note: evidence.actionable ? `${STATE_NOTE[state]} / ${evidence.action}` : STATE_NOTE[state],
     },
   };
 }

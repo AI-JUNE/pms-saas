@@ -228,6 +228,14 @@ export const PROCEDURE_UNITS: readonly ProcedureUnit[] = [
       '표지를 지우지 않고 끝낸다 — 평상시 `stale_record` 경고는 degraded(200)라 아무도 보지 않고, 다음 사건에서 차단을 켜는 순간 `recorded` 로 뒤집혀 7단계 선행 조건이 몇 달 전 시각으로 통과한다(되살아난 세션·어긋난 플랜·미고지가 모두 「완료」로 보인다)',
   },
   {
+    key: '3-15',
+    title: '근거 보존을 수행했는가 — §3-5 의 수행 기록과 보존 범위',
+    since: '2026-10-25',
+    cited: true,
+    skipped:
+      '보존을 거른 채(또는 차단 전에 받은 채) 전환한다 — 어떤 검증도 실패하지 않는다. 전환 뒤에는 감사 이력이 「아무 일도 없었던 것처럼」 보이고, 6-1단계 2·3번은 대상을 추릴 출처 없이 시각만 적혀 `recorded`·`recordCorroborated: true` 로 7단계 문을 연다',
+  },
+  {
     key: '4-10',
     title: '복구 후 확인 순서',
     since: '2026-09-30',

@@ -66,6 +66,7 @@ export const TRANSIENT_KEYS: readonly string[] = [
   'RECOVERY_WRITE_FREEZE', // checks.writeFreeze
   'RECOVERY_WRITE_FREEZE_AT', // checks.incidentClosure
   'RECOVERY_RESTORE_POINT', // checks.lossNotice
+  'RECOVERY_EVIDENCE_PRESERVED_AT', // checks.incidentClosure(evidenceState)·checks.postRestoreSecurity
   'RECOVERY_LOSS_NOTICE_AT', // checks.lossNotice
   'RECOVERY_SECURITY_REAPPLIED_AT', // checks.postRestoreSecurity
   'RECOVERY_EXTERNAL_RECONCILED_AT', // checks.externalState
