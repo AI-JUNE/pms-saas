@@ -49,6 +49,7 @@
  * - **새 거짓 ok 를 만들지 않는다**: 재적용을 기록했다는 것이 「되살아난 접근 수단이 없다」는 뜻이 아니다.
  */
 import { parseInstant } from './incidentEvidence.ts';
+import { assessTimeline, markerCorroboration } from './incidentTimeline.ts';
 import { rollbackPhase, type RollbackPhase } from './deployRollback.ts';
 import { FREEZE_EXEMPT, WRITE_FREEZE_ENV, writeFreezeEnabled } from './writeFreeze.ts';
 
@@ -438,6 +439,14 @@ export function securityReapplyCheck(args?: { env?: Record<string, string | unde
   else if (frozen) state = at ? 'recorded' : 'pending';
   else state = at ? 'stale_record' : 'normal';
 
+  // 그 `recorded` 가 **이번 사건의 것인지**(§3-14). 위 세 줄은 값이 읽히는지만 보므로, 지난 복구에서
+  // §3 8단계 4번(표지 삭제)을 거른 시각이 남아 있으면 평상시 `stale_record` 가 **차단을 켜는 순간**
+  // `recorded` 로 뒤집혀 7단계 선행 조건이 몇 달 전 시각으로 통과한다. 판정 어휘(`state`)와 `ok` 는
+  // 그대로 두고 — 타임존 누락으로 잘못 적힌 값과 「하지 않았다」를 코드가 구분할 수 없고 둘 다 고쳐야
+  // 한다 — **다음에 할 일**만 달라지게 한다.
+  const timeline = assessTimeline({ env });
+  const corr = markerCorroboration(SECURITY_REAPPLIED_ENV, timeline);
+
   return {
     ok: state === 'normal' || state === 'recorded',
     required: false,
@@ -447,13 +456,19 @@ export function securityReapplyCheck(args?: { env?: Record<string, string | unde
       phase,
       recorded: Boolean(at),
       reappliedAt: at,
+      /** 「이 시각이 **이번 사건**의 기록이라고 말할 수 있는가」 — 재적용을 했다는 뜻이 아니다(§3-14) */
+      recordCorroborated: corr.corroborated,
+      recordBasis: corr.basis,
+      timelineVerdict: timeline.verdict,
       /** 되돌아가는 보안 상태의 개수 — 내용은 §3-8 에 있다(응답에 계정 정보를 담지 않는다) */
       revertCount: SECURITY_REVERTS.length,
       sessionTtlDays: SESSION_TTL_DAYS,
       switchKey: WRITE_FREEZE_ENV,
       recordKey: SECURITY_REAPPLIED_ENV,
       runbook: SECURITY_RUNBOOK_REF,
-      note: STATE_NOTE[state],
+      // 귀속을 말할 수 없는 기록은 **같은 칸에서** 그 사실을 함께 말한다 — `state` 만 읽는
+      // 담당자(체크리스트가 그렇게 지시한다)에게 닿지 않으면 판정이 응답에만 남는다.
+      note: corr.basis === 'anchor' || corr.basis === 'absent' ? STATE_NOTE[state] : `${STATE_NOTE[state]} / ${corr.note}`,
     },
   };
 }

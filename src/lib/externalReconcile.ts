@@ -51,6 +51,7 @@
  */
 import { parseInstant } from './incidentEvidence.ts';
 import { FREEZE_AT_ENV, freezeAtFromEnv } from './incidentClosure.ts';
+import { assessTimeline, markerCorroboration } from './incidentTimeline.ts';
 import { FREEZE_EXEMPT, WRITE_FREEZE_ENV, writeFreezeEnabled } from './writeFreeze.ts';
 import { CORE_TABLE_ROLES } from './recoveryVerify.ts';
 
@@ -547,6 +548,12 @@ export function externalStateCheck(args?: { env?: Record<string, string | undefi
   else if (frozen) state = at ? 'recorded' : 'pending';
   else state = at ? 'stale_record' : 'normal';
 
+  // 그 `recorded` 가 **이번 사건의 것인지**(§3-14). 지난 복구가 남긴 시각이면 차단을 켜는 순간
+  // `stale_record` 가 `recorded` 로 뒤집혀 7단계 선행 조건이 통과하고, 제공자와 어긋난 플랜 위로
+  // 쓰기가 쌓인다. 판정 어휘(`state`)와 `ok` 는 그대로 두고 **다음에 할 일**만 달라지게 한다.
+  const timeline = assessTimeline({ env });
+  const corr = markerCorroboration(EXTERNAL_RECONCILED_ENV, timeline);
+
   return {
     ok: state === 'not_applicable' || state === 'normal' || state === 'recorded',
     required: false,
@@ -558,6 +565,10 @@ export function externalStateCheck(args?: { env?: Record<string, string | undefi
       paymentsLive: paymentsLive(env),
       recorded: Boolean(at),
       reconciledAt: at,
+      /** 「이 시각이 **이번 사건**의 기록이라고 말할 수 있는가」 — 대조를 했다는 뜻이 아니다(§3-14) */
+      recordCorroborated: corr.corroborated,
+      recordBasis: corr.basis,
+      timelineVerdict: timeline.verdict,
       /** 참고용 — §3-7 유실 구간의 끝. 대조 구간의 끝이 **아니다** */
       freezeAt: freeze.at,
       appliedColumn: APPLIED_PLAN_COLUMN,
@@ -570,7 +581,8 @@ export function externalStateCheck(args?: { env?: Record<string, string | undefi
       recordKey: EXTERNAL_RECONCILED_ENV,
       runbook: EXTERNAL_RUNBOOK_REF,
       limits: EXTERNAL_LIMITS,
-      note: STATE_NOTE[state],
+      // 귀속을 말할 수 없는 기록은 **같은 칸에서** 그 사실을 함께 말한다(§3-14).
+      note: corr.basis === 'anchor' || corr.basis === 'absent' ? STATE_NOTE[state] : `${STATE_NOTE[state]} / ${corr.note}`,
     },
   };
 }
