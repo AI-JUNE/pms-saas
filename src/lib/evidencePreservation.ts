@@ -22,7 +22,7 @@
  *      그러면 `state: recorded` + §3-14 의 `recordCorroborated: true` 가 나온다 —
  *      **할 수 없었던 단계가 「이번 사건에 수행됐다」로 보고되고** 7단계 문이 열린다.
  *
- *  (3) **「끝까지 받았는가」도 응답 한 번뿐이었다.** §3-5 3번은 `capture.verdict` 가
+ *  (3) **「끝까지 받았는가」도 응답 한 번뿐이었다.** §3-5 4번은 `capture.verdict` 가
  *      `truncated` 인 채로 전환하지 말라고 하는데(잘려 나가는 쪽이 바로 「T 직전」이다),
  *      그 판정은 조회 응답에만 있다. 전환 뒤에는 **끝까지 받았는지 물을 자리가 없다.**
  *
@@ -90,6 +90,16 @@ export const EVIDENCE_SOURCES: readonly EvidenceSource[] = [
     completeness: '응답 `nextCursor` 가 null',
     afterSwitch: '6-1단계 2·3번이 대상을 추릴 **유일한 출처**가 사라진다',
   },
+  {
+    // 2026-10-26 추가(§3-16). 위 두 출처는 **연락처를 담지 않는다** — 감사 detail 은 PII 원문
+    // 저장이 금지된 설계라, 보존을 완벽히 해도 「누구인지」까지이고 「어디로 보낼지」가 아니다.
+    path: '조직·회원 명단(`noticeAudience.ROSTER_SNAPSHOT_SQL` — 읽기 전용 조회 1건)',
+    scope: `전 테넌트의 조직·구성원과 **연락처**(\`users.email\`) · \`created_at\` 포함`,
+    completeness: '조직 수·회원 수를 받은 파일에서 확인(전 테넌트 명단을 주는 API 경로는 **없다**)',
+    afterSwitch:
+      '8단계 2번 **고지 대상**을 특정할 유일한 경로가 사라진다 — 복구 시점 이후 가입분은 복구된 ' +
+      'DB 에 행이 없고, 바뀐 메일 주소는 옛 값으로 되돌아간다(§3-16)',
+  },
 ];
 
 /* ──────────────────── 보존본이 없으면 할 수 없게 되는 일 ──────────────────── */
@@ -136,6 +146,17 @@ export const EVIDENCE_DEPENDENTS: readonly EvidenceDependent[] = [
     step: '§3 8단계 3번·§6 표(사건·조치 기록)',
     needs: '원인 작업·대응 이력',
     ifMissing: '§6 표의 사건 기록을 **사람 기억으로** 적게 되고, 그 표가 다음 복구의 유일한 선례다',
+    failsLoudly: false,
+  },
+  {
+    // 2026-10-26 추가(§3-16). 되돌릴 수 없는 **두 일 사이**의 의존이다 — 보존을 거르면
+    // 다른 하나(대외 고지)의 **대상**을 특정할 수 없는데, 고지 시각은 그래도 적을 수 있다.
+    step: '§3 8단계 2번(유실 구간 대외 고지)',
+    needs: '고지 **대상 명단** — 연락처를 담은 출처는 복구 대상 DB 안의 `users.email` 하나뿐이다',
+    ifMissing:
+      '복구 시점 이후 가입분이 명단에서 빠지고(데이터를 **전부** 잃은 쪽이다) 바뀐 주소는 옛 값으로 ' +
+      '나가는데, `RECOVERY_LOSS_NOTICE_AT` 는 그래도 적을 수 있어 `state: notified` 가 된다 — ' +
+      '전원에게 닿은 고지와 **글자 하나 다르지 않다**(§3-16)',
     failsLoudly: false,
   },
   {
@@ -236,7 +257,7 @@ export const ACTION_PRESERVE_UNANCHORED =
 export const CAVEAT_CLAIM_NOT_PROOF =
   '이 표지는 사람이 적은 **주장**이다 — 보존본의 존재·완전성·보관 위치를 코드가 확인한 것이 아니다';
 export const CAVEAT_TRUNCATION_UNKNOWN =
-  '`capture.verdict` 가 `truncated` 였는지는 이 값으로 알 수 없다 — 잘린 쪽이 바로 「T 직전」이다(§3-5 3번)';
+  '`capture.verdict` 가 `truncated` 였는지는 이 값으로 알 수 없다 — 잘린 쪽이 바로 「T 직전」이다(§3-5 4번)';
 export const CAVEAT_OUTSIDE_DB_UNKNOWN =
   '**DB 밖**에 두었는지도 알 수 없다 — 같은 DB 안의 표·메모로 옮겨 적으면 전환과 함께 사라지는데 표지는 `recorded` 다';
 export const CAVEAT_CROSS_TENANT_BLIND =

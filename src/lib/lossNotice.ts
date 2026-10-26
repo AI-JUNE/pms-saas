@@ -54,6 +54,7 @@ import {
   type LossWindow,
 } from './incidentClosure.ts';
 import { parseInstant } from './incidentEvidence.ts';
+import { audienceFromEnv } from './noticeAudience.ts';
 import { WRITE_FREEZE_ENV, writeFreezeEnabled } from './writeFreeze.ts';
 
 /** 구간의 **시작**(실제로 적용한 복구 시점 T-ε)을 적어 두는 키. 평상시 미설정이 정상이다 */
@@ -237,6 +238,8 @@ export const NOTICE_LIMITS: readonly string[] = [
   '이 배포의 env 만 본다 — 스코프를 틀려 적은 기록은 보이지 않고, 다른 배포에서 보낸 고지도 알 수 없다',
   '구간 수치는 §3-7 판정을 그대로 쓴다 — 그 한계(건수·대상 미포함·차단이 막지 못한 경로)는 `closureLimits` 가 그대로 적용된다',
   '약관 제4조의 「사후 고지」가 요구하는 **기한**은 문서에 수치가 없다 — 이 판정은 늦었는지를 말하지 않는다',
+  '**대상 범위**는 이 값으로 알 수 없다 — 명단의 유일한 연락처 출처가 복구 대상 DB 안에 있어 전환과 함께 ' +
+    '되돌아간다. 그 근거 상태는 `audienceVerdict`(§3-16)가 같은 자리에서 말한다',
 ];
 
 export interface NoticeInput {
@@ -436,12 +439,27 @@ export function lossNoticeCheck(args?: { env?: Record<string, string | undefined
 } {
   const env = args?.env ?? process.env;
   const a = noticeFromEnv(env, args?.now);
+  // 고지할 **상대**를 특정할 근거가 있는지 같은 자리에서 함께 말한다(§3-16). `ok` 는 바꾸지
+  // 않는다 — 명단은 사람이 받는 것이고, 미보존으로 `ok` 를 내리면 복구일에 거짓 차단이 된다.
+  // 달라지는 것은 **다음에 할 일**이다(차단 중이면 「지금 받는다」, 전환 뒤면 「닿지 않은 대상이
+  // 있을 수 있다는 사실을 고지문·§6 표에 적는다」).
+  const aud = audienceFromEnv(env);
 
   return {
     ok: a.state === 'normal' || a.state === 'notified',
     required: false,
     detail: {
       state: a.state,
+      /** 명단 근거 판정(§3-16). 주소·명단·행 수는 담지 않는다 */
+      audienceVerdict: aud.verdict,
+      /** §3-5 보존 기록이 있는가 — **내용은 확인하지 않는다**(주장이다) */
+      audienceRosterClaimed: aud.rosterClaimed,
+      /** 명단을 **지금** 받을 수 있는가(차단 중 = 전환 전) */
+      audiencePreservable: aud.preservable,
+      /** 「전원에게 갔는가」 — 코드는 **늘 모른다**. `notified` 를 전원 고지로 읽지 않게 함께 둔다 */
+      audienceCoversAll: aud.coversAll,
+      audienceDrifts: aud.drifts.length,
+      audienceNote: aud.action,
       frozen: writeFreezeEnabled(env),
       /** 구간을 산출할 수 있는 상태인가 — 수치는 담지 않는다 */
       windowVerdict: a.window.verdict,
