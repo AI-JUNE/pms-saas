@@ -2,9 +2,11 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, Search, X, Pencil, Trash2, Inbox, SlidersHorizontal, Download, Sheet, ChevronUp, ChevronDown } from 'lucide-react';
+import { Plus, Search, X, Pencil, Trash2, Inbox, SlidersHorizontal, Download, Sheet, ChevronUp, ChevronDown, Upload } from 'lucide-react';
 import { Shell } from './Shell';
+import { ImportWizard } from './ImportWizard';
 import { Pill, LABEL } from '@/lib/ui';
+import { createUndoQueue, cleanWidths, UNDO_MS } from '@/lib/undoQueue';
 import { Comments } from './Comments';
 import { IssueJournal } from './IssueJournal';
 import { IssueLinks } from './IssueLinks';
@@ -57,6 +59,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
   const primaryField = (fields.find((f) => f.required)?.key) || fields[0]?.key;
   const toggleSel = (id: number) => setSel((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const [open, setOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [form, setForm] = useState<any>({});
   const [err, setErr] = useState('');
@@ -70,6 +73,40 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
   const [fullTag, setFullTag] = useState(false);
   const urlSyncRef = useRef(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  // 지연 삭제 — 행은 바로 숨기고 DELETE 는 7초 뒤에 보낸다(그 사이 되돌리기 가능, 서버는 그대로)
+  const [undoNote, setUndoNote] = useState<{ token: number; label: string } | null>(null);
+  const pidRef = useRef<number | null>(null);
+  const undoQ = useRef<ReturnType<typeof createUndoQueue> | null>(null);
+  if (!undoQ.current) undoQ.current = createUndoQueue(async (ids) => {
+    await Promise.all(ids.map((id) => fetch(`${endpoint}/${id}`, { method: 'DELETE', keepalive: true }).catch(() => null)));
+    setUndoNote((u) => (u && undoQ.current && undoQ.current.size() === 0 ? null : u));
+    load(pidRef.current);
+  });
+  useEffect(() => {
+    const q = undoQ.current!; const leave = () => { q.flush(); };
+    window.addEventListener('pagehide', leave);
+    return () => { window.removeEventListener('pagehide', leave); q.flush(); };
+  }, []);
+  useEffect(() => { if (!undoNote) return; const h = setTimeout(() => setUndoNote((u) => (u && u.token === undoNote.token ? null : u)), UNDO_MS); return () => clearTimeout(h); }, [undoNote]);
+  function scheduleDelete(ids: number[], label: string) {
+    const e = undoQ.current!.schedule(ids, label); if (!e) return;
+    const gone = new Set(e.ids);
+    setRows((rs) => rs.filter((r) => !gone.has(r.id)));
+    setUndoNote({ token: e.token, label });
+  }
+  function undoDelete() { if (undoNote && undoQ.current!.undo(undoNote.token)) load(pidRef.current); setUndoNote(null); }
+  // 열 너비 — 머리 오른쪽 끝을 끌어 조절, 화면별로 기억(더블클릭은 원래대로)
+  const [colW, setColW] = useState<Record<string, number>>({});
+  useEffect(() => { try { setColW(cleanWidths(JSON.parse(localStorage.getItem('pms.colw.' + title) || '{}'))); } catch {} }, [title]);
+  function startResize(e: React.PointerEvent, key: string) {
+    e.preventDefault(); e.stopPropagation();
+    const th = (e.currentTarget as HTMLElement).parentElement as HTMLElement; const x0 = e.clientX, w0 = th.getBoundingClientRect().width;
+    const move = (ev: PointerEvent) => setColW((m) => ({ ...m, [key]: Math.max(60, Math.min(800, Math.round(w0 + ev.clientX - x0))) }));
+    const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up);
+      setColW((m) => { try { localStorage.setItem('pms.colw.' + title, JSON.stringify(m)); } catch {} return m; }); };
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+  }
+  function resetWidth(key: string) { setColW((m) => { const n = { ...m }; delete n[key]; try { localStorage.setItem('pms.colw.' + title, JSON.stringify(n)); } catch {} return n; }); }
   function copyViewLink() {
     try { navigator.clipboard?.writeText(window.location.href); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 1500); } catch {}
   }
@@ -129,11 +166,12 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
   }
 
   async function load(p: number | null) {
+    pidRef.current = p;
     setLoading(true);
     const url = projectScoped && p ? `${endpoint}?projectId=${p}` : endpoint;
     const r = await fetch(url);
     if (r.status === 401) { router.push('/login'); return; }
-    const d = await r.json(); setRows(Array.isArray(d) ? d : []); setLoading(false);
+    const d = await r.json(); const gone = undoQ.current ? undoQ.current.pendingIds() : new Set<number>(); setRows(Array.isArray(d) ? d.filter((x: any) => !gone.has(x.id)) : []); setLoading(false);
   }
   useEffect(() => { const p = projectScoped ? (Number(localStorage.getItem('pms.project')) || null) : null; setPid(p); load(p); /* eslint-disable-next-line */ }, []);
   useEffect(() => {
@@ -249,9 +287,8 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
     if (res.ok) { setOpen(false); setDetail(null); load(pid); } else { const d = await res.json().catch(() => ({})); setErr(d.message || '저장 실패'); }
   }
   async function remove(row: any) {
-    if (!confirm(`삭제하시겠습니까?\n${row.code || ''} ${row.title || row.name || ''}`)) return;
-    const res = await fetch(`${endpoint}/${row.id}`, { method: 'DELETE' });
-    if (res.ok) { setDetail(null); load(pid); }
+    setDetail(null);
+    scheduleDelete([row.id], `${row.code ? row.code + ' ' : ''}${row.title || row.name || ''}`.trim() || '1건');
   }
   async function quickStatus(row: any, status: string) {
     const res = await fetch(`${endpoint}/${row.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
@@ -266,9 +303,9 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
     setSel(new Set()); load(pid);
   }
   async function bulkDelete() {
-    if (!confirm(`${nfmt(sel.size)}건을 삭제하시겠습니까?`)) return;
-    await Promise.all(Array.from(sel).map((id) => fetch(`${endpoint}/${id}`, { method: 'DELETE' })));
-    setSel(new Set()); load(pid);
+    const ids = Array.from(sel); if (!ids.length) return;
+    if (ids.length >= 20 && !confirm(`${nfmt(ids.length)}건을 삭제합니다. 7초 안에는 되돌릴 수 있습니다.`)) return;
+    setSel(new Set()); scheduleDelete(ids, `${nfmt(ids.length)}건`);
   }
   async function quickCreate(body: any) {
     const b: any = { ...body }; if (projectScoped) { if (!pid) return false; b.projectId = pid; }
@@ -379,6 +416,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
         <div className="sp" />
         <button className="btn btn-sm" onClick={exportCsv} title="CSV 내보내기"><Download style={{ width: 14 }} />CSV</button>
         <button className="btn btn-sm" onClick={exportXlsx} title="Excel 내보내기"><Sheet style={{ width: 14 }} />Excel</button>
+        {fields.length > 0 && <button className="btn btn-sm" onClick={() => setImportOpen(true)} title="엑셀·CSV·붙여넣기로 여러 건 한 번에 등록"><Upload style={{ width: 14 }} />가져오기</button>}
         <button className="btn btn-sm" onClick={toggleDensity} title="행 밀도 전환" aria-label="행 밀도 전환">{density === 'compact' ? '편안하게' : '컴팩트'}</button>
         <button className="btn btn-sm" onClick={toggleFullTag} title="풀셀 컬러 태그" aria-label="풀셀 컬러 태그" style={fullTag ? { background: 'var(--brand-50)', borderColor: 'var(--brand-100)', color: 'var(--brand-700)' } : undefined}>컬러셀</button>
         <div style={{ position: 'relative' }}>
@@ -427,7 +465,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
           <thead><tr>
             <th scope="col" style={{ width: 34, textAlign: 'center' }}><input type="checkbox" aria-label="전체 선택" checked={view.length > 0 && view.every((r) => sel.has(r.id))} onChange={(e) => setSel(e.target.checked ? new Set(view.map((r) => r.id)) : new Set())} /></th>
             {/* 정렬 헤더 키보드 접근성 — tabIndex(전역 focus-visible 링 적용)·Enter/Space 정렬·aria-sort로 현재 정렬 상태를 스크린리더에 노출 */}
-            {visibleColumns.map((c) => <th key={c.key} scope="col" tabIndex={0} aria-sort={sortK === c.key ? (sortDir === 1 ? 'ascending' : 'descending') : 'none'} title={`${c.label} 기준 정렬 — 클릭 또는 Enter로 오름차순/내림차순 전환`} onClick={() => sort(c.key)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); sort(c.key); } }}>{c.label}{sortK === c.key && <span className="arr" aria-hidden>{sortDir === 1 ? '▲' : '▼'}</span>}</th>)}
+            {visibleColumns.map((c) => <th key={c.key} scope="col" tabIndex={0} style={colW[c.key] ? { width: colW[c.key], minWidth: colW[c.key], maxWidth: colW[c.key] } : undefined} aria-sort={sortK === c.key ? (sortDir === 1 ? 'ascending' : 'descending') : 'none'} title={`${c.label} 기준 정렬 — 클릭 또는 Enter로 오름차순/내림차순 전환`} onClick={() => sort(c.key)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); sort(c.key); } }}>{c.label}{sortK === c.key && <span className="arr" aria-hidden>{sortDir === 1 ? '▲' : '▼'}</span>}<span className="col-rz" role="separator" aria-orientation="vertical" aria-label={`${c.label} 열 너비 조절`} title="끌어서 열 너비 조절 · 더블클릭은 원래대로" onPointerDown={(e) => startResize(e, c.key)} onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => { e.stopPropagation(); resetWidth(c.key); }} /></th>)}
             <th scope="col" className="no-sort" style={{ width: 90 }} aria-label="행 작업"></th>
           </tr></thead>
           <tbody>
@@ -563,6 +601,14 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
             </div></div>
             <div className="modal-f"><div className="sp" /><button type="button" className="btn btn-ghost" onClick={() => setOpen(false)}>취소</button><button type="submit" className="btn btn-pri">저장</button></div>
           </form>
+        </div>
+      )}
+      {importOpen && <ImportWizard title={title} endpoint={endpoint} fields={fields} projectId={pid} projectScoped={projectScoped} onClose={() => setImportOpen(false)} onDone={() => load(pid)} />}
+      {undoNote && (
+        <div className="undo-toast" role="status" aria-live="polite">
+          <span><b>삭제했습니다</b> · {undoNote.label}</span>
+          <button type="button" className="btn" onClick={undoDelete}>되돌리기</button>
+          <i style={{ animationDuration: `${UNDO_MS}ms` }} aria-hidden />
         </div>
       )}
     </Shell>

@@ -7,12 +7,13 @@ import {
   Bug, ShieldAlert, CalendarClock, Users, Bell, Search, LogOut, ChevronDown, Check, ClipboardCheck, CalendarDays,
   BarChart3, Activity, Settings, ShieldCheck, Command, User, GitBranch, Type, Circle, Menu, Camera,
   Share2, Server, Flame, ShoppingCart, MessageSquare, UserCheck, CalendarRange, Network, Gauge, ListChecks,
-  FileSearch,
+  FileSearch, Star, ArrowLeft,
 } from 'lucide-react';
 import { Logo } from './Logo';
 import { clearAppStorage } from '@/lib/appStorage';
 import { GowonMark } from './GowonMark';
 import { filterNav, canAccessScreen, type Principal } from '@/lib/screenAccess';
+import { FAV_KEY, parseFavs, toggleFav, approvalBadges, type Approval } from '@/lib/shellPrefs';
 
 const NAV = [
   { group: '현황', items: [
@@ -64,7 +65,7 @@ const NAV = [
   ]},
 ];
 const nfmt = (n: number) => n.toLocaleString('ko-KR');
-let SHELL_CACHE: { me?: any; projects?: any[]; notifs?: any[] } = {};
+let SHELL_CACHE: { me?: any; projects?: any[]; notifs?: any[]; approvals?: Approval[] } = {};
 
 export function Shell({ children, title }: { children: React.ReactNode; title: string }) {
   const router = useRouter();
@@ -80,6 +81,10 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
   const [recs, setRecs] = useState<any[]>([]);
   const [big, setBig] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  // 즐겨찾기(브라우저 저장)·결재 대기 배지·뒤로 가기
+  const [favs, setFavs] = useState<string[]>([]);
+  const [approvals, setApprovals] = useState<Approval[]>(SHELL_CACHE.approvals ?? []);
+  const [canBack, setCanBack] = useState(false);
   const trigRef = useRef<HTMLElement | null>(null); // 마지막으로 드롭다운을 연 트리거 버튼 — Escape 닫기 시 포커스 복귀용
   useEffect(() => { const b = localStorage.getItem('pms.big') === '1'; setBig(b); document.documentElement.classList.toggle('big', b); }, []);
   useEffect(() => { document.title = title ? `${title} — PMS` : 'PMS — Project Management System'; }, [title]);
@@ -89,6 +94,9 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
     setPid(Number(localStorage.getItem('pms.project')) || (SHELL_CACHE.projects?.[0]?.id ?? null));
     fetch('/api/auth/me').then((r) => r.json()).then((d) => { if (!d.authenticated) router.push('/login'); else { setMe(d); SHELL_CACHE.me = d; } });
     fetch('/api/projects').then((r) => r.ok ? r.json() : []).then((d) => { const a = Array.isArray(d) ? d : []; setProjects(a); SHELL_CACHE.projects = a; setPid(Number(localStorage.getItem('pms.project')) || (a[0]?.id ?? null)); });
+    try { setFavs(parseFavs(localStorage.getItem(FAV_KEY))); } catch {}
+    setCanBack(window.history.length > 1);
+    fetch('/api/approvals').then((r) => r.ok ? r.json() : null).then((d) => { const a = Array.isArray(d?.items) ? d.items : []; setApprovals(a); SHELL_CACHE.approvals = a; }).catch(() => {});
     fetch('/api/notifications').then((r) => r.ok ? r.json() : []).then((d) => { const a = Array.isArray(d) ? d : []; setNotifs(a); SHELL_CACHE.notifs = a; });
   }, [router]);
 
@@ -129,6 +137,13 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
   //   서버 레이아웃(ScreenGate)·API(assertScreenAccess) 가 같은 정책을 쓰므로 메뉴 숨김은 편의이고 경계는 서버다.
   const principal: Principal | null = me?.org ? { role: me.org.role, isOrgAdmin: !!me.org.isOrgAdmin, isSuperadmin: !!me.user?.isSuperadmin } : (me?.user?.isSuperadmin ? { isSuperadmin: true } : null);
   const visibleNav = NAV.map((g) => ({ ...g, items: filterNav(g.items, principal) })).filter((g) => g.items.length > 0);
+  const allItems = visibleNav.flatMap((g) => g.items);
+  const favItems = parseFavs(favs, allItems.map((n) => n.href)).map((h) => allItems.find((n) => n.href === h)!).filter(Boolean);
+  const curItem = allItems.find((n) => path === n.href) || allItems.find((n) => n.href !== '/dashboard' && path.startsWith(n.href + '/'));
+  const isFav = !!curItem && favs.includes(curItem.href);
+  function flipFav() { if (!curItem) return; const n = toggleFav(favs, curItem.href); setFavs(n); try { localStorage.setItem(FAV_KEY, JSON.stringify(n)); } catch {} }
+  const apBadge = approvalBadges(approvals);
+  const navGroups = favItems.length ? [{ group: '즐겨찾기', items: favItems }, ...visibleNav] : visibleNav;
   const TYPE_ICON: any = { project: FolderKanban, issue: Bug, requirement: ClipboardList, risk: ShieldAlert, task: ListTodo, document: FileCheck2, member: Users, meeting: CalendarClock };
   const TYPE_KO: any = { project: '프로젝트', issue: '이슈', requirement: '요구사항', risk: '리스크', task: '업무', document: '산출물', member: '인력', meeting: '회의' };
   const _q = cq.trim();
@@ -141,11 +156,11 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
       <a href="#main-content" className="skip-link">본문으로 건너뛰기</a>
       <aside className={`sidebar ${menuOpen ? 'open' : ''}`}>
         <Logo />
-        {visibleNav.map((g) => (
+        {navGroups.map((g) => (
           <div key={g.group}>
             <div className="nav-group">{g.group}</div>
             {g.items.map((n) => { const Icon = n.icon; const active = path === n.href || (n.href !== '/dashboard' && path.startsWith(n.href));
-              return (<Link key={n.href} href={n.href} prefetch onClick={() => setMenuOpen(false)} className={`nav-item ${active ? 'active' : ''}`} aria-current={active ? 'page' : undefined}><Icon /><span>{n.label}</span>{n.href === '/notifications' && unread > 0 && <span className="nav-badge" title={`안 읽은 알림 ${nfmt(unread)}건`}>{nfmt(unread)}</span>}</Link>); })}
+              return (<Link key={n.href} href={n.href} prefetch onClick={() => setMenuOpen(false)} className={`nav-item ${active ? 'active' : ''}`} aria-current={active ? 'page' : undefined}><Icon /><span>{n.label}</span>{n.href === '/notifications' && unread > 0 && <span className="nav-badge" title={`안 읽은 알림 ${nfmt(unread)}건`}>{nfmt(unread)}</span>}{apBadge[n.href] > 0 && <span className="nav-badge ap" title={`내 결재 대기 ${nfmt(apBadge[n.href])}건`}>{nfmt(apBadge[n.href])}</span>}</Link>); })}
           </div>
         ))}
         <div style={{ flex: 1 }} />
@@ -164,7 +179,9 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
       <div className="main">
         <header className="topbar">
           <button className="iconbtn menu-btn" onClick={() => setMenuOpen(true)} aria-label="메뉴" aria-expanded={menuOpen}><Menu style={{ width: 20 }} /></button>
+          {canBack && path !== '/dashboard' && <button className="iconbtn tb-back" onClick={() => router.back()} aria-label="이전 화면으로" title="이전 화면으로"><ArrowLeft style={{ width: 18 }} /></button>}
           <div className="tb-title">{title}</div>
+          {curItem && <button className={`iconbtn tb-fav${isFav ? ' on' : ''}`} onClick={flipFav} aria-pressed={isFav} aria-label={isFav ? '즐겨찾기에서 빼기' : '이 화면을 즐겨찾기에 추가'} title={isFav ? '즐겨찾기에서 빼기' : '이 화면을 즐겨찾기에 추가(메뉴 맨 위에 표시)'}><Star style={{ width: 17 }} /></button>}
           {projects.length > 0 && (
             <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
               <button className="btn btn-sm" aria-haspopup="menu" aria-expanded={openMenu === 'proj'} onClick={(e) => { trigRef.current = e.currentTarget; setOpenMenu(openMenu === 'proj' ? null : 'proj'); }}>

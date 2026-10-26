@@ -2,12 +2,15 @@
 import { useEffect, useState } from 'react';
 import { ResourceView } from '@/components/ResourceView';
 import { Kanban, Gantt, CalendarView } from '@/components/views';
+import { wbsRollup, describeRoll, WBS_ISSUE_LABEL, type WbsRoll } from '@/lib/wbsRollup';
 
 type T = { code: string; name: string; status: string; progress: number };
 
 export default function Page() {
   // 선행 작업(predecessor) 정합성 판정을 위해 같은 프로젝트의 업무를 코드로 색인한다(읽기 전용 보조 fetch)
   const [byCode, setByCode] = useState<Record<string, T>>({});
+  // 상위 작업 롤업(하위 진척 가중 평균·일정 범위 점검) — 같은 목록으로 계산, 저장값은 바꾸지 않는다
+  const [roll, setRoll] = useState<Map<number, WbsRoll>>(new Map());
   useEffect(() => {
     const p = Number(localStorage.getItem('pms.project')) || null;
     if (!p) return;
@@ -21,6 +24,7 @@ export default function Page() {
           if (c) m[c] = { code: c, name: String(t?.name || ''), status: String(t?.status || 'todo'), progress: Number(t?.progress) || 0 };
         }
         setByCode(m);
+        setRoll(wbsRollup(ts));
       })
       .catch(() => {});
   }, []);
@@ -96,6 +100,10 @@ export default function Page() {
           <div className="bar"><i style={{ width: `${pg}%`, background: col }} /></div>
           <span className="muted" style={{ fontSize: 11.5, fontVariantNumeric: 'tabular-nums' }}>{pg}%</span>
           {warn && <span style={{ color: wc, fontWeight: 700, fontSize: 11 }}>{wc === '#c0414f' ? '⚠ ' : ''}{warn}</span>}
+          {(() => { const r = roll.get(Number(row.id)); if (!r) return null;
+            const bad = r.issues.length > 0;
+            return <span title={describeRoll(r, pg)} style={{ fontSize: 11, fontWeight: 700, color: bad ? '#c0414f' : '#2457C5', background: bad ? '#fdedef' : '#EAF0FC', padding: '0 7px', borderRadius: 10 }}>
+              {bad ? `⚠ ${WBS_ISSUE_LABEL[r.issues[0]]}${r.issues.length > 1 ? ` 외 ${r.issues.length - 1}` : ''}` : `하위 ${r.rollup}%`}</span>; })()}
         </div>;
       } },
       { key: 'actualHours', label: '공수', render: (_v, row) => {

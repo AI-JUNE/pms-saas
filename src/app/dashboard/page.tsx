@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { FolderKanban, ClipboardList, Bug, ShieldAlert, ListTodo, TrendingUp, ArrowRight } from 'lucide-react';
 import { Shell } from '@/components/Shell';
 import { Pill, LABEL } from '@/lib/ui';
+import { actionNeeded, actionTotal, ACTION_META } from '@/lib/actionNeeded';
 const nfmt = (n: number) => n.toLocaleString('ko-KR'); // 카운트 천단위 쉼표(배치114·118·120~122와 일관)
 // 키보드 접근성 — 클릭 행/카드에 Enter/Space 활성화(목록·대체뷰 배치130~132와 동일 패턴)
 const onKeyAct = (fn: () => void) => (e: { key: string; preventDefault: () => void }) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(); } };
@@ -68,7 +69,7 @@ export default function Dashboard() {
   const [mounted, setMounted] = useState(false);
   const [busy, setBusy] = useState(false);
   async function fillDemo() { setBusy(true); const r = await fetch('/api/admin/seed-demo', { method: 'POST' }); if (r.ok) location.reload(); else setBusy(false); }
-  const [d, setD] = useState<any>({ projects: [], requirements: [], issues: [], risks: [], tasks: [] });
+  const [d, setD] = useState<any>({ projects: [], requirements: [], issues: [], risks: [], tasks: [], tests: [] });
   const [mywork, setMywork] = useState<any>({ tasks: [], issues: [], risks: [] });
   const [docs, setDocs] = useState<any[]>([]);
   const [todos, setTodos] = useState<any[]>([]);
@@ -80,7 +81,7 @@ export default function Dashboard() {
       fetch('/api/todos').then((r) => r.ok ? r.json() : []).then((tt) => setTodos(Array.isArray(tt) ? tt : [])).catch(() => {});
       fetch('/api/onboarding').then((r) => r.ok ? r.json() : null).then((o) => { if (o && Array.isArray(o.steps) && localStorage.getItem('pms.onb.hide') !== '1') setOnb(o); }).catch(() => {});
       const a = await fetch('/api/dashboard').then((r) => r.ok ? r.json() : null);
-      if (a) { setD({ projects: a.projects||[], requirements: a.requirements||[], issues: a.issues||[], risks: a.risks||[], tasks: a.tasks||[] }); setDocs(Array.isArray(a.documents) ? a.documents : []); setMywork(a.myWork || { tasks: [], issues: [] }); }
+      if (a) { setD({ projects: a.projects||[], requirements: a.requirements||[], issues: a.issues||[], risks: a.risks||[], tasks: a.tasks||[], tests: a.tests||[] }); setDocs(Array.isArray(a.documents) ? a.documents : []); setMywork(a.myWork || { tasks: [], issues: [] }); }
       const lg = Number(localStorage.getItem('pms.gen') || 0);
       if (Date.now() - lg > 3600000) { localStorage.setItem('pms.gen', String(Date.now())); fetch('/api/notifications/generate', { method: 'POST' }).catch(() => {}); }
       requestAnimationFrame(() => setMounted(true));
@@ -88,6 +89,8 @@ export default function Dashboard() {
   }, [router]);
   if (!me) return <Shell title="대시보드"><span className="sr-only" role="status">대시보드를 불러오는 중</span><div className="kpis" aria-busy="true">{Array.from({length:6}).map((_,i)=><div className="kpi" key={i} aria-hidden="true"><div className="skel" style={{height:64}}/></div>)}</div></Shell>;
   const { projects, requirements, issues, risks, tasks } = d;
+  const acts = actionNeeded({ tasks, requirements, issues, risks, tests: d.tests, documents: docs }, { limit: 3 });
+  const actN = actionTotal(acts);
   const openIssues = issues.filter((x: any) => !['resolved','closed'].includes(x.status));
   const avgProg = tasks.length ? Math.round(tasks.reduce((s: number, t: any) => s + (t.progress || 0), 0) / tasks.length) : 0;
   const kpis = [
@@ -147,6 +150,36 @@ export default function Dashboard() {
           </div>
         ); })}
       </div>
+      {mounted && (
+        <section className="card card-pad dash-card" style={{ marginTop: 16 }} aria-labelledby="actHead">
+          <div className="row" style={{ gap: 10, alignItems: 'center' }}>
+            <h3 id="actHead" style={{ margin: 0, fontSize: 15, fontWeight: 800 }}>조치 필요</h3>
+            <span className="muted" style={{ fontSize: 12.5 }}>{actN ? `${nfmt(actN)}건 · 지연·결재·리스크·결함·시험 공백을 모았습니다` : '지금 바로 손볼 항목이 없습니다'}</span>
+          </div>
+          {actN > 0 && (
+            <div style={{ display: 'grid', gap: 10, marginTop: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))' }}>
+              {acts.filter((g) => g.count > 0).map((g) => { const m = ACTION_META[g.kind]; const [c, bg] = ({ crit: ['#c0414f', '#fdedef'], warn: ['#b8740c', '#fdf3e3'], info: ['#2457C5', '#EAF0FC'] })[m.tone]; return (
+                <div key={g.kind} style={{ border: '1px solid var(--line)', borderRadius: 12, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div className="row" style={{ gap: 8, alignItems: 'center' }}>
+                    <span style={{ fontWeight: 800, fontSize: 13.5 }} title={m.hint}>{m.label}</span>
+                    <span style={{ marginLeft: 'auto', fontWeight: 800, fontSize: 12, color: c, background: bg, padding: '1px 9px', borderRadius: 20 }}>{nfmt(g.count)}</span>
+                  </div>
+                  <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'grid', gap: 3 }}>
+                    {g.items.map((it) => (
+                      <li key={String(it.id)} style={{ fontSize: 12.5, display: 'flex', gap: 6, minWidth: 0 }}>
+                        {it.code && <span className="muted" style={{ flex: '0 0 auto' }}>{it.code}</span>}
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.title || '(제목 없음)'}</span>
+                        {it.sub && <span className="muted" style={{ marginLeft: 'auto', flex: '0 0 auto' }}>{it.sub}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                  <Link href={m.href} style={{ fontSize: 12, color: 'var(--brand-700)', fontWeight: 700, marginTop: 'auto' }}>{g.count > g.items.length ? `나머지 ${nfmt(g.count - g.items.length)}건 포함 전체 보기 →` : '목록에서 보기 →'}</Link>
+                </div>
+              ); })}
+            </div>
+          )}
+        </section>
+      )}
       <div style={{ height: 18 }} />
       <div className="g3">
         <div className="card card-pad dash-card" style={{ animationDelay: '120ms' }}><div className="sect" style={{ marginBottom: 16 }}>이슈 상태</div>
