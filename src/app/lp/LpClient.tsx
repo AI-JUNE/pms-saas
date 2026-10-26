@@ -285,7 +285,7 @@ const GanttMock = () => (
 const channels = ['프로젝트·단계', '요구사항·RTM', '업무·WBS', '이슈·리스크', '산출물·결재', '테스트·품질'];
 
 /**
- * 포털이 담는 여섯 서비스. 2026-09-29 (10-24 제안 작성 추가)
+ * 포털이 담는 다섯 서비스. 2026-09-29 (10-24 제안 작성은 PMS 와 분리 — 별도 외부 사이트)
  *
  * 문구는 **기능 서술만** 쓴다. 성과·정확도 수치를 넣지 않는다 —
  * 제안 4종은 아직 출력 품질을 실측하지 않았다(3002 배점표만 측정됨).
@@ -301,8 +301,6 @@ const suite = [
     d: '경쟁 구도와 발주처 요구를 분석해 수주 전략과 차별화 포인트를 정리합니다.' },
   { ic: '📈', t: '고객 성과관리', href: '/apps/performance',
     d: '구축 이후 성과방문·인터뷰·콜통계를 모아 고객 성과를 관리합니다.' },
-  { ic: '🎤', t: '제안 작성', href: '/apps/authoring',
-    d: 'RFP·제안서를 바탕으로 발표본(PPTX)과 발표 스크립트·예상 질의를 만듭니다.' },
   { ic: '🗂', t: '프로젝트 관리 (PMS)', href: '/dashboard',
     d: 'WBS·간트·EVM·요구사항 추적·전자결재로 수주 이후 수행 전 과정을 관리합니다.' },
 ];
@@ -427,7 +425,7 @@ export default function LpClient() {
             제안부터 정산까지,<br /><span className="hl">하나의 화면</span>에서 관리합니다
           </h1>
           <p className="lead" data-reveal style={{ transitionDelay: '.1s' }}>
-            RFP 분석·제안 작성·제안 품질·수주 전략·프로젝트 수행·고객 성과까지 여섯 서비스를 한 포털에 담았습니다.
+            RFP 분석·제안 품질·수주 전략·프로젝트 수행·고객 성과까지 다섯 서비스를 한 포털에 담았습니다.
             일정이 밀려도, 요구사항이 바뀌어도 놓치지 않습니다. 계획과 실적의 차이를 성과지표로 먼저 보여줍니다.
           </p>
           <div className="lp-cta" data-reveal style={{ transitionDelay: '.15s' }}>
@@ -458,7 +456,7 @@ export default function LpClient() {
         <div className="wrap">
           <div className="lp-center" data-reveal>
             <span className="sec-tag">Suite</span>
-            <h2>제안부터 수행까지,<br /><span className="hl">여섯 서비스를 한 포털에서</span></h2>
+            <h2>제안부터 수행까지,<br /><span className="hl">다섯 서비스를 한 포털에서</span></h2>
             <p className="lead">
               RFP를 읽는 순간부터 프로젝트가 끝나고 고객 성과를 확인할 때까지.
               같은 로그인, 같은 화면 안에서 이어집니다.

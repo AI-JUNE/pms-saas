@@ -23,7 +23,7 @@ const ROOT = path.resolve(import.meta.dirname, '..');
 const APPS_DIR = path.join(ROOT, 'public', 'apps');
 
 /** 포털이 iframe 으로 띄우는 앱. src/app/apps/<key>/page.tsx 의 appKey 와 같아야 한다. */
-const APP_KEYS = ['quality', 'strategy', 'performance', 'authoring'] as const;
+const APP_KEYS = ['quality', 'strategy', 'performance'] as const;
 const SHARED_FONT = '_shared/PretendardVariable.woff2';
 
 const htmlOf = (key: string) => fs.readFileSync(path.join(APPS_DIR, key, 'index.html'), 'utf8');
