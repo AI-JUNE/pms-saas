@@ -55,6 +55,7 @@ import {
 } from './incidentClosure.ts';
 import { parseInstant } from './incidentEvidence.ts';
 import { audienceFromEnv } from './noticeAudience.ts';
+import { sourceFromEnv } from './sourceBranch.ts';
 import { WRITE_FREEZE_ENV, writeFreezeEnabled } from './writeFreeze.ts';
 
 /** 구간의 **시작**(실제로 적용한 복구 시점 T-ε)을 적어 두는 키. 평상시 미설정이 정상이다 */
@@ -240,6 +241,8 @@ export const NOTICE_LIMITS: readonly string[] = [
   '약관 제4조의 「사후 고지」가 요구하는 **기한**은 문서에 수치가 없다 — 이 판정은 늦었는지를 말하지 않는다',
   '**대상 범위**는 이 값으로 알 수 없다 — 명단의 유일한 연락처 출처가 복구 대상 DB 안에 있어 전환과 함께 ' +
     '되돌아간다. 그 근거 상태는 `audienceVerdict`(§3-16)가 같은 자리에서 말한다',
+  '「유실」이라 고지한 행이 **아직 읽을 수 있는 곳에 있을 수 있다** — 전환은 연결 문자열만 바꾸므로 원본 ' +
+    '브랜치가 그대로 남고 그 구간의 행은 거기에만 있다. 그 국면은 `sourceVerdict`(§3-18)가 같은 자리에서 말한다',
 ];
 
 export interface NoticeInput {
@@ -444,6 +447,12 @@ export function lossNoticeCheck(args?: { env?: Record<string, string | undefined
   // 달라지는 것은 **다음에 할 일**이다(차단 중이면 「지금 받는다」, 전환 뒤면 「닿지 않은 대상이
   // 있을 수 있다는 사실을 고지문·§6 표에 적는다」).
   const aud = audienceFromEnv(env);
+  // 고지가 「유실」이라 부르는 행이 **아직 읽을 수 있는 곳에 있는지**도 같은 자리에서 말한다
+  // (§3-18). 전환은 이 배포의 연결 문자열만 바꾸므로 원본 브랜치가 그대로 남고, 그 구간의
+  // 행은 거기에만 있다 — 그런데 범위를 말해 주는 두 표지는 8단계 4번이 지운다. `ok` 는
+  // 바꾸지 않는다: 브랜치의 존재·처분은 코드가 확인할 수 없고, 미처분으로 `ok` 를 내리면
+  // 복구일에 거짓 차단이 된다. 달라지는 것은 **다음에 할 일**이다.
+  const src = sourceFromEnv(env, args?.now);
 
   return {
     ok: a.state === 'normal' || a.state === 'notified',
@@ -460,6 +469,13 @@ export function lossNoticeCheck(args?: { env?: Record<string, string | undefined
       audienceCoversAll: aud.coversAll,
       audienceDrifts: aud.drifts.length,
       audienceNote: aud.action,
+      /** 원본(손상) 브랜치 국면 판정(§3-18). **좌표·시각은 담지 않는다** */
+      sourceVerdict: src.verdict,
+      /** 원본에서 **무엇을 꺼내야 하는지** 말할 수 있는가(= 구간의 두 끝을 안다) */
+      sourceRangeKnown: src.rangeKnown,
+      /** 원본에만 남는 것의 수 — 전건 유일본이다(브랜치가 남아 있다면) */
+      sourceHoldings: src.holdings,
+      sourceNote: src.action,
       frozen: writeFreezeEnabled(env),
       /** 구간을 산출할 수 있는 상태인가 — 수치는 담지 않는다 */
       windowVerdict: a.window.verdict,
