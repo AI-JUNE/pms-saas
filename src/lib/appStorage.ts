@@ -12,12 +12,13 @@
 export const APP_STORAGE_KEYS: Record<string, string[]> = {
   quality: ['qualibid', 'qualibid_results_v1'],
   strategy: ['ecs_results_v1', 'ecs_prov'],
+  authoring: ['epa_prov'],
   performance: ['cx_library_v1', 'cx_ai_cfg', 'cx_pdf_tbl_cache_v1', 'cx_img_tbl_cache_v1', 'cx_iv_struct_cache_v1', 'cx_client_store', 'cx_clients', 'ecs_cx_visit_v4'],
   shared: ['llmAuditLog'],
 };
 
 /** 앱이 키 이름을 만들어 쓰는 경우(고객사별 캐시 등)를 위한 접두사 */
-export const APP_STORAGE_PREFIXES = ['qualibid', 'ecs_', 'cx_', 'epa_', 'llmConsentSkip:']; // epa_ = 3007 제안작성 — 10-24 포털에서 분리(별도 외부 사이트)됐지만, 그 전에 포털에서 쓴 브라우저 데이터가 남을 수 있어 삭제 대상에 둔다
+export const APP_STORAGE_PREFIXES = ['qualibid', 'ecs_', 'cx_', 'epa_', 'llmConsentSkip:']; // epa_ = 3007 제안작성(발표본 목록 epa_results_v1 은 assets/epa-core.js 가 쓴다)
 
 export function isAppStorageKey(key: string): boolean {
   return Object.values(APP_STORAGE_KEYS).some((ks) => ks.includes(key)) || APP_STORAGE_PREFIXES.some((p) => key.startsWith(p));

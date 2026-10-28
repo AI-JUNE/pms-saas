@@ -60,6 +60,7 @@ export const APP_SCREENS: AppScreen[] = [
   { href: '/apps/quality', label: '제안 품질관리', aliases: ['eqm', 'quality', '품질'], access: 'session' },
   { href: '/apps/strategy', label: '제안 전략도출', aliases: ['esm', 'strategy', '전략'], access: 'session' },
   { href: '/apps/performance', label: '고객 성과관리', aliases: ['epm', 'performance', '성과'], access: 'session' },
+  { href: '/apps/authoring', label: '제안서·발표본 작성', aliases: ['epa', 'authoring', '발표', '작성'], access: 'session' },
   { href: '/admin', label: '사용자·권한', aliases: ['admin', '관리자'], access: 'session' },
   { href: '/admin/security', label: '보안 이벤트', aliases: ['security'], access: 'session' },
   { href: '/audit', label: '감사 로그', aliases: ['audit'], access: 'session' },

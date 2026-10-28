@@ -5,7 +5,7 @@ import { seatClaim, freeTrialClaim } from '@/lib/planClaims';
 import CheckoutButton from './CheckoutButton';
 
 export const metadata: Metadata = {
-  title: '요금제 — PMS',
+  title: '요금제 — GOWON 프로젝트 허브',
   description: '팀 규모에 맞춘 3단계 요금제. 계획·WBS부터 성과관리(EVM)·RTM·전자결재·테스트까지 하나로.',
 };
 
@@ -16,7 +16,7 @@ export default function PricingPage() {
     <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text-1)', fontFamily: 'var(--font)' }}>
       {/* 상단 바 */}
       <header style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 22px', borderBottom: '1px solid var(--border)', background: 'var(--surface)', position: 'sticky', top: 0, zIndex: 20 }}>
-        <Link href="/" style={{ fontWeight: 800, fontSize: 18, letterSpacing: '-.03em', color: 'var(--text-1)' }}>PMS</Link>
+        <Link href="/" style={{ fontWeight: 800, fontSize: 18, letterSpacing: '-.03em', color: 'var(--text-1)' }}>GOWON 프로젝트 허브</Link>
         <span style={{ fontSize: 9.5, color: 'var(--text-3)', letterSpacing: '.12em', fontWeight: 700, textTransform: 'uppercase' }}>Project Management</span>
         <div style={{ flex: 1 }} />
         <Link href="/login?manual=1" style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-2)', padding: '8px 14px' }}>로그인</Link>

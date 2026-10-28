@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>제안 작성 — GOWON</title>
+<script src="assets/pdf.min.js"></script>
+<script src="assets/mammoth.browser.min.js"></script>
+<script src="assets/jszip.min.js"></script>
+<script src="assets/pptxgen.bundle.js"></script>
+<script src="assets/epa-core.js"></script>
+<style>
+@font-face{font-family:'Pretendard';font-weight:100 900;font-style:normal;font-display:swap;src:local('Pretendard Variable'),url('../_shared/PretendardVariable.woff2') format('woff2');}
+:root{
+  --brand:#2457C5;--brandD:#1A3F94;--brandL:#EAF0FC;--ink:#191F28;--sub:#4E5968;--mut:#5F6B78;--faint:#8B95A1;
+  --bg:#F7F8FA;--sand:#F1F3F6;--line:#E5E8EB;--surface:#fff;--ok:#3C764C;--okL:#E4F1E7;--warn:#99610E;--warnL:#FBF1DF;--bad:#B42318;--badL:#FDECEA;
+  --r:12px;--rl:16px;--s1:0 1px 3px rgba(25,31,40,.06),0 1px 2px rgba(25,31,40,.04);--s2:0 6px 16px rgba(25,31,40,.07),0 2px 4px rgba(25,31,40,.04);
+  --font:'Pretendard Variable','Pretendard',-apple-system,BlinkMacSystemFont,system-ui,'Malgun Gothic',sans-serif;--ease:cubic-bezier(.16,1,.3,1)
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:var(--font);background:var(--bg);color:var(--ink);font-size:14px;letter-spacing:-.01em}
+button,input,select,textarea{font:inherit;color:inherit}
+.shell{display:grid;grid-template-columns:248px 1fr;grid-template-rows:60px 1fr;height:100vh}
+.topbar{grid-column:1/3;display:flex;align-items:center;gap:14px;padding:0 24px;background:rgba(255,255,255,.92);border-bottom:1px solid var(--line);backdrop-filter:blur(12px)}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink)}
+.logo-mark{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);display:grid;place-items:center;background:#fff}
+.logo-mark img{width:22px;height:22px;object-fit:contain}
+.logo-txt b{display:block;font-size:15px;font-weight:800;letter-spacing:-.02em}
+.logo-txt i{display:block;font-size:10px;font-style:normal;font-weight:600;color:var(--mut);letter-spacing:.06em}
+.tb-sp{flex:1}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:var(--sand);font-size:12.5px;font-weight:600;color:var(--sub)}
+.pill.on{background:var(--brandL);color:var(--brand)}
+.side{background:var(--surface);border-right:1px solid var(--line);padding:20px 12px;overflow:auto}
+.side h6{margin:6px 10px 8px;font-size:11px;color:var(--faint);letter-spacing:.04em;font-weight:700}
+.nav{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;margin:2px 0;border:0;border-radius:10px;background:none;text-align:left;font-size:14px;font-weight:500;color:var(--sub);cursor:pointer}
+.nav:hover{background:var(--sand);color:var(--ink)}
+.nav.on{background:var(--brandL);color:var(--brand);font-weight:700}
+.nav .n{width:22px;height:22px;border-radius:6px;background:var(--brandL);color:var(--brand);display:grid;place-items:center;font-size:11.5px;font-weight:800}
+.nav:focus-visible,.btn:focus-visible,.slide-item:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.main{overflow:auto;padding:28px 32px 48px}
+.ph{display:flex;align-items:flex-end;gap:16px;margin-bottom:20px}
+.ph h1{margin:0;font-size:28px;font-weight:800;letter-spacing:-.02em}
+.ph p{margin:4px 0 0;color:var(--sub)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--rl);padding:24px;box-shadow:var(--s1);margin-bottom:20px}
+.card h2{margin:0 0 16px;font-size:17px;font-weight:800;letter-spacing:-.02em}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+label.f{display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:700;color:var(--sub)}
+input[type=text],input[type=password],input[type=number],select,textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:14px;font-weight:500;color:var(--ink)}
+textarea{resize:vertical;min-height:84px;line-height:1.55}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--brandL);border-color:var(--brand)}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border-radius:12px;border:1px solid var(--line);background:#fff;font-weight:700;cursor:pointer;transition:box-shadow .2s var(--ease)}
+.btn:hover{box-shadow:var(--s2)}
+.btn.pri{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.pri:hover{background:var(--brandD)}
+.btn.sm{padding:7px 12px;font-size:13px;border-radius:10px}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.drop{border:1.5px dashed var(--line);border-radius:var(--r);padding:18px;text-align:center;color:var(--mut);background:var(--bg);cursor:pointer}
+.drop.over{border-color:var(--brand);background:var(--brandL)}
+.drop b{display:block;color:var(--ink);margin-bottom:4px}
+.files{margin:10px 0 0;padding:0;list-style:none;font-size:13px}
+.files li{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
+.files li button{border:0;background:none;color:var(--mut);cursor:pointer}
+.muted{color:var(--mut);font-size:12.5px}
+.stat{display:flex;gap:20px;flex-wrap:wrap;margin-top:12px}
+.stat div{font-size:12.5px;color:var(--mut)}.stat b{display:block;font-size:18px;color:var(--ink)}
+.note{padding:12px 14px;border-radius:10px;background:var(--warnL);color:var(--warn);font-size:13px;line-height:1.55}
+.note.ok{background:var(--okL);color:var(--ok)}.note.bad{background:var(--badL);color:var(--bad)}.note.info{background:var(--brandL);color:var(--brandD)}
+.editor{display:grid;grid-template-columns:300px 1fr;gap:20px;align-items:start}
+.slide-list{max-height:calc(100vh - 230px);overflow:auto;padding-right:4px}
+.slide-item{display:block;width:100%;text-align:left;border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 12px;margin-bottom:8px;cursor:pointer}
+.slide-item.on{border-color:var(--brand);background:var(--brandL)}
+.slide-item .t{font-weight:700;font-size:13.5px;line-height:1.35;display:block}
+.slide-item .m{font-size:11.5px;color:var(--mut);margin-top:4px;display:flex;gap:8px}
+.tag{display:inline-block;padding:1px 7px;border-radius:6px;background:var(--sand);font-size:11px;font-weight:700;color:var(--sub)}
+.timebar{height:8px;border-radius:99px;background:var(--sand);overflow:hidden;margin:8px 0 4px}
+.timebar i{display:block;height:100%;background:var(--brand)}
+.sw{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--sub)}.sw i{width:22px;height:22px;border-radius:6px;border:1px solid var(--line)}.sw code{font-size:11.5px;color:var(--mut)}
+.qa-item{border-bottom:1px solid var(--line);padding:12px 0}
+.qa-item b{display:block;margin-bottom:4px}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:12px 18px;border-radius:12px;font-weight:600;opacity:0;pointer-events:none;transition:.25s var(--ease);max-width:80vw;z-index:9999}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.busy{position:fixed;inset:0;background:rgba(25,31,40,.35);display:none;align-items:center;justify-content:center;z-index:9998}
+.busy.on{display:flex}
+.busy .box{background:#fff;border-radius:var(--rl);padding:24px 28px;min-width:320px;box-shadow:var(--s2)}
+.busy .box b{display:block;font-size:16px;margin-bottom:8px}
+.llm-consent-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:99999}
+.llm-consent-box{background:#fff;max-width:460px;width:90%;padding:22px 24px;border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.25);line-height:1.55}
+.llm-consent-title{margin:0 0 8px;font-size:17px;font-weight:800}
+.llm-consent-warn{color:var(--bad);font-weight:600}
+.llm-consent-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+.llm-consent-actions button{padding:9px 16px;border-radius:10px;cursor:pointer;border:1px solid var(--line);background:#fff;font-weight:700}
+.llm-consent-ok{background:var(--brand)!important;color:#fff;border-color:var(--brand)!important}
+.ol{width:100%;border-collapse:collapse;font-size:13px}
+.ol th{text-align:left;font-size:11.5px;color:var(--faint);font-weight:700;padding:8px 6px;border-bottom:1px solid var(--line)}
+.ol td{padding:7px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
+.ol tr.par td{color:var(--sub);font-weight:700;background:var(--bg)}
+.ol input[type=number]{width:74px;padding:6px 8px}
+.pbar{position:relative;height:8px;border-radius:99px;background:var(--sand);min-width:120px}
+.pbar i{position:absolute;left:0;top:0;bottom:0;border-radius:99px;background:var(--brand)}
+.pbar u{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink);opacity:.45}
+.gb{display:inline-block;padding:1px 7px;border-radius:6px;font-size:11px;font-weight:700;background:var(--sand);color:var(--sub);margin-left:6px;white-space:nowrap}
+.gb.ok{background:var(--okL);color:var(--ok)}.gb.warn{background:var(--warnL);color:var(--warn)}.gb.bad{background:var(--badL);color:var(--bad)}
+.blk{padding:10px 0;border-bottom:1px solid var(--line);line-height:1.6}
+.blk h4{margin:4px 0;font-size:15px}
+.blk ul{margin:0;padding-left:20px}
+.blk table{border-collapse:collapse;font-size:12.5px;margin-top:4px}.blk td,.blk th{border:1px solid var(--line);padding:4px 8px}
+.blk .cite{font-size:11px;color:var(--brandD);background:var(--brandL);border-radius:5px;padding:0 5px;margin-left:4px;white-space:nowrap}
+.blk.note-b{background:var(--brandL);border-radius:10px;padding:10px 12px;border:0;margin:6px 0}
+/* 발표 연습 (10-26) */
+.tele-slide{position:relative}.tele-slide .ink{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}.tele-slide.inking .ink{pointer-events:auto;cursor:crosshair;touch-action:none}.tele-top .btn.on{background:#4F7FE3;border-color:#4F7FE3}
+.cmdk{position:fixed;inset:0;z-index:9995;background:rgba(15,20,32,.45);display:flex;align-items:flex-start;justify-content:center;padding-top:12vh}.cmdk-box{width:min(560px,92vw);background:#fff;border-radius:14px;box-shadow:var(--s2);overflow:hidden}.cmdk-box input{width:100%;border:0;border-bottom:1px solid var(--line);padding:14px 16px;font-size:16px;outline:none;box-sizing:border-box}.cmdk-list{max-height:50vh;overflow:auto;margin:0;padding:6px;list-style:none}.cmdk-list li{padding:9px 12px;border-radius:8px;cursor:pointer;display:flex;gap:10px}.cmdk-list li.on{background:var(--brandL);color:var(--brandD)}.cmdk-list li span{color:var(--mut);font-size:12.5px;margin-left:auto}
+.sc-img{padding:0!important;background:#0F1420;display:flex;align-items:center;justify-content:center;overflow:hidden}.sc-img img{display:block;max-width:100%;max-height:100%;object-fit:contain}
+.psel{padding:3px 6px;font-size:12.5px;border:1px solid var(--line);border-radius:8px;background:#fff}.ptable td.warn{color:var(--warn);font-weight:700}.ptable tr.muted td{opacity:.6}
+.g-slow{color:#1E4BB0;background:#EAF0FC;border-radius:4px}.g-fast{color:#B42318;background:#FDECEA;border-radius:4px}.g-em{font-weight:800;background:#FBF1DF;border-radius:4px}.g-tone{text-decoration:underline dotted}.g-pause{color:var(--mut);font-size:.8em;margin:0 2px}
+.gbar{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.ptable{width:100%;border-collapse:collapse;font-size:13.5px}.ptable th,.ptable td{border-bottom:1px solid var(--line);padding:8px 6px;text-align:left;white-space:nowrap}.ptable td:nth-child(3){white-space:normal}
+.linkbtn{border:0;background:none;padding:0;color:var(--brand);font-weight:700;cursor:pointer;text-align:left}
+.pill[data-pf]{border:0;cursor:pointer}
+.checks{margin:12px 0 0;padding-left:18px;font-size:13.5px;line-height:1.7}.checks .warn{color:var(--warn)}.checks .ok{color:var(--ok);list-style:none;margin-left:-18px}
+.tele{position:fixed;inset:0;z-index:9990;background:#0F1420;color:#F4F6FA;display:flex;flex-direction:column}
+.tele-top{display:flex;align-items:center;gap:8px;padding:10px 16px;background:#161C2A;flex-wrap:wrap}.tele-top b{font-size:15px}.tele-top .btn{background:#222A3B;color:#F4F6FA;border-color:#2E3850}.tele-top .pill{background:#222A3B;color:#C9D3E6}
+.tele-clock{font-variant-numeric:tabular-nums;color:#C9D3E6;font-size:14px;margin-right:8px}
+.tele-body{flex:1;display:grid;grid-template-columns:42% 8px 1fr;min-height:0}
+.tele-slide{background:#fff;color:var(--ink);margin:16px;border-radius:16px;padding:28px;overflow:auto}
+.tele-split{cursor:col-resize;background:#222A3B}
+.tele-script{overflow:auto;padding:28px 40px 60vh;line-height:1.7;font-size:32px;outline:none}
+.tele-script .g-slow{background:rgba(79,127,227,.25);color:#BFD3FF}.tele-script .g-fast{background:rgba(255,120,110,.2);color:#FFC2BC}.tele-script .g-em{background:rgba(255,200,90,.22);color:#FFE2A6}
+.tele-black{position:absolute;inset:0;background:#000;z-index:2}
+.tele-pop{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:#fff;color:var(--ink);border-radius:16px;padding:22px 26px;z-index:3;box-shadow:var(--s2);max-width:min(640px,92vw)}.tele-pop h3{margin:0 0 12px}.tele-pop td{padding:4px 10px 4px 0;font-size:14px}
+.sc-sec{color:var(--brand);font-weight:800;font-size:13px;margin-bottom:6px}.sc-h{font-size:24px;font-weight:800;letter-spacing:-.02em;line-height:1.3}.sc-sub{color:var(--sub);margin-top:6px}.sc ul,.sc ol{margin:14px 0 0;padding-left:22px;line-height:1.6}.sc-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:14px}.sc-kpi{display:flex;gap:10px;margin-top:16px}.sc-kpi div{flex:1;border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center}.sc-kpi b{display:block;font-size:26px;color:var(--brand)}.sc-t{border-collapse:collapse;margin-top:14px;width:100%;font-size:13px}.sc-t th{background:var(--brand);color:#fff}.sc-t td,.sc-t th{border:1px solid var(--line);padding:6px;text-align:left}.sc-take{margin-top:16px;background:var(--brandL);color:var(--brandD);font-weight:800;padding:10px 14px;border-radius:10px}
+@media (max-width:900px){.tele-body{grid-template-columns:1fr!important}.tele-slide,.tele-split{display:none}}
+@media (max-width:900px){.shell{grid-template-columns:1fr}.side{display:none}.editor,.grid2,.grid3{grid-template-columns:1fr}.main{padding:20px 16px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <a class="logo" href="#" onclick="go('new');return false"><span class="logo-mark" style="font-weight:800;color:var(--brand);font-size:17px">G</span><span class="logo-txt"><b>제안 작성</b><i>GOWON · PROPOSAL AUTHORING</i></span></a>
+    <span class="tb-sp"></span>
+    <span class="pill" id="pillDeck">발표본 없음</span>
+    <span class="pill" id="pillApi">AI 미설정</span>
+  </header>
+  <nav class="side" aria-label="메뉴">
+    <h6>발표본</h6>
+    <button class="nav on" data-v="new" onclick="go('new')"><span class="n">1</span>자료·발표 설정</button>
+    <button class="nav" data-v="edit" onclick="go('edit')"><span class="n">2</span>슬라이드 편집</button>
+    <button class="nav" data-v="practice" onclick="go('practice')"><span class="n">▶</span>발표 연습</button>
+    <button class="nav" data-v="qa" onclick="go('qa')"><span class="n">3</span>예상 질의응답</button>
+    <button class="nav" data-v="export" onclick="go('export')"><span class="n">4</span>내보내기</button>
+    <h6 style="margin-top:18px">제안서</h6>
+    <button class="nav" data-v="plan" onclick="go('plan')"><span class="n">5</span>평가표·목차</button>
+    <button class="nav" data-v="draft" onclick="go('draft')"><span class="n">6</span>섹션 초안</button>
+    <button class="nav" data-v="docx" onclick="go('docx')"><span class="n">7</span>제안서 DOCX</button>
+    <h6 style="margin-top:18px">설정</h6>
+    <button class="nav" data-v="api" onclick="go('api')"><span class="n">⚙</span>AI 연동</button>
+  </nav>
+  <main class="main" id="main"></main>
+</div>
+<div class="toast" id="toast" role="status"></div>
+<div class="busy" id="busy"><div class="box"><b id="busyT">발표본을 만드는 중</b><div class="muted" id="busyM">AI 응답을 기다리고 있습니다.</div><div class="row" style="margin-top:14px"><button class="btn sm" onclick="cancelRun()">취소</button></div></div></div>
+
+<script>
+/* ==== 외부 LLM 전송 통제 — 3003·3004 와 같은 유틸(마스킹·감사 로그·동의) ==== */
+function maskSensitive(text,opts){opts=opts||{};if(text==null)return{masked:'',map:{},counts:{}};var s=String(text),map={},counts={},oneWay=!!opts.oneWay,seen=Object.create(null);
+function token(kind,original){if(seen[original])return seen[original];counts[kind]=(counts[kind]||0)+1;var t='['+kind+'_'+counts[kind]+']';seen[original]=t;if(!oneWay)map[t]=original;return t;}
+function sub(kind,re){s=s.replace(re,function(m){return token(kind,m);});}
+function escapeRe(x){return String(x).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
+function subList(kind,list){if(!list||!list.length)return;var arr=list.filter(Boolean).map(String).sort(function(a,b){return b.length-a.length;});arr.forEach(function(name){if(name.trim().length<2)return;s=s.replace(new RegExp(escapeRe(name),'g'),function(m){return token(kind,m);});});}
+subList('고객사',opts.orgNames);subList('인명',opts.personNames);
+sub('이메일',/[\w.+-]+@[\w-]+\.[\w.-]+/g);sub('주민번호',/\b\d{6}-?[1-8]\d{6}\b/g);sub('사업자번호',/\b\d{3}-\d{2}-\d{5}\b/g);sub('전화',/\b(01[016789]|0\d{1,2})[-.\s]?\d{3,4}[-.\s]?\d{4}\b/g);sub('계좌',/\b\d{2,6}-\d{2,6}-\d{3,7}\b/g);
+return{masked:s,map:map,counts:counts};}
+var LLM_AUDIT_KEY='llmAuditLog',LLM_AUDIT_MAX=500;
+function logExternalSend(entry){var rec={ts:new Date().toISOString(),app:entry.app||'',provider:entry.provider||'',endpointHost:entry.endpointHost||'',dataKinds:entry.dataKinds||[],fieldCount:entry.fieldCount||0,charCount:entry.charCount||0,maskApplied:!!entry.maskApplied,fileBase64Included:!!entry.fileBase64Included};
+try{var arr=JSON.parse(localStorage.getItem(LLM_AUDIT_KEY)||'[]');arr.push(rec);if(arr.length>LLM_AUDIT_MAX)arr=arr.slice(arr.length-LLM_AUDIT_MAX);localStorage.setItem(LLM_AUDIT_KEY,JSON.stringify(arr));}catch(e){}return rec;}
+function hostOf(prov){return({claude:'api.anthropic.com',gpt:'api.openai.com',gemini:'generativelanguage.googleapis.com'})[prov]||String(prov||'');}
+function confirmExternalSend(info){info=info||{};var skipKey='llmConsentSkip:'+(info.provider||'');if(sessionStorage.getItem(skipKey)==='1')return Promise.resolve(true);
+return new Promise(function(resolve){var ov=document.createElement('div');ov.className='llm-consent-overlay';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');
+function ce(x){return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+var kinds=(info.dataKinds&&info.dataKinds.length)?info.dataKinds.join(', '):'(미지정)';
+ov.innerHTML='<div class="llm-consent-box"><h3 class="llm-consent-title">외부 AI 전송 확인</h3><p>아래 내용이 외부 제공사 서버로 전송됩니다.</p><ul><li>제공사: <b>'+ce(info.provider)+'</b> ('+ce(info.endpointHost)+')</li><li>데이터 종류: '+ce(kinds)+'</li><li>보내는 글자 수: <b>'+(info.charCount||0).toLocaleString()+'</b></li><li>개인정보 마스킹: <b>'+(info.maskApplied?'적용':'미적용')+'</b></li><li>예상 비용: <b>'+ce(info.costText||'확인 불가')+'</b></li></ul><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" class="llm-consent-skip"> 이 세션에서 다시 묻지 않기</label><div class="llm-consent-actions"><button type="button" class="llm-consent-cancel">취소</button><button type="button" class="llm-consent-ok">전송 동의</button></div></div>';
+function close(r){if(r&&ov.querySelector('.llm-consent-skip').checked)sessionStorage.setItem(skipKey,'1');document.removeEventListener('keydown',onKey);ov.remove();resolve(r);}
+function onKey(e){if(e.key==='Escape')close(false);}
+ov.querySelector('.llm-consent-ok').addEventListener('click',function(){close(true);});ov.querySelector('.llm-consent-cancel').addEventListener('click',function(){close(false);});document.addEventListener('keydown',onKey);document.body.appendChild(ov);ov.querySelector('.llm-consent-ok').focus();});}
+/* ==== 통제 유틸 끝 ==== */
+'use strict';
+if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='assets/pdf.worker.min.js';}
+
+/* ---------- 상태 ---------- */
+const PROV_KEY='epa_prov';
+const PROVIDERS={
+  claude:{name:'Claude (Anthropic)',models:['claude-opus-5-5','claude-sonnet-5-5','claude-haiku-5-5']},
+  gpt:{name:'GPT (OpenAI)',models:['gpt-4.1','gpt-4o','gpt-4.1-mini']},
+  gemini:{name:'Gemini (Google)',models:['gemini-2.5-pro','gemini-2.5-flash']}
+};
+const S={
+  view:'new',
+  project:{name:'',client:'',company:''},
+  minutes:20,maxSlides:'',audience:'',emphasis:'',maskOrg:false,
+  files:[],paste:'',analysis:null,strategy:null,
+  deck:null,warnings:[],sel:0,
+  prov:{provider:'claude',key:'',model:'claude-opus-5-5',remember:false,rates:{}},
+  abort:null,lastUsage:null,
+  /* 2단계 제안서 — 이 화면에만 있고 브라우저에 저장하지 않는다(작업본 .json 으로 내려받아 보관) */
+  prop:{criteriaText:'',fixedText:'',totalPages:30,step:1,criteria:null,outline:null,drafts:{},draftWarn:{},sel:null,libraryText:'',library:[],libWarn:[],
+    rfpOverride:'',meta:{title:'',subtitle:'',client:'',company:'',date:''},numbering:'decimal',reviewMarks:true,lastDocx:null,paste:''}
+};
+(function loadProv(){try{const p=JSON.parse(localStorage.getItem(PROV_KEY)||'null');if(p)Object.assign(S.prov,p,{remember:true});}catch(e){}})();
+/* 회사 양식(E-2) — 색·글꼴 이름만(자료 아님) 이 브라우저에 기억 */
+const THEME_KEY='epa_theme_v1';
+(function loadTheme(){try{const t=JSON.parse(localStorage.getItem(THEME_KEY)||'null');if(t&&t.theme){const c=EPA.sanitizeTheme(t.theme);if(Object.keys(c).length)S.theme={name:String(t.name||'').slice(0,80),theme:c,warnings:[]};}}catch(e){}})();
+function saveTheme(){try{if(S.theme)localStorage.setItem(THEME_KEY,JSON.stringify({name:S.theme.name,theme:S.theme.theme,ts:Date.now()}));else localStorage.removeItem(THEME_KEY);}catch(e){}}
+function saveProv(){try{if(S.prov.remember)localStorage.setItem(PROV_KEY,JSON.stringify(S.prov));else localStorage.removeItem(PROV_KEY);}catch(e){}}
+
+/* ---------- 공통 ---------- */
+const $=s=>document.querySelector(s);
+function esc(x){return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('on'),3200);}
+function fmt(n){return Number(n||0).toLocaleString();}
+function busy(on,t,m){$('#busy').classList.toggle('on',!!on);if(t)$('#busyT').textContent=t;if(m)$('#busyM').textContent=m;}
+function download(name,blob){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);}
+function safeName(s){return String(s||'발표본').replace(/[\\/:*?"<>|]+/g,'_').slice(0,60);}
+/* 판 구분 — 사내판(internal)은 제안서·발표본 자동 작성만, 발표 연습은 외부판에만. 외부판 생성 도구가 'external' 로 바꾼다
+   (10-26 사용자: 사내는 PMS·제안 발표를 다른 시스템에서 쓴다) */
+const EDITION='external';
+function go(v){if(v==='practice'&&EDITION!=='external')v=S.deck?'edit':'new';S.view=v;document.querySelectorAll('.nav').forEach(b=>b.classList.toggle('on',b.dataset.v===v));render();}
+(function edition(){try{if(EDITION!=='external')document.querySelectorAll('.nav[data-v="practice"]').forEach(b=>b.remove());}catch(e){}})();
+function pills(){
+  $('#pillDeck').textContent=S.deck?('발표본 '+S.deck.slides.length+'장'):'발표본 없음';$('#pillDeck').classList.toggle('on',!!S.deck);
+  const on=!!S.prov.key;$('#pillApi').textContent=on?(PROVIDERS[S.prov.provider].name.split(' ')[0]+' · '+S.prov.model):'AI 미설정';$('#pillApi').classList.toggle('on',on);
+}
+
+/* ---------- 파일 읽기 (3003 extractFile 과 같은 규칙) ---------- */
+async function extractFile(file){
+  const name=file.name.toLowerCase();
+  if(/\.(txt|md|csv|tsv|json)$/.test(name))return await file.text();
+  if(name.endsWith('.pdf')){
+    if(!window.pdfjsLib)throw new Error('PDF 라이브러리를 불러오지 못했습니다.');
+    const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;let t='';
+    for(let i=1;i<=pdf.numPages;i++){const pg=await pdf.getPage(i);const c=await pg.getTextContent();t+='[p.'+i+'] '+c.items.map(x=>x.str).join(' ')+'\n';}
+    if(t.replace(/\s|\[p\.\d+\]/g,'').length<40)throw new Error('PDF 에서 글자를 찾지 못했습니다(스캔 이미지로 보임). 텍스트형 PDF 나 DOCX 로 올려 주세요.');
+    return t;
+  }
+  if(name.endsWith('.docx')){if(!window.mammoth)throw new Error('DOCX 라이브러리를 불러오지 못했습니다.');return (await mammoth.extractRawText({arrayBuffer:await file.arrayBuffer()})).value;}
+  if(name.endsWith('.hwpx')||name.endsWith('.pptx')){
+    const zip=await JSZip.loadAsync(await file.arrayBuffer());
+    const re=name.endsWith('.hwpx')?/Contents\/section\d+\.xml$/i:/ppt\/slides\/slide\d+\.xml$/i;
+    const paths=Object.keys(zip.files).filter(p=>re.test(p)).sort((a,b)=>(+a.match(/(\d+)\.xml$/)[1])-(+b.match(/(\d+)\.xml$/)[1]));
+    let out='';for(const p of paths){const xml=await zip.files[p].async('string');out+=(name.endsWith('.pptx')?'[슬라이드 '+p.match(/(\d+)\.xml$/)[1]+'] ':'')+xml.replace(/<\/(hp:p|a:p)>/g,'\n').replace(/<[^>]+>/g,'').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&')+'\n';}
+    out=out.replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n').trim();
+    if(out.length<20)throw new Error('본문을 추출하지 못했습니다. PDF 로 저장해 올려 주세요.');return out;
+  }
+  if(name.endsWith('.hwp'))throw new Error('구형 HWP 는 브라우저에서 읽을 수 없습니다. 한글에서 HWPX 또는 PDF 로 저장해 올려 주세요.');
+  throw new Error('지원하지 않는 형식입니다(PDF·DOCX·HWPX·PPTX·TXT).');
+}
+async function addFiles(list,kind){
+  for(const f of list){
+    try{const text=await extractFile(f);S.files.push({kind,name:f.name,chars:text.length,text});toast(f.name+' · '+fmt(text.length)+'자 읽음');}
+    catch(e){toast(f.name+': '+e.message);}
+  }
+  render();
+}
+async function importJSON(file,kind){
+  try{const j=JSON.parse(await file.text());if(kind==='analysis')S.analysis=j;else S.strategy=j;toast((kind==='analysis'?'3002 분석':'3004 전략')+' 결과를 가져왔습니다');}
+  catch(e){toast('JSON 을 읽지 못했습니다: '+e.message);}
+  render();
+}
+function materialsText(){
+  const order={rfp:0,proposal:1,etc:2},label={rfp:'RFP',proposal:'제안서',etc:'참고 자료'};
+  const parts=S.files.slice().sort((a,b)=>order[a.kind]-order[b.kind]).map(f=>'['+label[f.kind]+': '+f.name+']\n'+f.text);
+  if(S.paste.trim())parts.push('[붙여 넣은 자료]\n'+S.paste.trim());
+  return parts.join('\n\n');
+}
+
+/* ---------- AI 호출 ---------- */
+function rateFor(model){return S.prov.rates[model]||EPA.RATES[model]||null;}
+function costText(inTok,outTok){const r=rateFor(S.prov.model);if(!r)return '단가 미설정(AI 연동에서 입력)';const c=(inTok/1e6)*r.in+(outTok/1e6)*r.out;return '약 $'+c.toFixed(2)+' (입력 '+fmt(inTok)+' · 출력 최대 '+fmt(outTok)+' 토큰 기준)';}
+function cancelRun(){if(S.abort)S.abort.abort();busy(false);}
+async function readClaudeStream(res,onProgress){
+  const reader=res.body.getReader(),dec=new TextDecoder();let buf='',text='',stop='',usage={in:0,out:0};
+  for(;;){const {value,done}=await reader.read();if(done)break;buf+=dec.decode(value,{stream:true});
+    let i;while((i=buf.indexOf('\n\n'))>=0){const chunk=buf.slice(0,i);buf=buf.slice(i+2);
+      const line=chunk.split('\n').find(l=>l.startsWith('data:'));if(!line)continue;let ev;try{ev=JSON.parse(line.slice(5).trim());}catch(e){continue;}
+      if(ev.type==='message_start'&&ev.message&&ev.message.usage)usage.in=(ev.message.usage.input_tokens||0)+(ev.message.usage.cache_read_input_tokens||0);
+      else if(ev.type==='content_block_delta'&&ev.delta&&ev.delta.type==='text_delta'){text+=ev.delta.text;onProgress&&onProgress(text.length);}
+      else if(ev.type==='message_delta'){if(ev.delta&&ev.delta.stop_reason)stop=ev.delta.stop_reason;if(ev.usage)usage.out=ev.usage.output_tokens||usage.out;}
+      else if(ev.type==='error')throw new Error('Claude 오류: '+((ev.error&&ev.error.message)||'알 수 없음'));
+    }}
+  return {text,stop,usage};
+}
+async function callLLM(system,user,maxTok,onProgress,kind){
+  const p=S.prov.provider,key=S.prov.key,model=S.prov.model;
+  if(!key)throw new Error('AI 연동에서 API 키를 먼저 넣어 주세요.');
+  const inTok=EPA.estimateTokens(system.length+user.length);
+  if(!(await confirmExternalSend({provider:PROVIDERS[p].name,endpointHost:hostOf(p),dataKinds:['제안 자료(RFP·제안서 발췌)','발표 설정'],charCount:system.length+user.length,maskApplied:true,costText:costText(inTok,maxTok)})))throw new Error('__CANCEL__');
+  logExternalSend({app:'EPA',provider:p,endpointHost:hostOf(p),dataKinds:[kind||'발표본 생성'],charCount:user.length,fieldCount:1,maskApplied:true});
+  S.abort=new AbortController();const sig=S.abort.signal;
+  if(p==='claude'){
+    const body={model,max_tokens:maxTok,stream:true,system,messages:[{role:'user',content:user}],output_config:{effort:'medium'},fallbacks:'default'};
+    const headers={'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true','anthropic-beta':'server-side-fallback-2026-07-01'};
+    let res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',signal:sig,headers,body:JSON.stringify(body)});
+    if(res.status===400){const t=await res.text();if(/fallback/i.test(t)){delete body.fallbacks;delete headers['anthropic-beta'];res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',signal:sig,headers,body:JSON.stringify(body)});}else throw new Error('Claude 오류 400: '+t.slice(0,240));}
+    if(!res.ok)throw new Error('Claude 오류 '+res.status+': '+(await res.text()).slice(0,240));
+    const r=await readClaudeStream(res,onProgress);
+    if(r.stop==='refusal')throw new Error('AI 가 이 요청을 거절했습니다. 자료 내용을 확인하거나 다른 모델로 시도해 주세요.');
+    return {text:r.text,truncated:r.stop==='max_tokens',usage:r.usage};
+  }
+  if(p==='gpt'){
+    const res=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',signal:sig,headers:{'content-type':'application/json','authorization':'Bearer '+key},body:JSON.stringify({model,messages:[{role:'system',content:system},{role:'user',content:user}],response_format:{type:'json_object'},max_completion_tokens:maxTok})});
+    if(!res.ok)throw new Error('GPT 오류 '+res.status+': '+(await res.text()).slice(0,240));
+    const d=await res.json();return {text:d.choices?.[0]?.message?.content||'',truncated:d.choices?.[0]?.finish_reason==='length',usage:{in:d.usage?.prompt_tokens||0,out:d.usage?.completion_tokens||0}};
+  }
+  if(p==='gemini'){
+    const res=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(model)+':generateContent?key='+encodeURIComponent(key),{method:'POST',signal:sig,headers:{'content-type':'application/json'},body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:[{role:'user',parts:[{text:user}]}],generationConfig:{maxOutputTokens:maxTok,responseMimeType:'application/json'}})});
+    if(!res.ok)throw new Error('Gemini 오류 '+res.status+': '+(await res.text()).slice(0,240));
+    const d=await res.json();const u=d.usageMetadata||{};return {text:(d.candidates?.[0]?.content?.parts||[]).map(x=>x.text).join(''),truncated:d.candidates?.[0]?.finishReason==='MAX_TOKENS',usage:{in:u.promptTokenCount||0,out:u.candidatesTokenCount||0}};
+  }
+  throw new Error('알 수 없는 공급자');
+}
+function unmask(obj,map){if(!map||!Object.keys(map).length)return obj;let s=JSON.stringify(obj);Object.keys(map).forEach(t=>{s=s.split(t).join(map[t].replace(/\\/g,'\\\\').replace(/"/g,'\\"'));});return JSON.parse(s);}
+async function runGenerate(){
+  const mat=materialsText();
+  if(!mat.trim()&&!S.analysis&&!S.strategy){toast('자료를 올리거나 붙여 넣어 주세요.');return;}
+  const pr=EPA.buildDeckPrompt({project:S.project,minutes:S.minutes,maxSlides:S.maxSlides,audience:S.audience,emphasis:S.emphasis,materials:mat,analysis:S.analysis,strategy:S.strategy});
+  /* 보내는 본문 전체(사업 정보·3002/3004 요약·자료)를 한 번에 가린다 — 발주처 이름은 선택, 개인정보는 항상 */
+  const m=maskSensitive(pr.user,{oneWay:!S.maskOrg,orgNames:S.maskOrg?[S.project.client].filter(Boolean):[]});
+  pr.user=m.masked;
+  busy(true,'발표본을 만드는 중','목표 '+pr.slides+'장 · AI 응답을 기다리고 있습니다(1~3분).');
+  try{
+    const r=await callLLM(pr.system,pr.user,32000,n=>{$('#busyM').textContent='받은 글자 '+fmt(n)+'자 · 계속 받는 중';});
+    S.lastUsage=r.usage;
+    let raw=EPA.parseJSON(r.text);
+    if(!raw){throw new Error(r.truncated?'응답이 출력 상한에서 잘려 JSON 을 해석하지 못했습니다. 발표 시간을 줄이거나 다시 시도해 주세요.':'AI 응답을 JSON 으로 해석하지 못했습니다. 다시 시도해 주세요.');}
+    if(S.maskOrg)raw=unmask(raw,m.map);
+    const n=EPA.normalizeDeck(raw,{minutes:S.minutes,client:S.project.client,company:S.project.company,title:S.project.name});
+    if(!n.deck)throw new Error(n.warnings.join(' / '));
+    const pages=EPA.paginateDeck(n.deck);
+    S.deck=n.deck;S.warnings=n.warnings.concat(pages);if(r.truncated)S.warnings.unshift('응답이 출력 상한에서 잘렸습니다 — 뒷부분 슬라이드가 빠졌을 수 있습니다.');
+    S.sel=0;EPA.saveResult(localStorage,S.deck);busy(false);
+    toast('발표본 '+S.deck.slides.length+'장을 만들었습니다'+(r.usage?(' · 입력 '+fmt(r.usage.in)+' / 출력 '+fmt(r.usage.out)+' 토큰'):''));go('edit');
+  }catch(e){busy(false);if(e.message!=='__CANCEL__'&&e.name!=='AbortError')toast(e.message);}
+}
+function runDemo(){const n=EPA.demoDeck({minutes:S.minutes,company:S.project.company||'제안사'});EPA.paginateDeck(n.deck);S.deck=n.deck;S.warnings=['데모(가공 사례)입니다 — AI 를 부르지 않아 비용이 들지 않습니다.'].concat(n.warnings);S.sel=0;toast('데모 발표본을 열었습니다');go('edit');}
+/* ---------- 한 장 다시 만들기 · 노트 길이 맞추기 (E-1) ---------- */
+function slideTarget(){return EPA.slideTargets(S.deck,S.minutes)[S.sel]||0;}
+function keepUndo(label){S.undo={deck:S.deck,sel:S.sel,slide:JSON.parse(JSON.stringify(S.deck.slides[S.sel])),label};}
+function undoSlide(){if(!S.undo||S.undo.deck!==S.deck||!S.deck.slides[S.undo.sel])return;S.deck.slides[S.undo.sel]=S.undo.slide;S.sel=S.undo.sel;S.undo=null;toast('되돌렸습니다');render();}
+async function runRegen(mode){
+  if(!S.deck)return;const idx=S.sel,hint=($('#regenHint')||{}).value||'';S.regenHint=hint;
+  const pr=EPA.buildSlidePrompt(S.deck,idx,{mode,targetSec:slideTarget(),instruction:hint,materials:materialsText()});
+  const m=maskSensitive(pr.user,{oneWay:!S.maskOrg,orgNames:S.maskOrg?[S.project.client||S.deck.meta.client].filter(Boolean):[]});
+  pr.user=m.masked;
+  busy(true,mode==='notes'?'노트 길이를 맞추는 중':(idx+1)+'번 슬라이드를 다시 만드는 중','AI 응답을 기다리고 있습니다.');
+  try{
+    const r=await callLLM(pr.system,pr.user,mode==='notes'?4000:8000,n=>{$('#busyM').textContent='받은 글자 '+fmt(n)+'자';},mode==='notes'?'노트 길이 맞추기':'슬라이드 다시 만들기');
+    S.lastUsage=r.usage;
+    let raw=EPA.parseJSON(r.text);
+    if(!raw&&mode==='slide')throw new Error('AI 응답을 JSON 으로 해석하지 못했습니다. 다시 시도해 주세요.');
+    if(raw&&S.maskOrg)raw=unmask(raw,m.map);
+    const n=mode==='notes'?EPA.mergeNotes(S.deck,idx,raw||r.text,pr.targetSec):EPA.mergeSlide(S.deck,idx,raw,{targetSec:pr.targetSec});
+    if(!n.deck)throw new Error(n.warnings.join(' / '));
+    keepUndo(mode==='notes'?'노트 맞추기':'다시 만들기');
+    S.deck.slides[idx]=n.deck.slides[idx];S.warnings=n.warnings.concat(S.warnings).slice(0,20);busy(false);
+    toast((idx+1)+'번 '+(mode==='notes'?'노트를 맞췄습니다':'슬라이드를 다시 만들었습니다')+' · 약 '+n.fit.seconds+'초'+(r.usage?(' · 입력 '+fmt(r.usage.in)+' / 출력 '+fmt(r.usage.out)+' 토큰'):''));render();
+  }catch(e){busy(false);if(e.message!=='__CANCEL__'&&e.name!=='AbortError')toast(e.message);}
+}
+function trimNotes(){const s=S.deck.slides[S.sel],t=EPA.trimNotesToFit(s.notes,slideTarget());if(!t.removed){toast('줄일 문장이 없습니다');return;}keepUndo('노트 줄이기');s.notes=t.notes;s.seconds=t.fit.seconds;toast('문장 '+t.removed+'개를 덜었습니다 · 약 '+t.fit.seconds+'초');render();}
+function regenBox(s){
+  const tg=slideTarget(),f=EPA.notesFit(s.notes,tg);
+  const st=!tg?'표지 — 목표 시간 없음':'목표 약 '+tg+'초(±10% = '+f.minChars+'~'+f.maxChars+'자) · 지금 약 '+f.seconds+'초 '+({ok:'✓ 맞음',short:'· 짧음',long:'· 김'})[f.verdict];
+  return '<div class="note '+(f.ok||!tg?'ok':'')+'" style="margin-bottom:14px"><div id="fitMsg">'+esc(st)+'</div>'
+  +'<label class="f" style="margin-top:10px">고칠 점(선택 — 다시 만들 때 AI 에 함께 보냄)<input type="text" id="regenHint" maxlength="600" value="'+esc(S.regenHint||'')+'" placeholder="예: 수치보다 사례 중심으로, 표로 바꿔 줘"></label>'
+  +'<div class="row" style="margin-top:10px"><button class="btn sm" onclick="runRegen(\'slide\')">이 슬라이드 다시 만들기 (AI)</button>'
+  +(tg?'<button class="btn sm" onclick="runRegen(\'notes\')">노트 길이 맞추기 (AI)</button>':'')
+  +(f.verdict==='long'?'<button class="btn sm" onclick="trimNotes()">문장 덜어 줄이기 (비용 0)</button>':'')
+  +(S.undo&&S.undo.deck===S.deck&&S.undo.sel===S.sel?'<button class="btn sm" onclick="undoSlide()">되돌리기('+esc(S.undo.label)+')</button>':'')+'</div></div>';
+}
+
+/* ---------- 화면 ---------- */
+function render(){pills();const v=S.view;const m=$('#main');
+  if(v==='new')m.innerHTML=viewNew();else if(v==='edit')m.innerHTML=viewEdit();else if(v==='practice')m.innerHTML=viewPractice();else if(v==='qa')m.innerHTML=viewQA();else if(v==='export')m.innerHTML=viewExport();else if(v==='plan')m.innerHTML=viewPlan();else if(v==='draft')m.innerHTML=viewDraft();else if(v==='docx')m.innerHTML=viewDocx();else m.innerHTML=viewApi();
+  bind();}
+function viewNew(){
+  const mat=materialsText(),inTok=EPA.estimateTokens(mat.length+3000),slides=EPA.planSlideCount(S.minutes,S.maxSlides);
+  const files=S.files.map((f,i)=>'<li><span><span class="tag">'+({rfp:'RFP',proposal:'제안서',etc:'참고'}[f.kind])+'</span> '+esc(f.name)+' · '+fmt(f.chars)+'자</span><button aria-label="삭제" onclick="S.files.splice('+i+',1);render()">✕</button></li>').join('');
+  return '<div class="ph"><div><h1>자료·발표 설정</h1><p>RFP·제안서를 올리면 평가위원 관점의 발표본(PPTX)·발표 스크립트·예상 질의를 만듭니다.</p></div></div>'
+  +'<div class="card"><h2>사업 정보</h2><div class="grid3">'
+  +'<label class="f">사업명<input type="text" id="pName" value="'+esc(S.project.name)+'" placeholder="예: 120 콜센터 고도화 사업"></label>'
+  +'<label class="f">발주처<input type="text" id="pClient" value="'+esc(S.project.client)+'" placeholder="예: ○○공단"></label>'
+  +'<label class="f">제안사<input type="text" id="pCompany" value="'+esc(S.project.company)+'"></label></div>'
+  +'<div class="grid3" style="margin-top:16px"><label class="f">발표 시간<select id="pMin">'+[10,15,20,25,30].map(x=>'<option '+(S.minutes==x?'selected':'')+'>'+x+'</option>').join('')+'</select></label>'
+  +'<label class="f">최대 슬라이드(비우면 자동 '+slides+'장)<input type="number" id="pMax" min="6" max="60" value="'+esc(S.maxSlides)+'"></label>'
+  +'<label class="f">청중(평가위원 구성)<input type="text" id="pAud" value="'+esc(S.audience)+'" placeholder="예: 외부 교수 3·기관 2"></label></div>'
+  +'<label class="f" style="margin-top:16px">꼭 강조할 메시지<textarea id="pEmp" placeholder="예: 무중단 전환, 콜센터 구축 실적">'+esc(S.emphasis)+'</textarea></label></div>'
+  +'<div class="card"><h2>자료</h2><div class="grid3">'
+  +['rfp','proposal','etc'].map(k=>'<div><div class="drop" data-kind="'+k+'" tabindex="0" role="button"><b>'+({rfp:'RFP·제안요청서',proposal:'제안서(있으면)',etc:'참고 자료'}[k])+'</b>PDF·DOCX·HWPX·PPTX·TXT 끌어 놓기 또는 클릭</div></div>').join('')
+  +'</div><ul class="files">'+files+'</ul>'
+  +'<label class="f" style="margin-top:16px">본문 붙여 넣기(선택)<textarea id="pPaste" placeholder="요약·평가표 등을 직접 붙여 넣어도 됩니다">'+esc(S.paste)+'</textarea></label>'
+  +'<div class="row" style="margin-top:14px"><label class="btn sm">3002 분석 결과(JSON) 가져오기<input type="file" accept=".json" id="impA" hidden></label><label class="btn sm">3004 전략 결과(JSON) 가져오기<input type="file" accept=".json" id="impS" hidden></label>'
+  +(S.analysis?'<span class="tag">3002 결과 있음</span>':'')+(S.strategy?'<span class="tag">3004 결과 있음</span>':'')+'</div>'
+  +'<div class="stat"><div><b>'+fmt(mat.length)+'</b>자료 글자 수</div><div><b>'+fmt(inTok)+'</b>예상 입력 토큰</div><div><b>'+slides+'장</b>목표 슬라이드</div><div><b>'+esc(costText(inTok,16000).split(' (')[0])+'</b>예상 비용('+esc(S.prov.model)+')</div></div>'
+  +'<label style="display:flex;gap:8px;align-items:center;margin-top:14px;font-size:13px"><input type="checkbox" id="pMaskOrg" '+(S.maskOrg?'checked':'')+'> 발주처 이름도 가려서 보내기(결과에서는 원래 이름으로 되돌림)</label>'
+  +'<p class="muted" style="margin:10px 0 0">전화·이메일·주민번호·계좌·사업자번호는 항상 가려서 보냅니다. 원문은 이 브라우저에만 있고 결과(발표본)만 최근 10건·90일 보관합니다.</p></div>'
+  +'<div class="row"><button class="btn pri" onclick="runGenerate()">발표본 만들기 (AI)</button><button class="btn" onclick="runDemo()">데모 보기 (비용 0)</button></div>';
+}
+function layoutName(l){return({title:'표지',agenda:'목차',section:'장 구분',bullets:'본문',two_col:'2단',kpi:'지표',table:'표',process:'단계',closing:'마무리'})[l]||l;}
+function viewEdit(){
+  if(!S.deck)return '<div class="ph"><div><h1>슬라이드 편집</h1><p>먼저 발표본을 만들거나 데모를 열어 주세요.</p></div></div><button class="btn pri" onclick="go(\'new\')">자료·발표 설정으로</button>';
+  const d=S.deck,t=EPA.timingReport(d,S.minutes),pct=Math.min(100,Math.round(t.ratio*100));
+  const list=d.slides.map((s,i)=>'<button class="slide-item '+(i===S.sel?'on':'')+'" data-i="'+i+'"><span class="t">'+(i+1)+'. '+esc(s.headline||'(제목 없음)')+'</span><span class="m"><span class="tag">'+layoutName(s.layout)+'</span>'+(s.seconds?'약 '+s.seconds+'초':'노트 없음')+'</span></button>').join('');
+  const s=d.slides[S.sel]||d.slides[0];
+  const warn=S.warnings.length?'<div class="note" style="margin-bottom:16px">'+S.warnings.slice(0,8).map(esc).join('<br>')+(S.warnings.length>8?'<br>외 '+(S.warnings.length-8)+'건':'')+'</div>':'';
+  const tnote='<div class="note '+(t.ok?'ok':'')+'" style="margin-bottom:16px">발표 노트 기준 약 '+Math.round(t.total/60*10)/10+'분 / 목표 '+Math.round(t.target/60)+'분 ('+Math.round(t.ratio*100)+'%) — '+(t.ok?'목표 ±10% 안입니다.':(t.ratio<0.9?'노트가 짧습니다. 슬라이드 노트를 보강해 주세요.':'노트가 깁니다. 줄이거나 슬라이드를 덜어 내세요.'))+'<div class="timebar"><i style="width:'+pct+'%"></i></div></div>';
+  return '<div class="ph"><div><h1>슬라이드 편집</h1><p>'+esc(d.meta.title)+' · '+d.slides.length+'장</p></div><span class="tb-sp"></span><button class="btn pri" onclick="exportPptx()">PPTX 내려받기</button></div>'+warn+tnote
+  +'<div class="editor"><div class="slide-list" id="slideList">'+list+'</div><div class="card" style="margin:0">'+slideForm(s)+'</div></div>';
+}
+function lines(a){return (a||[]).join('\n');}
+function slideForm(s){
+  const opt=EPA.LAYOUTS.map(l=>'<option value="'+l+'" '+(s.layout===l?'selected':'')+'>'+layoutName(l)+'</option>').join('');
+  let extra='';
+  if(s.layout==='two_col')extra='<div class="grid2" style="margin-top:14px"><label class="f">왼쪽 제목<input type="text" data-k="left.title" value="'+esc(s.left&&s.left.title)+'"></label><label class="f">오른쪽 제목<input type="text" data-k="right.title" value="'+esc(s.right&&s.right.title)+'"></label><label class="f">왼쪽 불릿(한 줄에 하나)<textarea data-k="left.bullets">'+esc(lines(s.left&&s.left.bullets))+'</textarea></label><label class="f">오른쪽 불릿<textarea data-k="right.bullets">'+esc(lines(s.right&&s.right.bullets))+'</textarea></label></div>';
+  if(s.layout==='kpi')extra='<label class="f" style="margin-top:14px">지표(한 줄에 "값 | 이름 | 설명")<textarea data-k="kpis">'+esc((s.kpis||[]).map(k=>[k.value,k.label,k.note].join(' | ')).join('\n'))+'</textarea></label>';
+  if(s.layout==='table')extra='<label class="f" style="margin-top:14px">표(첫 줄 머리글, 칸은 " | " 로 구분)<textarea data-k="table" style="min-height:140px">'+esc([((s.table&&s.table.header)||[]).join(' | ')].concat(((s.table&&s.table.rows)||[]).map(r=>r.join(' | '))).join('\n'))+'</textarea></label>';
+  if(s.layout==='process')extra='<label class="f" style="margin-top:14px">단계(한 줄에 "제목 | 설명")<textarea data-k="steps">'+esc((s.steps||[]).map(x=>x.title+' | '+x.desc).join('\n'))+'</textarea></label>';
+  return '<div class="row" style="margin-bottom:14px"><button class="btn sm" onclick="moveSlide(-1)">위로</button><button class="btn sm" onclick="moveSlide(1)">아래로</button><button class="btn sm" onclick="dupSlide()">복제</button><button class="btn sm" onclick="delSlide()">삭제</button><span class="tb-sp"></span><span class="muted">'+(S.sel+1)+'번 슬라이드</span></div>'
+  +regenBox(s)
+  +'<div class="grid2"><label class="f">레이아웃<select data-k="layout">'+opt+'</select></label><label class="f">장 이름(작은 머리글)<input type="text" data-k="section" value="'+esc(s.section)+'"></label></div>'
+  +'<label class="f" style="margin-top:14px">제목 — 주장 문장으로<input type="text" data-k="headline" value="'+esc(s.headline)+'"></label>'
+  +'<label class="f" style="margin-top:14px">부제<input type="text" data-k="sub" value="'+esc(s.sub)+'"></label>'
+  +(s.layout==='two_col'?'':'<label class="f" style="margin-top:14px">불릿(한 줄에 하나)<textarea data-k="bullets">'+esc(lines(s.bullets))+'</textarea></label>')+extra
+  +'<label class="f" style="margin-top:14px">핵심 문장(아래 강조 띠)<input type="text" data-k="takeaway" value="'+esc(s.takeaway)+'"></label>'
+  +'<label class="f" style="margin-top:14px"><span>발표 노트(스크립트) — <span id="secs">약 '+EPA.secondsOf(s.notes)+'초</span>'+(s.measuredSec?' · 음성 실측 '+s.measuredSec+'초':'')+'</span><span class="gbar" role="toolbar" aria-label="발화 가이드"><button type="button" class="btn sm" onclick="wrapGuide(\'느리게\')" title="선택 부분을 천천히(시간 ×1.3)">🔵 느리게</button><button type="button" class="btn sm" onclick="wrapGuide(\'빠르게\')" title="선택 부분을 빠르게(시간 ×0.8)">🔴 빠르게</button><button type="button" class="btn sm" onclick="wrapGuide(\'강조\')" title="선택 부분을 강조(시간 ×1.1)">💛 강조</button><button type="button" class="btn sm" onclick="wrapGuide(\'pause\')" title="커서 자리에 0.5초 쉼">⏸ 쉼</button><button type="button" class="btn sm" onclick="wrapGuide(\'clear\')" title="선택 부분(없으면 전체)의 가이드 지우기">✕ 가이드 지우기</button></span><textarea id="notesTa" data-k="notes" style="min-height:160px">'+esc(s.notes)+'</textarea></label>'
+  +'<label class="f" style="margin-top:14px">근거(한 줄에 하나)<textarea data-k="sources">'+esc(lines(s.sources))+'</textarea></label>';
+}
+function setField(k,v){
+  const s=S.deck.slides[S.sel];const split=x=>x.split('\n').map(y=>y.trim()).filter(Boolean);
+  if(k==='bullets'||k==='sources')s[k]=split(v);
+  else if(k==='left.title'||k==='right.title'){const side=k.split('.')[0];s[side]=s[side]||{title:'',bullets:[]};s[side].title=v;}
+  else if(k==='left.bullets'||k==='right.bullets'){const side=k.split('.')[0];s[side]=s[side]||{title:'',bullets:[]};s[side].bullets=split(v);}
+  else if(k==='kpis')s.kpis=split(v).slice(0,EPA.LIMIT.kpis).map(l=>{const p=l.split('|').map(x=>x.trim());return {value:p[0]||'',label:p[1]||'',note:p[2]||''};});
+  else if(k==='steps')s.steps=split(v).slice(0,EPA.LIMIT.steps).map(l=>{const p=l.split('|').map(x=>x.trim());return {title:p[0]||'',desc:p[1]||''};});
+  else if(k==='table'){const rows=split(v).map(l=>l.split('|').map(x=>x.trim()));s.table={header:rows[0]||[],rows:rows.slice(1,1+EPA.LIMIT.tableRows)};}
+  else s[k]=v;
+  if(k==='notes'){s.seconds=EPA.secondsOf(v);const e=$('#secs');if(e)e.textContent='약 '+s.seconds+'초';const fm=$('#fitMsg'),tg=slideTarget();if(fm&&tg){const f=EPA.notesFit(v,tg);fm.textContent='목표 약 '+tg+'초(±10% = '+f.minChars+'~'+f.maxChars+'자) · 지금 약 '+f.seconds+'초 '+({ok:'✓ 맞음',short:'· 짧음',long:'· 김'})[f.verdict];}}
+  if(k==='layout'){if(v==='two_col'&&!s.left){s.left={title:'',bullets:s.bullets.slice(0,Math.ceil(s.bullets.length/2))};s.right={title:'',bullets:s.bullets.slice(Math.ceil(s.bullets.length/2))};}if(v==='kpi'&&!s.kpis)s.kpis=[];if(v==='table'&&!s.table)s.table={header:[],rows:[]};if(v==='process'&&!s.steps)s.steps=[];render();}
+}
+function moveSlide(d){const a=S.deck.slides,i=S.sel,j=i+d;if(j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];S.sel=j;render();}
+function dupSlide(){const a=S.deck.slides;a.splice(S.sel+1,0,JSON.parse(JSON.stringify(a[S.sel])));S.sel++;render();}
+function delSlide(){const a=S.deck.slides;if(a.length<=1)return;if(!confirm((S.sel+1)+'번 슬라이드를 지울까요?'))return;a.splice(S.sel,1);S.sel=Math.max(0,S.sel-1);render();}
+function viewQA(){
+  if(!S.deck)return '<div class="ph"><div><h1>예상 질의응답</h1><p>먼저 발표본을 만들어 주세요.</p></div></div>';
+  const qa=S.deck.qa.map((q,i)=>'<div class="qa-item"><b>Q'+(i+1)+'. '+esc(q.q)+'</b>'+(q.intent?'<div class="muted">질문 의도: '+esc(q.intent)+'</div>':'')+(q.answer?'<div style="margin-top:6px;white-space:pre-wrap">'+esc(q.answer)+'</div>':'')+(q.avoid?'<div class="muted" style="margin-top:6px">피할 말: '+esc(q.avoid)+'</div>':'')+'</div>').join('')||'<p class="muted">예상 질의가 없습니다.</p>';
+  const as=S.deck.assumptions.length?'<div class="card"><h2>자료가 부족해 가정한 것</h2><div class="note info">'+S.deck.assumptions.map(esc).join('<br>')+'</div></div>':'';
+  return '<div class="ph"><div><h1>예상 질의응답</h1><p>평가위원 관점에서 나올 질문과 답변 요지입니다.</p></div><label class="btn" title="첫 줄에 질문·답변(·의도·피할 말·분류) 머리글이 있는 엑셀(.xlsx)·CSV — 비슷한 질문은 합칩니다">📥 Q&amp;A 엑셀 가져오기<input type="file" id="impQa" accept=".xlsx,.csv,.tsv,.txt" hidden></label></div><div class="card">'+qa+'</div>'+as;
+}
+function viewExport(){
+  const rec=EPA.loadResults(localStorage).map(r=>'<li><span>'+esc(r.title)+' · '+new Date(r.ts).toLocaleString()+' · '+r.deck.slides.length+'장</span><button onclick="openResult(\''+esc(r.id)+'\')">열기</button></li>').join('')||'<li class="muted">저장된 발표본이 없습니다.</li>';
+  return '<div class="ph"><div><h1>내보내기</h1><p>PPTX 의 각 슬라이드 노트에 발표 스크립트와 근거가 들어갑니다.</p></div></div>'
+  +'<div class="card"><h2>파일</h2><div class="row"><button class="btn pri" onclick="exportPptx()" '+(S.deck?'':'disabled')+'>PPTX 발표본</button><button class="btn" onclick="exportText(\'script\')" '+(S.deck?'':'disabled')+'>발표 스크립트(.txt)</button><button class="btn" onclick="exportText(\'qa\')" '+(S.deck?'':'disabled')+'>예상 질의응답(.txt)</button><label style="display:flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" id="xStrip" '+(S.stripGuides!==false?'checked':'')+'> PPTX 노트에서 발화 가이드 표시 빼기</label><button class="btn" onclick="exportJSON()" '+(S.deck?'':'disabled')+'>편집본 저장(.json)</button><label class="btn">편집본 불러오기<input type="file" accept=".json" id="impDeck" hidden></label></div></div>'
+  +themeCard()
+  +'<div class="card"><h2>최근 발표본 (이 브라우저, 10건·90일)</h2><ul class="files">'+rec+'</ul></div>';
+}
+function viewApi(){
+  const p=S.prov,models=PROVIDERS[p.provider].models.map(m=>'<option '+(p.model===m?'selected':'')+'>'+m+'</option>').join('');
+  const r=rateFor(p.model)||{in:'',out:''};
+  return '<div class="ph"><div><h1>AI 연동</h1><p>브라우저에서 바로 AI 를 부릅니다. 키는 이 브라우저에만 있습니다.</p></div></div><div class="card"><div class="grid3">'
+  +'<label class="f">공급자<select id="aProv">'+Object.keys(PROVIDERS).map(k=>'<option value="'+k+'" '+(p.provider===k?'selected':'')+'>'+PROVIDERS[k].name+'</option>').join('')+'</select></label>'
+  +'<label class="f">모델<input type="text" id="aModel" list="mlist" value="'+esc(p.model)+'"><datalist id="mlist">'+models+'</datalist></label>'
+  +'<label class="f">API 키<input type="password" id="aKey" value="'+esc(p.key)+'" autocomplete="off"></label></div>'
+  +'<div class="grid3" style="margin-top:16px"><label class="f">입력 단가($/100만 토큰)<input type="number" step="0.01" id="aIn" value="'+esc(r.in)+'"></label><label class="f">출력 단가($/100만 토큰)<input type="number" step="0.01" id="aOut" value="'+esc(r.out)+'"></label><label class="f" style="justify-content:flex-end"><span style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="aRem" '+(p.remember?'checked':'')+'> 이 브라우저에 키 기억(공용 PC 에서는 끄기)</span></label></div>'
+  +'<p class="muted">Claude 기본 단가: Opus 5.5 $4/$20 · Sonnet 5.5 $2/$10 · Haiku 5.5 $0.1/$0.5 (100만 토큰당, 2026-10 기준). 기본 모델은 claude-opus-5-5.</p>'
+  +'<div class="row" style="margin-top:12px"><button class="btn pri" onclick="saveApi()">저장</button></div></div>';
+}
+function saveApi(){const p=S.prov;p.provider=$('#aProv').value;p.model=$('#aModel').value.trim()||PROVIDERS[p.provider].models[0];p.key=$('#aKey').value.trim();p.remember=$('#aRem').checked;
+  const i=parseFloat($('#aIn').value),o=parseFloat($('#aOut').value);if(!isNaN(i)&&!isNaN(o))p.rates[p.model]={in:i,out:o};saveProv();toast('저장했습니다');render();}
+
+/* ---------- 내보내기 ---------- */
+async function exportPptx(){
+  if(!S.deck)return;
+  if(!window.PptxGenJS){toast('PPTX 라이브러리를 불러오지 못했습니다.');return;}
+  try{const pptx=EPA.buildPptx(window.PptxGenJS,S.deck,{theme:S.theme&&S.theme.theme,stripGuides:S.stripGuides!==false});const blob=await pptx.write({outputType:'blob'});download(safeName(S.deck.meta.title)+'_발표본.pptx',blob);EPA.saveResult(localStorage,S.deck);toast('PPTX 를 내려받았습니다');}
+  catch(e){toast('PPTX 만들기 실패: '+e.message);}
+}
+/* ---------- 회사 양식 읽기 (E-2) ---------- */
+async function importTheme(file){
+  if(!/\.(pptx|potx|thmx)$/i.test(file.name)){toast('PPTX·POTX·THMX 양식만 읽습니다.');return;}
+  if(file.size>100*1024*1024){toast('양식 파일이 100MB 를 넘습니다. 그림을 뺀 양식(.potx)으로 올려 주세요.');return;}
+  try{const r=await EPA.readPptxTheme(JSZip,await file.arrayBuffer());S.theme={name:file.name.slice(0,80),theme:r.theme,warnings:r.warnings};saveTheme();toast('양식 색·글꼴을 가져왔습니다'+(r.warnings.length?' · 조정 '+r.warnings.length+'건':''));}
+  catch(e){toast('양식 읽기 실패: '+e.message);}
+  render();
+}
+function resetTheme(){S.theme=null;saveTheme();toast('기본 색·글꼴로 되돌렸습니다');render();}
+function themeCard(){
+  const T=Object.assign({},EPA.THEME,S.theme?S.theme.theme:{});
+  const sw=[['brand','주 색'],['brandD','진한 색'],['brandL','옅은 색'],['ink','글자'],['sub','보조 글자']].map(([k,l])=>'<span class="sw"><i style="background:#'+esc(T[k])+'"></i>'+l+' <code>#'+esc(T[k])+'</code></span>').join('');
+  return '<div class="card"><h2>회사 양식 (색·글꼴)</h2><p class="muted" style="margin:0 0 12px">회사 PPTX·POTX 양식을 올리면 테마의 강조색·글꼴을 발표본에 씁니다. 슬라이드 내용은 읽지 않고, 흰 글자가 잘 읽히도록 색 밝기를 맞춥니다.</p>'
+  +'<div class="row">'+sw+'</div><p class="muted" style="margin:10px 0 0">글꼴: 제목 '+esc(T.fontHead||T.font)+' · 본문 '+esc(T.font)+(S.theme?' · 양식 '+esc(S.theme.name):' · 기본(AICC)')+'</p>'
+  +(S.theme&&S.theme.warnings&&S.theme.warnings.length?'<div class="note" style="margin-top:12px">'+S.theme.warnings.map(esc).join('<br>')+'</div>':'')
+  +'<div class="row" style="margin-top:12px"><label class="btn sm">양식 파일 올리기<input type="file" accept=".pptx,.potx,.thmx" id="impTheme" hidden></label>'+(S.theme?'<button class="btn sm" onclick="resetTheme()">기본 색으로</button>':'')+'</div></div>';
+}
+function exportText(kind){if(!S.deck)return;const t=kind==='qa'?EPA.deckToQA(S.deck):EPA.deckToScript(S.deck);download(safeName(S.deck.meta.title)+(kind==='qa'?'_예상질의.txt':'_발표스크립트.txt'),new Blob([t],{type:'text/plain;charset=utf-8'}));}
+function exportJSON(){if(!S.deck)return;download(safeName(S.deck.meta.title)+'_발표본.json',new Blob([JSON.stringify(S.deck,null,2)],{type:'application/json'}));}
+async function importDeck(file){try{const j=JSON.parse(await file.text());const n=EPA.normalizeDeck(j,{minutes:j.meta&&j.meta.minutes});if(!n.deck)throw new Error(n.warnings.join(' / '));S.deck=n.deck;S.warnings=n.warnings;S.sel=0;toast('편집본을 불러왔습니다');go('edit');}catch(e){toast('불러오기 실패: '+e.message);}}
+function openResult(id){const r=EPA.loadResults(localStorage).find(x=>x.id===id);if(!r)return;S.deck=r.deck;S.warnings=[];S.sel=0;go('edit');loadDeckImages();}
+
+/* ---------- 2단계 제안서: 평가표·목차(E-3) → 섹션 초안(E-4) → DOCX(E-5) ---------- */
+const GROUND_LABEL={ok:['일치','ok'],weak:['근거 일치 약함','warn'],nocite:['근거 태그 없음','warn'],todo:['확인 필요','warn'],number:['원문에 없는 수치','bad'],badcite:['근거 없음','bad'],unchecked:['원문 없음 — 확인 안 함','']};
+function gBadge(g){if(!g||!GROUND_LABEL[g.status])return '';const l=GROUND_LABEL[g.status],ex=(g.badCites||[]).concat(g.numbers||[]);return '<span class="gb '+l[1]+'">'+esc(l[0]+(ex.length?': '+ex.join(', '):''))+'</span>';}
+function citeTags(c){return (c||[]).map(t=>'<span class="cite">'+esc(t)+'</span>').join('');}
+/* 근거 대조용 RFP 글 — 올린 RFP 파일 > 데모 > 붙여 넣은 본문 */
+function rfpText(){const t=S.files.filter(f=>f.kind==='rfp').map(f=>f.text).join('\n\n');return t||S.prop.rfpOverride||S.paste.trim();}
+/* 3002 결과의 요구사항 — 근거 대조([RFP SFR-005])와 섹션별 프롬프트 입력에 쓴다. 3002 결과가 없으면 비운다 */
+function reqList(){return S.analysis?EPA.normalizeRequirements(S.analysis).requirements:[];}
+function reqAssigned(){const R=reqList(),P=S.prop;return R.length&&P.outline?EPA.assignRequirements(P.outline,R,{criteria:P.criteria}):null;}
+function groundSources(){const R=reqList();return {rfpText:rfpText(),requirements:R.length?R:undefined,library:S.prop.library.length?S.prop.library:undefined};}
+function setLibrary(t){const P=S.prop,r=EPA.parseLibraryText(t);P.libraryText=t;P.library=r.library;P.libWarn=r.warnings;}
+function critNames(){const o={};((S.prop.criteria&&S.prop.criteria.items)||[]).forEach(c=>o[c.id]=c.name);return o;}
+function critText(n,names){return n.criteria.map(c=>(names[c.id]||c.id)+' '+c.share+'점').join(', ');}
+function curNode(){const o=S.prop.outline;return o?o.nodes.find(x=>x.id===S.prop.sel)||null:null;}
+function docMeta(){const M=S.prop.meta;return {title:M.title||(S.project.name?S.project.name+' 기술 제안서':''),subtitle:M.subtitle||'',client:M.client||S.project.client,company:M.company||S.project.company,date:M.date||new Date().toISOString().slice(0,10)};}
+function buildPlan(){
+  const P=S.prop;let raw=null,src='';
+  if(P.criteriaText.trim()){raw=EPA.parseCriteriaText(P.criteriaText);src='붙여 넣은 평가표';}
+  else if(S.analysis){raw=S.analysis;src='3002 분석 결과';}
+  else{toast('평가표를 붙여 넣거나 1번 화면에서 3002 분석 결과(JSON)를 가져와 주세요.');return;}
+  const c=EPA.normalizeCriteria(raw);
+  if(!c.items.length){toast('평가항목을 찾지 못했습니다 — 한 줄에 "항목명 배점" 으로 넣어 주세요.');return;}
+  if(!(Number(P.totalPages)>0)){toast('총 쪽수를 넣어 주세요.');return;}
+  const o=EPA.allocatePages(EPA.buildOutline(c,{fixedOutline:P.fixedText.trim()||null}),Number(P.totalPages),{step:P.step});
+  const k=EPA.keepDrafts(o,P.drafts);
+  P.criteria=c;P.outline=o;P.drafts=k.drafts;P.sel=null;
+  toast(src+' → 섹션 '+o.nodes.length+'개'+(k.dropped.length?' · 목차와 맞지 않는 초안 '+k.dropped.length+'개를 뺐습니다':''));render();
+}
+function reallocate(){const P=S.prop;if(!P.outline)return;P.outline=EPA.allocatePages(P.outline,Number(P.totalPages),{step:P.step});render();}
+function patchLeaf(id,patch){const r=EPA.setSectionPages(S.prop.outline,id,patch);if(!r.outline){toast(r.warnings.join(' / '));return;}S.prop.outline=r.outline;render();}
+function runDemoProp(){
+  const P=S.prop,d=EPA.demoProposal({company:S.project.company||'제안사',date:new Date().toISOString().slice(0,10)});
+  P.criteriaText=d.criteriaText;P.fixedText=d.fixedOutline;P.totalPages=d.totalPages;P.step=1;P.criteria=d.criteria;P.outline=d.outline;P.drafts=d.drafts;P.draftWarn={};
+  Object.keys(d.drafts).forEach(id=>P.draftWarn[id]=['데모(가공 사례)입니다 — AI 를 부르지 않아 비용이 들지 않습니다.']);
+  setLibrary(d.libraryText);P.rfpOverride=d.rfpText;P.meta=Object.assign({},d.meta);P.sel=null;P.lastDocx=null;toast('데모 제안서를 열었습니다');go('plan');
+}
+function viewPlan(){
+  const P=S.prop,o=P.outline;
+  let h='<div class="ph"><div><h1>평가표·목차</h1><p>평가 배점에 맞춰 제안서 목차와 섹션별 쪽수를 정합니다. AI 를 부르지 않습니다(비용 0).</p></div></div>'
+  +'<div class="card"><h2>평가표와 쪽 제한</h2><div class="grid2">'
+  +'<label class="f">평가표(한 줄에 "항목명 배점", 세부 항목은 "- " 로 시작)<textarea id="prCrit" style="min-height:150px" placeholder="사업 이해도 10&#10;기술 부문 40&#10;- 콜백 처리 20&#10;- 상담 이력 통합 20">'+esc(P.criteriaText)+'</textarea></label>'
+  +'<label class="f">발주처 지정 목차(선택 — 비우면 평가항목 순서로)<textarea id="prFixed" style="min-height:150px" placeholder="Ⅰ. 사업 이해&#10;Ⅱ. 기술 부문&#10;1. 콜백 처리">'+esc(P.fixedText)+'</textarea></label></div>'
+  +'<div class="grid3" style="margin-top:16px"><label class="f">총 쪽수(쪽 제한)<input type="number" id="prPages" min="1" max="2000" value="'+esc(P.totalPages)+'"></label>'
+  +'<label class="f">쪽 단위<select id="prStep"><option value="1" '+(P.step===1?'selected':'')+'>1쪽</option><option value="0.5" '+(P.step===0.5?'selected':'')+'>0.5쪽</option></select></label>'
+  +'<div class="f" style="justify-content:flex-end"><span class="muted">'+(S.analysis?'평가표 칸이 비어 있으면 3002 분석 결과의 배점표를 씁니다.':'3002 분석 결과(JSON)는 1번 화면에서 가져올 수 있습니다.')+'</span></div></div>'
+  +'<div class="row" style="margin-top:14px"><button class="btn pri" onclick="buildPlan()">목차·분량 만들기 (비용 0)</button>'+(o?'<button class="btn" onclick="reallocate()">쪽수 다시 배분</button>':'')+'<button class="btn" onclick="runDemoProp()">데모 제안서 (비용 0)</button><label class="btn">작업본 불러오기<input type="file" accept=".json" id="impProp" hidden></label></div></div>';
+  if(!o)return h;
+  const r=EPA.outlineReport(o,P.criteria||{items:[],total:0}),names=critNames(),leaves=o.nodes.filter(n=>n.leaf);
+  const avg=r.pointsMapped?r.pagesSum/r.pointsMapped:0,maxP=Math.max(1,...leaves.map(n=>Math.max(n.pages,n.points*avg)));
+  const msgs=[].concat(o.warnings||[],o.pageWarnings||[],r.missing.map(m=>'누락 평가항목: '+m.name+' ('+m.points+'점)'),r.skew.map(s=>'분량 치우침: '+s.no+' '+s.title+' '+s.pages+'쪽(배점 기준 약 '+s.expect+'쪽)'));
+  h+='<div class="note '+(r.ok?'ok':'')+'" style="margin-bottom:16px">점검: '+(r.ok?'통과':'확인 필요')+' · 쪽 합계 '+esc(r.pagesSum)+' / '+esc(r.totalPages)+'쪽 · 누락 평가항목 '+r.missing.length+'개 · 배점 '+esc(r.pointsMapped)+' / '+esc(r.criteriaTotal)+'점'
+  +(msgs.length?'<br>'+msgs.slice(0,10).map(esc).join('<br>')+(msgs.length>10?'<br>외 '+(msgs.length-10)+'건':''):'')+'</div>';
+  const rows=o.nodes.map(n=>{const pad='padding-left:'+(6+(n.level-1)*18)+'px';
+    if(!n.leaf)return '<tr class="par"><td style="'+pad+'">'+esc(n.no+' '+n.title)+'</td><td>'+esc(n.points)+'</td><td>'+esc(n.pages)+'</td><td></td><td></td><td></td></tr>';
+    const exp=n.points*avg;
+    return '<tr><td style="'+pad+'">'+esc(n.no+' '+n.title)+'</td><td>'+esc(n.points)+'</td>'
+    +'<td><input type="number" min="0" step="'+esc(o.step)+'" value="'+esc(n.pages)+'" data-pg="'+esc(n.id)+'" aria-label="'+esc(n.no)+' 쪽수"></td>'
+    +'<td><input type="checkbox" data-lock="'+esc(n.id)+'" '+(n.locked?'checked':'')+' aria-label="'+esc(n.no)+' 잠금"></td>'
+    +'<td><div class="pbar" title="막대 = 배정 쪽 · 세로선 = 배점 비례 쪽"><i style="width:'+Math.round(n.pages/maxP*100)+'%"></i>'+(exp?'<u style="left:'+Math.min(100,Math.round(exp/maxP*100))+'%"></u>':'')+'</div></td>'
+    +'<td class="muted">'+esc(critText(n,names)||'배정 없음')+'</td></tr>';}).join('');
+  return h+'<div class="card"><h2>목차·분량</h2><p class="muted" style="margin:-8px 0 12px">쪽수를 고치면 그 섹션을 잠그고 나머지를 배점 비례로 다시 나눕니다. 막대 = 배정 쪽, 세로선 = 배점 비례 쪽.</p>'
+  +'<div style="overflow:auto"><table class="ol"><thead><tr><th>섹션</th><th>배점</th><th>쪽</th><th>잠금</th><th>분량</th><th>평가항목</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+  +'<div class="row" style="margin-top:14px"><button class="btn sm" onclick="exportOutlineText()">목차 TXT</button><button class="btn sm" onclick="exportProp()">작업본 저장(.json)</button><button class="btn sm pri" onclick="go(\'draft\')">섹션 초안으로</button></div></div>';
+}
+function viewDraft(){
+  const P=S.prop,o=P.outline;
+  if(!o)return '<div class="ph"><div><h1>섹션 초안</h1><p>먼저 평가표·목차를 만들어 주세요.</p></div></div><button class="btn pri" onclick="go(\'plan\')">평가표·목차로</button>';
+  const g=EPA.proposalProgress(o,P.drafts),rs=rfpText();
+  if(!g.rows.some(r=>r.id===P.sel))P.sel=g.rows.length?g.rows[0].id:null;
+  const list=g.rows.map(r=>'<button class="slide-item '+(r.id===P.sel?'on':'')+'" data-sec="'+esc(r.id)+'"><span class="t">'+esc(r.no+' '+r.title)+'</span><span class="m"><span class="tag">'+esc(r.pages)+'쪽</span>'
+    +(r.drafted?'초안 '+Math.round((r.fill||0)*100)+'%'+(r.issues?' · ⚠ '+r.issues:'')+(r.pagesChanged?' · 쪽 바뀜':''):'초안 없음')+'</span></button>').join('');
+  return '<div class="ph"><div><h1>섹션 초안</h1><p>섹션마다 RFP·회사 자료 근거를 단 초안을 만들고, 근거가 원문에 있는지 점검합니다.</p></div></div>'
+  +'<div class="stat" style="margin:0 0 16px"><div><b>'+g.drafted+' / '+g.sections+'</b>초안 있는 섹션</div><div><b>'+g.issues+'</b>확인할 곳</div><div><b>'+fmt(rs.length)+'</b>RFP 글자 수(근거 대조)</div><div><b>'+P.library.length+'</b>회사 자료</div></div>'
+  +(rs?'':'<div class="note" style="margin-bottom:16px">RFP 원문이 없습니다 — 1번 화면에서 RFP 를 올리면 근거 태그를 대조합니다(없으면 "원문 없음" 으로 표시만).</div>')
+  +'<div class="card"><h2>회사 자료 (근거 [자료 #ID])</h2><label class="f">한 줄에 "#ID 제목: 내용" — 실적·인증·인력 등 직접 넣은 것만 근거로 씁니다<textarea id="prLib" placeholder="#A-07 나래구 민원 콜센터 구축 실적: 2025년 구축, 상담석 150석">'+esc(P.libraryText)+'</textarea></label>'
+  +(P.libWarn.length?'<div class="note" style="margin-top:10px">'+P.libWarn.slice(0,5).map(esc).join('<br>')+'</div>':'')+'</div>'
+  +'<div class="editor"><div class="slide-list">'+list+'</div><div class="card" style="margin:0">'+sectionPanel(P.sel)+'</div></div>';
+}
+function sectionPanel(id){
+  const P=S.prop,n=P.outline.nodes.find(x=>x.id===id);if(!n)return '<p class="muted">섹션이 없습니다.</p>';
+  const d=P.drafts[id];
+  let h='<div class="row" style="margin-bottom:10px"><b style="font-size:16px">'+esc(n.no+' '+n.title)+'</b><span class="tb-sp"></span><span class="muted">'+esc(n.pages)+'쪽 · '+esc(n.points)+'점</span></div>'
+  +'<p class="muted" style="margin:0 0 12px">평가항목: '+esc(critText(n,critNames())||'배정 없음')+'</p>'
+  +'<div class="row"><button class="btn sm pri" onclick="runDraft()">'+(d?'초안 다시 만들기 (AI)':'초안 만들기 (AI)')+'</button>'
+  +(d?'<button class="btn sm" onclick="regroundDrafts()">근거 다시 점검 (비용 0)</button><button class="btn sm" onclick="exportDraftText()">초안 TXT</button><button class="btn sm" onclick="clearDraft()">초안 지우기</button>':'')+'</div>'
+  +'<details style="margin-top:12px"><summary class="muted" style="cursor:pointer">AI 응답(JSON)을 직접 붙여 넣기 — 비용 0</summary><textarea id="prPaste" style="margin-top:8px" placeholder="{&quot;blocks&quot;:[…]}">'+esc(P.paste)+'</textarea><div class="row" style="margin-top:8px"><button class="btn sm" onclick="applyPasted()">붙여 넣은 초안 적용</button></div></details>';
+  if(!d)return h+'<p class="muted" style="margin-top:16px">아직 초안이 없습니다.</p>';
+  const gc=d.groundCheck,w=P.draftWarn[id]||[];
+  h+='<div class="note '+(gc&&gc.ok?'ok':'')+'" style="margin:16px 0 8px">'+(!gc?'근거 점검 전':gc.skipped?'근거 점검: 원문 없음(확인 안 함)':'근거 점검: '+(gc.ok?'통과':'확인 필요')+' · 단위 '+gc.checked+'개 중 일치 '+gc.counts.ok+' · 약함 '+gc.counts.weak+' · 태그 없음 '+gc.counts.nocite+' · 수치 '+gc.counts.number+' · 근거 없음 '+gc.counts.badcite+' · 확인 필요 '+gc.counts.todo)
+  +'<br>분량: 공백 뺀 '+fmt(d.chars)+'자 / 목표 '+fmt(d.targetChars)+'자 ('+Math.round((d.fill||0)*100)+'%)'+(Number(d.pages)!==Number(n.pages)?' · 초안을 만든 뒤 쪽수가 '+esc(d.pages)+' → '+esc(n.pages)+'쪽으로 바뀜':'')
+  +(w.length?'<br>'+w.slice(0,5).map(esc).join('<br>'):'')+'</div>';
+  return h+d.blocks.map(blockHtml).join('');
+}
+function blockHtml(b){
+  if(b.type==='heading')return '<div class="blk"><h4>'+esc(b.text)+'</h4></div>';
+  if(b.type==='list')return '<div class="blk"><ul>'+(b.items||[]).map(it=>'<li>'+esc(it.text)+citeTags(it.cites&&it.cites.length?it.cites:b.cites)+gBadge(it.ground)+'</li>').join('')+'</ul></div>';
+  if(b.type==='table')return '<div class="blk">'+(b.caption?'<div class="muted">표: '+esc(b.caption)+'</div>':'')+'<table><tr>'+(b.header||[]).map(x=>'<th>'+esc(x)+'</th>').join('')+'</tr>'
+    +(b.rows||[]).map(r=>'<tr>'+r.map(x=>'<td>'+esc(x)+'</td>').join('')+'</tr>').join('')+'</table>'+citeTags(b.cites)+gBadge(b.ground)+'</div>';
+  return '<div class="blk'+(b.type==='note'?' note-b':'')+'">'+esc(b.text)+citeTags(b.cites)+gBadge(b.ground)+'</div>';
+}
+/* 모델 응답(또는 붙여 넣은 JSON) → 정규화 → 근거 점검. 같은 섹션의 이전 초안을 바꾼다 */
+function acceptDraft(id,raw,text){
+  const P=S.prop,n=EPA.normalizeDraft(raw||text,{outline:P.outline,sectionId:id});
+  if(!n.draft)throw new Error(n.warnings.join(' / '));
+  P.drafts[id]=EPA.groundDraft(n.draft,groundSources());P.draftWarn[id]=n.warnings;return P.drafts[id];
+}
+async function runDraft(){
+  const P=S.prop,n=curNode();if(!n)return;
+  const ra=reqAssigned();
+  const pr=EPA.buildSectionPrompt(P.outline,n.id,{project:S.project,criteria:P.criteria,materials:rfpText(),library:P.library,winThemes:S.strategy&&S.strategy.winThemes,
+    requirements:ra?EPA.requirementsForSection(ra,n.id):undefined});
+  /* RFP·회사 자료·사업 정보를 한 번에 가린다 — 발주처 이름은 선택, 개인정보는 항상 */
+  const m=maskSensitive(pr.user,{oneWay:!S.maskOrg,orgNames:S.maskOrg?[S.project.client].filter(Boolean):[]});
+  pr.user=m.masked;
+  busy(true,n.no+' '+n.title+' 초안을 만드는 중','목표 공백 뺀 약 '+fmt(pr.targetChars)+'자 · AI 응답을 기다리고 있습니다.');
+  try{
+    const r=await callLLM(pr.system,pr.user,Math.min(32000,Math.max(4000,pr.targetChars*3)),x=>{$('#busyM').textContent='받은 글자 '+fmt(x)+'자';},'제안서 섹션 초안');
+    S.lastUsage=r.usage;
+    let raw=EPA.parseJSON(r.text);if(raw&&S.maskOrg)raw=unmask(raw,m.map);
+    const d=acceptDraft(n.id,raw,r.text);if(r.truncated)P.draftWarn[n.id].unshift('응답이 출력 상한에서 잘렸습니다 — 뒷부분이 빠졌을 수 있습니다.');
+    busy(false);toast(n.no+' 초안 · 블록 '+d.blocks.length+'개'+(r.usage?(' · 입력 '+fmt(r.usage.in)+' / 출력 '+fmt(r.usage.out)+' 토큰'):''));render();
+  }catch(e){busy(false);if(e.message!=='__CANCEL__'&&e.name!=='AbortError')toast(e.message);}
+}
+function applyPasted(){
+  const P=S.prop,n=curNode();if(!n)return;if(!P.paste.trim()){toast('붙여 넣은 내용이 없습니다.');return;}
+  try{acceptDraft(n.id,EPA.parseJSON(P.paste),P.paste);P.paste='';toast(n.no+' 초안을 적용했습니다');render();}catch(e){toast('적용 실패: '+e.message);}
+}
+function regroundDrafts(){const P=S.prop,src=groundSources();Object.keys(P.drafts).forEach(id=>{P.drafts[id]=EPA.groundDraft(P.drafts[id],src);});toast('근거를 다시 점검했습니다');render();}
+function clearDraft(){const P=S.prop,n=curNode();if(!n||!P.drafts[n.id])return;if(!confirm(n.no+' 초안을 지울까요?'))return;delete P.drafts[n.id];delete P.draftWarn[n.id];render();}
+function viewDocx(){
+  const P=S.prop,o=P.outline;
+  if(!o)return '<div class="ph"><div><h1>제안서 DOCX</h1><p>먼저 평가표·목차를 만들어 주세요.</p></div></div><button class="btn pri" onclick="go(\'plan\')">평가표·목차로</button>';
+  const g=EPA.proposalProgress(o,P.drafts),M=docMeta(),L=P.lastDocx;
+  return '<div class="ph"><div><h1>제안서 DOCX</h1><p>목차와 섹션 초안을 Word 문서로 묶습니다. 근거 태그는 각주로, 쪽 번호는 바닥글에 들어갑니다.</p></div></div>'
+  +'<div class="card"><h2>표지</h2><div class="grid3">'
+  +'<label class="f">제목<input type="text" id="dTitle" value="'+esc(M.title)+'"></label><label class="f">부제<input type="text" id="dSub" value="'+esc(M.subtitle)+'"></label><label class="f">제출일<input type="text" id="dDate" value="'+esc(M.date)+'"></label>'
+  +'<label class="f">발주처<input type="text" id="dClient" value="'+esc(M.client)+'"></label><label class="f">제안사<input type="text" id="dCompany" value="'+esc(M.company)+'"></label>'
+  +'<label class="f">제목 번호<select id="dNum"><option value="decimal" '+(P.numbering==='decimal'?'selected':'')+'>1 · 1.1 · 1.1.1</option><option value="korean" '+(P.numbering==='korean'?'selected':'')+'>Ⅰ. · 1. · 가. · (1)</option></select></label></div>'
+  +'<label style="display:flex;gap:8px;align-items:center;margin-top:14px;font-size:13px"><input type="checkbox" id="dMarks" '+(P.reviewMarks?'checked':'')+'> 검토 표시 넣기(근거 없음·원문에 없는 수치 등을 노란 형광 ⚠ 로) — 제출본은 끄기</label></div>'
+  +'<div class="note '+(g.done&&!g.issues?'ok':'')+'" style="margin-bottom:16px">초안 '+g.drafted+' / '+g.sections+'개 섹션'+(g.missing.length?' · 초안 없는 섹션은 "[초안 없음 — N쪽 배정]" 으로 들어갑니다':'')+(g.issues?' · 확인할 곳 '+g.issues+'곳':'')+(g.changed?' · 쪽수가 바뀐 섹션 '+g.changed+'개':'')+'</div>'
+  +'<div class="row"><button class="btn pri" onclick="exportDocx()">제안서 DOCX 내려받기</button><button class="btn" onclick="exportAllText()">초안 전체 TXT</button><button class="btn" onclick="exportProp()">작업본 저장(.json)</button></div>'
+  +(L?'<div class="card" style="margin-top:20px"><h2>마지막으로 만든 문서</h2><div class="stat"><div><b>'+L.stats.drafted+' / '+L.stats.sections+'</b>초안 섹션</div><div><b>'+L.stats.footnotes+'</b>각주(근거)</div><div><b>'+L.stats.tables+'</b>표</div><div><b>'+L.stats.marks+'</b>검토 표시</div><div><b>약 '+L.stats.estPages+' / '+L.stats.totalPages+'쪽</b>예상 쪽(글자 수 추정)</div></div>'
+    +(L.warnings.length?'<div class="note" style="margin-top:12px">'+L.warnings.slice(0,8).map(esc).join('<br>')+(L.warnings.length>8?'<br>외 '+(L.warnings.length-8)+'건':'')+'</div>':'')
+    +'<p class="muted" style="margin:10px 0 0">실제 쪽은 Word 에서 확인해 주세요. 열 때 필드 업데이트를 물으면 "예" 를 누르면 목차 쪽 번호가 채워집니다.</p></div>':'');
+}
+async function exportDocx(){
+  const P=S.prop;if(!P.outline)return;if(!window.JSZip){toast('JSZip 라이브러리를 불러오지 못했습니다.');return;}
+  try{const M=docMeta(),r=await EPA.buildDocx(JSZip,{meta:M,outline:P.outline,drafts:P.drafts},{theme:S.theme&&S.theme.theme,numbering:P.numbering,reviewMarks:P.reviewMarks,type:'blob'});
+    P.lastDocx={stats:r.stats,warnings:r.warnings};
+    download(safeName(M.title||'제안서')+(P.reviewMarks?'_검토본':'_제출본')+'.docx',r.data);toast('제안서 DOCX 를 내려받았습니다');render();}
+  catch(e){toast('DOCX 만들기 실패: '+e.message);}
+}
+function txtDownload(name,t){download(name,new Blob([t],{type:'text/plain;charset=utf-8'}));}
+function exportOutlineText(){const P=S.prop;if(P.outline)txtDownload(safeName(docMeta().title||'제안서')+'_목차.txt',EPA.outlineToText(P.outline,P.criteria||{items:[]}));}
+function exportDraftText(){const n=curNode(),d=n&&S.prop.drafts[n.id];if(d)txtDownload(safeName(n.no+' '+n.title)+'_초안.txt',EPA.draftToText(d));}
+function exportAllText(){const P=S.prop;if(!P.outline)return;const parts=[EPA.outlineToText(P.outline,P.criteria||{items:[]})];
+  P.outline.nodes.filter(n=>n.leaf&&P.drafts[n.id]).forEach(n=>parts.push(EPA.draftToText(P.drafts[n.id])));txtDownload(safeName(docMeta().title||'제안서')+'_초안전체.txt',parts.join('\n\n---\n\n'));}
+function exportProp(){const P=S.prop;if(!P.outline)return;const M=docMeta();
+  download(safeName(M.title||'제안서')+'_작업본.json',new Blob([JSON.stringify(EPA.packProposal({savedAt:new Date().toISOString(),meta:M,criteria:P.criteria,fixedOutline:P.fixedText,outline:P.outline,drafts:P.drafts,libraryText:P.libraryText}),null,2)],{type:'application/json'}));}
+async function importProp(file){
+  try{const r=EPA.unpackProposal(await file.text());if(!r.proposal)throw new Error(r.warnings.join(' / '));
+    const P=S.prop,p=r.proposal;P.criteria=p.criteria;P.outline=p.outline;P.fixedText=p.fixedOutline;P.totalPages=p.outline.totalPages||P.totalPages;P.step=p.outline.step;
+    setLibrary(p.libraryText);P.meta=p.meta;P.drafts={};P.draftWarn={};const src=groundSources();
+    Object.keys(p.drafts).forEach(id=>{P.drafts[id]=EPA.groundDraft(p.drafts[id],src);});P.outline.warnings=r.warnings; /* 목차 점검 칸에 보인다 */
+    P.sel=null;P.lastDocx=null;toast('작업본을 불러왔습니다'+(r.warnings.length?' · 확인 '+r.warnings.length+'건':''));go('plan');}
+  catch(e){toast('불러오기 실패: '+e.message);}
+}
+
+/* ---------- 발표 연습 (팀 발표 준비 도구 기능 반영 — 10-26 사용자 결정, 비용 0) ----------
+ * 텔레프롬프터(단축키·청중 창·화면 가림·전체 화면) · 브라우저 음성 "발표 듣기"(시간 실측) · 연속 연습 + 별점 · 필터 · 생성 후 점검.
+ * 음성은 브라우저 내장(무료)이 기본, AI 음성(Gemini·OpenAI)은 사용자 키로 동의 후에만·실패하면 브라우저 음성. 발표 연습은 외부판에만(EDITION). 연습 기록은 발표본 안에 저장(보관 규칙 10건·90일 그대로). */
+const TELE={on:false};
+function lsGet(k,d){try{const v=localStorage.getItem(k);return v==null?d:v;}catch(e){return d;}}
+function lsSet(k,v){try{localStorage.setItem(k,String(v));}catch(e){}}
+function agoText(t){if(!t)return '-';const m=Math.round((Date.now()-t)/6e4);return m<1?'방금':m<60?m+'분 전':m<1440?Math.round(m/60)+'시간 전':Math.round(m/1440)+'일 전';}
+function stars(v){return v?'★'.repeat(v)+'<span class="muted">'+'★'.repeat(5-v)+'</span>':'<span class="muted">미평가</span>';}
+function mmss(sec){sec=Math.max(0,Math.round(sec));return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0');}
+/* 이미 만든 발표(PPTX) 가져오기 — 슬라이드 글·발표자 노트를 이 브라우저에서만 읽는다(외부 전송 없음, 비용 0) */
+async function importDeckPptx(file){
+  if(!file)return;if(!window.JSZip){toast('JSZip 라이브러리를 불러오지 못했습니다.');return;}
+  if(file.size>100*1024*1024){toast('100MB 이하 PPTX 만 가져올 수 있습니다.');return;}
+  try{
+    const slides=await EPA.readPptx(JSZip,await file.arrayBuffer());
+    const r=EPA.pptxToDeck(slides,{fileName:file.name,minutes:S.minutes});
+    if(!r.deck)throw new Error(r.warnings.join(' / '));
+    if(S.deck&&!confirm('지금 발표본을 가져온 발표('+r.deck.slides.length+'장)로 바꿀까요?\n지금 발표본은 보관 목록에 남겨 둡니다.'))return;
+    if(S.deck)savePracticeDeck();
+    S.deck=r.deck;S.warnings=r.warnings;S.sel=0;S.pick=[];S.pf='all';savePracticeDeck();
+    toast(r.deck.slides.length+'장을 가져왔습니다 · 노트 '+r.kept+'장 그대로 지킴'+(r.skipped?' · 숨긴 장 '+r.skipped+'장 뺌':'')+' · Part 는 자동 분류(고칠 수 있음)');
+    go('practice');
+  }catch(e){toast('PPTX 를 읽지 못했습니다: '+e.message);}
+}
+/* 쪽 그림 보관 — 이 브라우저의 IndexedDB 에만(외부 전송 없음). 키: 발표본 id/p쪽번호 */
+const IMG={};
+function idbOpen(){return new Promise((ok,no)=>{const r=indexedDB.open('epa_pages',1);r.onupgradeneeded=()=>r.result.createObjectStore('p');r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error);});}
+function idbDo(mode,fn){return idbOpen().then(db=>new Promise((ok,no)=>{const tx=db.transaction('p',mode),r=fn(tx.objectStore('p'));tx.oncomplete=()=>{db.close();ok(r&&r.result);};tx.onerror=()=>{db.close();no(tx.error);};}));}
+const idbPut=(k,v)=>idbDo('readwrite',st=>st.put(v,k));
+const idbGet=k=>idbDo('readonly',st=>st.get(k));
+const idbDelDeck=id=>idbDo('readwrite',st=>st.delete(IDBKeyRange.bound(id+'/',id+'/\uffff')));
+function imgKey(s){return S.deck&&S.deck.meta.id&&s&&s.img?S.deck.meta.id+'/'+s.img:'';}
+async function loadDeckImages(){
+  if(!S.deck||!S.deck.meta.id||!window.indexedDB)return;let n=0;
+  for(const s of S.deck.slides){const k=imgKey(s);if(!k||IMG[k])continue;try{const b=await idbGet(k);if(b){IMG[k]=URL.createObjectURL(b);n++;}}catch(e){break;}}
+  if(n)render();
+}
+/* 이미 만든 발표(PDF) 가져오기 — 쪽 글로 발표본을 만들거나, 지금 가져온 PPTX 에 쪽 그림만 붙인다. 쪽 그림은 2배 안팎(가로 최대 1600px) JPEG */
+async function importDeckPdf(file){
+  if(!file)return;if(!window.pdfjsLib){toast('PDF 라이브러리를 불러오지 못했습니다.');return;}
+  if(file.size>200*1024*1024){toast('200MB 이하 PDF 만 가져올 수 있습니다.');return;}
+  try{
+    const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise,n=pdf.numPages;
+    if(n>300)throw new Error('300쪽까지만 가져옵니다');
+    const attach=!!(S.deck&&S.deck.meta.imported&&/\.pptx$/i.test(S.deck.meta.imported))&&confirm('지금 발표본('+S.deck.meta.imported+')에 이 PDF 의 쪽 그림만 붙일까요? 노트·Part 는 그대로 둡니다.\n[취소]를 누르면 PDF 로 새 발표본을 만듭니다.');
+    let deck;
+    if(attach){deck=S.deck;const r=EPA.attachPageImages(deck,n);if(!r.ok){toast(r.msg);return;}}
+    else{
+      const pages=[];
+      for(let p=1;p<=n;p++){const pg=await pdf.getPage(p);const tc=await pg.getTextContent();pages.push({num:p,lines:EPA.pdfTextLines(tc.items)});if(p%5===0)toast('쪽 글 읽는 중 '+p+' / '+n);}
+      const r=EPA.pdfToDeck(pages,{fileName:file.name,minutes:S.minutes});
+      if(!r.deck)throw new Error(r.warnings.join(' / '));
+      if(S.deck&&!confirm('지금 발표본을 PDF 발표('+r.deck.slides.length+'장)로 바꿀까요?\n지금 발표본은 보관 목록에 남겨 둡니다.'))return;
+      if(S.deck)savePracticeDeck();
+      deck=r.deck;
+    }
+    if(!deck.meta.id)deck.meta.id='d'+Date.now().toString(36);
+    let saved=0,failed=0;
+    for(let p=1;p<=n;p++){
+      if(!deck.slides.some(s=>s.img==='p'+p))continue;
+      try{
+        const pg=await pdf.getPage(p),vp0=pg.getViewport({scale:1}),sc=Math.min(2.5,1600/vp0.width),vp=pg.getViewport({scale:sc});
+        const cv=document.createElement('canvas');cv.width=Math.round(vp.width);cv.height=Math.round(vp.height);
+        const cx=cv.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,cv.width,cv.height);/* print: 화면 갱신 주기(rAF)를 쓰지 않아 다른 탭으로 가도 멈추지 않는다 */await pg.render({canvasContext:cx,viewport:vp,intent:'print'}).promise;
+        const blob=await new Promise(ok=>cv.toBlob(ok,'image/jpeg',0.85));
+        const k=deck.meta.id+'/p'+p;if(IMG[k])URL.revokeObjectURL(IMG[k]);IMG[k]=URL.createObjectURL(blob);
+        try{await idbPut(k,blob);saved++;}catch(e){failed++;}
+      }catch(e){failed++;}
+      toast('쪽 그림 만드는 중 '+p+' / '+n);
+    }
+    S.deck=deck;S.sel=0;S.pick=[];S.pf='all';savePracticeDeck();
+    toast((attach?'쪽 그림 '+saved+'장을 붙였습니다':deck.slides.length+'장을 가져왔습니다 · 쪽 그림 '+saved+'장')+(failed?' · 저장 못 한 그림 '+failed+'장(새로고침하면 글 카드로 보입니다)':'')+(attach?'':' · 대본(노트)은 비어 있습니다'));
+    go('practice');
+  }catch(e){toast('PDF 를 읽지 못했습니다: '+e.message);}
+}
+async function clearDeckImages(){if(!S.deck||!S.deck.meta.id)return;if(!confirm('이 발표본의 쪽 그림을 이 브라우저에서 지울까요? (글·노트는 그대로)'))return;try{await idbDelDeck(S.deck.meta.id);}catch(e){}S.deck.slides.forEach(s=>{const k=imgKey(s);if(IMG[k]){URL.revokeObjectURL(IMG[k]);delete IMG[k];}delete s.img;});savePracticeDeck();render();toast('쪽 그림을 지웠습니다');}
+const PART_OPTS=['오프닝','배경전략','기술구축','사업관리','마무리','기타'];
+function setPart(i,v){const s=S.deck&&S.deck.slides[i];if(!s)return;if(v==='appendix'){s.appendix=true;delete s.part;}else{delete s.appendix;if(PART_OPTS.includes(v))s.part=v;else delete s.part;}savePracticeDeck();render();}
+function autoParts(){if(!S.deck)return;EPA.applyParts(S.deck,EPA.guessParts(S.deck));savePracticeDeck();render();toast('Part 를 자동으로 나눴습니다 — 맞지 않는 장은 목록에서 고치세요');}
+function clearParts(){if(!S.deck)return;S.deck.slides.forEach(s=>{delete s.part;delete s.appendix;delete s.emphasis;});savePracticeDeck();render();}
+function savePracticeDeck(){if(!S.deck)return;if(!S.deck.meta.id)S.deck.meta.id='d'+Date.now().toString(36);EPA.saveResult(localStorage,S.deck);}
+function koVoices(){try{return speechSynthesis.getVoices().filter(v=>/^ko/i.test(v.lang));}catch(e){return [];}}
+if(window.speechSynthesis)speechSynthesis.onvoiceschanged=()=>{if(S.view==='practice')render();};
+function slideCardHtml(s,big){
+  if(!s)return '';
+  const iu=IMG[imgKey(s)];if(iu)return '<div class="sc sc-img '+(big?'big':'')+'"><img src="'+iu+'" alt="'+esc(s.headline||'슬라이드')+'"></div>';
+  const li=a=>(a||[]).map(b=>'<li>'+esc(b)+'</li>').join('');
+  let body='';
+  if(s.layout==='two_col')body='<div class="sc-2"><div><b>'+esc(s.left&&s.left.title)+'</b><ul>'+li(s.left&&s.left.bullets)+'</ul></div><div><b>'+esc(s.right&&s.right.title)+'</b><ul>'+li(s.right&&s.right.bullets)+'</ul></div></div>';
+  else if(s.layout==='kpi')body='<div class="sc-kpi">'+(s.kpis||[]).map(k=>'<div><b>'+esc(k.value)+'</b><span>'+esc(k.label)+'</span></div>').join('')+'</div>';
+  else if(s.layout==='table')body='<table class="sc-t"><tr>'+((s.table&&s.table.header)||[]).map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr>'+((s.table&&s.table.rows)||[]).map(r=>'<tr>'+r.map(c=>'<td>'+esc(c)+'</td>').join('')+'</tr>').join('')+'</table>';
+  else if(s.layout==='process')body='<ol class="sc-steps">'+(s.steps||[]).map(x=>'<li><b>'+esc(x.title)+'</b> '+esc(x.desc)+'</li>').join('')+'</ol>';
+  else body='<ul>'+li(s.bullets)+'</ul>';
+  return '<div class="sc '+(big?'big':'')+' sc-'+esc(s.layout)+'">'+(s.section?'<div class="sc-sec">'+esc(s.section)+'</div>':'')+'<div class="sc-h">'+esc(s.headline||'')+'</div>'+(s.sub?'<div class="sc-sub">'+esc(s.sub)+'</div>':'')+body+(s.takeaway?'<div class="sc-take">'+esc(s.takeaway)+'</div>':'')+'</div>';
+}
+function viewPractice(){
+  if(!S.deck)return '<div class="ph"><div><h1>발표 연습</h1><p>먼저 발표본을 만들거나, 이미 만든 발표(PPTX)를 가져오세요. 가져온 발표의 발표자 노트는 그대로 지킵니다.</p></div></div><div class="row"><button class="btn pri" onclick="go(\'new\')">자료·발표 설정으로</button><label class="btn">📥 PPTX 가져오기<input type="file" id="impPptx" accept=".pptx" hidden></label><label class="btn">📄 PDF 가져오기<input type="file" id="impPdf" accept=".pdf" hidden></label></div><p class="muted" style="margin-top:10px">PPTX 는 글·발표자 노트를, PDF 는 쪽 그림·글을 가져옵니다. 같은 발표의 PPTX 를 먼저 가져온 뒤 PDF 를 고르면 노트는 그대로 두고 쪽 그림만 붙입니다. 파일은 이 브라우저 밖으로 나가지 않습니다.</p>';
+  const d=S.deck,sum=EPA.practiceSummary(d),t=EPA.timingReport(d,S.minutes),f=S.pf||'all',idx=EPA.practiceFilter(d,f,Date.now());
+  S.pick=(S.pick||[]).filter(i=>i<d.slides.length);
+  const chip=(k,l,n)=>'<button class="pill '+(f===k?'on':'')+'" data-pf="'+k+'">'+l+(n!=null?' '+n:'')+'</button>';
+  const chips=chip('all','전체')+chip('weak','🎯 약점',EPA.practiceFilter(d,'weak').length)+chip('review','⏰ 복습',EPA.practiceFilter(d,'review').length)+chip('new','⚪ 신규',EPA.practiceFilter(d,'new').length)+[1,2,3,4,5].map(v=>chip('star'+v,'★'+v)).join('');
+  const tg=EPA.slideTargets(d,S.minutes),usesP=EPA.usesParts(d);
+  const partSel=(i,s)=>'<select class="psel" data-part="'+i+'" aria-label="'+(i+1)+'번 Part"><option value="">-</option>'+PART_OPTS.map(p=>'<option '+(s.part===p&&!s.appendix?'selected':'')+'>'+p+'</option>').join('')+'<option value="appendix" '+(s.appendix?'selected':'')+'>별첨(시간 없음)</option></select>';
+  const rows=idx.map(i=>{const s=d.slides[i],p=s.practice||{};const gap=tg[i]?Math.abs((s.seconds||0)-tg[i])/tg[i]:0;return '<tr'+(s.appendix?' class="muted"':'')+'><td><input type="checkbox" data-pick="'+i+'" '+(S.pick.includes(i)?'checked':'')+' aria-label="'+(i+1)+'번 선택"></td><td>'+(i+1)+(s.sourceNo&&s.sourceNo!==i+1?'<span class="muted" title="가져온 발표의 원래 장 번호"> ('+s.sourceNo+')</span>':'')+'</td><td><button class="linkbtn" data-tele="'+i+'">'+esc(s.headline||'(제목 없음)')+'</button>'+(s.kept?' <span class="pill" title="가져온 발표의 노트를 그대로 지킨 장">노트 지킴</span>':'')+'</td><td>'+partSel(i,s)+'</td><td><input type="checkbox" data-emph="'+i+'" '+(s.emphasis?'checked':'')+' aria-label="'+(i+1)+'번 강조(시간 ×1.3)" title="강조 장 — 본문 시간 ×1.3"></td><td>'+(tg[i]?tg[i]+'초':'-')+'</td><td'+(gap>=0.15?' class="warn" title="목표 ±15% 밖"':'')+'>'+(s.seconds||0)+'초</td><td>'+(s.measuredSec?s.measuredSec+'초':'-')+'</td><td>'+stars(EPA.lastRating(s))+'</td><td>'+(p.count||0)+'회</td><td>'+agoText(p.lastAt)+'</td></tr>';}).join('')||'<tr><td colspan="11" class="muted">이 조건에 맞는 슬라이드가 없습니다.</td></tr>';
+  const vs=koVoices(),cur=lsGet('epa_tts_voice',''),rate=lsGet('epa_tts_rate','1');
+  const ts=ttsSet(),provSel='<select id="ttsProv" aria-label="음성 공급자">'+Object.keys(EPA.TTS_PROVIDERS).map(p=>'<option value="'+p+'" '+(p===ts.provider?'selected':'')+'>'+esc(EPA.TTS_PROVIDERS[p].name)+'</option>').join('')+'</select>';
+  let voiceSel;
+  if(ts.provider==='browser')voiceSel=provSel+' <select id="ttsVoice" aria-label="브라우저 음성"><option value="">기본 한국어 음성</option>'+vs.map(v=>'<option '+(v.name===cur?'selected':'')+'>'+esc(v.name)+'</option>').join('')+'</select>';
+  else{
+    const chars=d.slides.reduce((a,s)=>a+(s.layout==='title'||s.appendix?0:EPA.ttsText(s.notes).replace(/\s/g,'').length),0);
+    voiceSel=provSel+' <select id="ttsModel" aria-label="음성 모델">'+EPA.TTS_MODELS.filter(m=>m.provider===ts.provider).map(m=>'<option value="'+m.id+'" '+(m.id===ts.model?'selected':'')+'>'+esc(m.label)+'</option>').join('')+'</select>'
+      +' <select id="ttsAiVoice" aria-label="AI 음성">'+EPA.ttsVoices(ts.provider,ts.model).map(v=>'<option value="'+v.id+'" '+(v.id===ts.voice?'selected':'')+'>'+(v.gender==='F'?'여 ':v.gender==='M'?'남 ':'')+esc(v.id)+' · '+esc(v.desc)+'</option>').join('')+'</select>'
+      +' <select id="ttsStyle" aria-label="말투">'+Object.keys(EPA.TTS_STYLES).map(k=>'<option value="'+k+'" '+(k===ts.style?'selected':'')+'>'+esc(EPA.TTS_STYLES[k].label)+'</option>').join('')+'</select>'
+      +(ttsKey(ts.provider)?'':' <input type="password" id="ttsKey" autocomplete="off" placeholder="'+esc(EPA.TTS_PROVIDERS[ts.provider].name)+' API 키(이 탭에만)" style="min-width:200px">')
+      +' <span class="muted" title="한 번 만든 음성은 이 브라우저에 저장해 같은 대본·음성이면 다시 사지 않습니다 [단가는 가설 — 공급자 단가표로 확인]">전체 약 $'+EPA.ttsCost(chars,ts).toFixed(2)+'</span>';
+  }
+  const rateSel='<select id="ttsRate">'+['0.8','0.9','1','1.1','1.2','1.3','1.4'].map(r=>'<option '+(r===rate?'selected':'')+'>'+r+'</option>').join('')+'</select>';
+  const ck=S.check||(S.check={must:'',banned:''});
+  const checks=EPA.checkDeck(d,{minutes:S.minutes,mustSay:ck.must,banned:ck.banned,materials:materialsText()});
+  EPA.numberCheck(d,materialsText()).forEach(x=>checks.push({level:'info',kind:'num',slide:x.slide,msg:x.msg+' — 출처를 확인하세요'}));
+  const checkHtml=checks.length?checks.map(c=>'<li class="'+(c.level==='warn'?'warn':'')+'">'+(c.level==='warn'?'⚠ ':'ℹ ')+esc(c.msg)+(c.slide!=null?' <button class="linkbtn" data-goedit="'+c.slide+'">고치기</button>':'')+'</li>').join(''):'<li class="ok">✓ 점검 결과 이상 없음</li>';
+  const n=S.pick.length,runIdx=n?S.pick.slice().sort((a,b)=>a-b):idx;
+  return '<div class="ph"><div><h1>발표 연습</h1><p>텔레프롬프터·발표 듣기(브라우저 음성, 비용 0)·연속 연습으로 리허설하고 별점으로 약점을 모읍니다.</p></div></div>'
+  +'<div class="card"><div class="stat" style="margin-top:0"><div><b>'+sum.done+' / '+sum.total+'</b>완료(★4 이상)</div><div><b>'+sum.doing+'</b>진행 중</div><div><b>'+sum.weak+'</b>약점(★2 이하)</div><div><b>'+sum.fresh+'</b>신규</div><div><b>'+mmss(t.total)+'</b>예상(목표 '+mmss(t.target)+')</div><div><b>'+(t.measuredN?mmss(t.measured):'-')+'</b>음성 실측('+t.measuredN+'장)</div><div><b>'+mmss(sum.practicedSec)+'</b>누적 연습</div></div>'
+  +'<div class="row" style="margin-top:16px"><button class="btn pri" onclick="teleOpen(\'tele\','+JSON.stringify(runIdx)+')">▶ 텔레프롬프터</button><button class="btn" onclick="teleOpen(\'listen\','+JSON.stringify(runIdx)+')">🎧 발표 듣기</button><button class="btn" onclick="teleOpen(\'run\','+JSON.stringify(runIdx)+')">⭐ 연속 연습 ('+(n?n+'장 선택':'목록 '+idx.length+'장')+')</button><span class="tb-sp"></span><label class="f" style="flex-direction:row;align-items:center;gap:8px">음성 '+voiceSel+'</label><label class="f" style="flex-direction:row;align-items:center;gap:8px">속도 '+rateSel+'</label></div>'
+  +'<p class="muted" style="margin:10px 0 0">텔레프롬프터 단축키: Space·→ 다음 · ← 이전 · A 자동 스크롤 · K 멈춤 · ↑↓ 글자 크기 · +/- 속도 · B 화면 가림 · P 청중 화면 · F 전체 화면 · T 시간 초기화 · H 도움말 · Esc 끝내기</p></div>'
+  +partCard(d)+aiCard(d)+reportCard(d)
+  +'<div class="card"><div class="row" style="margin-bottom:12px">'+chips+'<span class="tb-sp"></span>'+(n?'<button class="btn sm" onclick="S.pick=[];render()">선택 해제</button>':'')+'<button class="btn sm" onclick="resetPracticeAll()">연습 기록 초기화</button></div>'
+  +'<div style="overflow-x:auto"><table class="ptable"><thead><tr><th></th><th>#</th><th>슬라이드</th><th>Part</th><th>강조</th><th>목표</th><th>예상</th><th>음성 실측</th><th>최근 평가</th><th>연습</th><th>마지막</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>'
+  +'<div class="card"><h2>생성 후 점검 (AI 호출 없음)</h2><div class="grid2"><label class="f">꼭 말할 말(쉼표로 구분)<input type="text" id="ckMust" value="'+esc(ck.must)+'" placeholder="예: 무중단 전환, 병행 운영"></label><label class="f">금지어(쉼표로 구분)<input type="text" id="ckBan" value="'+esc(ck.banned)+'" placeholder="예: 최초, 유일, 100%"></label></div><ul class="checks">'+checkHtml+'</ul></div>';
+}
+/* ---- AI 대본(가져온 발표용): ① 발표 분석 → ② 배치 대본. 호출은 기존 callLLM(외부 전송 동의·가림·비용 표시)만 거친다 ---- */
+/* 덱 전체 되돌리기(AI 분석·대본은 여러 장을 한 번에 바꾼다) */
+function keepDeckUndo(label){S.deckUndo={id:S.deck.meta.id||'',copy:JSON.parse(JSON.stringify(S.deck)),label};}
+function undoDeck(){const u=S.deckUndo;if(!u||!S.deck||u.id!==(S.deck.meta.id||''))return;S.deck=u.copy;S.deckUndo=null;savePracticeDeck();toast('되돌렸습니다('+u.label+' 전)');render();}
+function aiState(){return S.ai||(S.ai={scope:'empty',tone:'professional',presales:''});}
+function aiMask(text){return maskSensitive(text,{oneWay:!S.maskOrg,orgNames:S.maskOrg?[S.project.client||S.deck.meta.client].filter(Boolean):[]});}
+function aiCard(d){
+  const a=aiState(),an=d.meta.analysis,idx=EPA.scriptTargets(d,a.scope),bt=EPA.scriptBatches(idx);
+  const mp=EPA.buildMetaPrompt(d,{minutes:S.minutes,tone:a.tone,materials:materialsText(),presales:a.presales});
+  const metaCost=costText(EPA.estimateTokens(mp.system.length+mp.user.length),4000);
+  const meta0=an||EPA.fallbackMeta(d);let inTok=0;bt.forEach(b=>{const p=EPA.buildScriptPrompt(d,meta0,b,{minutes:S.minutes,tone:a.tone,scope:a.scope});inTok+=EPA.estimateTokens(p.system.length+p.user.length);});
+  const scrCost=bt.length?costText(inTok,bt.length*6000):'-';
+  const fx=EPA.lengthFixList(d,{minutes:S.minutes});let fxIn=0;fx.forEach(it=>{const p=EPA.buildFixPrompt(d,it);fxIn+=EPA.estimateTokens(p.system.length+p.user.length);});const fixCost=fx.length?costText(fxIn,fx.length*3000):'-';
+  const sg=EPA.scriptBatches(EPA.storyTargets(d),EPA.STORY_GROUP);let sgIn=0;sg.forEach(g=>{const p=EPA.buildStoryPrompt(d,g);sgIn+=EPA.estimateTokens(p.system.length+p.user.length);});const storyCost=sg.length?costText(sgIn,sg.length*5000):'-';
+  const opt=(v,l,cur)=>'<option value="'+v+'" '+(v===cur?'selected':'')+'>'+l+'</option>';
+  const anHtml=an?'<p class="muted" style="margin:8px 0 0">분석: '+esc(an.type)+(an.audience?' · 청중 '+esc(an.audience):'')+' · Part '+an.parts.map(p=>esc(p.name)+'('+p.from+'~'+p.to+')').join(', ')+(an.emphasisSlides.length?' · 강조 '+an.emphasisSlides.join(','):'')+(an.coreFrame.length?' · 프레임 '+an.coreFrame.map(c=>esc(c.label)).join(', '):'')+(an.source==='fallback'?' · (AI 없이 자동 분류)':'')+'</p>':'';
+  return '<div class="card"><h2>AI 대본 만들기 <span class="muted" style="font-size:13px;font-weight:500">가져온 발표용 · 내 API 키로, 누를 때만 비용</span></h2>'
+  +'<div class="grid3"><label class="f">다시 쓸 범위<select id="aiScope">'+opt('empty','노트가 빈 장만',a.scope)+opt('notKept','지킨 노트 빼고 전부',a.scope)+opt('all','전부 다시(지킨 노트 포함)',a.scope)+'</select></label>'
+  +'<label class="f">말투<select id="aiTone">'+Object.keys(EPA.SCRIPT_TONES).map(k=>opt(k,EPA.SCRIPT_TONES[k],a.tone)).join('')+'</select></label>'
+  +'<label class="f">대상 장<input type="text" readonly value="'+idx.length+'장 · '+bt.length+'번 호출"></label></div>'
+  +'<label class="f" style="margin-top:10px">프리세일즈 메모(선택 — 고객이 중시하는 점·피할 말·의사결정자, 보낼 때 가림 규칙 적용)<textarea id="aiPresales" rows="3" placeholder="예: 안정성에 민감, 경쟁사 직접 비교 금지, 의사결정자는 보안 출신">'+esc(a.presales)+'</textarea></label>'
+  +'<div class="row" style="margin-top:12px;align-items:center"><button class="btn" onclick="runMeta()" title="'+esc(metaCost)+'">① 발표 분석 · '+esc(metaCost.split(' (')[0])+'</button><button class="btn pri" onclick="runScripts()" title="'+esc(scrCost)+' · '+bt.length+'번 호출 합계" '+(idx.length?'':'disabled')+'>② 대본 만들기 · '+esc(scrCost.split(' (')[0])+'</button>'+(fx.length?'<button class="btn" onclick="runFix()" title="'+esc(fixCost)+' · 장마다 1번 호출">③ 길이 보정 '+fx.length+'장 · '+esc(fixCost.split(' (')[0])+'</button>':'')+(sg.length?'<button class="btn" onclick="runStory()" title="'+esc(storyCost)+' · '+sg.length+'번 호출 합계">④ 흐름 다듬기 · '+esc(storyCost.split(' (')[0])+'</button>':'')+'</div>'
+  +(S.deckUndo&&S.deckUndo.id===(d.meta.id||'')?'<div class="row" style="margin-top:8px"><button class="btn sm" onclick="undoDeck()">되돌리기('+esc(S.deckUndo.label)+' 전으로)</button></div>':'')+anHtml+'<p class="muted" style="margin:8px 0 0">① 은 유형·청중·Part·강조 장·간지·관통 프레임·RFP 평가/의무를 뽑아 시간 배분과 작성 방식에 씁니다(안 해도 ② 는 자동 분류로 됩니다). ② 는 장마다 목표 글자 수로 쓰고, 지킨 노트는 범위가 "전부 다시"일 때만 바꿉니다. 끝나면 되돌리기로 이전 상태로 돌아갈 수 있습니다.</p></div>';
+}
+async function runMeta(){
+  if(!S.deck)return;const a=aiState();
+  const pr=EPA.buildMetaPrompt(S.deck,{minutes:S.minutes,tone:a.tone,materials:materialsText(),presales:a.presales});
+  const m=aiMask(pr.user);pr.user=m.masked;
+  busy(true,'발표를 분석하는 중','AI 응답을 기다리고 있습니다.');
+  try{
+    const r=await callLLM(pr.system,pr.user,4000,n=>{$('#busyM').textContent='받은 글자 '+fmt(n)+'자';},'발표 분석');
+    S.lastUsage=r.usage;let raw=EPA.parseJSON(r.text);if(raw&&S.maskOrg)raw=unmask(raw,m.map);
+    const nm=EPA.normalizeMeta(raw,S.deck);keepDeckUndo('발표 분석');
+    EPA.applyMeta(S.deck,nm.meta);savePracticeDeck();busy(false);
+    toast('발표 분석을 적용했습니다 — Part·강조·간지'+(nm.warnings.length?' · '+nm.warnings[0]:''));render();
+  }catch(e){busy(false);if(e.message!=='__CANCEL__')toast('분석 실패: '+e.message);}
+}
+async function runScripts(){
+  if(!S.deck)return;const a=aiState();
+  if(!S.deck.meta.analysis)EPA.applyMeta(S.deck,EPA.fallbackMeta(S.deck));
+  const meta=S.deck.meta.analysis,idx=EPA.scriptTargets(S.deck,a.scope);
+  if(!idx.length){toast('대본을 만들 장이 없습니다 — 다시 쓸 범위를 바꿔 보세요');return;}
+  if(a.scope==='all'&&S.deck.slides.some(s=>s.kept)&&!confirm('지킨 노트까지 모두 새 대본으로 바꿉니다. 계속할까요? (끝난 뒤 되돌리기 가능)'))return;
+  const batches=EPA.scriptBatches(idx);
+  keepDeckUndo('AI 대본');
+  let done=0,miss=[],off=[],failed=0;
+  busy(true,'대본을 만드는 중 (0 / '+batches.length+')','AI 응답을 기다리고 있습니다.');
+  try{
+    for(let b=0;b<batches.length;b++){
+      $('#busyT').textContent='대본을 만드는 중 ('+(b+1)+' / '+batches.length+')';
+      const pr=EPA.buildScriptPrompt(S.deck,meta,batches[b],{minutes:S.minutes,tone:a.tone,scope:a.scope});
+      const m=aiMask(pr.user);pr.user=m.masked;
+      let r;
+      try{r=await callLLM(pr.system,pr.user,6000,n=>{$('#busyM').textContent='받은 글자 '+fmt(n)+'자';},'발표 대본 만들기');}
+      catch(e){if(e.message==='__CANCEL__')throw e;failed++;miss=miss.concat(pr.nums);continue;}
+      S.lastUsage=r.usage;let raw=EPA.parseJSON(r.text)||r.text;if(raw&&typeof raw==='object'&&S.maskOrg)raw=unmask(raw,m.map);
+      const g=EPA.mergeScripts(S.deck,EPA.parseScripts(raw),{minutes:S.minutes,scope:a.scope,expect:pr.nums});
+      done+=g.done.length;miss=miss.concat(g.missing);off=off.concat(g.off);
+      savePracticeDeck();
+    }
+    busy(false);
+    toast('대본 '+done+'장을 넣었습니다'+(miss.length?' · 빠진 장 '+miss.join(','):'')+(off.length?' · 목표 ±15% 밖 '+off.map(x=>x.num).join(','):'')+(failed?' · 실패한 호출 '+failed+'번':'')+' — 되돌리기 가능');
+    render();
+  }catch(e){busy(false);if(e.message!=='__CANCEL__')toast('대본 만들기 실패: '+e.message);else toast(done?'멈췄습니다 — 그때까지 '+done+'장은 넣었습니다(되돌리기 가능)':'취소했습니다');render();}
+}
+async function runFix(){
+  if(!S.deck)return;const list=EPA.lengthFixList(S.deck,{minutes:S.minutes});
+  if(!list.length){toast('목표 길이에서 벗어난 장이 없습니다');return;}
+  keepDeckUndo('길이 보정');let okN=0;const rej=[];
+  busy(true,'길이를 맞추는 중 (0 / '+list.length+')','AI 응답을 기다리고 있습니다.');
+  try{
+    for(let k=0;k<list.length;k++){
+      const it=list[k];$('#busyT').textContent='길이를 맞추는 중 ('+(k+1)+' / '+list.length+')';
+      const pr=EPA.buildFixPrompt(S.deck,it),m=aiMask(pr.user);pr.user=m.masked;
+      let r;try{r=await callLLM(pr.system,pr.user,3000,n=>{$('#busyM').textContent='받은 글자 '+fmt(n)+'자';},'발표 대본 길이 맞추기');}
+      catch(e){if(e.message==='__CANCEL__')throw e;rej.push((it.index+1)+'번 호출 실패');continue;}
+      S.lastUsage=r.usage;let raw=EPA.parseJSON(r.text)||r.text;if(raw&&typeof raw==='object'&&S.maskOrg)raw=unmask(raw,m.map);
+      const s=S.deck.slides[it.index],c=EPA.checkFix(s.notes,raw,it,pr.source);
+      if(c.ok){s.notes=c.text;s.seconds=EPA.secondsOf(s.notes);delete s.measuredSec;okN++;savePracticeDeck();}else rej.push((it.index+1)+'번 '+c.reason);
+    }
+    busy(false);toast('길이 보정 '+okN+'장 반영'+(rej.length?' · 그대로 둔 장: '+rej.slice(0,4).join(', ')+(rej.length>4?' 외':''):'')+' — 되돌리기 가능');render();
+  }catch(e){busy(false);toast(e.message==='__CANCEL__'?(okN?'멈췄습니다 — '+okN+'장은 반영(되돌리기 가능)':'취소했습니다'):'길이 보정 실패: '+e.message);render();}
+}
+async function runStory(){
+  if(!S.deck)return;const groups=EPA.scriptBatches(EPA.storyTargets(S.deck),EPA.STORY_GROUP);
+  if(!groups.length){toast('다듬을 장이 없습니다(5문장·110자 이상, 발화 가이드 표시가 없는 장만 다듬습니다)');return;}
+  keepDeckUndo('흐름 다듬기');let okN=0;const rej=[];
+  busy(true,'흐름을 다듬는 중 (0 / '+groups.length+')','AI 응답을 기다리고 있습니다.');
+  try{
+    for(let g=0;g<groups.length;g++){
+      $('#busyT').textContent='흐름을 다듬는 중 ('+(g+1)+' / '+groups.length+')';
+      const pr=EPA.buildStoryPrompt(S.deck,groups[g]),m=aiMask(pr.user);pr.user=m.masked;
+      let r;try{r=await callLLM(pr.system,pr.user,5000,n=>{$('#busyM').textContent='받은 글자 '+fmt(n)+'자';},'발표 흐름 다듬기');}
+      catch(e){if(e.message==='__CANCEL__')throw e;rej.push(pr.nums.join(',')+'번 호출 실패');continue;}
+      S.lastUsage=r.usage;let raw=EPA.parseJSON(r.text)||r.text;if(raw&&typeof raw==='object'&&S.maskOrg)raw=unmask(raw,m.map);
+      const map=EPA.parseStory(raw);
+      groups[g].forEach(i=>{const x=map[i+1],s=S.deck.slides[i];if(!x){rej.push((i+1)+'번 응답 없음');return;}const c=EPA.checkStory(s.notes,x.head,x.tail);if(c.ok){s.notes=c.script;s.seconds=EPA.secondsOf(s.notes);delete s.measuredSec;okN++;}else if(c.reason!=='변경 없음')rej.push((i+1)+'번 '+c.reason);});
+      savePracticeDeck();
+    }
+    busy(false);toast('흐름 다듬기 '+okN+'장 반영'+(rej.length?' · 그대로 둔 장: '+rej.slice(0,4).join(', ')+(rej.length>4?' 외':''):'')+' — 되돌리기 가능');render();
+  }catch(e){busy(false);toast(e.message==='__CANCEL__'?(okN?'멈췄습니다 — '+okN+'장은 반영(되돌리기 가능)':'취소했습니다'):'흐름 다듬기 실패: '+e.message);render();}
+}
+function partCard(d){
+  const used=EPA.usesParts(d),P=EPA.partPlan(d,{minutes:S.minutes}),rate=Math.round((d.meta.rate||1)*100);
+  const rateSel='<select id="partRate" aria-label="발표 속도">'+[90,100,110,120,130].map(r=>'<option value="'+r+'" '+(r===rate?'selected':'')+'>'+r+'%</option>').join('')+'</select>';
+  const sumHtml=used?P.parts.map(p=>'<span class="pill">'+esc(p.part)+' '+p.slides+'장 · '+mmss(p.sec)+' · '+p.share+'%</span>').join(' ')+(P.appendix?' <span class="pill">별첨 '+P.appendix+'장(시간 없음)</span>':''):'<span class="muted">Part 를 나누면 오프닝 3%·마무리 7%, 본문은 배경·전략 2 : 기술·구축 1 : 사업관리 1.3 으로 시간을 나눕니다. 간지는 35자, 강조 장은 ×1.3, 별첨은 시간 없음.</span>';
+  return '<div class="card"><div class="row" style="align-items:center"><h2 style="margin:0">Part·시간 배분</h2><span class="tb-sp"></span>'+(d.meta.imported?'<span class="muted">가져온 발표: '+esc(d.meta.imported)+'</span>':'')+'<label class="btn sm">📥 PPTX 가져오기<input type="file" id="impPptx" accept=".pptx" hidden></label><label class="btn sm" title="같은 발표의 PDF — PPTX 를 가져온 뒤라면 쪽 그림만 붙입니다">📄 PDF(쪽 그림)<input type="file" id="impPdf" accept=".pdf" hidden></label>'+(d.slides.some(s=>s.img)?'<button class="btn sm" onclick="clearDeckImages()">쪽 그림 지우기</button>':'')+'</div>'
+  +'<div class="row" style="margin-top:12px;align-items:center"><button class="btn sm pri" onclick="autoParts()">Part 자동 분류</button>'+(used?'<button class="btn sm" onclick="clearParts()">Part 지우기</button>':'')+'<label class="f" style="flex-direction:row;align-items:center;gap:8px;white-space:nowrap">발표 속도 '+rateSel+'</label><span class="muted">목표 '+S.minutes+'분 · 공백 뺀 '+P.totalChars.toLocaleString('ko-KR')+'자</span></div>'
+  +'<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">'+sumHtml+'</div></div>';
+}
+function reportCard(d){
+  const r=EPA.practiceReport(d,{minutes:S.minutes,materials:materialsText()});
+  const top=r.top.length?'<ol class="checks" style="padding-left:20px">'+r.top.map(x=>'<li><button class="linkbtn" data-tele="'+x.slide+'">'+(x.slide+1)+'번 '+esc(d.slides[x.slide].headline||'')+'</button> <span class="muted">— '+esc(x.why.join(' · ')||'점검 필요')+'</span></li>').join('')+'</ol>':'<p class="muted">먼저 손볼 장이 없습니다.</p>';
+  return '<div class="card"><h2>발표 결과 분석</h2><div class="stat" style="margin-top:0"><div><b>'+r.completion+'%</b>완성도(★4 이상 장)</div><div><b>'+mmss(r.practicedSec)+'</b>총 연습 시간</div><div><b>'+(r.rated?r.avgStars.toFixed(1):'-')+'</b>평균 별점('+r.rated+'장)</div></div><h3 style="margin:14px 0 4px;font-size:14px">먼저 손볼 슬라이드 TOP 5</h3>'+top+'</div>';
+}
+function resetPracticeAll(){if(!S.deck)return;if(!confirm('모든 슬라이드의 연습 기록·별점·음성 실측을 지울까요?'))return;const keep=JSON.stringify(S.deck.slides.map(s=>[s.practice,s.measuredSec]));EPA.resetPractice(S.deck);savePracticeDeck();render();
+  toastUndo('연습 기록을 지웠습니다',()=>{JSON.parse(keep).forEach((x,i)=>{const s=S.deck.slides[i];if(!s)return;if(x[0])s.practice=x[0];if(x[1])s.measuredSec=x[1];});savePracticeDeck();render();});}
+function toastUndo(msg,undo){const t=$('#toast');t.innerHTML=esc(msg)+' <button class="linkbtn" id="undoBtn" style="color:#fff;text-decoration:underline">되돌리기</button>';t.classList.add('on');const b=$('#undoBtn');if(b)b.onclick=()=>{undo();t.classList.remove('on');};clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('on'),5000);}
+/* 편집 화면: 발화 가이드 넣기 */
+function wrapGuide(tag){
+  const ta=$('#notesTa');if(!ta)return;const a=ta.selectionStart,b=ta.selectionEnd,v=ta.value;let nv,caret;
+  if(tag==='pause'){nv=v.slice(0,a)+' /// '+v.slice(b);caret=a+5;}
+  else if(tag==='clear'){const mid=a===b?v:v.slice(a,b),clean=EPA.stripGuides(mid);nv=a===b?clean:v.slice(0,a)+clean+v.slice(b);caret=a===b?clean.length:a+clean.length;}
+  else{if(a===b){toast('가이드를 넣을 부분을 먼저 드래그해 선택하세요');return;}nv=v.slice(0,a)+'['+tag+']'+v.slice(a,b)+'[/'+tag+']'+v.slice(b);caret=b+tag.length*2+5;}
+  ta.value=nv;setField('notes',nv);ta.focus();ta.setSelectionRange(caret,caret);
+}
+/* ---- 텔레프롬프터 ---- */
+const TELE_HELP=[['Space · → · PageDown','다음 슬라이드'],['← · PageUp','이전 슬라이드'],['A','자동 스크롤 켜기/끄기'],['K','멈춤/다시(시간·스크롤·음성)'],['↑ ↓','글자 크기'],['+ −','스크롤 속도'],['R','대본 처음으로'],['T','시간 초기화'],['D · G · E','펜 · 형광펜 · 지우개(다시 누르거나 Esc 로 끄기)'],['C','이 장 판서 지우기'],['B · .','화면 가림'],['P','청중 화면(다른 모니터로 끌어 놓기)'],['F','전체 화면'],['H · ?','도움말'],['1~5 · Enter · Esc','(연속 연습) 별점 · 저장 · 건너뛰기'],['Esc','끝내기']];
+function teleOpen(mode,idxs){
+  if(!S.deck)return;
+  idxs=(idxs&&idxs.length?idxs:S.deck.slides.map((_,i)=>i)).filter(i=>S.deck.slides[i]);
+  if(mode==='listen'&&!window.speechSynthesis&&ttsSet().provider==='browser'){toast('이 브라우저는 음성 읽기를 지원하지 않습니다 — AI 음성을 고르세요');return;}
+  TELE.ttsOk=false;TELE.ttsFallback=false;TELE.ink={};TELE.tool='';
+  Object.assign(TELE,{on:true,mode,idxs,pos:0,auto:mode!=='listen'&&lsGet('epa_tele_auto','0')==='1',font:+lsGet('epa_tele_font','32')||32,speed:+lsGet('epa_tele_speed','1')||1,split:+lsGet('epa_tele_split','42')||42,black:false,paused:false,help:false,rating:0,rated:0,skipped:0,startAt:performance.now(),pauseMs:0,pausedAt:0,slideAt:performance.now(),slidePause:0});
+  let el=$('#tele');
+  if(!el){el=document.createElement('div');el.id='tele';el.className='tele';el.setAttribute('role','dialog');el.setAttribute('aria-modal','true');el.setAttribute('aria-label','발표 연습');document.body.appendChild(el);}
+  el.innerHTML='<div class="tele-top"><b id="teleTitle"></b><span class="pill" id="teleNo"></span><span class="pill" id="teleMode"></span><span class="tb-sp"></span><span id="teleClock" class="tele-clock"></span>'
+    +'<button class="btn sm" data-ta="prev">◀</button><button class="btn sm" data-ta="next">▶</button><button class="btn sm" data-ta="auto">자동</button><button class="btn sm" data-ta="pause">멈춤</button><button class="btn sm" data-ta="pen" title="펜(D)">✏ 펜</button><button class="btn sm" data-ta="hl" title="형광펜(G)">🖍 형광</button><button class="btn sm" data-ta="eraser" title="지우개(E)">⌫ 지우개</button><button class="btn sm" data-ta="inkclear" title="이 장 판서 지우기(C)">판서 지우기</button><button class="btn sm" data-ta="aud">청중 화면</button><button class="btn sm" data-ta="full">전체 화면</button><button class="btn sm" data-ta="help">?</button><button class="btn sm" data-ta="exit">끝내기</button></div>'
+    +'<div class="tele-body" id="teleBody"><div class="tele-slide" id="teleSlide"></div><div class="tele-split" id="teleSplit" title="끌어서 폭 조절"></div><div class="tele-script" id="teleScript" tabindex="0"></div></div>'
+    +'<div class="tele-black" id="teleBlack" hidden></div><div class="tele-pop" id="teleRate" hidden></div><div class="tele-pop" id="teleHelp" hidden><h3>단축키</h3><table>'+TELE_HELP.map(r=>'<tr><td><b>'+esc(r[0])+'</b></td><td>'+esc(r[1])+'</td></tr>').join('')+'</table><p class="muted">아무 키나 누르면 닫힙니다.</p></div>';
+  el.querySelectorAll('[data-ta]').forEach(b=>b.addEventListener('click',()=>teleAct(b.dataset.ta)));
+  const sp=$('#teleSplit');sp.addEventListener('pointerdown',e=>{e.preventDefault();const body=$('#teleBody');const mv=ev=>{const r=body.getBoundingClientRect();TELE.split=Math.min(80,Math.max(20,Math.round((ev.clientX-r.left)/r.width*100)));teleLayout();};const up=()=>{removeEventListener('pointermove',mv);removeEventListener('pointerup',up);lsSet('epa_tele_split',TELE.split);};addEventListener('pointermove',mv);addEventListener('pointerup',up);});
+  document.addEventListener('keydown',teleKey,true);
+  clearInterval(TELE.clock);TELE.clock=setInterval(teleClock,250);
+  cancelAnimationFrame(TELE.raf);TELE.lastFrame=performance.now();TELE.raf=requestAnimationFrame(teleScroll);
+  teleShow();
+  if(mode==='listen')speakCurrent();
+}
+function teleCur(){return S.deck.slides[TELE.idxs[TELE.pos]];}
+function teleLayout(){const b=$('#teleBody');if(b)b.style.gridTemplateColumns=TELE.split+'% 8px 1fr';const sc=$('#teleScript');if(sc)sc.style.fontSize=TELE.font+'px';}
+function teleShow(){
+  const s=teleCur(),i=TELE.idxs[TELE.pos];if(!s)return;
+  $('#teleTitle').textContent=S.deck.meta.title;$('#teleNo').textContent=(i+1)+'번 · '+(TELE.pos+1)+' / '+TELE.idxs.length;
+  $('#teleMode').textContent=({tele:'텔레프롬프터',listen:'🎧 발표 듣기',run:'⭐ 연속 연습'})[TELE.mode]+(TELE.auto?' · 자동 스크롤':'')+(TELE.paused?' · 멈춤':'');
+  $('#teleSlide').innerHTML=slideCardHtml(s,false)+EPA.inkSvg(inkOf(i));inkBind();
+  const sc=$('#teleScript');sc.innerHTML=s.notes?EPA.guideHtml(s.notes,esc):'<span class="muted">(발표 노트 없음)</span>';sc.scrollTop=0;
+  $('#teleBlack').hidden=!TELE.black;teleLayout();teleClock();audSync();
+}
+function teleElapsed(at,pauseMs){const now=TELE.paused?TELE.pausedAt:performance.now();return Math.max(0,(now-at-pauseMs)/1000);}
+function teleClock(){
+  if(!TELE.on)return;const c=$('#teleClock');if(!c)return;
+  const tot=teleElapsed(TELE.startAt,TELE.pauseMs),sl=teleElapsed(TELE.slideAt,TELE.slidePause),s=teleCur(),target=EPA.timingReport(S.deck,S.minutes).target;
+  c.innerHTML='이 장 '+mmss(sl)+(s&&s.seconds?' / 약 '+s.seconds+'초':'')+' · 전체 '+mmss(tot)+' · 남은 '+(target-tot<0?'-':'')+mmss(Math.abs(target-tot));
+}
+function teleScroll(ts){
+  if(!TELE.on)return;const dt=ts-(TELE.lastFrame||ts);TELE.lastFrame=ts;
+  if(TELE.auto&&!TELE.paused&&!TELE.help&&!TELE.rating){const sc=$('#teleScript');if(sc){TELE.acc=(TELE.acc||0)+dt*0.04*TELE.speed*(TELE.font/32);const px=Math.floor(TELE.acc);if(px){sc.scrollTop+=px;TELE.acc-=px;}}}
+  TELE.raf=requestAnimationFrame(teleScroll);
+}
+function teleLeaveSlide(){const s=teleCur();if(!s)return;const sec=teleElapsed(TELE.slideAt,TELE.slidePause);if(sec>=3)EPA.recordPractice(s,TELE.mode,sec);}
+function teleGo(d){
+  stopSpeech();teleLeaveSlide();
+  const np=TELE.pos+d;if(np<0){teleReset(false);if(TELE.mode==='listen'&&!TELE.paused)speakCurrent();return;}if(np>=TELE.idxs.length){teleEnd(true);return;}
+  TELE.pos=np;TELE.slideAt=performance.now();TELE.slidePause=0;if(TELE.paused){TELE.pausedAt=performance.now();}
+  teleShow();if(TELE.mode==='listen'&&!TELE.paused)speakCurrent();
+}
+function teleReset(all){TELE.slideAt=performance.now();TELE.slidePause=0;if(all){TELE.startAt=performance.now();TELE.pauseMs=0;}teleClock();}
+function teleNextReq(){if(TELE.mode==='run'){teleRateOpen();return;}teleGo(1);}
+function teleRateOpen(){
+  TELE.rating=1;const p=$('#teleRate'),s=teleCur();
+  p.innerHTML='<h3>이 장은 어땠나요? <span class="muted">('+esc(s.headline||'')+')</span></h3><div class="row">'+[1,2,3,4,5].map(v=>'<button class="btn" data-rv="'+v+'">'+v+' '+EPA.RATING_LABEL[v]+'</button>').join('')+'</div><div class="row" style="margin-top:12px"><button class="btn sm" data-rv="again">↻ 다시 연습(R)</button><button class="btn sm" data-rv="skip">건너뛰기(Esc)</button></div>';
+  p.hidden=false;p.querySelectorAll('[data-rv]').forEach(b=>b.addEventListener('click',()=>teleRate(b.dataset.rv)));
+}
+function teleRate(v){
+  const p=$('#teleRate');p.hidden=true;TELE.rating=0;
+  if(v==='again'){stopSpeech();teleReset(false);teleShow();return;}
+  if(v==='skip')TELE.skipped++;else{EPA.ratePractice(teleCur(),+v);TELE.rated++;}
+  savePracticeDeck();teleGo(1);
+}
+function teleTogglePause(){
+  if(TELE.paused){const d=performance.now()-TELE.pausedAt;TELE.pauseMs+=d;TELE.slidePause+=d;TELE.paused=false;if(TELE.mode==='listen'){if(TELE.audio)TELE.audio.play().catch(()=>{});else if(window.speechSynthesis&&speechSynthesis.paused)speechSynthesis.resume();else if(!window.speechSynthesis||!speechSynthesis.speaking)speakCurrent();}}
+  else{TELE.paused=true;TELE.pausedAt=performance.now();if(TELE.mode==='listen'){if(TELE.audio)TELE.audio.pause();else if(window.speechSynthesis)speechSynthesis.pause();}}
+  teleShow();
+}
+function teleAct(a){
+  if(a==='prev')teleGo(-1);else if(a==='next')teleNextReq();else if(a==='auto'){TELE.auto=!TELE.auto;lsSet('epa_tele_auto',TELE.auto?1:0);teleShow();}
+  else if(a==='pause')teleTogglePause();else if(a==='aud')audOpen();else if(a==='full'){const el=$('#tele');if(document.fullscreenElement)document.exitFullscreen();else if(el.requestFullscreen)el.requestFullscreen().catch(()=>{});}
+  else if(a==='pen'||a==='hl'||a==='eraser')inkTool(a);
+  else if(a==='inkclear')inkClear();
+  else if(a==='help'){TELE.help=!TELE.help;$('#teleHelp').hidden=!TELE.help;}else if(a==='exit')teleEnd(false);
+}
+function teleKey(e){
+  if(!TELE.on)return;
+  if(e.target&&/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName))return;
+  const k=e.key;let used=true;
+  if(TELE.help){TELE.help=false;$('#teleHelp').hidden=true;e.preventDefault();e.stopPropagation();return;}
+  if(TELE.rating){if(/^[1-5]$/.test(k))teleRate(k);else if(k==='Escape')teleRate('skip');else if(k==='r'||k==='R')teleRate('again');else if(k==='Enter'){}else used=false;}
+  else if(k===' '||k==='ArrowRight'||k==='PageDown')teleNextReq();
+  else if(k==='ArrowLeft'||k==='PageUp')teleGo(-1);
+  else if(k==='a'||k==='A')teleAct('auto');
+  else if(k==='k'||k==='K')teleTogglePause();
+  else if(k==='ArrowUp'||k==='ArrowDown'){TELE.font=Math.min(56,Math.max(24,TELE.font+(k==='ArrowUp'?2:-2)));lsSet('epa_tele_font',TELE.font);teleLayout();}
+  else if(k==='+'||k==='='||k==='-'||k==='_'){TELE.speed=Math.round(Math.min(2,Math.max(0.5,TELE.speed+(k==='-'||k==='_'?-0.1:0.1)))*10)/10;lsSet('epa_tele_speed',TELE.speed);toast('스크롤 속도 '+TELE.speed+'x');}
+  else if(k==='r'||k==='R'){const sc=$('#teleScript');if(sc)sc.scrollTop=0;}
+  else if(k==='t'||k==='T'){teleReset(true);toast('시간을 처음부터 잽니다');}
+  else if(k==='b'||k==='B'||k==='.'){TELE.black=!TELE.black;$('#teleBlack').hidden=!TELE.black;audSync();}
+  else if(k==='p'||k==='P')audOpen();
+  else if(k==='f'||k==='F')teleAct('full');
+  else if(k==='h'||k==='H'||k==='?')teleAct('help');
+  else if(k==='d'||k==='D')inkTool('pen');
+  else if(k==='g'||k==='G')inkTool('hl');
+  else if(k==='e'||k==='E')inkTool('eraser');
+  else if(k==='c'||k==='C')inkClear();
+  else if(k==='Escape'){if(TELE.tool)inkTool('');else teleEnd(false);}
+  else used=false;
+  if(used){e.preventDefault();e.stopPropagation();}
+}
+/* ---- 판서: 장마다 따로(이 발표 연습 동안만, 저장하지 않음). 좌표 0~1000 → 청중 창도 같은 자리 ---- */
+function inkOf(i){TELE.ink=TELE.ink||{};return TELE.ink[i]||(TELE.ink[i]=[]);}
+function inkTool(t){TELE.tool=TELE.tool===t?'':t;const el=$('#teleSlide');if(el)el.classList.toggle('inking',!!TELE.tool);document.querySelectorAll('[data-ta="pen"],[data-ta="hl"],[data-ta="eraser"]').forEach(b=>b.classList.toggle('on',b.dataset.ta===TELE.tool));if(TELE.tool)toast(({pen:'펜',hl:'형광펜',eraser:'지우개'})[TELE.tool]+' — 슬라이드 위에 그리세요 · Esc 로 끄기');}
+function inkClear(){const i=TELE.idxs[TELE.pos];if(TELE.ink)TELE.ink[i]=[];const sv=$('#teleSlide .ink');if(sv)sv.outerHTML=EPA.inkSvg([]);inkBind();audSync();}
+function inkBind(){
+  const box=$('#teleSlide'),sv=box&&box.querySelector('.ink');if(!sv)return;box.classList.toggle('inking',!!TELE.tool);
+  const pt=e=>{const r=sv.getBoundingClientRect();return [Math.round((e.clientX-r.left)/r.width*1000),Math.round((e.clientY-r.top)/r.height*1000)];};
+  let cur=null,last=0;
+  const redraw=()=>{const i=TELE.idxs[TELE.pos],n=document.createElement('div');n.innerHTML=EPA.inkSvg(inkOf(i));sv.innerHTML=n.firstChild.innerHTML;};
+  sv.onpointerdown=e=>{if(!TELE.tool)return;e.preventDefault();try{sv.setPointerCapture(e.pointerId);}catch(x){}const p=pt(e),i=TELE.idxs[TELE.pos];
+    if(TELE.tool==='eraser'){TELE.ink[i]=EPA.inkErase(inkOf(i),p[0],p[1],30);cur={erase:true};}else{cur={tool:TELE.tool,pts:[p]};inkOf(i).push(cur);}redraw();};
+  sv.onpointermove=e=>{if(!cur)return;const p=pt(e),i=TELE.idxs[TELE.pos];if(cur.erase)TELE.ink[i]=EPA.inkErase(inkOf(i),p[0],p[1],30);else cur.pts.push(p);redraw();const now=performance.now();if(now-last>120){last=now;audSync();}};
+  sv.onpointerup=sv.onpointercancel=()=>{if(!cur)return;cur=null;audSync();};
+}
+function teleEnd(done){
+  if(!TELE.on)return;
+  if(!done)teleLeaveSlide();
+  stopSpeech();TELE.on=false;clearInterval(TELE.clock);cancelAnimationFrame(TELE.raf);document.removeEventListener('keydown',teleKey,true);
+  if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});
+  const el=$('#tele');if(el)el.remove();
+  if(TELE.aud&&!TELE.aud.closed)TELE.aud.close();TELE.aud=null;
+  savePracticeDeck();
+  if(TELE.mode==='run')toast((done?'연속 연습 완료':'연속 연습 종료')+' — ⭐ 평가 '+TELE.rated+'건 · ⏭ 건너뜀 '+TELE.skipped+'건');
+  else if(done)toast(TELE.mode==='listen'?'🎉 발표 듣기를 마쳤습니다 — 음성 실측 시간을 저장했습니다':'마지막 슬라이드까지 연습했습니다');
+  render();
+}
+/* ---- 청중 화면: 같은 주소의 빈 창에 슬라이드만 그린다(스크립트 없이 이 창에서 직접 그림) ---- */
+const AUD_CSS='html,body{margin:0;height:100%;background:#fff;font-family:"Pretendard Variable",Pretendard,"Malgun Gothic",sans-serif;color:#191F28}#aud{height:100%;display:flex;align-items:center;justify-content:center;padding:4vh 5vw;box-sizing:border-box}#audBlack{position:fixed;inset:0;background:#000;display:none}'
+ +'.aud-wrap{position:relative;width:100%}.ink{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}.sc{width:100%}.sc-img{height:100%;display:flex;align-items:center;justify-content:center}.sc-img img{max-width:100%;max-height:100%;object-fit:contain}.sc-sec{color:#2457C5;font-weight:800;font-size:2.2vh;margin-bottom:1vh}.sc-h{font-size:5vh;font-weight:800;letter-spacing:-.02em;line-height:1.25}.sc-sub{font-size:2.6vh;color:#4E5968;margin-top:1vh}.sc ul,.sc ol{font-size:3.2vh;line-height:1.6;margin:3vh 0 0;padding-left:4vh}.sc-2{display:grid;grid-template-columns:1fr 1fr;gap:3vw;margin-top:3vh;font-size:3vh}.sc-kpi{display:flex;gap:2vw;margin-top:4vh}.sc-kpi div{flex:1;border:1px solid #E5E8EB;border-radius:16px;padding:3vh 1vw;text-align:center}.sc-kpi b{display:block;font-size:6vh;color:#2457C5}.sc-kpi span{font-size:2.6vh}.sc-t{border-collapse:collapse;margin-top:3vh;font-size:2.6vh;width:100%}.sc-t th{background:#2457C5;color:#fff}.sc-t td,.sc-t th{border:1px solid #E5E8EB;padding:1vh 1vw;text-align:left}.sc-take{margin-top:4vh;background:#EAF0FC;color:#1A3F94;font-weight:800;font-size:2.8vh;padding:2vh 2vw;border-radius:12px}.sc-title .sc-h,.sc-closing .sc-h{font-size:7vh}';
+function audOpen(){
+  let w=TELE.aud;
+  if(!w||w.closed){w=window.open('','epa_audience','width=1280,height=720');if(!w){toast('팝업이 막혔습니다 — 주소창 오른쪽에서 이 사이트의 팝업을 허용해 주세요');return;}TELE.aud=w;
+    const d=w.document;d.title='청중 화면 — '+S.deck.meta.title;const st=d.createElement('style');st.textContent=AUD_CSS;d.head.appendChild(st);d.body.innerHTML='<div id="aud"></div><div id="audBlack"></div>';
+    toast('청중 화면을 열었습니다 — 발표용 모니터로 끌어 놓고 F11 로 전체 화면');}
+  audSync();
+}
+function audSync(){const w=TELE.aud;if(!w||w.closed||!TELE.on)return;try{w.document.getElementById('aud').innerHTML='<div class="aud-wrap">'+slideCardHtml(teleCur(),true)+EPA.inkSvg(inkOf(TELE.idxs[TELE.pos]))+'</div>';w.document.getElementById('audBlack').style.display=TELE.black?'block':'none';}catch(e){}}
+/* ---- 발표 듣기(브라우저 음성) — 장마다 읽는 데 걸린 시간을 실측으로 저장 ---- */
+function stopSpeech(){TELE.speakToken=(TELE.speakToken||0)+1;clearTimeout(TELE.speakTimer);if(TELE.audio){try{TELE.audio.pause();}catch(e){}TELE.audio=null;}try{if(window.speechSynthesis)speechSynthesis.cancel();}catch(e){}}
+function pickVoice(){const name=lsGet('epa_tts_voice',''),vs=koVoices();return vs.find(v=>v.name===name)||vs[0]||null;}
+/* ---- AI 음성(Gemini·OpenAI, 사용자 키로 직접) — 장마다 만들어 재생·다음 장 미리 만들기·이 브라우저에 저장, 실패하면 브라우저 음성 ---- */
+function ttsSet(){try{return EPA.ttsSettings(JSON.parse(lsGet('epa_tts_set','{}')));}catch(e){return EPA.ttsSettings({});}}
+function ttsSave(p){lsSet('epa_tts_set',JSON.stringify(EPA.ttsSettings(Object.assign(ttsSet(),p))));}
+function ttsKey(p){const m={openai:'gpt',gemini:'gemini'}[p];if(m&&S.prov.provider===m&&S.prov.key)return S.prov.key;try{return sessionStorage.getItem('epa_tts_key_'+p)||'';}catch(e){return '';}}
+async function sha32(t){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('').slice(0,32);}
+const TTS_MEM={};
+async function ttsBlob(text,set){
+  const k='tts/'+await sha32(EPA.ttsCacheText(set,text));
+  if(TTS_MEM[k])return TTS_MEM[k];
+  try{const b=await idbGet(k);if(b){TTS_MEM[k]=b;return b;}}catch(e){}
+  const key=ttsKey(set.provider);if(!key)throw new Error('음성용 API 키가 없습니다');
+  const rq=EPA.ttsRequest(set,text);
+  logExternalSend({app:'EPA',provider:set.provider,endpointHost:EPA.TTS_PROVIDERS[set.provider].host,dataKinds:['발표 대본(음성)'],charCount:text.length,fieldCount:1,maskApplied:false});
+  let blob;
+  if(rq.auth==='bearer'){
+    const r=await fetch(rq.url,{method:'POST',headers:{'content-type':'application/json','authorization':'Bearer '+key},body:JSON.stringify(rq.body)});
+    if(!r.ok)throw new Error('음성 오류 '+r.status+': '+(await r.text()).slice(0,160));blob=await r.blob();
+  }else{
+    const r=await fetch(rq.url,{method:'POST',headers:{'content-type':'application/json','x-goog-api-key':key},body:JSON.stringify(rq.body)});
+    if(!r.ok)throw new Error('음성 오류 '+r.status+': '+(await r.text()).slice(0,160));
+    const a=EPA.geminiAudio(await r.json());if(!a)throw new Error('음성 응답에 소리가 없습니다');
+    const bin=Uint8Array.from(atob(a.data),c=>c.charCodeAt(0));blob=new Blob([/pcm|L16/i.test(a.mime)||!a.mime?EPA.pcmToWav(bin,a.rate):bin],{type:/pcm|L16/i.test(a.mime)||!a.mime?'audio/wav':a.mime});
+  }
+  TTS_MEM[k]=blob;try{await idbPut(k,blob);}catch(e){}
+  return blob;
+}
+async function ttsConsent(set){
+  if(TELE.ttsOk)return true;
+  const chars=TELE.idxs.reduce((a,i)=>a+EPA.ttsText(S.deck.slides[i].notes).replace(/\s/g,'').length,0),pv=EPA.TTS_PROVIDERS[set.provider];
+  TELE.ttsOk=await confirmExternalSend({provider:pv.name,endpointHost:pv.host,dataKinds:['발표 대본(노트) — 음성 만들기'],charCount:chars,maskApplied:false,costText:'약 $'+EPA.ttsCost(chars,set).toFixed(2)+' [가설 — 공급자 단가표로 확인] · 이미 만든 음성은 다시 사지 않음'});
+  return TELE.ttsOk;
+}
+function ttsFallback(msg){TELE.ttsFallback=true;toast(msg);if(TELE.on&&TELE.mode==='listen'&&!TELE.paused){if(window.speechSynthesis)speakBrowser();else teleGo(1);}}
+async function speakAI(){
+  stopSpeech();const token=TELE.speakToken,s=teleCur(),set=ttsSet(),text=EPA.ttsText(s&&s.notes);
+  if(!text){TELE.speakTimer=setTimeout(()=>{if(token===TELE.speakToken)teleGo(1);},2000);return;}
+  if(!(await ttsConsent(set))){if(token===TELE.speakToken)ttsFallback('AI 음성을 쓰지 않고 브라우저 음성으로 읽습니다');return;}
+  let blob;try{blob=await ttsBlob(text,set);}catch(e){if(token===TELE.speakToken)ttsFallback('AI 음성 실패 — 브라우저 음성으로 바꿉니다: '+e.message);return;}
+  if(token!==TELE.speakToken||!TELE.on||TELE.mode!=='listen')return;
+  const url=URL.createObjectURL(blob),au=new Audio(url),rate=Math.min(2,Math.max(0.5,+lsGet('epa_tts_rate','1')||1));TELE.audio=au;au.playbackRate=rate;
+  au.onended=()=>{URL.revokeObjectURL(url);if(token!==TELE.speakToken)return;if(isFinite(au.duration)&&au.duration>0)s.measuredSec=Math.round(au.duration/rate);TELE.audio=null;TELE.speakTimer=setTimeout(()=>{if(token===TELE.speakToken)teleGo(1);},600);};
+  au.onerror=()=>{if(token===TELE.speakToken)ttsFallback('AI 음성을 재생하지 못했습니다 — 브라우저 음성으로 바꿉니다');};
+  au.play().catch(e=>{if(token===TELE.speakToken)ttsFallback('AI 음성 재생이 막혔습니다 — 브라우저 음성으로 바꿉니다');});
+  const nx=TELE.idxs[TELE.pos+1];if(nx!=null){const t2=EPA.ttsText(S.deck.slides[nx].notes);if(t2)ttsBlob(t2,set).catch(()=>{});}
+}
+function speakCurrent(){if(ttsSet().provider!=='browser'&&!TELE.ttsFallback)speakAI();else speakBrowser();}
+function speakBrowser(){
+  stopSpeech();const token=TELE.speakToken,s=teleCur(),parts=EPA.speechParts(s&&s.notes),voice=pickVoice(),base=+lsGet('epa_tts_rate','1')||1,t0=performance.now(),p0=TELE.slidePause;let k=0;
+  const step=()=>{
+    if(!TELE.on||TELE.mode!=='listen'||token!==TELE.speakToken)return;
+    if(k>=parts.length){if(parts.length)s.measuredSec=Math.round((performance.now()-t0-(TELE.slidePause-p0))/1000);TELE.speakTimer=setTimeout(()=>{if(token===TELE.speakToken)teleGo(1);},600);return;}
+    const p=parts[k++];if(p.pause){TELE.speakTimer=setTimeout(step,p.pause*1000);return;}
+    const u=new SpeechSynthesisUtterance(p.text);u.lang='ko-KR';if(voice)u.voice=voice;u.rate=Math.min(2,Math.max(0.5,base*p.rate));u.onend=step;u.onerror=step;speechSynthesis.speak(u);
+  };
+  if(!parts.length){TELE.speakTimer=setTimeout(()=>{if(token===TELE.speakToken)teleGo(1);},2000);return;}
+  step();
+}
+
+/* ---- 명령 팔레트(Ctrl+K · ⌘K) — 화면 이동·자주 쓰는 동작, 한글 초성으로도 찾는다 ---- */
+function cmdList(){
+  const L=[...document.querySelectorAll('.nav[data-v]')].map(b=>({label:b.textContent.replace(/^[^가-힣A-Za-z]+/,'').trim()+' 화면으로',keywords:'이동 화면 '+b.dataset.v,run:()=>go(b.dataset.v)}));
+  L.push({label:'데모 발표본 열기',keywords:'demo 시연 가공',run:runDemo});
+  if(S.deck){L.push({label:'PPTX 내려받기',keywords:'내보내기 export 파일',run:exportPptx});if(EDITION==='external'){L.push({label:'텔레프롬프터 시작',keywords:'연습 tele',run:()=>teleOpen('tele')});L.push({label:'발표 듣기 시작',keywords:'음성 tts listen',run:()=>teleOpen('listen')});}}
+  return L;
+}
+function cmdOpen(){
+  if($('#cmdk'))return;const ov=document.createElement('div');ov.id='cmdk';ov.className='cmdk';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');ov.setAttribute('aria-label','명령 찾기');
+  ov.innerHTML='<div class="cmdk-box"><input id="cmdkIn" placeholder="무엇을 할까요? (예: 내보내기, ㅂㅍ)" aria-label="명령 찾기" autocomplete="off"><ul class="cmdk-list" id="cmdkList" role="listbox"></ul></div>';document.body.appendChild(ov);
+  let sel=0,res=[];const all=cmdList(),inp=$('#cmdkIn');
+  const draw=()=>{res=EPA.cmdMatch(all,inp.value).slice(0,12);sel=Math.min(sel,Math.max(0,res.length-1));$('#cmdkList').innerHTML=res.map((c,i)=>'<li role="option" data-i="'+i+'" class="'+(i===sel?'on':'')+'" aria-selected="'+(i===sel)+'">'+esc(c.label)+'</li>').join('')||'<li class="muted">맞는 명령이 없습니다</li>';};
+  const close=()=>ov.remove(),run=i=>{const c=res[i];close();if(c)c.run();};
+  ov.addEventListener('click',e=>{if(e.target===ov)close();const li=e.target.closest&&e.target.closest('li[data-i]');if(li)run(+li.dataset.i);});
+  inp.addEventListener('input',()=>{sel=0;draw();});
+  inp.addEventListener('keydown',e=>{if(e.key==='ArrowDown'){sel=Math.min(res.length-1,sel+1);draw();e.preventDefault();}else if(e.key==='ArrowUp'){sel=Math.max(0,sel-1);draw();e.preventDefault();}else if(e.key==='Enter'){run(sel);e.preventDefault();}else if(e.key==='Escape'){close();e.preventDefault();}});
+  draw();inp.focus();
+}
+document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&(e.key==='k'||e.key==='K')&&!TELE.on){e.preventDefault();cmdOpen();}});
+/* ---- Q&A 엑셀·CSV 가져오기 — 이 브라우저에서만 읽는다(외부 전송 없음) ---- */
+async function importQa(file){
+  if(!file||!S.deck)return;
+  try{
+    const rows=/\.xlsx$/i.test(file.name)?await EPA.readXlsxRows(JSZip,await file.arrayBuffer()):EPA.csvRows(await file.text());
+    const p=EPA.parseQaRows(rows);if(!p.items.length)throw new Error(p.warnings[0]||'가져올 질문이 없습니다');
+    const r=EPA.mergeQa(S.deck,p.items);savePracticeDeck();render();
+    toast('Q&A '+r.added+'건 추가'+(r.filled?' · 답변 채움 '+r.filled+'건':'')+(r.dup?' · 비슷한 질문 '+r.dup+'건은 합침':'')+(r.over?' · 40개 상한으로 '+r.over+'건 뺌':'')+(p.warnings.length?' · '+p.warnings[0]:''));
+  }catch(e){toast('Q&A 가져오기 실패: '+e.message);}
+}
+/* ---------- 이벤트 연결 ---------- */
+function bind(){
+  const on=(sel,ev,fn)=>{const e=$(sel);if(e)e.addEventListener(ev,fn);};
+  on('#pName','input',e=>S.project.name=e.target.value);on('#pClient','input',e=>S.project.client=e.target.value);on('#pCompany','input',e=>S.project.company=e.target.value);
+  on('#pMin','change',e=>{S.minutes=+e.target.value;render();});on('#pMax','change',e=>{S.maxSlides=e.target.value;render();});on('#pAud','input',e=>S.audience=e.target.value);on('#pEmp','input',e=>S.emphasis=e.target.value);
+  on('#pPaste','change',e=>{S.paste=e.target.value;render();});on('#pMaskOrg','change',e=>S.maskOrg=e.target.checked);
+  on('#impA','change',e=>e.target.files[0]&&importJSON(e.target.files[0],'analysis'));on('#impS','change',e=>e.target.files[0]&&importJSON(e.target.files[0],'strategy'));on('#impDeck','change',e=>e.target.files[0]&&importDeck(e.target.files[0]));on('#impTheme','change',e=>e.target.files[0]&&importTheme(e.target.files[0]));
+  document.querySelectorAll('.drop').forEach(d=>{
+    const pick=()=>{const i=document.createElement('input');i.type='file';i.multiple=true;i.accept='.pdf,.docx,.hwpx,.pptx,.txt,.md';i.onchange=()=>addFiles([...i.files],d.dataset.kind);i.click();};
+    d.addEventListener('click',pick);d.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pick();}});
+    d.addEventListener('dragover',e=>{e.preventDefault();d.classList.add('over');});d.addEventListener('dragleave',()=>d.classList.remove('over'));
+    d.addEventListener('drop',e=>{e.preventDefault();d.classList.remove('over');addFiles([...e.dataTransfer.files],d.dataset.kind);});
+  });
+  document.querySelectorAll('.slide-item[data-i]').forEach(b=>b.addEventListener('click',()=>{S.sel=+b.dataset.i;render();}));
+  /* 2단계 제안서 */
+  on('#prCrit','input',e=>S.prop.criteriaText=e.target.value);on('#prFixed','input',e=>S.prop.fixedText=e.target.value);
+  on('#prPages','change',e=>S.prop.totalPages=+e.target.value);on('#prStep','change',e=>S.prop.step=e.target.value==='0.5'?0.5:1);
+  on('#prLib','change',e=>{setLibrary(e.target.value);regroundDrafts();});on('#prPaste','input',e=>S.prop.paste=e.target.value);
+  on('#impProp','change',e=>e.target.files[0]&&importProp(e.target.files[0]));
+  document.querySelectorAll('[data-pg]').forEach(el=>el.addEventListener('change',()=>patchLeaf(el.dataset.pg,{pages:el.value})));
+  document.querySelectorAll('[data-lock]').forEach(el=>el.addEventListener('change',()=>patchLeaf(el.dataset.lock,{locked:el.checked})));
+  document.querySelectorAll('[data-sec]').forEach(b=>b.addEventListener('click',()=>{S.prop.sel=b.dataset.sec;S.prop.paste='';render();}));
+  [['#dTitle','title'],['#dSub','subtitle'],['#dDate','date'],['#dClient','client'],['#dCompany','company']].forEach(([s,k])=>on(s,'input',e=>S.prop.meta[k]=e.target.value));
+  on('#dNum','change',e=>S.prop.numbering=e.target.value==='korean'?'korean':'decimal');on('#dMarks','change',e=>S.prop.reviewMarks=e.target.checked);
+  /* 발표 연습 */
+  document.querySelectorAll('[data-pf]').forEach(b=>b.addEventListener('click',()=>{S.pf=b.dataset.pf;render();}));
+  document.querySelectorAll('[data-pick]').forEach(c=>c.addEventListener('change',()=>{const i=+c.dataset.pick;S.pick=(S.pick||[]).filter(x=>x!==i);if(c.checked)S.pick.push(i);render();}));
+  document.querySelectorAll('[data-tele]').forEach(b=>b.addEventListener('click',()=>{const i=+b.dataset.tele;teleOpen('tele',EPA.practiceFilter(S.deck,S.pf||'all').filter(x=>x>=i));}));
+  document.querySelectorAll('[data-goedit]').forEach(b=>b.addEventListener('click',()=>{S.sel=+b.dataset.goedit;go('edit');}));
+  on('#ttsVoice','change',e=>lsSet('epa_tts_voice',e.target.value));on('#ttsProv','change',e=>{ttsSave({provider:e.target.value});render();});on('#ttsModel','change',e=>{ttsSave({model:e.target.value});render();});on('#ttsAiVoice','change',e=>ttsSave({voice:e.target.value}));on('#ttsStyle','change',e=>ttsSave({style:e.target.value}));
+  on('#ttsKey','change',e=>{try{sessionStorage.setItem('epa_tts_key_'+ttsSet().provider,e.target.value.trim());}catch(x){}render();});on('#ttsRate','change',e=>lsSet('epa_tts_rate',e.target.value));
+  on('#ckMust','change',e=>{S.check.must=e.target.value;render();});on('#ckBan','change',e=>{S.check.banned=e.target.value;render();});
+  on('#xStrip','change',e=>S.stripGuides=e.target.checked);
+  on('#impPptx','change',e=>importDeckPptx(e.target.files[0]));on('#impQa','change',e=>importQa(e.target.files[0]));on('#impPdf','change',e=>importDeckPdf(e.target.files[0]));
+  document.querySelectorAll('[data-part]').forEach(c=>c.addEventListener('change',()=>setPart(+c.dataset.part,c.value)));
+  document.querySelectorAll('[data-emph]').forEach(c=>c.addEventListener('change',()=>{const s=S.deck.slides[+c.dataset.emph];if(!s)return;if(c.checked)s.emphasis=true;else delete s.emphasis;savePracticeDeck();render();}));
+  on('#aiScope','change',e=>{aiState().scope=e.target.value;render();});on('#aiTone','change',e=>{aiState().tone=e.target.value;render();});on('#aiPresales','change',e=>{aiState().presales=e.target.value.slice(0,3000);render();});
+  on('#partRate','change',e=>{const v=+e.target.value/100;if(v===1)delete S.deck.meta.rate;else S.deck.meta.rate=v;savePracticeDeck();render();});
+  document.querySelectorAll('[data-k]').forEach(el=>el.addEventListener(el.tagName==='SELECT'?'change':'input',e=>{setField(el.dataset.k,e.target.value);if(el.dataset.k==='headline'){const it=document.querySelector('.slide-item.on .t');if(it)it.textContent=(S.sel+1)+'. '+e.target.value;}}));
+}
+render();
+if(location.hash==='#demo')runDemo(); /* 주소 끝 #demo — 비용 없이 데모 바로 열기(시연·캡처용) */
+else if(/^#demo-proposal/.test(location.hash)){runDemoProp();const dv=location.hash.split(':')[1];if(dv==='draft'||dv==='docx')go(dv);} /* #demo-proposal[:draft|:docx] — 2단계 데모 */
+</script>
+</body>
+</html>

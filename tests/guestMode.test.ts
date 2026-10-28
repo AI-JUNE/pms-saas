@@ -46,7 +46,8 @@ test('입장 API — 데모 조직(초대 코드 없음)·무작위 비밀번호
   assert.match(r, /process\.env\.PMS_GUEST_DISABLED === 'true'/, '끄는 스위치(=== true 규칙)');
   assert.equal((r.match(/tenant-scan: allow/g) || []).length, 1, '조직 범위 예외는 데모 조직 찾기 1곳');
   assert.match(r, /auditSecurity\('AUTH_GUEST_ENTER'/);
-  assert.match(r, /if \(created\) \{ try \{ await seedDemo/, '샘플 데이터는 데모 조직을 처음 만들 때 한 번만');
+  assert.match(r, /if \(created \|\| noIssues\) \{ try \{ await seedDemo/, '샘플 데이터는 처음 만들 때 + 이슈가 비어 있을 때만(빈 표만 채움)');
+  assert.match(r, /from\(issues\)\.where\(eq\(issues\.orgId, org\.id\)\)/, '비어 있는지는 데모 조직 안에서만 본다');
   assert.equal(DEMO_ORG_SLUG, 'gowon-demo'); assert.ok(GUEST_EMAIL.endsWith('@demo.gowon'));
 });
 

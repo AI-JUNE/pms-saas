@@ -7,7 +7,7 @@ import {
   Bug, ShieldAlert, CalendarClock, Users, Bell, Search, LogOut, ChevronDown, Check, ClipboardCheck, CalendarDays,
   BarChart3, Activity, Settings, ShieldCheck, Command, User, GitBranch, Type, Circle, Menu, Camera,
   Share2, Server, Flame, ShoppingCart, MessageSquare, UserCheck, CalendarRange, Network, Gauge, ListChecks,
-  FileSearch, Star, ArrowLeft,
+  FileSearch, Star, ArrowLeft, Presentation,
 } from 'lucide-react';
 import { Logo } from './Logo';
 import { clearAppStorage } from '@/lib/appStorage';
@@ -57,6 +57,7 @@ const NAV = [
     { href: '/apps/quality', label: '제안 품질관리', icon: ClipboardCheck },
     { href: '/apps/strategy', label: '제안 전략도출', icon: GitBranch },
     { href: '/apps/performance', label: '고객 성과관리', icon: Gauge },
+    { href: '/apps/authoring', label: '제안서·발표본 작성', icon: Presentation },
   ]},
   { group: '관리', items: [
     { href: '/admin', label: '사용자·권한', icon: ShieldCheck },
@@ -87,7 +88,7 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
   const [canBack, setCanBack] = useState(false);
   const trigRef = useRef<HTMLElement | null>(null); // 마지막으로 드롭다운을 연 트리거 버튼 — Escape 닫기 시 포커스 복귀용
   useEffect(() => { const b = localStorage.getItem('pms.big') === '1'; setBig(b); document.documentElement.classList.toggle('big', b); }, []);
-  useEffect(() => { document.title = title ? `${title} — PMS` : 'PMS — Project Management System'; }, [title]);
+  useEffect(() => { document.title = title ? `${title} — 프로젝트 허브` : 'GOWON 프로젝트 허브'; }, [title]);
   function toggleBig() { const b = !big; setBig(b); localStorage.setItem('pms.big', b ? '1' : '0'); document.documentElement.classList.toggle('big', b); }
 
   useEffect(() => {

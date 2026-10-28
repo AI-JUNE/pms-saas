@@ -4,7 +4,7 @@ import { wrap, inner, draft, h1, meta, h2, p, table, th, td, pending, toc, tocLi
 import { legalDoc, draftNotice, docMetaLine } from '@/lib/legal';
 import { disclosureConfig, publicProcessors, processorNotice, transferNotice } from '@/lib/legalDisclosure';
 
-export const metadata: Metadata = { title: '개인정보 처리방침 — PMS', description: 'PMS 개인정보 처리방침.' };
+export const metadata: Metadata = { title: '개인정보 처리방침 — GOWON 프로젝트 허브', description: 'GOWON 프로젝트 허브 개인정보 처리방침.' };
 
 // 목차는 아래 본문 제목과 같은 배열에서 파생한다(제목만 고치면 목차가 따라온다).
 const SECTIONS = [

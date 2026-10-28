@@ -45,7 +45,7 @@ export default function GlobalError({
       >
         <main style={{ maxWidth: 480, padding: '40px 24px', textAlign: 'center' }}>
           <div style={{ fontSize: 13, letterSpacing: 2, color: '#2457C5', marginBottom: 12 }}>
-            PRISM PMS
+            GOWON 프로젝트 허브
           </div>
           <h1 style={{ fontSize: 22, fontWeight: 600, margin: '0 0 12px' }}>
             문제가 발생했습니다

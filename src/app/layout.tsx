@@ -8,22 +8,22 @@ const IS_PROD = String(process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? '').toL
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: 'PMS — Project Management System',
+  title: 'GOWON 프로젝트 허브 — 프로젝트 관리·제안 업무 통합',
   description: 'Modern multi-tenant project management.',
-  applicationName: 'PMS',
+  applicationName: 'GOWON 프로젝트 허브',
   // 프리뷰/스테이징은 색인 금지. 개별 페이지 metadata 로 덮어쓸 수 있다.
   robots: IS_PROD
     ? { index: true, follow: true }
     : { index: false, follow: false, nocache: true },
   openGraph: {
     type: 'website',
-    siteName: 'PMS',
+    siteName: 'GOWON 프로젝트 허브',
     locale: 'ko_KR',
     url: SITE_URL,
-    title: 'PMS — Project Management System',
+    title: 'GOWON 프로젝트 허브 — 프로젝트 관리·제안 업무 통합',
     description: '프로젝트·요구사항·이슈·산출물·결재를 한 곳에서. 멀티테넌트 프로젝트 관리 시스템.',
   },
-  twitter: { card: 'summary_large_image', title: 'PMS — Project Management System', description: '멀티테넌트 프로젝트 관리 시스템.' },
+  twitter: { card: 'summary_large_image', title: 'GOWON 프로젝트 허브 — 프로젝트 관리·제안 업무 통합', description: '프로젝트 관리와 제안 업무를 한곳에서.' },
 };
 export const viewport = { width: 'device-width', initialScale: 1, maximumScale: 5 };
 export default function RootLayout({ children }: { children: React.ReactNode }) {

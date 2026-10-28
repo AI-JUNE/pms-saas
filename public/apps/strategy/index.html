@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>제안 전략관리 · ECS</title>
+<title>제안 전략관리 · GOWON</title>
 <!-- 오프라인: Pretendard 로컬 내장 (assets/) -->
 <style>
   /* 오프라인 로컬 폰트 */
@@ -180,7 +180,7 @@
   .btn.brand:active,.btn.dark:active{transform:translateY(0) scale(.98)}
 
 /* ===== appended enhancements ===== */
-  /* ============ R2R21 v6 — guided wizard enhancements ============ */
+  /* ============ v6 — guided wizard enhancements ============ */
   :root{--maxw:1180px;--glass:rgba(255,255,255,.72);--ring:rgba(0,148,212,.14)}
   body{background:var(--bg);position:relative;min-height:100vh}
   body::before{content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;
@@ -459,14 +459,14 @@
             <div class="grid c2" style="margin-bottom:12px"><div class="field"><label>고객사 현황 <span class="sub">(규모)</span></label><input id="f_cust_scale" placeholder="예: 상담사 OO명, PBX OO CH, IVR OO CH"></div><div class="field"><label>평가 비중</label><select id="f_eval"><option value="">선택</option><option>기술 중심</option><option>기술·가격 균형</option><option>가격 중심</option></select></div></div>
             <div class="field" style="margin-bottom:8px"><label>우리 포지션 <span class="sub">(전략 무게중심)</span></label></div>
             <div class="seg" id="f_position"><button data-v="운영사업자" class="on">운영사업자<small>운영데이터 70% · ROI/EX</small></button><button data-v="구축경험사">구축경험사<small>PS+영업 · AX/기술</small></button><button data-v="신규진입자">신규진입자<small>영업맥락 60% · CX</small></button></div>
-            <div class="grid c2" style="margin-top:12px"><div class="field"><label>RFP 평가항목 / 배점</label><input id="f_rfp" placeholder="예: 사업이해 20 / 기술 40 / 수행 20 / 가격 20"></div><div class="field"><label>발표 후보 / 경쟁</label><input id="f_competitor" placeholder="예: ECS / 대형 SI·통신사"></div></div>
+            <div class="grid c2" style="margin-top:12px"><div class="field"><label>RFP 평가항목 / 배점</label><input id="f_rfp" placeholder="예: 사업이해 20 / 기술 40 / 수행 20 / 가격 20"></div><div class="field"><label>발표 후보 / 경쟁</label><input id="f_competitor" placeholder="예: 자사 / 대형 SI·통신사"></div></div>
           </div></section>
 
         <section class="card open" id="c-stack"><div class="card-head" onclick="toggleCard(this)"><span class="ix">02</span><h2>사업·구축 유형 / 솔루션 스택</h2><span class="hint">무엇을, 어떤 형태로, 무엇으로</span><span class="chev">▶</span></div>
           <div class="card-body">
             <div class="field" style="margin-bottom:10px"><label>사업 유형</label><div class="chips" id="ch_biztype"><span class="chip" data-v="IPT" onclick="this.classList.toggle(&#39;on&#39;);refresh()">IPT</span><span class="chip on" data-v="IPCC" onclick="this.classList.toggle(&#39;on&#39;);refresh()">IPCC</span><span class="chip on" data-v="AICC" onclick="this.classList.toggle(&#39;on&#39;);refresh()">AICC</span><span class="chip" data-v="보이스봇/콜봇" onclick="this.classList.toggle(&#39;on&#39;);refresh()">보이스봇/콜봇</span><span class="chip" data-v="STT/TA" onclick="this.classList.toggle(&#39;on&#39;);refresh()">STT/TA</span><span class="chip" data-v="챗봇/상담봇" onclick="this.classList.toggle(&#39;on&#39;);refresh()">챗봇/상담봇</span><span class="chip" data-v="KMS" onclick="this.classList.toggle(&#39;on&#39;);refresh()">KMS</span><span class="chip" data-v="화상회의" onclick="this.classList.toggle(&#39;on&#39;);refresh()">화상회의</span><span class="chip" data-v="SI/통합" onclick="this.classList.toggle(&#39;on&#39;);refresh()">SI/통합</span><span class="chip" data-v="기타" onclick="this.classList.toggle(&#39;on&#39;);refresh()">기타</span></div></div>
             <div class="field" style="margin-bottom:10px"><label>구축 형태</label><div class="chips" id="ch_build"><span class="chip on" data-v="On-Premise" onclick="this.classList.toggle(&#39;on&#39;);refresh()">On-Premise</span><span class="chip" data-v="Private Cloud" onclick="this.classList.toggle(&#39;on&#39;);refresh()">Private Cloud</span><span class="chip" data-v="Public Cloud" onclick="this.classList.toggle(&#39;on&#39;);refresh()">Public Cloud</span><span class="chip" data-v="CCaaS" onclick="this.classList.toggle(&#39;on&#39;);refresh()">CCaaS</span><span class="chip" data-v="SaaS" onclick="this.classList.toggle(&#39;on&#39;);refresh()">SaaS</span><span class="chip" data-v="Hybrid" onclick="this.classList.toggle(&#39;on&#39;);refresh()">Hybrid</span></div></div>
-            <div class="grid c3"><div class="field"><label>핵심 솔루션 <span class="sub">(벤더)</span></label><textarea id="s_vendor" placeholder="예: CISCO PBX/CTI/IVR, Genesys, AVAYA, NICE"></textarea></div><div class="field"><label>ECS 자사 솔루션</label><textarea id="s_ecs" placeholder="예: ESP-i, DASOP, R32/R51 라인업"></textarea></div><div class="field"><label>외부 솔루션 연계</label><textarea id="s_ext" placeholder="예: 상담APP, 녹취, STT/TTS, TA, KMS, 상담어시스턴트"></textarea></div></div>
+            <div class="grid c3"><div class="field"><label>핵심 솔루션 <span class="sub">(벤더)</span></label><textarea id="s_vendor" placeholder="예: CISCO PBX/CTI/IVR, Genesys, AVAYA, NICE"></textarea></div><div class="field"><label>자사 솔루션</label><textarea id="s_ecs" placeholder="예: ESP-i, DASOP, R32/R51 라인업"></textarea></div><div class="field"><label>외부 솔루션 연계</label><textarea id="s_ext" placeholder="예: 상담APP, 녹취, STT/TTS, TA, KMS, 상담어시스턴트"></textarea></div></div>
           </div></section>
 
         <section class="card open" id="c-sales"><div class="card-head" onclick="toggleCard(this)"><span class="ix">03·A</span><h2>영업 · 고객 인사이트</h2><span class="hint">왜 지금 · 고객 고민 · 숨은 Needs</span><span class="chev">▶</span></div>
@@ -710,7 +710,7 @@ function restoreUsage(){const s=LS.get('ecs_usage');if(s){try{usage=JSON.parse(s
 /* collect */
 function collect(){const g=val;const sec=(f,s,v)=>({_출처:g(s),_검증:g(v),_신뢰도:sectionCred(f,s,v)});return{
   base:{프로젝트명:g('f_name'),발주처산업:g('f_client'),예산규모:g('f_amount'),제출기한:g('f_due'),발표일:g('f_present'),주요일정:g('f_sched'),고객사현황:g('f_cust_scale'),평가비중:g('f_eval'),포지션:position,RFP평가항목:g('f_rfp'),경쟁후보:g('f_competitor'),사업부:g('f_dept'),제안PM:g('own_base')},
-  솔루션:{사업유형:chips('ch_biztype'),구축형태:chips('ch_build'),벤더솔루션:g('s_vendor'),ECS자사:g('s_ecs'),외부연계:g('s_ext')},
+  솔루션:{사업유형:chips('ch_biztype'),구축형태:chips('ch_build'),벤더솔루션:g('s_vendor'),자사:g('s_ecs'),외부연계:g('s_ext')},
   영업고객:Object.assign(sec(['d_trigger','d_history','d_pain','d_hidden','d_compete','d_decision'],'src_sales','ver_sales'),{작성자:g('own_sales'),발주배경:g('d_trigger'),영업활동:g('d_history'),고객고민:g('d_pain'),비공개Needs:g('d_hidden'),경쟁사현황:g('d_compete'),의사결정:g('d_decision')}),
   PS:Object.assign(sec(['d_ref','d_poc','d_effort','d_asset'],'src_ps','ver_ps'),{작성자:g('own_ps'),레퍼런스:g('d_ref'),기술검증:g('d_poc'),공수일정:g('d_effort'),재사용자산:g('d_asset')}),
   운영:Object.assign(sec(['o_stat','o_season','o_fault','o_issue','o_sys','o_usage'],'src_ops','ver_ops'),{작성자:g('own_ops'),콜통계:g('o_stat'),시즌변동:g('o_season'),장애:g('o_fault'),누적VOC:g('o_issue'),시스템자산:g('o_sys'),사용패턴:g('o_usage')}),
@@ -721,7 +721,7 @@ function collect(){const g=val;const sec=(f,s,v)=>({_출처:g(s),_검증:g(v),_�
   옵션:{전략개수:g('opt_count')||'4',추가지시:g('opt_note')}};}
 function inputHash(){return JSON.stringify(collect())+'|'+files.map(f=>f.name+f.kind).join(',');}
 
-const SYSTEM_PROMPT=`당신은 한국 공공·금융 IT 제안(콜센터/IPCC/AICC/보이스봇/IPT) 전략 도출·평가 전문가입니다. ECS텔레콤 제안 TF를 위해 일하며, 입력은 ECS의 "제안 준비서" 형식입니다.
+const SYSTEM_PROMPT=`당신은 한국 공공·금융 IT 제안(콜센터/IPCC/AICC/보이스봇/IPT) 전략 도출·평가 전문가입니다. 제안사 제안 TF를 위해 일하며, 입력은 제안사의 "제안 준비서" 형식입니다.
 원칙:
 1. 모든 전략은 입력 데이터 1개 이상에 앵커링. 없는 숫자·사실 날조 금지.
 2. "검증된 역량/전문 인력 투입" 범용 문구 단독 금지 — 특정 수치·사실로만.
@@ -730,7 +730,7 @@ const SYSTEM_PROMPT=`당신은 한국 공공·금융 IT 제안(콜센터/IPCC/AI
 5. 근거 신뢰도(_신뢰도/_출처/_검증) 가중: >=70/실측+검증완료=확정앵커(evidence_status=검증완료); 45-69/교차확인=보조; <45/미검증=약하게+data_gaps 검증필요(미검증).
 6. ★SWOT 적극 활용: 강점→전략 앵커, 약점→risk_mitigation(방어+위치), 기회→competitive_moves(Ghosting), 위협→리스크/data_gaps.
 7. 고객고민·비공개Needs·인터뷰=Hot Button 1차 원천. 발주처 발언 인용. 첨부 문서 분류 활용: [RFP]는 평가항목·요구사항·배점의 1차 근거(없는 내용 추정 금지, rfp_link를 RFP에 맞춤), [고객사 정보]는 맥락, [사전 인터뷰]는 Hot Button.
-8. 솔루션 스택(벤더/ECS자사/외부연계)은 최적의솔루션·시스템안정성 전략 근거로.
+8. 솔루션 스택(벤더/자사/외부연계)은 최적의솔루션·시스템안정성 전략 근거로.
 9. ★기존 전략 초안(기존방향.전략초안)이 있으면 draft_review로 각 초안을 평가(유지/개선/대체)하고, strategies에는 개선·신규 전략을 제시.
 10. consistency_check: 수치 모순·사업규모 불일치·타사업 복붙 의심 적발(입력에 있는 것만).
 11. 포지션 무게중심: 운영사업자=운영데이터(ROI/EX), 구축경험사=PS+영업(AX/기술), 신규=영업+기술(CX).
@@ -911,7 +911,7 @@ const DEEPEN_LENSES=[
  {k:'발표 토킹포인트',p:'이 전략을 발표할 때의 핵심 토킹포인트(말할 순서·강조점)를 작성하라.'},
  {k:'ROI 정량화',p:'이 전략의 투자대비 효과(ROI)를 입력 데이터 기반으로 정량 산출하는 논리와 추정치를 제시하라.'}
 ];
-const DEEPEN_SYS=`당신은 ECS 제안 전략 코치다. 주어진 전략과 사업 맥락(제안 준비서)을 바탕으로 요청한 관점에서 인사이트를 구체적·데이터 기반으로 깊게 확장한다. 입력에 없는 수치·사실을 절대 날조하지 말고, 추정은 추정이라 밝힌다. 아래 JSON만 출력. {"title":"섹션 제목","items":["구체 항목 4~7개, 각 한 문장"]}`;
+const DEEPEN_SYS=`당신은 제안사의 제안 전략 코치다. 주어진 전략과 사업 맥락(제안 준비서)을 바탕으로 요청한 관점에서 인사이트를 구체적·데이터 기반으로 깊게 확장한다. 입력에 없는 수치·사실을 절대 날조하지 말고, 추정은 추정이라 밝힌다. 아래 JSON만 출력. {"title":"섹션 제목","items":["구체 항목 4~7개, 각 한 문장"]}`;
 async function deepen(i,lensIdx,custom){
   if(!lastResult||!lastResult.strategies[i])return;const s=lastResult.strategies[i];const prov=activeProv,key=PROV[prov].key.trim();let model=(val('api_model')||PROV[prov].model||'').trim();
   if(!key){toast('설정 탭에서 API 키 입력');tab('t-api');return;}
@@ -919,7 +919,7 @@ async function deepen(i,lensIdx,custom){
   const lens=lensIdx!=null?DEEPEN_LENSES[lensIdx]:null;const ask=custom||(lens?lens.p:'');if(!ask){toast('질문 입력 또는 렌즈 선택');return;}
   const card=document.getElementById('sc-'+i);if(card){const dz=card.querySelector('.deepen-status');if(dz)dz.textContent='AI가 인사이트 심화 중…';}
   const P=lastPayload||{base:{}};
-  const ctx=`[사업 맥락]\n${JSON.stringify(P.base||{})}\n[데이터 요약] 영업:${JSON.stringify(P.영업고객||{})}\nPS:${JSON.stringify(P.PS||{})}\n운영:${JSON.stringify(P.운영||{})}\nSWOT:${JSON.stringify(P.SWOT||{})}\n\n[대상 전략]\n제목:${s.title}\n구분/관점:${s.type}/${s.axis}\nWhyECS:${s.why_ecs}\n차별화:${s.differentiation}\n앵커:${(s.data_anchors||[]).join(', ')}\n세부:${(s.sub_strategies||[]).join(' / ')}\n\n[요청]\n${ask}\n\n위 전략을 더 깊게 파고들어라. JSON만.`;
+  const ctx=`[사업 맥락]\n${JSON.stringify(P.base||{})}\n[데이터 요약] 영업:${JSON.stringify(P.영업고객||{})}\nPS:${JSON.stringify(P.PS||{})}\n운영:${JSON.stringify(P.운영||{})}\nSWOT:${JSON.stringify(P.SWOT||{})}\n\n[대상 전략]\n제목:${s.title}\n구분/관점:${s.type}/${s.axis}\nWhy 자사:${s.why_ecs}\n차별화:${s.differentiation}\n앵커:${(s.data_anchors||[]).join(', ')}\n세부:${(s.sub_strategies||[]).join(' / ')}\n\n[요청]\n${ask}\n\n위 전략을 더 깊게 파고들어라. JSON만.`;
   try{const o=await callModel(prov,model,key,DEEPEN_SYS,ctx,[],parseInt(val('api_maxtok'))||5000);logUsage(prov,model,o.inTok,o.outTok);
     const r=parseModelJSON(o.text);
     if(!s._deepenings)s._deepenings=[];s._deepenings.push({title:r.title||(lens?lens.k:'추가 인사이트'),items:r.items||[]});renderCurrent();toast('인사이트 추가됨 (1회 호출)');}
@@ -934,7 +934,7 @@ function renderStrategyCard(s,i){
   h+=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:9px"><label class="pick"><input type="checkbox" ${s._picked?'checked':''} onchange="togglePick(${i},this.checked)">채택</label><span class="stot"><span class="sc"><span data-count="${s.eval?.total||0}" ${s._improvement?`data-from="${s._improvement.before}"`:''}>0</span><small>/100</small></span></span>${s._improvement?`<span class="delta ${s._improvement.after>=s._improvement.before?'up':'down'}">${s._improvement.before} → ${s._improvement.after} ${s._improvement.after>=s._improvement.before?'▲':'▼'}${Math.abs(s._improvement.after-s._improvement.before)}</span>`:''}</div>`;
   h+=`<h3>${esc(s.title)}</h3>`;
   if(s.key_message)h+=`<div class="keymsg">“${esc(s.key_message)}”</div>`;
-  if(s.why_ecs)h+=`<div class="why"><span class="ico">▶ Why ECS</span><span>${esc(s.why_ecs)}</span></div>`;
+  if(s.why_ecs)h+=`<div class="why"><span class="ico">▶ Why 자사</span><span>${esc(s.why_ecs)}</span></div>`;
   if(s.eval)h+=`<div class="evalbars">${['차별성','데이터근거','RFP적합성','실행가능성'].map(k=>`<div class="eb"><span class="el">${k}</span><span class="et"><span class="ef" data-w="${s.eval[k]||0}"></span></span><span class="ev">${s.eval[k]||0}</span></div>`).join('')}</div>${s.eval.comment?`<div class="ecomment">"${esc(s.eval.comment)}"</div>`:''}`;
   if(s._improvement?.changes?.length)h+=`<div class="impr"><div class="ih">⤴ 개선 내역 (${s._improvement.before}→${s._improvement.after})</div><ul>${s._improvement.changes.map(c=>`<li>${esc(c)}</li>`).join('')}${(s._improvement.needs_data||[]).length?`<li class="nd">더 올리려면: ${s._improvement.needs_data.map(esc).join(', ')}</li>`:''}</ul></div>`;
   if(s.differentiation)h+=`<div class="blk"><div class="h">차별화 논리 (복제 불가)</div><div class="t">${esc(s.differentiation)}</div></div>`;
@@ -952,7 +952,7 @@ function renderEditForm(s,i){
     <div><label>전략 제목</label><input id="e_title_${i}" value="${esc(s.title||'')}"></div>
     <div><label>핵심 메시지</label><input id="e_key_${i}" value="${esc(s.key_message||'')}"></div>
     <div class="ef-row"><div><label>전략 구분</label><select id="e_type_${i}">${opts.map(o=>`<option ${o===s.type?'selected':''}>${o}</option>`).join('')}</select></div><div><label>관점</label><select id="e_axis_${i}">${['','AX','CX','EX','ROI'].map(o=>`<option ${o===(s.axis||'').toUpperCase()?'selected':''}>${o}</option>`).join('')}</select></div></div>
-    <div><label>Why ECS</label><textarea id="e_why_${i}">${esc(s.why_ecs||'')}</textarea></div>
+    <div><label>Why 자사</label><textarea id="e_why_${i}">${esc(s.why_ecs||'')}</textarea></div>
     <div><label>차별화 논리</label><textarea id="e_diff_${i}">${esc(s.differentiation||'')}</textarea></div>
     <div><label>데이터 앵커 (한 줄에 하나)</label><textarea id="e_anc_${i}">${esc((s.data_anchors||[]).join('\n'))}</textarea></div>
     <div><label>세부 추진과제 (한 줄에 하나)</label><textarea id="e_sub_${i}">${esc((s.sub_strategies||[]).join('\n'))}</textarea></div>
@@ -976,7 +976,7 @@ function radarSVG(vals){const cx=90,cy=80,R=58,ang=[-90,0,90,180];
   const L=['차별성','데이터근거','RFP적합성','실행가능성'],lp=[[cx,cy-R-8],[cx+R+2,cy+4],[cx,cy+R+15],[cx-R-2,cy+4]];
   return `<svg viewBox="0 0 180 172" class="radar"><g>${[0.34,0.67,1].map(f=>`<polygon points="${ring(f)}" fill="none" stroke="#ece9e2" stroke-width="1"/>`).join('')}${ang.map(d=>{const a=d*Math.PI/180;return `<line x1="${cx}" y1="${cy}" x2="${(cx+R*Math.cos(a)).toFixed(1)}" y2="${(cy+R*Math.sin(a)).toFixed(1)}" stroke="#eef0f5" stroke-width="1"/>`;}).join('')}</g><polygon class="radar-poly" points="${poly}" fill="rgba(0,148,212,.18)" stroke="#2f6fd0" stroke-width="2" stroke-linejoin="round"/>${vals.map((v,i)=>{const p=pt(v,i);return `<circle class="radar-dot" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3.2" fill="#2f6fd0"/>`;}).join('')}${L.map((l,i)=>`<text x="${lp[i][0]}" y="${lp[i][1]}" font-size="9.5" fill="#5f6675" text-anchor="middle" font-weight="700">${l}</text>`).join('')}</svg>`;}
 
-const IMPROVE_SYS=`당신은 ECS 제안 전략 평가·개선 코치다. 주어진 전략과 사업 맥락·현재 평가 점수·약점·데이터 갭을 바탕으로, 평가 점수(차별성/데이터근거/RFP적합성/실행가능성)가 더 높게 나오도록 각 전략을 개선한다. 개선은 반드시 사실/데이터에 근거하라(없는 수치 날조 금지). 점수를 올린 방법(근거 강화·메시지 선명화·RFP 적합성·실행 구체화)을 changes에 명시하고, 데이터가 더 있어야만 오를 부분은 needs_data에 적는다. JSON만 출력.`;
+const IMPROVE_SYS=`당신은 제안사의 제안 전략 평가·개선 코치다. 주어진 전략과 사업 맥락·현재 평가 점수·약점·데이터 갭을 바탕으로, 평가 점수(차별성/데이터근거/RFP적합성/실행가능성)가 더 높게 나오도록 각 전략을 개선한다. 개선은 반드시 사실/데이터에 근거하라(없는 수치 날조 금지). 점수를 올린 방법(근거 강화·메시지 선명화·RFP 적합성·실행 구체화)을 changes에 명시하고, 데이터가 더 있어야만 오를 부분은 needs_data에 적는다. JSON만 출력.`;
 let improveNeedsData=[];
 async function getModel(){const prov=activeProv,key=PROV[prov].key.trim();if(!key){toast('설정 탭에서 API 키 입력');tab('t-api');return null;}let model=(val('api_model')||PROV[prov].model||'').trim();if(!model){model=await resolveModel(prov,key);if(model){PROV[prov].model=model;saveKeys();}else{toast('모델 자동선택 실패');return null;}}return{prov,key,model};}
 function ctxStr(){const P=lastPayload||{base:{}};return `[사업 맥락]\n${JSON.stringify(P.base||{})}\n[데이터] 영업:${JSON.stringify(P.영업고객||{})} PS:${JSON.stringify(P.PS||{})} 운영:${JSON.stringify(P.운영||{})} SWOT:${JSON.stringify(P.SWOT||{})}`;}
@@ -1004,9 +1004,9 @@ function recalcFinal(){if(!lastResult)return;const strat=(lastResult.strategies|
   el.innerHTML=`<div class="dash-top" style="margin:18px 0 0"><div class="grade-wrap"><div class="gauge">${gaugeSVG(avg,'gfin')}<div class="center"><div class="g" style="color:${avg>=80?'var(--ok)':avg>=65?'var(--brand)':avg>=50?'var(--warn)':'var(--crit)'}">${avg}</div><div class="s">최종 채택</div></div></div><div class="verdict"><div class="vt">최종 채택 세트 — ${strat.length}개 전략</div><div class="vm">관점 커버리지: ${axes.filter(a=>cov.includes(a)).join(' · ')||'—'} (${cov.length}/4) · 평균 점수 ${avg}/100${fe.verdict?'<br>총평: '+esc(fe.verdict):''}</div></div></div></div>`;
   setTimeout(()=>{const g=document.getElementById('gfin');if(g){const len=Math.PI*54;g.style.transition='stroke-dashoffset 1s';g.style.strokeDashoffset=len*(1-avg/100);}},60);}
 
-function copyTable(){if(!lastResult)return;let rows=[['전략','전략구분','관점','점수','복제불가','근거','Why ECS','차별화','세부과제','RFP']];(lastResult.strategies||[]).forEach(s=>rows.push([s.title||'',s.type||'',s.axis||'',s.eval?.total||'',s.replicability||'',s.evidence_status||'',(s.why_ecs||'').replace(/\t/g,' '),(s.differentiation||'').replace(/\t/g,' '),(s.sub_strategies||[]).join(' / '),(s.rfp_link||'').replace(/\t/g,' ')]));navigator.clipboard.writeText(rows.map(r=>r.join('\t')).join('\n')).then(()=>toast('표 복사'));}
+function copyTable(){if(!lastResult)return;let rows=[['전략','전략구분','관점','점수','복제불가','근거','Why 자사','차별화','세부과제','RFP']];(lastResult.strategies||[]).forEach(s=>rows.push([s.title||'',s.type||'',s.axis||'',s.eval?.total||'',s.replicability||'',s.evidence_status||'',(s.why_ecs||'').replace(/\t/g,' '),(s.differentiation||'').replace(/\t/g,' '),(s.sub_strategies||[]).join(' / '),(s.rfp_link||'').replace(/\t/g,' ')]));navigator.clipboard.writeText(rows.map(r=>r.join('\t')).join('\n')).then(()=>toast('표 복사'));}
 function copySheet(){if(!lastResult)return;const name=val('f_name');const today=new Date().toISOString().slice(0,7).replace('-','.');let rows=[['사업명','일정','전략 내용','전략 구분','관점 구분','수주 여부']];(lastResult.strategies||[]).forEach((s,i)=>rows.push([i===0?name:'',i===0?today:'',s.title||'',s.type||'',s.axis||'',i===0?'진행중':'']));navigator.clipboard.writeText(rows.map(r=>r.join('\t')).join('\n')).then(()=>toast('구글시트 형식 복사 — 시트에 붙여넣기'));}
-function copyMd(){if(!lastResult)return;const d=lastResult.set_diagnosis||{};const fe=lastResult.final_evaluation||{};let md=`# 전략 평가 — ${val('f_name')}\n\n**등급 ${fe.grade||''} (${fe.score||''}/100) · 수주가능성 ${fe.win_likelihood||''}**\n> ${fe.verdict||''}\n> 관점 ${(d.covered_axes||[]).join(', ')} · 복제불가 ${d.replicability_score}/100 · 근거신뢰도 ${d.evidence_confidence}/100\n\n`;if(fe.strengths?.length)md+=`강점: ${fe.strengths.join(' / ')}\n`;if(fe.weaknesses?.length)md+=`약점: ${fe.weaknesses.join(' / ')}\n\n`;if(lastResult.draft_review?.length){md+=`## 기존 초안 평가\n`;lastResult.draft_review.forEach(x=>md+=`- [${x.action}] ${x.draft}: ${x.assessment}${x.improved?' → '+x.improved:''}\n`);md+=`\n`;}if(lastResult.consistency_check?.length){md+=`## ⚠ 정합성 점검\n`;lastResult.consistency_check.forEach(c=>md+=`- ${c.item}: ${c.issue} → ${c.suggestion}\n`);md+=`\n`;}(lastResult.strategies||[]).forEach(s=>md+=`## ${s.no}. ${s.title} (${s.eval?.total||''}/100)\n- ${s.type} / ${s.axis} / 복제불가 ${s.replicability} / 근거 ${s.evidence_status}\n- 평가: 차별성 ${s.eval?.차별성}·데이터 ${s.eval?.데이터근거}·RFP ${s.eval?.RFP적합성}·실행 ${s.eval?.실행가능성}${s.eval?.comment?' — '+s.eval.comment:''}\n- Why ECS: ${s.why_ecs}\n- 차별화: ${s.differentiation}\n- 앵커: ${(s.data_anchors||[]).join(', ')}\n- 세부: ${(s.sub_strategies||[]).map((x,i)=>`(${i+1}) ${x}`).join(' ')}\n\n`);if(lastResult.competitive_moves?.length){md+=`### Ghosting\n`;lastResult.competitive_moves.forEach(m=>md+=`- vs.${m.against} → ${m.our_counter} [${m.plant_criterion||''}]\n`);md+=`\n`;}if(lastResult.risk_mitigation?.length){md+=`### Red-Team\n`;lastResult.risk_mitigation.forEach(m=>md+=`- ⚠${m.our_weakness} → ${m.mitigation} [${m.where_to_address||''}]\n`);md+=`\n`;}if(lastResult.data_gaps?.length)md+=`### 추가/검증 필요\n${lastResult.data_gaps.map(g=>`- ${g}`).join('\n')}\n`;navigator.clipboard.writeText(md).then(()=>toast('Markdown 복사'));}
+function copyMd(){if(!lastResult)return;const d=lastResult.set_diagnosis||{};const fe=lastResult.final_evaluation||{};let md=`# 전략 평가 — ${val('f_name')}\n\n**등급 ${fe.grade||''} (${fe.score||''}/100) · 수주가능성 ${fe.win_likelihood||''}**\n> ${fe.verdict||''}\n> 관점 ${(d.covered_axes||[]).join(', ')} · 복제불가 ${d.replicability_score}/100 · 근거신뢰도 ${d.evidence_confidence}/100\n\n`;if(fe.strengths?.length)md+=`강점: ${fe.strengths.join(' / ')}\n`;if(fe.weaknesses?.length)md+=`약점: ${fe.weaknesses.join(' / ')}\n\n`;if(lastResult.draft_review?.length){md+=`## 기존 초안 평가\n`;lastResult.draft_review.forEach(x=>md+=`- [${x.action}] ${x.draft}: ${x.assessment}${x.improved?' → '+x.improved:''}\n`);md+=`\n`;}if(lastResult.consistency_check?.length){md+=`## ⚠ 정합성 점검\n`;lastResult.consistency_check.forEach(c=>md+=`- ${c.item}: ${c.issue} → ${c.suggestion}\n`);md+=`\n`;}(lastResult.strategies||[]).forEach(s=>md+=`## ${s.no}. ${s.title} (${s.eval?.total||''}/100)\n- ${s.type} / ${s.axis} / 복제불가 ${s.replicability} / 근거 ${s.evidence_status}\n- 평가: 차별성 ${s.eval?.차별성}·데이터 ${s.eval?.데이터근거}·RFP ${s.eval?.RFP적합성}·실행 ${s.eval?.실행가능성}${s.eval?.comment?' — '+s.eval.comment:''}\n- Why 자사: ${s.why_ecs}\n- 차별화: ${s.differentiation}\n- 앵커: ${(s.data_anchors||[]).join(', ')}\n- 세부: ${(s.sub_strategies||[]).map((x,i)=>`(${i+1}) ${x}`).join(' ')}\n\n`);if(lastResult.competitive_moves?.length){md+=`### Ghosting\n`;lastResult.competitive_moves.forEach(m=>md+=`- vs.${m.against} → ${m.our_counter} [${m.plant_criterion||''}]\n`);md+=`\n`;}if(lastResult.risk_mitigation?.length){md+=`### Red-Team\n`;lastResult.risk_mitigation.forEach(m=>md+=`- ⚠${m.our_weakness} → ${m.mitigation} [${m.where_to_address||''}]\n`);md+=`\n`;}if(lastResult.data_gaps?.length)md+=`### 추가/검증 필요\n${lastResult.data_gaps.map(g=>`- ${g}`).join('\n')}\n`;navigator.clipboard.writeText(md).then(()=>toast('Markdown 복사'));}
 
 /* save/load */
 const TEXT_FIELDS=['own_base','f_dept','f_name','f_client','f_amount','f_due','f_present','f_sched','f_cust_scale','f_eval','f_rfp','f_competitor','s_vendor','s_ecs','s_ext','own_sales','src_sales','ver_sales','d_trigger','d_history','d_pain','d_hidden','d_compete','d_decision','own_ps','src_ps','ver_ps','d_ref','d_poc','d_effort','d_asset','own_ops','src_ops','ver_ops','o_stat','o_season','o_fault','o_issue','o_sys','o_usage','iv_who','iv_when','iv_text','sw_s','sw_w','sw_o','sw_t','p_overview','p_draft','p_effect','p_feature','l_format','l_pages','l_time','l_bind','l_story','opt_count','opt_note'];
@@ -1020,7 +1020,7 @@ function fillSample(){
   setVal('f_due','전자입찰(조달청)');setVal('f_present','협상에 의한 계약');setVal('f_sched','착수~준공 150일 · 무손실 이관');
   setVal('f_cust_scale','상담센터 3개소 · 통합 40좌석 · PBX/CTI/IVR/녹취 등 9종 · 기간계 10건 연동');
   setVal('f_eval','기술 중심');setVal('f_rfp','기술 90(정량10/정성80) + 가격 10 = 100점 · 협상적격 76.5점 이상 · 차등점수 3.0');
-  setVal('f_competitor','ECS(현 10년 운영사업자) vs 대형 SI·콜인프라 경쟁사');
+  setVal('f_competitor','자사(현 10년 운영사업자) vs 대형 SI·콜인프라 경쟁사');
   document.querySelectorAll('#f_position button').forEach(x=>{if(x.dataset.v==='운영사업자'){x.classList.add('on');position='운영사업자';}else x.classList.remove('on');});
   setChips('ch_biztype',['IPCC','AICC','IPT']);setChips('ch_build',['On-Premise']);
   setVal('s_vendor','Cisco One Vendor (IP-PBX·VG·CTI·IVR·IP-Phone·네트워크) — 공공/금융 86% 사용');setVal('s_ecs','통합 운영관리 GUI · 통합 모니터링 대시보드(신규) · 상담APP · 통합통계');setVal('s_ext','녹취(ODS 통합) · STT/TTS/TA 표준 I/F · 공개SW WAS(세션 클러스터링)·DB · 콜봇');
@@ -1029,7 +1029,7 @@ function fillSample(){
   setVal('d_history','2016년 도입 후 10년 통합유지보수 직접 수행. 강원랜드 AI 가속: 25.10 미래 성장동력 이사회 / 25.11 카지노 카운트룸 AI·로봇 자동화 / 25.12 생성형AI 스마트 감사시스템 가동');
   setVal('d_pain','성수기 응답지연·비수기 자원낭비(시즌 2.4배) · 호전환 1콜 다회 이동 · 통합 라우팅 부재 · 고객정보 산재(내부직원·리조트·CRM·카지노)');
   setVal('d_hidden','향후 AICC 확장 기반 확보 · 모닝콜/객실 전화등급 제어를 상담APP에서 직접 처리 · 내부 생성형AI 시스템 연계');
-  setVal('d_compete','★현 10년 운영사업자(ECS)만 운영통계·기간계 10건·DB 스키마 보유. 대형 SI·신규 진입자는 강원랜드 운영 데이터·현장 이슈 미보유');
+  setVal('d_compete','★현 10년 운영사업자(자사)만 운영통계·기간계 10건·DB 스키마 보유. 대형 SI·신규 진입자는 강원랜드 운영 데이터·현장 이슈 미보유');
   setVal('d_decision','협상에 의한 계약 · 기술평가위원회(정성 80점이 승부처) · 공공·레저기관 안정성/연속성 민감');
   setVal('own_ps','PS팀');setVal('src_ps','문서·계약');setVal('ver_ps','검증완료(PM확정)');
   setVal('d_ref','IPCC/AICC 구축 No.1 · 누적매출 1.2조 · 26년 연속 흑자 · 고객사 500+ · 신용등급 A. 최근: 신복위·카카오뱅크·YES24·카카오페이·행정공제회·국민연금·금감원1332 등');
@@ -1050,7 +1050,7 @@ function fillSample(){
   setVal('sw_o','강원랜드 AI 전환 가속(이사회·카운트룸·감사시스템) → AICC 확장 선점 · 경쟁사는 운영 데이터·기간계 미보유');
   setVal('sw_t','협상에 의한 경쟁 · EOS 임박 일정 압박 · 차등점수제 3.0점 · 정성평가 80점 비중');
   setChips('ch_kw',['안정성','AI 혁신','데이터 활용','무중단','운영 편의']);
-  setVal('p_overview','강원랜드 콜센터 재구축 — 10년의 운영 자산으로 완성하는 미래 10년. 이씨에스텔레콤만이 안정적인 미래 10년을 약속.');
+  setVal('p_overview','강원랜드 콜센터 재구축 — 10년의 운영 자산으로 완성하는 미래 10년. 자사만이 안정적인 미래 10년을 약속.');
   setVal('p_draft','AI 확장 가능한 검증된 콜인프라로 미래 고객센터 구축 [AX]\nB옴니채널 통합운영으로 가치 창출 비즈니스 콜센터 구현 [CX]\nB선제적 장애 대응 체계로 서비스 연속성 및 안정성 확보 [ROI]\nB10년 운영 사업자의 경험을 통한 최적의 구축 설계 [EX]'.split('\nB').join(String.fromCharCode(10)));
   setVal('p_effect','운영 일원화(단일 GUI) · 장애 사전 차단(통합 모니터링) · AI 확장 재투자 Zero · 라이선스 부담 공개SW 전환');
   setVal('p_feature','As-Is 다중 벤더 분산 → To-Be 단일 통합 콜인프라 플랫폼 · 호텔&콘도·골프·워터파크 4대 내부환경 통합 응대 · 세부항목 276개/RFP 60개 요구사항 100% 수용');

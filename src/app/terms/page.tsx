@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { wrap, inner, draft, h1, meta, h2, p, toc, tocList } from '../legal-styles';
 import { legalDoc, draftNotice, docMetaLine } from '@/lib/legal';
 
-export const metadata: Metadata = { title: '이용약관 — PMS', description: 'PMS 서비스 이용약관.' };
+export const metadata: Metadata = { title: '이용약관 — GOWON 프로젝트 허브', description: 'GOWON 프로젝트 허브 서비스 이용약관.' };
 
 // 조문 제목·본문을 한 배열로 두어 목차와 본문이 어긋나지 않게 한다.
 const ARTICLES = [

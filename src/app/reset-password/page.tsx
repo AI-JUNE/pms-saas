@@ -20,7 +20,7 @@ export default function ResetPasswordPage() {
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get('token');
     setToken(t && t.trim() ? t.trim() : '');
-    document.title = '비밀번호 재설정 — PMS';
+    document.title = '비밀번호 재설정 — GOWON 프로젝트 허브';
   }, []);
 
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());

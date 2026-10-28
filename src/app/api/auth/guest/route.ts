@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { and, eq } from 'drizzle-orm';
 import { db } from '@/db';
-import { users, organizations, memberships } from '@/db/schema';
+import { users, organizations, memberships, issues } from '@/db/schema';
 import { hashPassword, createSession } from '@/lib/auth';
 import { handle, ok, ApiError, ERROR } from '@/lib/http';
 import { grantDefaultRoles } from '@/lib/seedRoles';
@@ -37,7 +37,9 @@ async function ensureDemo(): Promise<{ orgId: number; userId: number }> {
   }
   const mem = (await db.select().from(memberships).where(and(eq(memberships.orgId, org.id), eq(memberships.userId, user.id))).limit(1))[0];
   if (!mem) await db.insert(memberships).values({ orgId: org.id, userId: user.id, role: 'member', isOrgAdmin: false });
-  if (created) { try { await seedDemo(org.id, user.id); } catch (e: any) { log.warn('guest.seed_failed', { orgId: org.id, error: String(e?.message || e) }); } }
+  // 처음 만들 때 + 앞선 채우기가 중간에 멈춰 이슈가 비어 있을 때(10-28 운영: issues.cycle 칸 누락으로 이슈부터 비어 있었다) — seedDemo 는 빈 표만 채운다
+  const noIssues = !(await db.select({ id: issues.id }).from(issues).where(eq(issues.orgId, org.id)).limit(1))[0];
+  if (created || noIssues) { try { await seedDemo(org.id, user.id); } catch (e: any) { log.warn('guest.seed_failed', { orgId: org.id, error: String(e?.message || e) }); } }
   return { orgId: org.id, userId: user.id };
 }
 

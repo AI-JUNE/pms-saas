@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>고객 성과관리 — ECS텔레콤</title>
+<title>고객 성과관리 — GOWON</title>
 <!-- 오프라인: 폰트/차트 로컬 내장 (assets/) -->
 <script src="assets/chart.umd.min.js"></script>
 <style>
@@ -635,8 +635,7 @@ input{font-family:var(--font);outline:none}
 =========================== -->
 <header class="topbar">
   <div class="logo-area" onclick="goHome()" style="cursor:pointer" title="홈으로">
-    <div class="logo-mark"><img src="data:image/png;base64,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"
- alt="ECS"></div>
+    <div class="logo-mark"><span style="font-weight:800;color:#2457C5;font-size:15px;line-height:1">G</span></div>
     <div>
       <div class="logo-text">고객 성과관리</div>
       <div class="logo-sub">CUSTOMER PERFORMANCE</div>
@@ -4946,7 +4945,7 @@ body.embed .main{padding:14px 22px 60px;max-width:none}
 <div class="app">
   <!-- SIDEBAR -->
   <aside class="side" id="side">
-    <div class="brand"><div class="mk">CX</div><div><b>성과방문 체크리스트</b><span>by ECS텔레콤 · PMO</span></div></div>
+    <div class="brand"><div class="mk">CX</div><div><b>성과방문 체크리스트</b><span>by GOWON · PMO</span></div></div>
     <div class="kit"><span>🧳</span>현장 휴대용 · 오프라인 · 자동 저장</div>
     <nav class="nav" id="nav">
       <div class="nav-grp"><div class="gl">방문 준비 · D-7</div>
@@ -5069,7 +5068,7 @@ body.embed .main{padding:14px 22px 60px;max-width:none}
     <section class="view" id="v-proposal">
       <div class="note reveal"><span class="ic">💡</span><div><b>분석 연동 추천</b> — ERS 변화·인터뷰 개선요청에 따라 관련 제안이 <b style="color:var(--green)">초록색 ‘추천’</b>으로 강조됩니다. 데이터를 입력할수록 정확해집니다.</div></div>
       <div class="reveal" id="propWrap"></div>
-      <div class="card pad reveal"><div class="field"><label>추가 제안 메모</label><textarea id="prop_memo" rows="3" placeholder="ECS에 기대하는 역할, 투입 공수 등…" oninput="save()"></textarea></div></div>
+      <div class="card pad reveal"><div class="field"><label>추가 제안 메모</label><textarea id="prop_memo" rows="3" placeholder="제안사에 기대하는 역할, 투입 공수 등…" oninput="save()"></textarea></div></div>
     </section>
 
     <!-- 7 REPORT -->
@@ -5165,7 +5164,7 @@ const ITV=[
    {t:'인력/운영비 개선 필요 지점은?',kpi:'FTE·생산성',imp:'h'},
    {t:'장애로 인한 운영 차질 사례는?',kpi:'가용성',imp:'m'},
    {t:'향후 꼭 필요한 기능·투자 영역은?',kpi:'차기 제안',imp:'h'},
-   {t:'ECS에 기대하는 역할은?',kpi:'제안 근거',imp:'h'}]},
+   {t:'제안사에 기대하는 역할은?',kpi:'제안 근거',imp:'h'}]},
 ];
 const ERS_DEF=[
   {key:'inbound',label:'총 인입콜',unit:'건',dir:'neutral',dec:0,kw:['인입','총콜','total','콜량','수신']},

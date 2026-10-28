@@ -11,7 +11,7 @@ export function Logo() {
         </svg>
       </div>
       <div>
-        <div className="brand-name">PMS</div>
+        <div className="brand-name">프로젝트 허브</div>
       </div>
     </Link>
   );

@@ -240,7 +240,7 @@ const Mark = () => (
 
 const DashMock = () => (
   <div className="mock">
-    <div className="lp-tbar"><i /><i /><i /><span>PMS · 대시보드</span><em className="url">데모 화면 · PRJ-0002 데이터 플랫폼</em></div>
+    <div className="lp-tbar"><i /><i /><i /><span>프로젝트 허브 · 대시보드</span><em className="url">데모 화면 · PRJ-0002 데이터 플랫폼</em></div>
     <div className="body dash">
       <div className="krow">
         <div className="lp-kpi"><div className="k">진행 프로젝트</div><div className="v"><span data-count="12">12</span></div><div className="d up">▲ 정상 9</div></div>
@@ -268,7 +268,7 @@ const DashMock = () => (
 
 const GanttMock = () => (
   <div className="mock">
-    <div className="lp-tbar"><i /><i /><i /><span>PMS · 일정(간트)</span><em className="url">베이스라인 · 임계경로</em></div>
+    <div className="lp-tbar"><i /><i /><i /><span>프로젝트 허브 · 일정(간트)</span><em className="url">베이스라인 · 임계경로</em></div>
     <div className="body">
       <div className="lp-gantt">
         <div className="scale"><span>5월</span><span>6월</span><span>7월</span><span>8월</span></div>
@@ -285,7 +285,7 @@ const GanttMock = () => (
 const channels = ['프로젝트·단계', '요구사항·RTM', '업무·WBS', '이슈·리스크', '산출물·결재', '테스트·품질'];
 
 /**
- * 포털이 담는 다섯 서비스. 2026-09-29 (10-24 제안 작성은 PMS 와 분리 — 별도 외부 사이트)
+ * 포털이 담는 여섯 서비스. 2026-09-29 (10-24 제안 작성 추가)
  *
  * 문구는 **기능 서술만** 쓴다. 성과·정확도 수치를 넣지 않는다 —
  * 제안 4종은 아직 출력 품질을 실측하지 않았다(3002 배점표만 측정됨).
@@ -301,7 +301,9 @@ const suite = [
     d: '경쟁 구도와 발주처 요구를 분석해 수주 전략과 차별화 포인트를 정리합니다.' },
   { ic: '📈', t: '고객 성과관리', href: '/apps/performance',
     d: '구축 이후 성과방문·인터뷰·콜통계를 모아 고객 성과를 관리합니다.' },
-  { ic: '🗂', t: '프로젝트 관리 (PMS)', href: '/dashboard',
+  { ic: '🎤', t: '제안 작성', href: '/apps/authoring',
+    d: 'RFP·제안서를 바탕으로 발표본(PPTX)과 발표 스크립트·예상 질의를 만듭니다.' },
+  { ic: '🗂', t: '프로젝트 관리', href: '/dashboard',
     d: 'WBS·간트·EVM·요구사항 추적·전자결재로 수주 이후 수행 전 과정을 관리합니다.' },
 ];
 
@@ -402,7 +404,7 @@ export default function LpClient() {
         <div className="wrap">
           <Link href="/dashboard" className="lp-brand" aria-label="홈으로">
             <Mark />
-            <div><b>PMS</b><span>Project Management</span></div>
+            <div><b>프로젝트 허브</b><span>GOWON Project Hub</span></div>
           </Link>
           <div className="navlinks">
             <a href="#why">도입 이유</a>
@@ -425,7 +427,7 @@ export default function LpClient() {
             제안부터 정산까지,<br /><span className="hl">하나의 화면</span>에서 관리합니다
           </h1>
           <p className="lead" data-reveal style={{ transitionDelay: '.1s' }}>
-            RFP 분석·제안 품질·수주 전략·프로젝트 수행·고객 성과까지 다섯 서비스를 한 포털에 담았습니다.
+            RFP 분석·제안 작성·제안 품질·수주 전략·프로젝트 수행·고객 성과까지 여섯 서비스를 한 포털에 담았습니다.
             일정이 밀려도, 요구사항이 바뀌어도 놓치지 않습니다. 계획과 실적의 차이를 성과지표로 먼저 보여줍니다.
           </p>
           <div className="lp-cta" data-reveal style={{ transitionDelay: '.15s' }}>
@@ -456,7 +458,7 @@ export default function LpClient() {
         <div className="wrap">
           <div className="lp-center" data-reveal>
             <span className="sec-tag">Suite</span>
-            <h2>제안부터 수행까지,<br /><span className="hl">다섯 서비스를 한 포털에서</span></h2>
+            <h2>제안부터 수행까지,<br /><span className="hl">여섯 서비스를 한 허브에서</span></h2>
             <p className="lead">
               RFP를 읽는 순간부터 프로젝트가 끝나고 고객 성과를 확인할 때까지.
               같은 로그인, 같은 화면 안에서 이어집니다.
@@ -481,7 +483,7 @@ export default function LpClient() {
       <section className="lp-band" id="why">
         <div className="wrap">
           <div className="lp-center" data-reveal>
-            <span className="sec-tag">Why PMS</span>
+            <span className="sec-tag">Why 프로젝트 허브</span>
             <h2>관리 도구는 늘어나는데,<br /><span className="hl">현황은 흩어집니다</span></h2>
             <p className="lead">엑셀·이슈트래커·간트툴·결재 시스템을 오가며 취합하지 마세요. 프로젝트의 모든 정보를 한 곳에 모으고, 필요한 답은 지표로 바로 확인합니다.</p>
           </div>
@@ -568,7 +570,7 @@ export default function LpClient() {
           <div className="lp-center" data-reveal>
             <span className="sec-tag">Why it's different</span>
             <h2>다른 관리 도구와<br /><span className="hl">다른 세 가지</span></h2>
-            <p className="lead">아이디어가 아니라, 이미 현장에서 돌아가는 추적·성과·운영 기술이 PMS의 차이입니다.</p>
+            <p className="lead">아이디어가 아니라, 이미 현장에서 돌아가는 추적·성과·운영 기술이 프로젝트 허브의 차이입니다.</p>
           </div>
           <div className="lp-grid">
             {diffs.map((d, i) => (
@@ -657,7 +659,7 @@ export default function LpClient() {
       <footer className="lp-foot">
         <div className="wrap">
           <div className="about">
-            <div className="lp-brand"><Mark /><div><b>PMS</b><span>Project Management</span></div></div>
+            <div className="lp-brand"><Mark /><div><b>프로젝트 허브</b><span>GOWON Project Hub</span></div></div>
             <p>계획·실행·성과를 잇는 프로젝트 관리 플랫폼. WBS·간트·EVM·RTM·전자결재를 한 화면에서 관리합니다.</p>
           </div>
           <div className="cols">
@@ -675,7 +677,7 @@ export default function LpClient() {
             </div>
           </div>
         </div>
-        <div className="wrap"><div className="lp-copy">© 2026 PMS · 운영 주식회사 고원(GOWON) · Project Management Platform</div></div>
+        <div className="wrap"><div className="lp-copy">© 2026 GOWON 프로젝트 허브 · 운영 주식회사 고원(GOWON) · GOWON Project Hub</div></div>
       </footer>
     </div>
   );
