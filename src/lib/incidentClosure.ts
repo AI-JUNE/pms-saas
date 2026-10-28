@@ -39,6 +39,7 @@
  *   폴백을 만들지 않는다). 참고용 경과시간은 `elapsedMinutes` 로 **따로** 둔다.
  * - **새 거짓 ok 를 만들지 않는다**: 구간을 확정했다는 것이 「이만큼만 유실됐다」는 뜻이 아니다.
  */
+import { assessDisposal } from './evidenceDisposal.ts';
 import { assessPreservation } from './evidencePreservation.ts';
 import { parseInstant } from './incidentEvidence.ts';
 import { FREEZE_LIMITS, WRITE_FREEZE_ENV, writeFreezeEnabled } from './writeFreeze.ts';
@@ -473,6 +474,11 @@ export function closureCheck(args?: {
   // 전인 동안)만 보존이 가능하다. **판정 어휘와 `ok` 는 바꾸지 않는다**: 보존은 사람이 하는 일이고
   // 미기록으로 `ok` 를 내리면 복구일에 거짓 차단이 된다 — 달라지는 것은 **다음에 할 일**이다.
   const evidence = assessPreservation({ env });
+  // 그 보존이 만들어 낸 **DB 밖 사본**의 처분도 같은 자리에서 말한다(§3-17). 쓸모 있는 시점이
+  // 또 같다 — 기한의 기준점이 바로 위 `evidence` 의 시각이고, 8단계 4번이 그것을 **지우라고**
+  // 지시하므로 아직 있는 동안에만 기한을 산출할 수 있다. 여기도 어휘·`ok` 는 그대로다:
+  // 폐기는 보관소에서 일어나는 일이라 코드가 확인할 수 없다(`DISPOSAL_LIMITS`).
+  const disposal = assessDisposal({ env, preservation: evidence });
 
   return {
     ok: state === 'normal' || state === 'recorded',
@@ -492,10 +498,20 @@ export function closureCheck(args?: {
       evidenceCoverage: evidence.coverage.verdict,
       /** 보존본이 덮지 못한 구간(분). 수치를 지어내지 않으므로 그 밖에는 null */
       evidenceUncoveredMinutes: evidence.coverage.minutes,
+      /** 그 보존이 만든 DB 밖 사본의 처분(§3-17). **기한 날짜는 담지 않는다**(§2-3) */
+      disposalVerdict: disposal.verdict,
+      /** 보관 기한(`RECOVERY_EVIDENCE_RETENTION_DAYS`)이 설정돼 있는가 — 없으면 판정 보류다 */
+      disposalRetentionConfigured: disposal.retentionDays !== null,
+      /** 기한을 넘긴 일수. 넘기지 않았거나 산출 불가면 null — 수치를 지어내지 않는다 */
+      disposalOverdueDays: disposal.overdueDays,
+      /** 절차가 만들어 내는 사본 수(전건 되돌릴 수 없다) */
+      disposalCopies: disposal.copies,
       runbook: CLOSURE_RUNBOOK_REF,
-      // 보존 쪽에 할 일이 있으면 **같은 칸에서** 함께 말한다 — `state` 만 읽는 담당자에게
+      // 보존·처분 쪽에 할 일이 있으면 **같은 칸에서** 함께 말한다 — `state` 만 읽는 담당자에게
       // 닿지 않으면 판정이 응답에만 남는다(§3-14 가 같은 이유로 둔 배선이다).
-      note: evidence.actionable ? `${STATE_NOTE[state]} / ${evidence.action}` : STATE_NOTE[state],
+      note: [STATE_NOTE[state], evidence.actionable ? evidence.action : '', disposal.actionable ? disposal.action : '']
+        .filter(Boolean)
+        .join(' / '),
     },
   };
 }
