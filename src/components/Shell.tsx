@@ -177,6 +177,7 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
 
       {menuOpen && <div className="menu-scrim" onClick={() => setMenuOpen(false)} />}
       <div className="main">
+        {me?.guest && <div className="guest-bar" role="status">둘러보기 모드 — 데모 조직을 읽기 전용으로 보고 있습니다. 저장·변경은 되지 않습니다. <a href="/login" onClick={async (e) => { e.preventDefault(); await fetch('/api/auth/logout', { method: 'POST' }); location.href = '/login'; }}>회원가입·로그인 →</a></div>}
         <header className="topbar">
           <button className="iconbtn menu-btn" onClick={() => setMenuOpen(true)} aria-label="메뉴" aria-expanded={menuOpen}><Menu style={{ width: 20 }} /></button>
           {canBack && path !== '/dashboard' && <button className="iconbtn tb-back" onClick={() => router.back()} aria-label="이전 화면으로" title="이전 화면으로"><ArrowLeft style={{ width: 18 }} /></button>}

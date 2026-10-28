@@ -19,7 +19,7 @@ export default function LoginPage() {
   const canSubmit = emailOk && pwOk && regOk && agreeOk;
   const hint = !form.email && !form.password ? '' // 초기 빈 화면에서는 안내 억제
     : mode === 'register' && !form.name.trim() ? '이름을 입력하세요.'
-    : mode === 'register' && !form.orgName.trim() ? '조직명을 입력하세요.'
+    : mode === 'register' && !form.orgName.trim() && !form.inviteCode.trim() ? '조직명(또는 초대 코드)을 입력하세요.'
     : !form.email.trim() ? '이메일을 입력하세요.'
     : !emailOk ? '이메일 형식을 확인하세요.'
     : !form.password ? '비밀번호를 입력하세요.'
@@ -35,14 +35,22 @@ export default function LoginPage() {
     })();
     // eslint-disable-next-line
   }, []);
+  async function guest() {
+    setBusy(true); setErr('');
+    const r = await fetch('/api/auth/guest', { method: 'POST' });
+    if (r.ok) router.push('/dashboard'); else { const d = await r.json().catch(() => ({})); setErr(d.message || '둘러보기를 시작할 수 없습니다'); setBusy(false); }
+  }
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     // 브라우저 자동 채움은 onChange 없이 값만 넣는 경우가 있다 → 제출 때 칸의 실제 값을 다시 읽는다(10-24)
     const fd = new FormData(e.currentTarget as HTMLFormElement);
-    const email = String(fd.get('email') ?? form.email).trim(), password = String(fd.get('password') ?? form.password);
-    const sent = { ...form, email, password };
-    if (email !== form.email || password !== form.password) setForm(sent);
-    const okNow = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && (mode === 'login' ? password.length > 0 : password.length >= 8) && regOk && agreeOk;
+    const val = (k: 'email' | 'password' | 'name' | 'orgName' | 'inviteCode') => String(fd.get(k) ?? form[k]);
+    const email = val('email').trim(), password = val('password');
+    // 가입 칸(이름·조직명·초대 코드)도 자동 채움이면 onChange 가 없다 → 같은 방식으로 다시 읽는다(10-28 '회원가입이 안 된다')
+    const sent = { ...form, email, password, name: val('name'), orgName: val('orgName'), inviteCode: val('inviteCode') };
+    if (JSON.stringify(sent) !== JSON.stringify(form)) setForm(sent);
+    const regNow = mode === 'login' || (sent.name.trim().length > 0 && (sent.orgName.trim().length > 0 || sent.inviteCode.trim().length > 0));
+    const okNow = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && (mode === 'login' ? password.length > 0 : password.length >= 8) && regNow && agreeOk;
     if (!okNow) { setErr(hint || (!email ? '이메일을 입력하세요.' : !password ? '비밀번호를 입력하세요.' : '입력값을 확인하세요')); return; }
     setErr(''); setBusy(true);
     const res = await fetch(mode === 'login' ? '/api/auth/login' : '/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(mode === 'register' ? { ...sent, agree } : sent) });
@@ -75,9 +83,9 @@ export default function LoginPage() {
       {err && <div className="err" role="alert" style={{ margin: '0 0 14px' }}>{err}</div>}
       <form onSubmit={submit} id="auth-panel" role="tabpanel" aria-labelledby={`auth-tab-${mode}`}>
         {mode === 'register' && (<>
-          <div className="field"><label>이름</label><input className="in" value={form.name} onChange={set('name')} placeholder="홍길동" /></div>
-          <div className="field"><label>조직명 <span style={{fontWeight:400,color:'var(--text-3)'}}>(초대 코드로 합류 시 생략 가능)</span></label><input className="in" value={form.orgName} onChange={set('orgName')} placeholder="우리 회사" /></div>
-          <div className="field"><label>초대 코드 <span style={{fontWeight:400,color:'var(--text-3)'}}>(선택 · 팀 합류 시)</span></label><input className="in" value={form.inviteCode} onChange={set('inviteCode')} placeholder="관리자에게 받은 코드" style={{textTransform:'uppercase'}} /></div>
+          <div className="field"><label>이름</label><input className="in" name="name" autoComplete="name" value={form.name} onChange={set('name')} placeholder="홍길동" /></div>
+          <div className="field"><label>조직명 <span style={{fontWeight:400,color:'var(--text-3)'}}>(초대 코드로 합류 시 생략 가능)</span></label><input className="in" name="orgName" autoComplete="organization" value={form.orgName} onChange={set('orgName')} placeholder="우리 회사" /></div>
+          <div className="field"><label>초대 코드 <span style={{fontWeight:400,color:'var(--text-3)'}}>(선택 · 팀 합류 시)</span></label><input className="in" name="inviteCode" autoComplete="off" value={form.inviteCode} onChange={set('inviteCode')} placeholder="관리자에게 받은 코드" style={{textTransform:'uppercase'}} /></div>
         </>)}
         <div className="field"><label>이메일</label><input className="in" type="email" name="email" autoComplete="username" value={form.email} onChange={set('email')} onInput={set('email')} placeholder="you@company.com" /></div>
         <div className="field"><label>비밀번호</label><input className="in" type="password" name="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={form.password} onChange={set('password')} onInput={set('password')} placeholder={mode === 'login' ? '비밀번호' : '8자 이상'} />
@@ -98,6 +106,8 @@ export default function LoginPage() {
         {hint && <p className="muted" style={{ textAlign: 'center', margin: '2px 0 0', fontSize: 12, color: '#2457C5' }}>{hint}</p>}
         <button className="btn btn-pri" style={{ width: '100%', justifyContent: 'center', marginTop: 8, padding: 11 }} disabled={busy} aria-disabled={!canSubmit} title={!canSubmit ? (hint || '이메일·비밀번호(8자 이상)를 입력하세요') : ''}>{busy ? '처리 중…' : mode === 'login' ? '로그인' : '가입하고 시작하기'}</button>
       </form>
+      <button type="button" className="btn" style={{ width: '100%', justifyContent: 'center', marginTop: 14, padding: 11 }} onClick={guest} disabled={busy}>회원가입 없이 둘러보기</button>
+      <p className="muted" style={{ textAlign: 'center', marginTop: 8, fontSize: 12.5 }}>샘플 데이터가 들어 있는 데모 조직을 읽기 전용으로 봅니다(저장되지 않음).</p>
       <p className="muted" style={{ textAlign: 'center', marginTop: 18 }}>처음이신가요? 상단 '회원가입'으로 관리자 계정을 만드세요.</p>
     </div></div>
   );

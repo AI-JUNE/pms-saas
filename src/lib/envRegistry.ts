@@ -81,6 +81,7 @@ export const ENV_VARS: EnvVar[] = [
   { key: 'LEGAL_TERMS_EFFECTIVE', kind: 'config', group: '법적 문서', note: '이용약관 시행일(YYYY-MM-DD)', indirectIn: 'src/lib/legal.ts' },
   { key: 'LEGAL_PRIVACY_VERSION', kind: 'config', group: '법적 문서', note: '개인정보 처리방침 버전', indirectIn: 'src/lib/legal.ts' },
   { key: 'LEGAL_PRIVACY_EFFECTIVE', kind: 'config', group: '법적 문서', note: '개인정보 처리방침 시행일(YYYY-MM-DD)', indirectIn: 'src/lib/legal.ts' },
+  { key: 'PMS_GUEST_DISABLED', kind: 'switch', group: '둘러보기', note: '회원가입 없이 둘러보기(데모 조직·읽기 전용 손님, 10-28)를 끈다. 기본(미설정) = 켜짐' },
   { key: 'LEGAL_CONSENT_REQUIRED', kind: 'switch', group: '법적 문서', note: '미동의 가입 거절. OFF 면 관측만 [활성화 승인 필요]' },
   { key: 'PRIVACY_PROCESSORS', kind: 'config', group: '법적 문서', note: '처리위탁 고지 목록. 유실 시 고지가 「아직 고지 전」으로 되돌아간다', indirectIn: 'src/lib/legalDisclosure.ts' },
   { key: 'PRIVACY_CROSS_BORDER', kind: 'config', group: '법적 문서', note: '국외 이전 고지(법정 6항목 전부 필요). 유실 시 고지 후퇴', indirectIn: 'src/lib/legalDisclosure.ts' },

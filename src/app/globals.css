@@ -470,3 +470,7 @@ a.brand:focus-visible,.btn:focus-visible{outline:2px solid var(--brand);outline-
 .imp-prog{position:relative;height:22px;border-radius:11px;background:var(--surface-3);overflow:hidden;margin-top:10px}
 .imp-prog i{position:absolute;inset:0 auto 0 0;background:var(--brand);transition:width .2s}
 .imp-prog span{position:relative;display:block;text-align:center;font-size:12px;line-height:22px;font-weight:700;color:#fff;mix-blend-mode:difference}
+/* 둘러보기 모드 안내 띠 (2026-10-28) */
+.guest-bar{background:#fdf3e3;color:#7a4700;font-size:13px;font-weight:600;padding:8px 16px;border-bottom:1px solid #f3dfb8}
+.guest-bar a{color:#2457C5;font-weight:800;margin-left:6px}
+@media print{.guest-bar{display:none}}

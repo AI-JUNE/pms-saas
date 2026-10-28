@@ -8,9 +8,10 @@ import { signToken, verifyCookie } from './sessionSig';
 const COOKIE = process.env.SESSION_COOKIE || 'pms_session';
 const SESSION_DAYS = 7;
 export { hashPassword, verifyPassword } from './password.ts'; // 순수 모듈로 분리(테스트 가능), 경로 호환 재수출
-export async function createSession(userId: number, userAgent?: string) {
-  const token = crypto.randomBytes(32).toString('hex');
-  const expiresAt = new Date(Date.now() + SESSION_DAYS * 864e5);
+// opts.prefix: 둘러보기 손님 세션 표지(lib/guestMode.ts GUEST_PREFIX) — 미들웨어가 DB 없이 손님 쓰기를 막는다 · opts.days: 만료(기본 7일)
+export async function createSession(userId: number, userAgent?: string, opts: { prefix?: string; days?: number } = {}) {
+  const token = (opts.prefix || '') + crypto.randomBytes(32).toString('hex');
+  const expiresAt = new Date(Date.now() + (opts.days ?? SESSION_DAYS) * 864e5);
   await db.insert(sessions).values({ token, userId, expiresAt, userAgent });
   // SESSION_SECRET 이 있으면 `토큰.서명` 으로 넣는다 — 미들웨어가 DB 없이 위조를 거른다(sessionSig.ts)
   cookies().set(COOKIE, await signToken(token, process.env.SESSION_SECRET), { httpOnly: true, sameSite: 'lax', path: '/', expires: expiresAt });

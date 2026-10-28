@@ -1654,6 +1654,7 @@ Vercel 환경변수는 DB 백업에 포함되지 않으므로 별도 보관한�
 | `LEGAL_TERMS_VERSION`, `LEGAL_TERMS_EFFECTIVE` | 이용약관 버전·시행일 표기가 사라진다(draft 유지 fail-safe) |
 | `LEGAL_PRIVACY_VERSION`, `LEGAL_PRIVACY_EFFECTIVE` | 처리방침 버전·시행일 표기가 사라진다 |
 | `LEGAL_CONSENT_REQUIRED` | 가입 동의 강제가 관측 모드로 내려간다 |
+| `PMS_GUEST_DISABLED` | 꺼 둔 「회원가입 없이 둘러보기」가 다시 켜진다(데모 조직·읽기 전용) |
 | `PRIVACY_PROCESSORS` | 처리위탁 고지 목록이 「아직 고지 전」으로 되돌아간다 |
 | `PRIVACY_CROSS_BORDER` | 국외 이전 고지 절이 사라진다 |
 
