@@ -38,7 +38,8 @@ export default function LoginPage() {
   async function guest() {
     setBusy(true); setErr('');
     const r = await fetch('/api/auth/guest', { method: 'POST' });
-    if (r.ok) router.push('/dashboard'); else { const d = await r.json().catch(() => ({})); setErr(d.message || '둘러보기를 시작할 수 없습니다'); setBusy(false); }
+    // 화면 전환은 페이지를 통째로 다시 연다 — 운영(Vercel 보안 확인)에서 router.push 의 내부 요청이 막혀 '처리 중'에 멈춘 일(10-28)
+    if (r.ok) location.href = '/dashboard'; else { const d = await r.json().catch(() => ({})); setErr(d.message || '둘러보기를 시작할 수 없습니다'); setBusy(false); }
   }
   async function submit(e: React.FormEvent) {
     e.preventDefault();

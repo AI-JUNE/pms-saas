@@ -73,6 +73,8 @@ export const MIGRATION_DDL: string[] = [
   `CREATE TABLE IF NOT EXISTS test_cycles (id serial PRIMARY KEY, org_id integer NOT NULL, project_id integer NOT NULL REFERENCES projects(id) ON DELETE CASCADE, code text, name text NOT NULL, goal text, status text DEFAULT 'planned' NOT NULL, start_date text, end_date text, created_at timestamptz DEFAULT now() NOT NULL)`,
   `CREATE INDEX IF NOT EXISTS test_cycles_project_idx ON test_cycles (org_id, project_id)`,
   `ALTER TABLE IF EXISTS tests ADD COLUMN IF NOT EXISTS cycle text`,
+  // 이슈 차수 — schema.ts issues.cycle 은 7월부터 선언돼 있었는데 이 ALTER 가 없었다(10-03 tests.cycle 과 같은 빈틈). 10-28 운영 /api/issues 500 대응. 칸이 이미 있으면 아무 일도 안 한다
+  `ALTER TABLE IF EXISTS issues ADD COLUMN IF NOT EXISTS cycle text`,
   // 개인 To-Do
   `CREATE TABLE IF NOT EXISTS todos (id serial PRIMARY KEY, org_id integer NOT NULL, user_id integer NOT NULL, code text, title text NOT NULL, note text, priority text DEFAULT 'medium' NOT NULL, status text DEFAULT 'todo' NOT NULL, due_date text, created_at timestamptz DEFAULT now() NOT NULL)`,
   `CREATE INDEX IF NOT EXISTS todos_user_idx ON todos (org_id, user_id)`,
