@@ -16,11 +16,11 @@ export type ActionKind = (typeof ACTION_KINDS)[number];
 
 export const ACTION_META: Record<ActionKind, { label: string; hint: string; href: string; tone: 'crit' | 'warn' | 'info' }> = {
   delayed: { label: '지연 업무', hint: '종료일이 지났는데 끝나지 않은 업무', href: '/tasks', tone: 'crit' },
-  approval: { label: '결재 대기', hint: '검토 단계에 머문 문서·요구사항', href: '/documents', tone: 'warn' },
+  approval: { label: '결재 대기', hint: '검토 단계에 머문 문서와 요구사항', href: '/documents', tone: 'warn' },
   risk: { label: '높은 리스크', hint: '닫히지 않은 높음 등급(발생×영향 15 이상 포함)', href: '/risks', tone: 'crit' },
-  bug: { label: '긴급·높음 결함', hint: '해결되지 않은 긴급·높음 우선순위 결함', href: '/issues', tone: 'crit' },
+  bug: { label: '우선순위 높은 결함', hint: '해결되지 않은 긴급 또는 높음 우선순위 결함', href: '/issues', tone: 'crit' },
   untested: { label: '시험 없는 요구사항', hint: '승인됐지만 연결된 시험이 없는 요구사항', href: '/requirements', tone: 'warn' },
-  failedTest: { label: '실패·차단 시험', hint: '결과가 실패 또는 차단인 시험', href: '/tests', tone: 'warn' },
+  failedTest: { label: '실패 또는 차단된 시험', hint: '결과가 실패 또는 차단인 시험', href: '/tests', tone: 'warn' },
   change: { label: '변경요청 처리 중', hint: '아직 닫히지 않은 변경요청', href: '/issues', tone: 'info' },
 };
 

@@ -63,7 +63,7 @@ export default function ResetPasswordPage() {
             <div style={{ fontWeight: 700, marginBottom: 6 }}>{done.message}</div>
             {done.delivery && done.delivery !== 'sent' && (
               <div className="muted" style={{ fontSize: 12.5, color: '#2457C5' }}>
-                현재 이 서비스에는 메일 발송이 연동되어 있지 않아 안내 메일이 실제로 전송되지 않습니다. 조직 관리자에게 「사용자·권한」 화면의 비밀번호 초기화를 요청해 주세요.
+                현재 이 서비스에는 메일 발송이 연동되어 있지 않아 안내 메일이 실제로 전송되지 않습니다. 조직 관리자에게 「사용자와 권한」 화면의 비밀번호 초기화를 요청해 주세요.
               </div>
             )}
             <p style={{ marginTop: 12 }}><a href="/login" style={{ color: 'var(--brand-600)', fontWeight: 700 }}>로그인 화면으로</a></p>

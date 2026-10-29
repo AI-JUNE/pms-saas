@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {
   LayoutDashboard, FolderKanban, Layers3, ListTodo, FileCheck2, ClipboardList,
   Bug, ShieldAlert, CalendarClock, Users, Bell, Search, LogOut, ChevronDown, Check, ClipboardCheck, CalendarDays,
-  BarChart3, Activity, Settings, ShieldCheck, Command, User, GitBranch, Type, Circle, Menu, Camera,
+  BarChart3, Activity, Settings, ShieldCheck, Command, User, GitBranch, Type, Menu, Camera,
   Share2, Server, Flame, ShoppingCart, MessageSquare, UserCheck, CalendarRange, Network, Gauge, ListChecks,
   FileSearch, Star, ArrowLeft, Presentation,
 } from 'lucide-react';
@@ -24,30 +24,30 @@ const NAV = [
     { href: '/phases', label: '단계', icon: Layers3 },
     { href: '/reports', label: '리포트', icon: BarChart3 },
     { href: '/weekly', label: '주간보고', icon: CalendarRange },
-    { href: '/snapshots', label: '기성고·스냅샷', icon: Camera },
+    { href: '/snapshots', label: '기성고 스냅샷', icon: Camera },
   ]},
   { group: '실행', items: [
     { href: '/tasks', label: '업무 (WBS)', icon: ListTodo },
     { href: '/requirements', label: '요구사항', icon: ClipboardList },
     { href: '/rtm', label: '요구사항 추적(RTM)', icon: Network },
-    { href: '/documents', label: '산출물·결재', icon: FileCheck2 },
+    { href: '/documents', label: '산출물과 결재', icon: FileCheck2 },
     { href: '/form-definitions', label: '산출물 양식', icon: FileCheck2 },
   ]},
   { group: '통제', items: [
-    { href: '/issues', label: '이슈·결함', icon: Bug },
+    { href: '/issues', label: '이슈와 결함', icon: Bug },
     { href: '/tests', label: '테스트', icon: ClipboardCheck },
     { href: '/test-cycles', label: '테스트 차수', icon: Layers3 },
     { href: '/risks', label: '리스크', icon: ShieldAlert },
     { href: '/meetings', label: '회의', icon: CalendarClock },
     { href: '/calendar', label: '캘린더', icon: CalendarDays },
   ]},
-  { group: '인프라·운영', items: [
+  { group: '인프라 운영', items: [
     { href: '/interfaces', label: '인터페이스', icon: Share2 },
     { href: '/infra', label: '인프라 자산', icon: Server },
     { href: '/firewall', label: '방화벽', icon: Flame },
     { href: '/procurement', label: '조달', icon: ShoppingCart },
   ]},
-  { group: '조직·협업', items: [
+  { group: '조직과 협업', items: [
     { href: '/members', label: '인력', icon: Users },
     { href: '/workload', label: '업무 부하', icon: Gauge },
     { href: '/notifications', label: '알림', icon: Bell },
@@ -57,10 +57,10 @@ const NAV = [
     { href: '/apps/quality', label: '제안 품질관리', icon: ClipboardCheck },
     { href: '/apps/strategy', label: '제안 전략도출', icon: GitBranch },
     { href: '/apps/performance', label: '고객 성과관리', icon: Gauge },
-    { href: '/apps/authoring', label: '제안서·발표본 작성', icon: Presentation },
+    { href: '/apps/authoring', label: '제안서와 발표본 작성', icon: Presentation },
   ]},
   { group: '관리', items: [
-    { href: '/admin', label: '사용자·권한', icon: ShieldCheck },
+    { href: '/admin', label: '사용자와 권한', icon: ShieldCheck },
     { href: '/audit', label: '감사 로그', icon: Activity },
     { href: '/settings', label: '설정', icon: Settings },
   ]},
@@ -149,7 +149,7 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
   const TYPE_KO: any = { project: '프로젝트', issue: '이슈', requirement: '요구사항', risk: '리스크', task: '업무', document: '산출물', member: '인력', meeting: '회의' };
   const _q = cq.trim();
   const navItems = visibleNav.flatMap((g) => g.items).filter((n) => n.label.toLowerCase().includes(_q.toLowerCase())).map((n) => ({ kind: 'nav', href: n.href, label: n.label, icon: n.icon, tag: '' }));
-  const recItems = recs.map((r: any) => ({ kind: 'rec', href: r.href, label: (r.code ? r.code + ' · ' : '') + (r.title || ''), icon: TYPE_ICON[r.type] || Search, tag: TYPE_KO[r.type] || r.type }));
+  const recItems = recs.map((r: any) => ({ kind: 'rec', href: r.href, label: (r.code ? r.code + ' ' : '') + (r.title || ''), icon: TYPE_ICON[r.type] || Search, tag: TYPE_KO[r.type] || r.type }));
   const cmdResults = _q.length >= 1 ? [...navItems, ...recItems] : navItems;
 
   return (
@@ -165,11 +165,6 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
           </div>
         ))}
         <div style={{ flex: 1 }} />
-        <div className="statusblock">
-          <div className="row" style={{ gap: 6 }}><Circle style={{ width: 8, height: 8, fill: '#2f8f5b', color: '#2f8f5b' }} /><span style={{ fontWeight: 700, fontSize: 11.5 }}>연결됨 · Vercel</span></div>
-          <div style={{ fontSize: 10.5, color: 'var(--text-3)', marginTop: 3 }}>구축 · 주식회사 <b style={{ color: 'var(--brand)' }}>고원(GOWON)</b></div>
-          <div style={{ fontSize: 10, color: 'var(--text-4)', marginTop: 2 }}>빌드 <b style={{ color: 'var(--text-3)' }}>v17</b> · 2026-07-01</div>
-        </div>
         <div className="gowon-foot">
           <div className="gowon-cap">운영 법인</div>
           <GowonMark />
@@ -178,7 +173,7 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
 
       {menuOpen && <div className="menu-scrim" onClick={() => setMenuOpen(false)} />}
       <div className="main">
-        {me?.guest && <div className="guest-bar" role="status">둘러보기 모드 — 데모 조직을 읽기 전용으로 보고 있습니다. 저장·변경은 되지 않습니다. <a href="/login" onClick={async (e) => { e.preventDefault(); await fetch('/api/auth/logout', { method: 'POST' }); location.href = '/login'; }}>회원가입·로그인 →</a></div>}
+        {me?.guest && <div className="guest-bar" role="status">둘러보기 모드 — 데모 조직을 읽기 전용으로 보고 있습니다. 입력한 내용은 저장되지 않습니다. <a href="/login" onClick={async (e) => { e.preventDefault(); await fetch('/api/auth/logout', { method: 'POST' }); location.href = '/login'; }}>회원가입 또는 로그인 →</a></div>}
         <header className="topbar">
           <button className="iconbtn menu-btn" onClick={() => setMenuOpen(true)} aria-label="메뉴" aria-expanded={menuOpen}><Menu style={{ width: 20 }} /></button>
           {canBack && path !== '/dashboard' && <button className="iconbtn tb-back" onClick={() => router.back()} aria-label="이전 화면으로" title="이전 화면으로"><ArrowLeft style={{ width: 18 }} /></button>}
@@ -188,7 +183,7 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
             <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
               <button className="btn btn-sm" aria-haspopup="menu" aria-expanded={openMenu === 'proj'} onClick={(e) => { trigRef.current = e.currentTarget; setOpenMenu(openMenu === 'proj' ? null : 'proj'); }}>
                 <FolderKanban style={{ color: 'var(--brand)' }} />
-                <span className="proj-btn-text" style={{ maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{curProj ? `${curProj.code} · ${curProj.name}` : '프로젝트 선택'}</span>
+                <span className="proj-btn-text" style={{ maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{curProj ? <><span className="mono" style={{ color: 'var(--text-3)', marginRight: 6 }}>{curProj.code}</span>{curProj.name}</> : '프로젝트 선택'}</span>
                 <ChevronDown style={{ width: 14, color: 'var(--text-3)' }} />
               </button>
               {openMenu === 'proj' && (
@@ -224,11 +219,11 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
                 <div className="menu-sep" />
                 <Link href="/mywork" className="menu-item" onClick={() => setOpenMenu(null)}><UserCheck style={{ width: 16 }} />내 작업</Link>
                 <Link href="/notifications" className="menu-item" onClick={() => setOpenMenu(null)}><Bell style={{ width: 16 }} />알림{unread > 0 && <span className="nav-badge" style={{ marginLeft: 'auto' }} title={`안 읽은 알림 ${nfmt(unread)}건`}>{nfmt(unread)}</span>}</Link>
-                <Link href="/settings" className="menu-item" onClick={() => setOpenMenu(null)}><Settings style={{ width: 16 }} />내 계정·설정</Link>
+                <Link href="/settings" className="menu-item" onClick={() => setOpenMenu(null)}><Settings style={{ width: 16 }} />내 계정 설정</Link>
                 {canAccessScreen(principal, '/audit') && <Link href="/audit" className="menu-item" onClick={() => setOpenMenu(null)}><Activity style={{ width: 16 }} />감사 로그</Link>}
                 <div className="menu-sep" />
                 <button className="menu-item" onClick={() => logout()}><LogOut style={{ width: 16 }} />로그아웃</button>
-                <button className="menu-item" title="공용 PC 에서 사용할 때 — 제안 앱의 분석 결과·고객사 자료·API 키를 이 브라우저에서 지웁니다" onClick={() => { if (window.confirm('이 PC 의 제안 앱 데이터(분석 결과·고객사 자료·API 키)를 지우고 로그아웃할까요? 지운 데이터는 되살릴 수 없습니다.')) logout(true); }}><LogOut style={{ width: 16 }} />로그아웃 + 이 PC 앱 데이터 삭제</button>
+                <button className="menu-item" title="공용 PC 에서 사용할 때 — 제안 앱의 분석 결과, 고객사 자료, API 키를 이 브라우저에서 지웁니다" onClick={() => { if (window.confirm('이 PC 의 제안 앱 데이터(분석 결과, 고객사 자료, API 키)를 지우고 로그아웃할까요? 지운 데이터는 되살릴 수 없습니다.')) logout(true); }}><LogOut style={{ width: 16 }} />로그아웃 + 이 PC 앱 데이터 삭제</button>
               </div>
             )}
           </div>
@@ -258,7 +253,7 @@ export function Shell({ children, title }: { children: React.ReactNode; title: s
         <div className="cmdk-scrim" onClick={() => setCmd(false)}>
           <div className="cmdk" role="dialog" aria-modal="true" aria-label="검색 / 이동" onClick={(e) => e.stopPropagation()}>
             <div className="cmdk-in"><Command style={{ width: 18, color: 'var(--text-3)' }} />
-              <input autoFocus placeholder="화면·데이터 검색 / 이동…" value={cq}
+              <input autoFocus placeholder="화면과 데이터 검색 / 이동…" value={cq}
                 onChange={(e) => { setCq(e.target.value); setCi(0); }}
                 onKeyDown={(e) => { if (e.key === 'ArrowDown') setCi((i) => Math.min(i + 1, cmdResults.length - 1)); if (e.key === 'ArrowUp') setCi((i) => Math.max(i - 1, 0)); if (e.key === 'Enter' && cmdResults[ci]) { router.push(cmdResults[ci].href); setCmd(false); } }} />
               <span className="kbd">ESC</span></div>

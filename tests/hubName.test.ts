@@ -1,5 +1,5 @@
 /**
- * hubName.test.ts — 이름 하나로(GOWON 프로젝트 허브) + 허브 안의 제안서·발표본 작성(EPA). 2026-10-28 사용자 결정
+ * hubName.test.ts — 이름 하나로(GOWON 프로젝트 허브) + 허브 안의 제안서와 발표본 작성(EPA). 2026-10-28 사용자 결정
  * "외부 EPA 도 고원 프로젝트 HUB 에 하나로", "PMS 라는 단어보다는 포털이나 허브로 하나의 명칭으로".
  * 화면에 보이는 글자만 본다 — 코드·저장소·환경 변수·쿠키 이름(pms_session 등)은 그대로 둔다.
  */
@@ -38,9 +38,9 @@ test('대표 이름·탭 제목·로고', () => {
   assert.match(read('src', 'components', 'Shell.tsx'), /document\.title = title \? `\$\{title\} — 프로젝트 허브` : 'GOWON 프로젝트 허브'/);
 });
 
-test('허브 안의 제안서·발표본 작성(EPA) — 메뉴·경로·사본(외부판 = 발표 연습 켬)', () => {
-  assert.match(read('src', 'components', 'Shell.tsx'), /\{ href: '\/apps\/authoring', label: '제안서·발표본 작성', icon: Presentation \}/);
-  assert.match(read('src', 'lib', 'appRoutes.ts'), /\{ href: '\/apps\/authoring', label: '제안서·발표본 작성'/);
+test('허브 안의 제안서와 발표본 작성(EPA) — 메뉴·경로·사본(외부판 = 발표 연습 켬)', () => {
+  assert.match(read('src', 'components', 'Shell.tsx'), /\{ href: '\/apps\/authoring', label: '제안서와 발표본 작성', icon: Presentation \}/);
+  assert.match(read('src', 'lib', 'appRoutes.ts'), /\{ href: '\/apps\/authoring', label: '제안서와 발표본 작성'/);
   assert.ok(fs.existsSync(path.join(ROOT, 'src', 'app', 'apps', 'authoring', 'page.tsx')));
   const html = read('public', 'apps', 'authoring', 'index.html');
   assert.match(html, /const EDITION='external';/, '허브 사본은 외부판(발표 연습 켬)');

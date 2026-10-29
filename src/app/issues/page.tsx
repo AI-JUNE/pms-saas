@@ -169,12 +169,12 @@ const assigneeCell = (v: any, row: any) => {
 export default function Page() {
   return (
     <ResourceView
-      title="이슈·결함"
+      title="이슈와 결함"
       subtitle="이슈와 결함을 관리합니다."
       endpoint="/api/issues"
       projectScoped
       entity="issues"
-      emptyText="등록된 이슈·결함이 없습니다. 상단에서 결함·기능개선·변경요청을 등록하세요."
+      emptyText="등록된 이슈와 결함이 없습니다. 상단에서 결함·기능개선·변경요청을 등록하세요."
       altViews={[
         {
           key: 'board',

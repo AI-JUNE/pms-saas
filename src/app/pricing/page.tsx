@@ -6,18 +6,20 @@ import CheckoutButton from './CheckoutButton';
 
 export const metadata: Metadata = {
   title: '요금제 — GOWON 프로젝트 허브',
-  description: '팀 규모에 맞춘 3단계 요금제. 계획·WBS부터 성과관리(EVM)·RTM·전자결재·테스트까지 하나로.',
+  description: '팀 규모에 맞춘 3단계 요금제. 계획과 WBS부터 성과관리(EVM), 요구사항 추적표(RTM), 전자결재, 테스트까지 제공합니다.',
 };
 
 export default function PricingPage() {
   // 무료 체험 문구는 근거(env)가 있을 때만 노출한다 — 화면이 좌석 수를 하드코딩하지 않는다.
   const freeTrial = freeTrialClaim();
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text-1)', fontFamily: 'var(--font)' }}>
+    <div className="pr-page" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text-1)', fontFamily: 'var(--font)' }}>
+      {/* 휴대폰 폭: 상단 바가 꺾이지 않게 영문 부제는 숨기고, 한글은 단어 단위로 줄바꿈 */}
+      <style>{`.pr-page{word-break:keep-all}.pr-page header a{white-space:nowrap}@media (max-width:560px){.pr-tag{display:none}.pr-page header{padding:12px 16px!important;gap:8px!important}.pr-page header a{font-size:13px!important}}`}</style>
       {/* 상단 바 */}
       <header style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 22px', borderBottom: '1px solid var(--border)', background: 'var(--surface)', position: 'sticky', top: 0, zIndex: 20 }}>
         <Link href="/" style={{ fontWeight: 800, fontSize: 18, letterSpacing: '-.03em', color: 'var(--text-1)' }}>GOWON 프로젝트 허브</Link>
-        <span style={{ fontSize: 9.5, color: 'var(--text-3)', letterSpacing: '.12em', fontWeight: 700, textTransform: 'uppercase' }}>Project Management</span>
+        <span className="pr-tag" style={{ fontSize: 9.5, color: 'var(--text-3)', letterSpacing: '.12em', fontWeight: 700, textTransform: 'uppercase' }}>Project Management</span>
         <div style={{ flex: 1 }} />
         <Link href="/login?manual=1" style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-2)', padding: '8px 14px' }}>로그인</Link>
         <Link href="/dashboard" style={{ fontSize: 13.5, fontWeight: 700, color: '#fff', background: 'var(--brand)', padding: '9px 16px', borderRadius: 'var(--r-sm)' }}>데모 둘러보기</Link>
@@ -28,13 +30,13 @@ export default function PricingPage() {
       <section style={{ maxWidth: 1080, margin: '0 auto', padding: '64px 22px 8px', textAlign: 'center' }}>
         <div style={{ display: 'inline-block', fontSize: 12, fontWeight: 800, letterSpacing: '.06em', color: 'var(--brand-600)', background: 'var(--brand-50)', padding: '6px 13px', borderRadius: 999, textTransform: 'uppercase' }}>Pricing</div>
         <h1 style={{ fontSize: 'clamp(30px,4.4vw,46px)', fontWeight: 800, letterSpacing: '-.03em', lineHeight: 1.18, margin: '16px 0 12px' }}>
-          팀 규모에 맞춰, <span style={{ color: 'var(--brand)' }}>쉽고 간편하게</span>
+          조직 규모와 <span style={{ color: 'var(--brand)' }}>관리 수준에 맞는 요금제</span>
         </h1>
-        <p style={{ fontSize: 16.5, color: 'var(--text-2)', maxWidth: 560, margin: '0 auto', lineHeight: 1.6 }}>
-          계획·WBS부터 성과관리(EVM)·전자결재·테스트까지 하나의 플랫폼에서.{freeTrial ? ` ${freeTrial}.` : ''}
+        <p style={{ fontSize: 16.5, color: 'var(--text-2)', maxWidth: 560, margin: '0 auto', lineHeight: 1.75 }}>
+          계획과 WBS부터 성과관리(EVM), 전자결재, 테스트까지 사업 수행에 필요한 관리 기능을 단계별로 제공합니다.{freeTrial ? ` ${freeTrial}.` : ''}
         </p>
-        <div style={{ fontSize: 12.5, color: 'var(--text-3)', marginTop: 14 }}>연간 결제 기준 · 부가세 별도 · 월간 결제는 약 20% 높음</div>
-        {!PAYMENTS_LIVE && (<div style={{ display: 'inline-block', marginTop: 12, fontSize: 12, fontWeight: 700, color: 'var(--amber)', background: 'var(--amber-50)', border: '1px solid #f0d9a8', padding: '6px 12px', borderRadius: 999 }}>결제 준비 중 · 지금은 무료 데모로 이용하세요</div>)}
+        <div style={{ fontSize: 12.5, color: 'var(--text-3)', marginTop: 14 }}>연간 결제 기준, 부가세 별도. 월간 결제는 약 20% 높습니다.</div>
+        {!PAYMENTS_LIVE && (<div style={{ display: 'inline-block', marginTop: 12, fontSize: 12, fontWeight: 700, color: 'var(--amber)', background: 'var(--amber-50)', border: '1px solid #f0d9a8', padding: '6px 12px', borderRadius: 999 }}>결제 기능 준비 중입니다. 지금은 무료 데모로 이용할 수 있습니다.</div>)}
       </section>
 
       {/* 요금제 3단계 */}
@@ -86,10 +88,10 @@ export default function PricingPage() {
 
       {/* 안내 */}
       <section style={{ maxWidth: 760, margin: '0 auto', padding: '18px 22px 72px' }}>
-        <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '18px 20px', fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6 }}>
-          <b style={{ color: 'var(--text-1)' }}>도입 안내</b> · 연간 약정 시 할인, 공공기관은 디지털서비스 전문계약(수의계약)·나라장터 조달로 도입 가능합니다.
-          결제·플랜 세부는 도입 문의로 안내드리며, 지금은 <b>무료 데모</b>로 전체 기능을 바로 체험하실 수 있습니다.
-          <div style={{ marginTop: 10, fontSize: 12.5 }}><Link href="/terms" style={{ color: 'var(--brand-600)', fontWeight: 700 }}>이용약관</Link> · <Link href="/privacy" style={{ color: 'var(--brand-600)', fontWeight: 700 }}>개인정보 처리방침</Link></div>
+        <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '18px 20px', fontSize: 13.5, color: 'var(--text-2)', lineHeight: 1.8 }}>
+          <b style={{ color: 'var(--text-1)' }}>도입 안내.</b> 연간 약정 시 할인이 적용됩니다. 공공기관은 디지털서비스 전문계약(수의계약) 또는 나라장터 조달로 도입할 수 있습니다.
+          결제 조건과 플랜 세부 사항은 도입 문의 시 안내합니다. 지금은 <b>무료 데모</b>로 전체 기능을 확인할 수 있습니다.
+          <div style={{ marginTop: 10, fontSize: 12.5 }}><Link href="/terms" style={{ color: 'var(--brand-600)', fontWeight: 700 }}>이용약관</Link><span aria-hidden="true" style={{ margin: '0 8px', color: 'var(--text-4)' }}>|</span><Link href="/privacy" style={{ color: 'var(--brand-600)', fontWeight: 700 }}>개인정보 처리방침</Link></div>
         </div>
       </section>
       </main>

@@ -28,7 +28,7 @@ function ApprovalTrack({ status }: { status: string }) {
 const DAY = 86400000;
 
 export default function Page() {
-  return <ResourceView title="산출물·결재" subtitle="산출물과 결재 상태를 관리합니다." endpoint="/api/documents" entity="documents" projectScoped
+  return <ResourceView title="산출물과 결재" subtitle="산출물과 결재 상태를 관리합니다." endpoint="/api/documents" entity="documents" projectScoped
     emptyText="등록된 산출물이 없습니다. 문서를 등록하고 결재요청 → 승인 순으로 진행하세요."
     columns={[
       {key:'code',label:'코드'},

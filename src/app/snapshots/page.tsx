@@ -71,7 +71,7 @@ function gapCell(_v: any, r: any) {
 }
 
 export default function Page() {
-  return <ResourceView title="기성고·스냅샷" subtitle="기준 시점(차수·마일스톤)별 계획/실적 진척과 기성률을 기록합니다." endpoint="/api/snapshots" entity="snapshots" projectScoped
+  return <ResourceView title="기성고 스냅샷" subtitle="기준 시점(차수·마일스톤)별 계획/실적 진척과 기성률을 기록합니다." endpoint="/api/snapshots" entity="snapshots" projectScoped
     emptyText="등록된 스냅샷이 없습니다. “새로 만들기”로 기준 시점별 계획/실적 진척과 기성률을 기록하세요."
     columns={[{key:'code',label:'코드'},{key:'label',label:'기준',strong:true},{key:'snapshotDate',label:'기준일',render:dateCell},{key:'plannedPct',label:'계획',render:BAR},{key:'actualPct',label:'실적',render:BAR},{key:'gap',label:'괴리',render:gapCell},{key:'billingPct',label:'기성률',render:(v)=>(<div className="row" style={{gap:8}}><div className="bar" style={{minWidth:44}}><i style={{width:`${Math.min(100,v||0)}%`,background:'linear-gradient(90deg,#4F7FE3,#2457C5)'}}/></div><span style={{fontWeight:700,fontSize:11.5}}>{v||0}%</span></div>)},{key:'note',label:'비고',render:noteCell}]}
     fields={[

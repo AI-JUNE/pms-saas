@@ -208,7 +208,7 @@ export default function Page() {
       <div className="card card-pad dash-card"><div className="sect" style={{ marginBottom: 8 }}>주간 진척 추이 <span style={{ fontSize: 11, color: 'var(--text-4)', fontWeight: 600 }}>(최근 10주 · 기한 도래 대비 완료 누적)</span></div><WeeklyTrend tasks={tasks} /></div>
       <div style={{ height: 16 }} />
       <div className="card card-pad dash-card"><div className="sect" style={{ marginBottom: 12 }}>기성고 · 진척 스냅샷 <span style={{ fontSize: 11, color: 'var(--text-4)', fontWeight: 600 }}>(기준 시점별 계획/실적/기성률)</span></div>
-        {snapshots.length === 0 ? <p className="muted" style={{ fontSize: 13 }}>스냅샷이 없습니다. 기성고·스냅샷 화면에서 기준 시점을 기록하면 여기에 추이가 표시됩니다.</p> : (
+        {snapshots.length === 0 ? <p className="muted" style={{ fontSize: 13 }}>스냅샷이 없습니다. 기성고 스냅샷 화면에서 기준 시점을 기록하면 여기에 추이가 표시됩니다.</p> : (
           <div className="tbl-wrap"><table className="tbl"><thead><tr><th>기준</th><th>기준일</th><th>계획</th><th>실적</th><th style={{ minWidth: 150 }}>기성률</th></tr></thead>
             <tbody>{snapshots.slice(0, 12).map((s: any) => (
               <tr key={s.id}><td style={{ fontWeight: 650 }}>{s.label}</td><td className="muted">{s.snapshotDate || '\u2014'}</td><td>{s.plannedPct||0}%</td><td>{s.actualPct||0}%</td>

@@ -32,23 +32,23 @@ export interface ClaimSpec {
  */
 export const CLAIM_REGISTRY: Record<string, ClaimSpec> = {
   // Basic
-  '프로젝트·단계·WBS': { kind: 'feature', features: ['core'] },
-  '이슈/결함·리스크': { kind: 'feature', features: ['core'] },
-  '기본 간트·칸반·캘린더': { kind: 'feature', features: ['core'] },
-  '멤버·권한(RBAC)': { kind: 'feature', features: ['core'] },
+  '프로젝트, 단계, WBS 관리': { kind: 'feature', features: ['core'] },
+  '이슈, 결함, 리스크 관리': { kind: 'feature', features: ['core'] },
+  '기본 간트, 칸반, 캘린더': { kind: 'feature', features: ['core'] },
+  '멤버와 역할 기반 권한(RBAC)': { kind: 'feature', features: ['core'] },
   // Pro
   'Basic 전체 포함': { kind: 'inherit', inheritsFrom: 'basic' },
-  'EVM 성과관리(SPI·CPI·PV·EV·AC)': { kind: 'feature', features: ['evm'] },
-  '요구사항 추적(RTM)·산출물 전자결재': { kind: 'feature', features: ['rtm', 'approval'] },
-  '테스트 관리·실행 리포트': { kind: 'feature', features: ['testMgmt'] },
-  '인터랙티브 간트(베이스라인·임계경로·의존성)': { kind: 'feature', features: ['ganttAdvanced'] },
-  '대시보드 집계·주간보고·⌘K 전역검색': { kind: 'feature', features: ['core'] },
+  'EVM 성과관리(SPI, CPI, PV, EV, AC)': { kind: 'feature', features: ['evm'] },
+  '요구사항 추적표(RTM)와 산출물 전자결재': { kind: 'feature', features: ['rtm', 'approval'] },
+  '테스트 관리와 실행 리포트': { kind: 'feature', features: ['testMgmt'] },
+  '고급 간트(기준선, 주경로, 선후행 관계)': { kind: 'feature', features: ['ganttAdvanced'] },
+  '대시보드 집계, 주간보고, 전역 검색(⌘K)': { kind: 'feature', features: ['core'] },
   // Enterprise
   'Pro 전체 포함': { kind: 'inherit', inheritsFrom: 'pro' },
-  'SSO·상세 감사로그·데이터 접근 통제': { kind: 'feature', features: ['sso', 'auditLog'] },
-  '전용 DB·전용 리전·온프레미스 옵션': { kind: 'unverifiable' },
-  '전담 지원·SLA·교육': { kind: 'unverifiable' },
-  '공공 조달(GS인증·CSAP) 대응': { kind: 'unverifiable' },
+  'SSO, 상세 감사 로그, 데이터 접근 통제': { kind: 'feature', features: ['sso', 'auditLog'] },
+  '전용 DB, 전용 리전, 구축형(온프레미스) 옵션': { kind: 'unverifiable' },
+  '전담 지원, SLA, 교육': { kind: 'unverifiable' },
+  '공공 조달(GS인증, CSAP) 대응': { kind: 'unverifiable' },
 };
 
 export function claimSpec(text: unknown): ClaimSpec | null {

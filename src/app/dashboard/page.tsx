@@ -104,8 +104,8 @@ export default function Dashboard() {
   return (
     <Shell title="대시보드">
       {/* 스크린리더 라이브 안내 — mounted 는 대시보드 데이터 도착 직후(rAF) 켜지므로 로딩 완료 시점과 같다 */}
-      <span className="sr-only" role="status">{!mounted ? '대시보드 현황을 불러오는 중' : `대시보드 현황 · 프로젝트 ${nfmt(projects.length)}건, 열린 이슈 ${nfmt(openIssues.length)}건, 리스크 ${nfmt(risks.length)}건, 업무 ${nfmt(tasks.length)}건`}</span>
-      <div className="hero"><h2>안녕하세요, {me.user?.name} 님 👋</h2><p>조직 전체 현황을 한눈에 확인하세요 · {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}</p></div>
+      <span className="sr-only" role="status">{!mounted ? '대시보드 현황을 불러오는 중' : `대시보드 현황: 프로젝트 ${nfmt(projects.length)}건, 열린 이슈 ${nfmt(openIssues.length)}건, 리스크 ${nfmt(risks.length)}건, 업무 ${nfmt(tasks.length)}건`}</span>
+      <div className="hero"><h2>안녕하세요, {me.user?.name} 님</h2><p>{new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })} 기준 조직 전체 현황입니다.</p></div>
       {onb && !onb.completed && (
         <div className="card card-pad dash-card" style={{ marginTop: 14 }}>
           <div className="row" style={{ gap: 10, alignItems: 'center' }}>
@@ -133,7 +133,7 @@ export default function Dashboard() {
         <div className="card card-pad dash-card" style={{ marginTop: 14, borderColor: 'var(--brand-100)', background: 'var(--brand-50)' }}>
           <div className="row" style={{ gap: 14, flexWrap: 'wrap' }}>
             <div><div style={{ fontWeight: 800, fontSize: 15, color: 'var(--brand-700)' }}>데모 데이터로 시작하기</div>
-              <p className="muted" style={{ margin: '4px 0 0' }}>샘플 프로젝트·요구사항·이슈·리스크·업무·스프린트·인프라·방화벽·조달·게시판을 한 번에 채워 모든 화면을 둘러보세요.</p></div>
+              <p className="muted" style={{ margin: '4px 0 0' }}>프로젝트, 요구사항, 이슈, 리스크, 업무, 스프린트, 인프라, 방화벽, 조달, 게시판에 예시 데이터를 넣어 전체 화면을 확인할 수 있습니다.</p></div>
             <div className="sp" />
             <button className="btn btn-pri" onClick={fillDemo} disabled={busy}>{busy ? '생성 중…' : '데모 데이터 채우기'}</button>
           </div>
@@ -154,7 +154,7 @@ export default function Dashboard() {
         <section className="card card-pad dash-card" style={{ marginTop: 16 }} aria-labelledby="actHead">
           <div className="row" style={{ gap: 10, alignItems: 'center' }}>
             <h3 id="actHead" style={{ margin: 0, fontSize: 15, fontWeight: 800 }}>조치 필요</h3>
-            <span className="muted" style={{ fontSize: 12.5 }}>{actN ? `${nfmt(actN)}건 · 지연·결재·리스크·결함·시험 공백을 모았습니다` : '지금 바로 손볼 항목이 없습니다'}</span>
+            <span className="muted" style={{ fontSize: 12.5 }}>{actN ? `${nfmt(actN)}건. 일정 지연, 결재, 리스크, 결함, 시험 누락 순으로 확인하세요` : '조치가 필요한 항목이 없습니다'}</span>
           </div>
           {actN > 0 && (
             <div style={{ display: 'grid', gap: 10, marginTop: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))' }}>
@@ -210,7 +210,7 @@ export default function Dashboard() {
           })()}
         </div>
         <div className="card card-pad dash-card" style={{ animationDelay: '320ms' }}>
-          <div className="sect" style={{ marginBottom: 12 }}>마감 임박 · 결재 대기</div>
+          <div className="sect" style={{ marginBottom: 12 }}>마감 임박과 결재 대기</div>
           {(() => {
             const now = new Date(); const t0 = new Date(now); t0.setHours(0,0,0,0); const in7 = new Date(t0.getTime() + 7 * 86400000);
             const vd = (s: any) => !!s && Number.isFinite(new Date(s).getTime()); // 잘못된 날짜 문자열 방어
@@ -229,7 +229,7 @@ export default function Dashboard() {
               ...soonIssues.map((i: any) => ({ k: 'si'+i.id, label: i.title, code: i.code, tag: 'D-'+dday(i.dueDate), col: '#d98a16', sub: i.dueDate, href: '/issues' })),
               ...pending.map((x: any) => ({ k: 'd'+x.id, label: x.title, code: x.code, tag: '결재대기', col: '#0e9bb8', sub: x.approver||'', href: '/documents' })),
             ];
-            if (rows.length === 0) return <p className="muted" style={{ fontSize: 13 }}>마감 임박·결재 대기 항목이 없습니다.</p>;
+            if (rows.length === 0) return <p className="muted" style={{ fontSize: 13 }}>마감이 임박했거나 결재를 기다리는 항목이 없습니다.</p>;
             return <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{rows.slice(0, 7).map((r: any) => (
               <div key={r.k} onClick={() => router.push(r.href)} role="button" tabIndex={0} onKeyDown={onKeyAct(() => router.push(r.href))} aria-label={`${r.tag} ${r.code || ''} ${r.label || ''} — 해당 목록으로 이동`.trim()} style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer' }}>
                 <span style={{ fontSize: 10.5, fontWeight: 800, color: '#fff', background: r.col, padding: '1px 7px', borderRadius: 20, minWidth: 52, textAlign: 'center' }}>{r.tag}</span>
@@ -259,7 +259,7 @@ export default function Dashboard() {
       </div>
       <div style={{ height: 16 }} />
       <div className="card card-pad dash-card" style={{ animationDelay: '350ms' }}>
-        <div className="row" style={{ marginBottom: 12 }}><div className="sect">담당자별 업무 부하 · 진척</div><div className="sp" /><Link href="/workload" className="muted" style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>모두 보기 <ArrowRight style={{ width: 14 }} /></Link></div>
+        <div className="row" style={{ marginBottom: 12 }}><div className="sect">담당자별 업무 부하와 진척</div><div className="sp" /><Link href="/workload" className="muted" style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>모두 보기 <ArrowRight style={{ width: 14 }} /></Link></div>
         {(() => {
           // 대시보드 tasks 재사용 — 담당자별 진행중 업무 수·완료율·평균 진척 집계(읽기 전용, 신규 API 없음)
           const by: Record<string, { open: number; done: number; total: number; prog: number }> = {};
@@ -277,11 +277,11 @@ export default function Dashboard() {
             const col = r.open >= maxOpen * 0.7 ? '#c0414f' : r.open >= maxOpen * 0.4 ? '#d98a16' : '#2f8f5b';
             return (
               <div key={r.name} onClick={() => router.push('/workload')} role="button" tabIndex={0} onKeyDown={onKeyAct(() => router.push('/workload'))} aria-label={`${r.name} 업무 부하 — 워크로드 화면으로 이동`} style={{ cursor: 'pointer' }}
-                title={`${r.name} · 진행중 ${nfmt(r.open)}건 · 완료 ${nfmt(r.done)}/${nfmt(r.total)}건 · 평균 진척 ${r.avg}%`}>
+                title={`${r.name}: 진행 중 ${nfmt(r.open)}건, 완료 ${nfmt(r.done)}/${nfmt(r.total)}건, 평균 진척 ${r.avg}%`}>
                 <div className="row" style={{ fontSize: 12.5, marginBottom: 5, gap: 8 }}>
                   <span style={{ fontWeight: 650, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
                   <span style={{ fontWeight: 800, color: col }}>진행 {nfmt(r.open)}</span>
-                  <span className="muted" style={{ fontSize: 11.5 }}>완료 {nfmt(r.done)}/{nfmt(r.total)} · 진척 {r.avg}%</span>
+                  <span className="muted" style={{ fontSize: 11.5 }}>완료 {nfmt(r.done)}/{nfmt(r.total)}, 진척 {r.avg}%</span>
                 </div>
                 <div className="pbar"><i style={{ width: mounted ? `${(r.open / maxOpen) * 100}%` : '0%', background: `linear-gradient(90deg, ${shade(col, 0.14)}, ${col})` }} /></div>
               </div>);

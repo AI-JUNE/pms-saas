@@ -27,7 +27,7 @@ test('모든 카드 문구가 레지스트리에 등록되어 있다', () => {
 });
 
 test('상위 플랜 전용 기능을 하위 카드가 약속하면 over_promised 로 잡는다', () => {
-  const bad = [{ id: 'basic' as const, features: ['EVM 성과관리(SPI·CPI·PV·EV·AC)'] }];
+  const bad = [{ id: 'basic' as const, features: ['EVM 성과관리(SPI, CPI, PV, EV, AC)'] }];
   const a = auditPlanClaims(bad);
   assert.equal(a.issues.length, 1);
   assert.equal(a.issues[0].code, 'over_promised');

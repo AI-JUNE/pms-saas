@@ -31,8 +31,8 @@ export default function Page() {
   const byRole = (r: string) => rows.filter((u) => u.role === r).length;
   const activeAdmins = rows.filter((u) => u.isActive && u.role === 'admin').length;
   return (
-    <Shell title="사용자·권한">
-      <h2 className="h1">사용자·권한</h2><p className="h-sub">조직 구성원의 역할을 관리합니다. (읽기 &lt; 쓰기 &lt; 결재 &lt; 관리)</p>
+    <Shell title="사용자와 권한">
+      <h2 className="h1">사용자와 권한</h2><p className="h-sub">조직 구성원의 역할을 관리합니다. (읽기 &lt; 쓰기 &lt; 결재 &lt; 관리)</p>
       {su && <p style={{ marginTop: 6 }}><a href="/admin/security" style={{ fontSize: 13, fontWeight: 650 }}>→ 보안 이벤트 열람(슈퍼관리자)</a></p>}
       <div style={{ height: 16 }} />
       {total > 0 && (
