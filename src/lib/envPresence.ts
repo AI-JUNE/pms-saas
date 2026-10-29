@@ -70,6 +70,7 @@ export const TRANSIENT_KEYS: readonly string[] = [
   'RECOVERY_LOSS_NOTICE_AT', // checks.lossNotice
   'RECOVERY_SECURITY_REAPPLIED_AT', // checks.postRestoreSecurity
   'RECOVERY_EXTERNAL_RECONCILED_AT', // checks.externalState
+  'RECOVERY_BOOT_WRITES_OFF', // /api/admin/recovery-verify 의 bootWrites(§3-19) — 4단계 수행 배포에만 넣는다
   'RECOVERY_REHEARSAL_ACTIVE', // checks.rehearsalScope
   'DEPLOY_PINNED_COMMIT', // checks.deployPin
 ];

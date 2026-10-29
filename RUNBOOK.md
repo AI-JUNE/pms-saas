@@ -486,6 +486,21 @@ RPO 실측은 3-7 구간이라 **시간**이고 실제로 잃은 행 수는 아�
      「다시 뜨기」가 아니라 운영 스코프의 값을 **그대로 복사**하는 것이다. `ageJudgedHere` 가
      `false` 면 이 스코프에 `RECOVERY_BASELINE_MAX_AGE_DAYS` 가 없어 **낡음 판정이 보류**됐고,
      낡은 사본이 그대로 `ok` 를 만들 수 있다(아래 **3-13**).
+   - ⚠️ **「읽기 전용」은 엔드포인트에 대해서만 참이다** — 그 엔드포인트에 닿으려면 먼저
+     **기동**해야 하고, 기동하는 쪽은 2단계 차단이 걸린 운영 배포가 **아니라** 아무 제한도 없는
+     스테이징이다. 기동은 요청을 받기 전에 **소스에 하드코딩된 비밀번호를 가진 관리자 계정**과
+     조직·소속을 만들고(`ensureRecoveryAdmin`), 그 배포의 **화면을 한 번 열면** 둘러보기가
+     데모 데이터 한 벌을 채운다. 전부 `users`·`organizations`·`memberships`·`projects`·`issues`·
+     `tasks` 처럼 **바로 다음에 대조하는 테이블**이라 기준치에 못 미치던 테이블이 그대로 `ok` 로
+     올라가고, 그 브랜치는 5단계에서 **운영이 된다**(아래 **3-19**).
+     - **행 수를 읽기 전에** 응답의 `bootWrites.verdict` 를 본다. `suppressed` 가 아니면
+       `bootWrites.openCoreTables` 에 적힌 테이블의 수치를 그만큼 낮춰 읽는다.
+     - 막는 방법: 이 배포 스코프에 `RECOVERY_BOOT_WRITES_OFF=true`·`PMS_GUEST_DISABLED=true` 를
+       넣고 **재배포한 뒤** 다시 호출한다(환경변수는 재배포 전까지 반영되지 않는다).
+     - **전건 차단이 「대조 대상이 깨끗하다」는 뜻은 아니다** — 스키마 DDL·로그인 세션·열람 감사
+       행은 이 검증의 전제라 막을 수 없다(`bootWrites.unstoppableCoreTables`).
+     - 이미 만들어진 행은 **지우지 않는다** — 멱등 가드라 다음 기동이 다시 만든다. 만들어진
+       사실을 6절 표 비고에 적는다.
 5. **전환** — 4단계가 `switchReady: true` 일 때만 운영 `DATABASE_URL`을 복구 브랜치로 교체하고,
    같은 스코프(Production)에 **기준 지문** `RECOVERY_EXPECTED_DB` 를 함께 넣은 뒤 **재배포한다**(아래 3-4).
    - 확인: `GET /api/health` → `checks.dbIdentity.detail.verdict` 가 **`match`** 인지 본다.
@@ -1709,6 +1724,77 @@ node --experimental-strip-types -e "import('./src/lib/sourceBranch.ts').then(m=>
   않거나**, 체크리스트의 「브랜치 정리」가 **어느 브랜치인지 말하지 않게** 되돌아가면 CI 가 실패한다.
   전부 **응답은 200** 이라 사람 눈으로는 알아챌 수 없는 회귀다.
 
+### 3-19. **검증이 검증 대상을 바꾼다** — 「읽기 전용」이라 적힌 4단계의 기동 쓰기
+
+4단계는 「복구 브랜치 연결문자열을 **스테이징 환경의 `DATABASE_URL` 에 넣고 기동한 뒤**,
+슈퍼관리자로 `GET /api/admin/recovery-verify` 를 호출한다(**읽기 전용 — DDL·쓰기 없음**)」다.
+그 괄호는 **엔드포인트**에 대해서만 참이다. 그 엔드포인트에 닿으려면 먼저 기동해야 하고,
+기동하는 쪽은 2단계 쓰기 차단이 걸린 운영 배포가 **아니라** 아무 제한도 없는 스테이징이다.
+
+| 언제 일어나는가 | 어디서 | 무엇이 생기는가 | 막을 수단 |
+| --- | --- | --- | --- |
+| `schema_ddl` — 배포 기동(첫 요청 이전) | `instrumentation.ts` → `ensureSchema` | 멱등 DDL 전문(6단계가 어차피 지시하는 일) | **없다**(막으면 조회가 깨진다. §3-1) |
+| `recovery_admin` — 배포 기동 | `instrumentation.ts` → `bootstrap.ensureRecoveryAdmin` | **소스에 하드코딩된 비밀번호**의 관리자 + 조직 + 소속 | `RECOVERY_BOOT_WRITES_OFF=true` |
+| `default_roles` — 위 계정에 뒤따라 | `seedRoles.grantDefaultRoles` | 권한 정의·역할 부여 행(핵심 테이블 **밖**이라 대조에 안 걸린다) | `RECOVERY_BOOT_WRITES_OFF=true` |
+| `guest_demo_seed` — **화면을 한 번 열면** | `api/auth/guest` → `demoSeed.seedDemo` | 데모 조직·손님 계정과 **비어 있는 표를 채우는 데모 데이터 한 벌** | `PMS_GUEST_DISABLED=true` |
+| `verify_access_record` — 로그인·검증 호출 자체 | `auth.createSession` · `audit.auditSecurity` | 세션 1건 + 보안·열람 감사 행 | **없다**(로그인하지 않으면 닿지 못한다) |
+
+1. **대조 대상이 대조 행위로 커진다.** 4단계가 세는 핵심 테이블 13개 중 `users`·`organizations`·
+   `memberships`·`audit_log` 가 기동·로그인·열람으로, 둘러보기가 돌면 `projects`·`issues`·`tasks`
+   까지 올라간다. 응답의 수치는 `count(*)` **총합**이라 그 증가분이 어디에서 왔는지 나누어 줄
+   기준이 없고(기준 스냅샷은 §2 월 점검의 **운영** 수치다), 기준치에 **못 미치던**(`short`)
+   테이블이 그대로 `ok` 로 올라갈 수 있다(`counts_are_gross`).
+2. **`seedDemo` 는 빈 표만 채운다** — 손상으로 비어 버린 표일수록 더 많이 채워진다. 즉
+   **가장 크게 잃은 테이블이 가장 크게 메워진다.**
+3. **지울 수단이 없다.** 전부 「없으면 만든다」꼴의 멱등 가드라서 지워도 **다음 기동·다음 입장이
+   다시 만든다**(`idempotent_means_permanent`). 전환 뒤에는 운영 DB 안의 행이다.
+4. **§3-8 의 표에 없다.** §3-8 은 복구가 **되돌리는** 접근 수단의 정본인데, 이 계정은 되돌아온
+   것이 아니라 **검증이 새로 만든 것**이라 그 표의 대상이 아니고 §3-5 보존본의 보안 이벤트로도
+   추릴 수 없다 — 6-1단계 재적용을 전부 해도 남는다(`not_a_restored_row`).
+5. **차단은 이 배포에 걸려 있지 않다.** 2단계 차단은 운영 배포의 env 이고(§3-3) 4단계는
+   스테이징에서 한다 — 같은 DB 를 보면서 한쪽만 잠긴 상태이고, `checks.writeFreeze` 는
+   **그 배포 자신의** 설정만 말한다(`freeze_is_elsewhere`).
+6. **리허설에서는 드러나지 않는다.** 체크리스트 마지막 항목이 리허설 브랜치를 정리하므로
+   만들어진 행도 함께 사라진다 — 「리허설에서 통과했다」가 이 구멍에 대해 아무 말도 하지
+   않는다(`rehearsal_hides_it`). 4단계 수행 배포가 설정을 실제로 받았는지도 **그 배포의
+   응답으로만** 알 수 있다(`scope_unknown` — §3-13).
+
+**판정 산출** (읽기·계산뿐 — DB·네트워크 접근 0. env 값은 출력에 담기지 않는다)
+
+```bash
+node --experimental-strip-types -e "import('./src/lib/bootWrites.ts').then(m=>console.log(m.bootWritesText(m.assessBootWrites({env:process.env}))))"
+```
+
+| `bootWrites.verdict` | 뜻 | 무엇을 해야 하나 |
+| --- | --- | --- |
+| **`unsuppressed`** | 기동·입장 쓰기가 **전부 열려 있다**(기본값) | `RECOVERY_BOOT_WRITES_OFF=true`·`PMS_GUEST_DISABLED=true` 를 이 배포 스코프에 넣고 **재배포한 뒤** 다시 호출한다 |
+| `partially_suppressed` | 일부만 막혔다 | 나머지 스위치를 넣는다 — 열려 있는 쪽이 닿는 테이블은 `openCoreTables` 에 있다 |
+| **`suppressed`** | 막을 수 있는 것은 전부 막혔다 | **그래도 남는 것이 있다**(`unstoppableCoreTables`) — 그 증가분을 감안해 행 수를 읽는다 |
+| **`invalid_switch`** | 스위치에 `'true'` 가 아닌 값이 들어 있다 | `1`·`yes`·`TRUE`·공백은 **OFF 로 읽힌다**(넣은 사람은 켠 줄 안다) — 소문자 `true` 로 다시 적고 재배포한다. **통과가 아니다** |
+
+> **`switchReady` 를 내리지 않는다.** 스위치가 꽂혀 있지 않다는 이유로 전환을 막으면 복구일에
+> **거짓 차단**이 된다(§3-17·§3-18 과 같은 규율) — 달라지는 것은 **다음에 할 일**이다.
+> `/api/health` 에 새 체크도 만들지 않았다: 기동 쓰기는 평상시 **정상 동작**이라 체크를 만들면
+> 전 운영 배포가 상시 degraded 가 된다(§2-2). `checks.bootWrites` 가 생기면 CI 가 실패한다.
+
+> 보장하지 못하는 것(`BOOT_LIMITS` — 판정과 함께 실려 나간다): **막는 것은 되돌리는 것이 아니다**
+> (이미 만들어진 행은 그대로이고 지워도 다시 생긴다) · **읽는 배포 자신의 env 만 본다**(§3-13) ·
+> **전건 차단이 「대조 대상이 깨끗하다」를 뜻하지 않는다** · 만들어진 행의 **수를 세지 않는다**
+> (세려면 조회를 더해야 하고 그 수치도 복구된 행과 나눌 기준이 없다) · 행 수 응답에서 그 몫을
+> **빼지 않는다**(빼면 지어낸 수치가 기준치 대조에 들어간다) · 기동 쓰기가 실제로 일어났는지가
+> 아니라 **스위치가 꽂혀 있었는지**만 말한다 · `PMS_GUEST_DISABLED` 는 둘러보기만 막는다
+> (가입 경로의 쓰기는 그대로다).
+
+- 신규 조회·쓰기·DDL·런타임 체크·사건 표지 **0**. 환경변수는 `RECOVERY_BOOT_WRITES_OFF` **1개**이고
+  **미설정(=기존 동작)이 기본값**이라 평상시 운영은 한 글자도 바뀌지 않는다. 둘러보기 차단은
+  이미 있는 `PMS_GUEST_DISABLED` 를 그대로 쓴다(키가 늘면 복구에서 유실될 것이 하나 는다).
+- `tests/bootWrites.test.ts` 가 실제 `src/instrumentation.ts`·`src/lib/bootstrap.ts`·
+  `src/app/api/auth/guest/route.ts`·`src/app/api/admin/recovery-verify/route.ts`·
+  `src/app/api/health/route.ts`·이 문서 원문을 매번 점검한다 — 스위치 분기가 빠지거나,
+  느슨하게 읽히거나, 스위치가 `ensureSchema` 까지 덮거나, 판정이 응답에서 빠지거나
+  (판정만 하고 버리는 꼴 포함), 새 체크가 생기거나, 4단계가 이 절로 유도하지 않으면 CI 가
+  실패한다. 전부 **응답은 200** 이라 사람 눈으로는 알아챌 수 없는 회귀다.
+
 ## 4. 환경변수·시크릿 복구
 
 Vercel 환경변수는 DB 백업에 포함되지 않으므로 별도 보관한다.
@@ -1832,6 +1918,13 @@ Vercel 환경변수는 DB 백업에 포함되지 않으므로 별도 보관한�
 `RECOVERY_EXPECTED_DB` — 전환 확인용 **연결 대상 지문**(12자리 16진수. 위 3-4). 연결 문자열이 아니다 —
 그런 값은 비교하지 않고 `invalid_expected` 로 거절한다. **미설정이 평상시 상태**이고, 유실되면
 5단계 전환이 반영됐는지 기계적으로 확인할 수 없게 된다(눈으로는 어느 DB 를 보는지 알 수 없다).
+`RECOVERY_BOOT_WRITES_OFF` — 4단계 수행 배포의 **기동 쓰기 생략**(`true` 만 ON. 위 3-19).
+4단계는 복구 브랜치를 스테이징에 물려 **기동**하라고 지시하면서 그 검증을 「읽기 전용」이라 적어
+두었는데, 그 괄호는 엔드포인트에 대해서만 참이다 — 기동이 먼저 **소스에 하드코딩된 비밀번호를
+가진 관리자 계정**과 조직·소속을 만들고, 그 행은 바로 다음에 대조하는 핵심 테이블에 더해진다
+(멱등 가드라 지워도 다음 기동이 다시 만들고, 그 브랜치는 5단계에서 운영이 된다).
+**미설정(=기존 동작)이 기본값**이고 4단계·리허설 수행 배포에만 넣는다 — 평상시 미설정이 정상이다.
+운영 배포의 **사건 표지가 아니므로** 8단계 4번의 삭제 목록(여섯 키)에 넣지 않는다.
 `RECOVERY_REHEARSAL_ACTIVE` — 「이 배포는 **리허설 대상**이다」 선언(`true` 만 ON. 아래 6-1).
 리허설 체크리스트의 파괴적 단계는 전부 **환경변수 변경 + 응답 확인**인데, 스코프(Production/Preview)를
 틀리면 그 설정이 운영 배포에 걸리면서도 **체크리스트가 요구하는 바로 그 응답**이 나온다.
@@ -1947,7 +2040,7 @@ Vercel 환경변수는 DB 백업에 포함되지 않으므로 별도 보관한�
 
 복구·롤백·리허설용 임시 키(`RECOVERY_WRITE_FREEZE`·`RECOVERY_WRITE_FREEZE_AT`·
 `RECOVERY_SECURITY_REAPPLIED_AT`·`RECOVERY_EXTERNAL_RECONCILED_AT`·`RECOVERY_REHEARSAL_ACTIVE`·
-`DEPLOY_PINNED_COMMIT`)는 **평상시 미설정이 정상**이라
+`RECOVERY_BOOT_WRITES_OFF`·`DEPLOY_PINNED_COMMIT`)는 **평상시 미설정이 정상**이라
 스냅샷·유실 판정에서 빠진다 — 사건 중에 뜬 스냅샷이 평상시에도 그 키를 요구하면 거짓 `missing`
 이 된다. 그쪽은 각 전용 체크(`checks.writeFreeze`·`incidentClosure`·`postRestoreSecurity`·
 `rehearsalScope`·`deployPin`)가 따로 본다.
@@ -2818,7 +2911,15 @@ node --input-type=module -e "import fs from 'node:fs';import {parseCoverageRecor
       가 나오는 것이 **정상 결과**이고, 리허설은 그 표지를 실제로 넣어 보는 **유일한 기회**이므로
       어느 쪽인지 확인하는 것까지가 점검 대상이다(2-3. 복구일에는 토큰을 넣을 겨를이 없다)
 - [ ] Neon 복구 브랜치 생성 성공 — 그 브랜치의 **지문**을 §3-4 명령으로 산출해 적어 둔다
+- [ ] **기동하기 전에** 그 배포 스코프에 `RECOVERY_BOOT_WRITES_OFF=true`·`PMS_GUEST_DISABLED=true`
+      를 넣고 재배포했다(§3-19) — 기동은 **소스에 하드코딩된 비밀번호의 관리자 계정**을,
+      화면을 한 번 열면 둘러보기가 **데모 데이터 한 벌**을 복구 브랜치에 만든다. 멱등 가드라
+      나중에 지워도 다음 기동이 다시 만든다
 - [ ] 스테이징에서 애플리케이션 기동 성공
+- [ ] 기동 쓰기가 **막혔는지** 확인했다 — `GET /api/admin/recovery-verify` 의
+      `bootWrites.verdict` 가 `suppressed` 다(§3-19). `invalid_switch` 면 `1`·`yes` 로 적어
+      **OFF 로 읽힌 것**이고 통과가 아니다. `suppressed` 여도 `bootWrites.unstoppableCoreTables`
+      (스키마 DDL·로그인 세션·열람 감사 행)의 증가분은 남으므로 아래 행 수를 그만큼 낮춰 읽는다
 - [ ] 스테이징이 보는 DB 가 복구 브랜치인지 — `GET /api/admin/recovery-verify` 의
       `identity.fingerprint` 가 위 지문과 같다(운영 연결문자열을 잘못 넣으면 손상된 DB 를 센다)
 - [ ] 로그인·프로젝트 조회·이슈 조회 정상

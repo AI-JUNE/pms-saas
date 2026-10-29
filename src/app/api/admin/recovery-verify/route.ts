@@ -8,6 +8,7 @@ import { handle, ok, ApiError, ERROR } from '@/lib/http';
 import { MIGRATION_DDL, expectedTables } from '@/lib/migrate';
 import { PRESENT_TABLES_SQL, normalizeTableNames, rowsOf, tableNamesFrom, verifySchema } from '@/lib/schemaVerify';
 import { baselineScopeFromEnv, baselineScopeLine } from '@/lib/baselineScope';
+import { bootWritesFromEnv, bootWritesLine, publicBootWrites } from '@/lib/bootWrites';
 import { baselineMaxAgeDays } from '@/lib/recoveryBaseline';
 import {
   CORE_TABLES, baselineFromEnv, coreCountSql, countsFrom,
@@ -72,10 +73,14 @@ export async function GET(req: Request) {
     const result = gateSwitchReady(
       recoveryVerification(schema, data, baselineScope), identity, idDecision,
     );
+    // 이 검증을 하려면 복구 브랜치를 **기동**해야 하고, 그 기동이 행을 만든다(RUNBOOK §3-19).
+    // 위 수치는 그 몫을 포함한 총합이므로 행 수를 읽기 **전에** 말한다.
+    // switchReady 는 내리지 않는다 — 스위치가 없다는 이유로 전환을 막으면 복구일에 거짓 차단이 된다.
+    const boot = bootWritesFromEnv(process.env);
 
     console.log(
       '[recovery-verify]', recoveryVerifyLogLine(result), identityLogLine(idDecision),
-      baselineScopeLine(baselineScope),
+      baselineScopeLine(baselineScope), bootWritesLine(boot),
     );
     // 열람 이력 — 조직 컨텍스트가 없는 슈퍼관리자 작업이므로 보안 이벤트로 남긴다(수치·판정만).
     await auditSecurity(adminAccessEvent(new URL(req.url).pathname, req.method), {
@@ -93,8 +98,10 @@ export async function GET(req: Request) {
         // 어느 DB 를 세었는지 — 지문·판정만(연결 문자열·자격증명은 담지 않는다)
         dbIdentity: idDecision.verdict,
         dbFingerprint: idDecision.actual.fingerprint,
+        // 이 검증이 대조 대상에 쓰고 있는가 — 판정만(§3-19)
+        bootWrites: boot.verdict,
       },
     });
-    return ok(result);
+    return ok({ ...result, bootWrites: publicBootWrites(boot) });
   }, req);
 }

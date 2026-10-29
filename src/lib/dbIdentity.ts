@@ -548,7 +548,9 @@ export function auditVerifyWiring(src: unknown): string[] {
   if (!gated) {
     problems.push('gateSwitchReady() 결과를 변수에 받지 않는다 — 응답에 실렸는지 확인할 수 없다');
   } else {
-    const returned = new RegExp(`ok\\(\\s*${gated[1]}\\b`).test(s);
+    // `ok(result)` 와 `ok({ ...result, … })` 를 **둘 다** 인정한다 — 다른 절(§3-19)이 같은 응답에
+    // 판정을 더하면서 전개로 싣기 때문이다. 이름이 다른 객체를 싣는 꼴은 여전히 걸린다.
+    const returned = new RegExp(`ok\\(\\s*\\{?\\s*(?:\\.\\.\\.)?\\s*${gated[1]}\\b`).test(s);
     if (!returned) problems.push(`게이트 결과(${gated[1]})를 ok() 로 응답하지 않는다 — 원본 switchReady 가 그대로 나간다`);
   }
   return problems;
