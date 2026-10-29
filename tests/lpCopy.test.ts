@@ -10,7 +10,7 @@ import path from 'node:path';
 const ROOT = path.resolve(import.meta.dirname, '..');
 const code = (...p: string[]) => fs.readFileSync(path.join(ROOT, ...p), 'utf8')
   .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '').replace(/\{\/\*[\s\S]*?\*\/\}/g, '');
-const FILES = [['src', 'app', 'lp', 'LpClient.tsx'], ['src', 'app', 'lp', 'page.tsx'], ['src', 'app', 'page.tsx'], ['src', 'app', 'login', 'page.tsx']];
+const FILES = [['src', 'app', 'lp', 'LpClient.tsx'], ['src', 'app', 'lp', 'page.tsx'], ['src', 'app', 'page.tsx'], ['src', 'app', 'login', 'page.tsx'], ['src', 'app', 'layout.tsx']];
 
 test('화면 문구에 가운데 점이 없다', () => {
   for (const f of FILES) assert.equal((code(...f).match(/·/g) || []).length, 0, f.join('/'));
