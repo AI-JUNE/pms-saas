@@ -61,7 +61,7 @@ export default function LoginPage() {
   return (
     <div className="auth"><div className="auth-card">
       <div style={{ display: 'flex', justifyContent: 'center' }}><Logo /></div>
-      <p className="muted" style={{ textAlign: 'center', margin: '6px 0 24px' }}>프로젝트 관리 시스템</p>
+      <p className="muted" style={{ textAlign: 'center', margin: '6px 0 24px' }}>제안과 프로젝트 수행을 잇는 업무 허브</p>
       {/* 탭 접근성(배치181, 주간 수동): tablist/tab 시맨틱 + 로빙 tabIndex + 화살표·Home/End 이동. 포커스 링은 전역 [role="tab"]:focus-visible */}
       <div className="auth-tabs" role="tablist" aria-label="로그인 또는 회원가입 선택" onKeyDown={(e) => {
         const order: Array<'login' | 'register'> = ['login', 'register'];
@@ -86,7 +86,7 @@ export default function LoginPage() {
         {mode === 'register' && (<>
           <div className="field"><label>이름</label><input className="in" name="name" autoComplete="name" value={form.name} onChange={set('name')} placeholder="홍길동" /></div>
           <div className="field"><label>조직명 <span style={{fontWeight:400,color:'var(--text-3)'}}>(초대 코드로 합류 시 생략 가능)</span></label><input className="in" name="orgName" autoComplete="organization" value={form.orgName} onChange={set('orgName')} placeholder="우리 회사" /></div>
-          <div className="field"><label>초대 코드 <span style={{fontWeight:400,color:'var(--text-3)'}}>(선택 · 팀 합류 시)</span></label><input className="in" name="inviteCode" autoComplete="off" value={form.inviteCode} onChange={set('inviteCode')} placeholder="관리자에게 받은 코드" style={{textTransform:'uppercase'}} /></div>
+          <div className="field"><label>초대 코드 <span style={{fontWeight:400,color:'var(--text-3)'}}>(선택, 팀 합류 시)</span></label><input className="in" name="inviteCode" autoComplete="off" value={form.inviteCode} onChange={set('inviteCode')} placeholder="관리자에게 받은 코드" style={{textTransform:'uppercase'}} /></div>
         </>)}
         <div className="field"><label>이메일</label><input className="in" type="email" name="email" autoComplete="username" value={form.email} onChange={set('email')} onInput={set('email')} placeholder="you@company.com" /></div>
         <div className="field"><label>비밀번호</label><input className="in" type="password" name="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={form.password} onChange={set('password')} onInput={set('password')} placeholder={mode === 'login' ? '비밀번호' : '8자 이상'} />
@@ -105,11 +105,11 @@ export default function LoginPage() {
           </div>
         )}
         {hint && <p className="muted" style={{ textAlign: 'center', margin: '2px 0 0', fontSize: 12, color: '#2457C5' }}>{hint}</p>}
-        <button className="btn btn-pri" style={{ width: '100%', justifyContent: 'center', marginTop: 8, padding: 11 }} disabled={busy} aria-disabled={!canSubmit} title={!canSubmit ? (hint || '이메일·비밀번호(8자 이상)를 입력하세요') : ''}>{busy ? '처리 중…' : mode === 'login' ? '로그인' : '가입하고 시작하기'}</button>
+        <button className="btn btn-pri" style={{ width: '100%', justifyContent: 'center', marginTop: 8, padding: 11 }} disabled={busy} aria-disabled={!canSubmit} title={!canSubmit ? (hint || '이메일과 비밀번호(8자 이상)를 입력하세요') : ''}>{busy ? '처리 중…' : mode === 'login' ? '로그인' : '가입하고 시작하기'}</button>
       </form>
       <button type="button" className="btn" style={{ width: '100%', justifyContent: 'center', marginTop: 14, padding: 11 }} onClick={guest} disabled={busy}>회원가입 없이 둘러보기</button>
-      <p className="muted" style={{ textAlign: 'center', marginTop: 8, fontSize: 12.5 }}>샘플 데이터가 들어 있는 데모 조직을 읽기 전용으로 봅니다(저장되지 않음).</p>
-      <p className="muted" style={{ textAlign: 'center', marginTop: 18 }}>처음이신가요? 상단 '회원가입'으로 관리자 계정을 만드세요.</p>
+      <p className="muted" style={{ textAlign: 'center', marginTop: 8, fontSize: 12.5 }}>예시 데이터가 들어 있는 데모 조직을 읽기 전용으로 봅니다. 저장이나 변경은 되지 않습니다.</p>
+      <p className="muted" style={{ textAlign: 'center', marginTop: 18 }}>처음 사용하는 조직은 위의 '회원가입'에서 관리자 계정을 만듭니다.</p>
     </div></div>
   );
 }

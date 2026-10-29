@@ -2,9 +2,9 @@ import type { Metadata } from 'next';
 import LpClient from './LpClient';
 
 export const metadata: Metadata = {
-  title: 'GOWON 프로젝트 허브 — 제안부터 정산까지, 통합 업무 허브',
+  title: 'GOWON 프로젝트 허브 — 제안부터 수행, 고객 성과까지 하나의 기준으로',
   description:
-    'RFP 분석·제안 작성·제안 품질·수주 전략·프로젝트 수행·고객 성과까지 여섯 서비스를 한 포털에서. WBS·간트·EVM 성과관리·요구사항 추적(RTM)·전자결재를 하나로 잇습니다.',
+    '제안요청서 분석, 전략 수립, 제안서 작성, 품질 검토, 사업 수행, 고객 성과 관리를 한 허브에서. WBS와 일정표, 획득가치 성과지표, 요구사항 추적표, 전자결재를 함께 제공합니다.',
 };
 
 export default function Page() {
