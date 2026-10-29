@@ -285,7 +285,11 @@ test('[실제 문서] RUNBOOK 에 §3-19 와 판정 표·사각지대·산출 �
   assert.ok(auditRunbookSource(RUNBOOK.replace(/^### 3-19\./m, '### 3-19x.')).length > 0);
   assert.ok(auditRunbookSource('## 3. x\n4. 검증\n5. 전환\n### 3-1. x').length > 0);
   // 4단계가 §3-19 를 가리키지 않으면 「읽기 전용」이라는 문장만 남는다
-  const unlinked = RUNBOOK.replace(/아래 \*\*3-19\*\*/g, '아래 3-9');
+  // ※ 4단계는 그 뒤 §3-20(검증 배포가 쥔 포인터)에서도 이 절을 인용하므로 **그 단계 안의
+  //    인용 전건**을 지워 본다 — 한 군데만 지우면 음성 검사가 조용히 무력해진다
+  const sec3Src = RUNBOOK.match(/^## 3\. [\s\S]*?(?=^### 3-1\.)/m)![0];
+  const step4Src = sec3Src.slice(sec3Src.search(/^4\.\s/m)).split(/^5\.\s/m)[0];
+  const unlinked = RUNBOOK.replace(step4Src, step4Src.replace(/3-19/g, '3-9'));
   assert.ok(auditRunbookSource(unlinked).some((p) => p.includes('4단계')), '4단계 유도 누락을 놓쳤다');
   // §3 본문 자체를 못 찾으면 **거기서 멈춘다** — 못 찾은 것을 「통과」로 세지 않는다
   const noSec3 = auditRunbookSource('### 3-19. x\n```\nassessBootWrites(\n```\n');

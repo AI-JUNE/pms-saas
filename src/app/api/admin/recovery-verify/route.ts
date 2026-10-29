@@ -9,6 +9,7 @@ import { MIGRATION_DDL, expectedTables } from '@/lib/migrate';
 import { PRESENT_TABLES_SQL, normalizeTableNames, rowsOf, tableNamesFrom, verifySchema } from '@/lib/schemaVerify';
 import { baselineScopeFromEnv, baselineScopeLine } from '@/lib/baselineScope';
 import { bootWritesFromEnv, bootWritesLine, publicBootWrites } from '@/lib/bootWrites';
+import { assessVerifierPointer, pointerLine, publicPointer } from '@/lib/verifierPointer';
 import { baselineMaxAgeDays } from '@/lib/recoveryBaseline';
 import {
   CORE_TABLES, baselineFromEnv, coreCountSql, countsFrom,
@@ -77,10 +78,15 @@ export async function GET(req: Request) {
     // 위 수치는 그 몫을 포함한 총합이므로 행 수를 읽기 **전에** 말한다.
     // switchReady 는 내리지 않는다 — 스위치가 없다는 이유로 전환을 막으면 복구일에 거짓 차단이 된다.
     const boot = bootWritesFromEnv(process.env);
+    // 4단계를 수행한 배포는 그 연결 문자열을 **계속 쥐고 있고**, 5단계는 그 브랜치를 운영으로
+    // 승격시킨다(RUNBOOK §3-20). 떼라고 지시하는 자리가 없었으므로 이 응답이 그 자리다 —
+    // 판정을 내놓는 쪽이 바로 포인터를 쥔 배포다. switchReady 는 내리지 않는다:
+    // 쥐고 있는 상태가 **4단계 수행 중의 정상**이라 막으면 검증 자신이 막힌다.
+    const pointer = assessVerifierPointer({ env: process.env, identity });
 
     console.log(
       '[recovery-verify]', recoveryVerifyLogLine(result), identityLogLine(idDecision),
-      baselineScopeLine(baselineScope), bootWritesLine(boot),
+      baselineScopeLine(baselineScope), bootWritesLine(boot), pointerLine(pointer),
     );
     // 열람 이력 — 조직 컨텍스트가 없는 슈퍼관리자 작업이므로 보안 이벤트로 남긴다(수치·판정만).
     await auditSecurity(adminAccessEvent(new URL(req.url).pathname, req.method), {
@@ -100,8 +106,11 @@ export async function GET(req: Request) {
         dbFingerprint: idDecision.actual.fingerprint,
         // 이 검증이 대조 대상에 쓰고 있는가 — 판정만(§3-19)
         bootWrites: boot.verdict,
+        // 이 배포가 그 DB 를 계속 쥐고 있는가 — 판정·역할만(지문은 위 dbFingerprint 한 벌뿐이다. §3-20)
+        pointer: pointer.verdict,
+        pointerRole: pointer.role,
       },
     });
-    return ok({ ...result, bootWrites: publicBootWrites(boot) });
+    return ok({ ...result, bootWrites: publicBootWrites(boot), pointer: publicPointer(pointer) });
   }, req);
 }
