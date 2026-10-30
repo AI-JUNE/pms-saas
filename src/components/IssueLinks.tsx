@@ -51,7 +51,7 @@ export function IssueLinks({ issueId, projectId }: { issueId: number; projectId?
       <div className="sect" style={{ marginBottom: 8 }} title={links.length > 0 ? `관계 ${nfmt(links.length)}건` : '아직 연결된 이슈가 없습니다'}>
         <Link2 style={{ width: 14, verticalAlign: '-2px', marginRight: 4 }} aria-hidden="true" />관계 이슈 {links.length > 0 && `(${nfmt(links.length)})`}
       </div>
-      <span className="sr-only" role="status">{!loaded ? '관계 이슈를 불러오는 중' : `관계 이슈 ${nfmt(links.length)}건${blockers.length ? ` · 미해결 차단 ${nfmt(blockers.length)}건` : ''}`}</span>
+      <span className="sr-only" role="status">{!loaded ? '관계 이슈를 불러오는 중' : `관계 이슈 ${nfmt(links.length)}건${blockers.length ? `, 미해결 차단 ${nfmt(blockers.length)}건` : ''}`}</span>
       {blockers.length > 0 && (
         <div role="alert" style={{ fontSize: 12.5, color: '#c0414f', fontWeight: 700, marginBottom: 8, padding: '6px 10px', borderLeft: '3px solid #c0414f', background: 'var(--surface-2)', borderRadius: 6 }}>
           미해결 이슈 {nfmt(blockers.length)}건이 이 이슈를 차단하고 있습니다: {blockers.map((b) => b.other?.code || `#${b.otherId}`).join(', ')}

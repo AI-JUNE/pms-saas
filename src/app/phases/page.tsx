@@ -43,7 +43,7 @@ export default function Page() {
   const statOf = (row: any): Stat | undefined => stats[String(row?.name || '').trim()] || stats[String(row?.code || '').trim()];
 
   return <ResourceView title="단계" subtitle="프로젝트 단계를 정의합니다." endpoint="/api/phases" entity="phases" projectScoped
-    emptyText="등록된 단계가 없습니다. 단계를 정의하면 업무(WBS)의 '단계' 필드로 묶여 간트 스윔레인·단계별 진척이 집계됩니다."
+    emptyText="등록된 단계가 없습니다. 단계를 정의하면 업무(WBS)의 '단계' 필드로 묶여 간트 스윔레인, 단계별 진척이 집계됩니다."
     columns={[
       {key:'code',label:'코드'},
       {key:'name',label:'단계',strong:true},
@@ -56,9 +56,9 @@ export default function Page() {
           return <span title={`상태가 ‘${st === 'done' ? '완료' : '진행'}’인데 이 단계로 묶인 업무가 0건입니다 — 업무의 ‘단계’ 필드에 단계명 “${String(row?.name || '')}”을 그대로 넣어야 매칭됩니다`} style={{color:'#c0414f',fontWeight:700,fontSize:11.5,cursor:'help'}}>⚠ 업무 없음</span>;
         }
         const rest = s.total - s.done;
-        return <span title={`총 ${nfmt(s.total)}건 · 완료 ${nfmt(s.done)}건 · 진행 ${nfmt(s.doing)}건 · 대기 ${nfmt(s.todo)}건`} style={{fontSize:12,cursor:'help',whiteSpace:'nowrap'}}>
+        return <span title={`총 ${nfmt(s.total)}건, 완료 ${nfmt(s.done)}건, 진행 ${nfmt(s.doing)}건, 대기 ${nfmt(s.todo)}건`} style={{fontSize:12,cursor:'help',whiteSpace:'nowrap'}}>
           <b>{nfmt(s.done)}</b><span className="muted">/{nfmt(s.total)}</span>
-          {st === 'done' && rest > 0 && <span title={`단계는 완료인데 미완료 업무가 ${nfmt(rest)}건 남아 있습니다 (진행 ${nfmt(s.doing)} · 대기 ${nfmt(s.todo)}) — 종료 처리만 하고 하위 업무를 정리하지 않은 상태입니다`} style={{marginLeft:6,color:'#c0414f',fontWeight:700,fontSize:11}}>⚠ 잔여 {nfmt(rest)}</span>}
+          {st === 'done' && rest > 0 && <span title={`단계는 완료인데 미완료 업무가 ${nfmt(rest)}건 남아 있습니다 (진행 ${nfmt(s.doing)}, 대기 ${nfmt(s.todo)}) — 종료 처리만 하고 하위 업무를 정리하지 않은 상태입니다`} style={{marginLeft:6,color:'#c0414f',fontWeight:700,fontSize:11}}>⚠ 잔여 {nfmt(rest)}</span>}
           {st !== 'done' && s.overdue > 0 && <span title={`기한 초과 ${nfmt(s.overdue)}건`} style={{marginLeft:6,color:'#c0414f',fontWeight:700,fontSize:11.5}}>⚠{nfmt(s.overdue)}</span>}
         </span>;
       }},
@@ -73,7 +73,7 @@ export default function Page() {
         const warnPlan = st === 'planned' && (s.doing > 0 || s.done > 0);
         const tip = `업무 ${nfmt(s.total)}건 평균 진척 ${pct}%`
           + (warnDone ? ` — 단계는 완료인데 평균 진척이 100% 미만입니다(업무 진척률 갱신 필요)` : '')
-          + (warnPlan ? ` — 단계는 ‘계획’인데 이미 착수·완료된 업무가 있습니다(단계 상태를 ‘진행’으로 바꾸세요)` : '');
+          + (warnPlan ? ` — 단계는 ‘계획’인데 이미 착수했거나 완료된 업무가 있습니다(단계 상태를 ‘진행’으로 바꾸세요)` : '');
         return <div className="row" style={{gap:8,whiteSpace:'nowrap',cursor:'help'}} title={tip}>
           <div className="bar"><i style={{width:`${pct}%`,background:col}}/></div>
           <span style={{fontSize:11.5,color:col,fontWeight:700}}>{pct}%</span>

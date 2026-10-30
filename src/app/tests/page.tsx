@@ -17,7 +17,7 @@ const STAGE_ORDER: Record<string, number> = { draft: 0, dev: 1, pl: 2, pm: 3, do
 
 export default function Page() {
   return <ResourceView title="테스트" subtitle="테스트 케이스를 등록하고 개발자→PL→PM 순으로 검증합니다." endpoint="/api/tests" entity="tests" projectScoped
-    emptyText="등록된 테스트 케이스가 없습니다. 요구사항(REQ)별로 케이스를 만들고 절차·기대 결과를 작성하세요."
+    emptyText="등록된 테스트 케이스가 없습니다. 요구사항(REQ)별로 케이스를 만들고 절차, 기대 결과를 작성하세요."
     altViews={[
       { key: 'board', label: '검증 파이프라인', render: (rows, openDetail) => (
         <Kanban rows={rows} openDetail={openDetail} titleKey="title" columns={[
@@ -41,7 +41,7 @@ export default function Page() {
       }},
       {key:'cycle',label:'차수'},
       // 테스트 케이스의 본체(절차·기대 결과)가 채워졌는지를 목록에서 바로 판단
-      {key:'caseBody',label:'절차·기대',render:(_v,r)=>{
+      {key:'caseBody',label:'절차, 기대',render:(_v,r)=>{
         const st = lines(r?.steps);
         const ex = lines(r?.expected);
         const stage = String(r?.status ?? 'draft');
@@ -88,12 +88,12 @@ export default function Page() {
     ]}
     fields={[
       {key:'title',label:'테스트 케이스명',required:true},
-      {key:'reqCode',label:'연계 요구사항',type:'combo',options:[],placeholder:'예: REQ-0001',hint:'요구사항 추적(RTM)에 연결됩니다 · 비우면 커버리지 집계에서 제외돼요'},
+      {key:'reqCode',label:'연계 요구사항',type:'combo',options:[],placeholder:'예: REQ-0001',hint:'요구사항 추적(RTM)에 연결됩니다. 비우면 커버리지 집계에서 제외돼요'},
       {key:'cycle',label:'테스트 차수',type:'combo',options:['1차','2차','3차','회귀','인수','성능'],placeholder:'예: 1차',hint:'회차별로 묶어 관리합니다(그룹화 가능)'},
       {key:'type',label:'유형',type:'select',options:['단위','통합','시스템','인수','회귀','성능','보안'],half:true},
       {key:'priority',label:'우선순위',type:'select',options:['high','medium','low'],half:true},
-      {key:'steps',label:'테스트 절차',type:'textarea',hint:'한 줄에 단계 하나씩 · 1. 로그인 / 2. 메뉴 진입 … (목록에 단계 수가 표시돼요)'},
-      {key:'expected',label:'기대 결과',type:'textarea',hint:'한 줄에 검증 항목 하나씩 · 통과/실패 판정 기준을 구체적으로'},
+      {key:'steps',label:'테스트 절차',type:'textarea',hint:'한 줄에 단계 하나씩, 1. 로그인 / 2. 메뉴 진입 … (목록에 단계 수가 표시돼요)'},
+      {key:'expected',label:'기대 결과',type:'textarea',hint:'한 줄에 검증 항목 하나씩, 통과/실패 판정 기준을 구체적으로'},
       {key:'assignee',label:'담당(개발자)',type:'combo',optionsFrom:'members',half:true},
       {key:'reporter',label:'보고자',type:'combo',optionsFrom:'members',half:true},
       {key:'dueDate',label:'기한',type:'date',half:true},

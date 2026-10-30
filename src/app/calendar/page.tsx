@@ -68,15 +68,15 @@ export default function Page() {
   const move = (delta: number) => { let y = cur.y, m = cur.m + delta; if (m < 0) { m = 11; y--; } if (m > 11) { m = 0; y++; } setCur({ y, m }); };
 
   if (loaded && !pid) return <Shell title="캘린더"><div className="card card-pad muted">상단에서 프로젝트를 선택하면 일정이 표시됩니다.</div></Shell>;
-  if (loaded && evs.length === 0) return <Shell title="캘린더"><div className="card card-pad muted">등록된 일정이 없습니다. 회의·업무 마감·테스트/이슈 기한을 입력하면 월별 캘린더에 표시됩니다.</div></Shell>;
+  if (loaded && evs.length === 0) return <Shell title="캘린더"><div className="card card-pad muted">등록된 일정이 없습니다. 회의, 업무 마감, 테스트/이슈 기한을 입력하면 월별 캘린더에 표시됩니다.</div></Shell>;
 
   return (
     <Shell title="캘린더">
-      <span className="sr-only" role="status">{!loaded ? '캘린더 일정을 불러오는 중' : `${cur.y}년 ${cur.m + 1}월 캘린더 · 일정 ${nfmt(visibleCount)}건 표시${visibleCount !== evs.length ? ` (전체 ${nfmt(evs.length)}건 중)` : ''}${overdueCount > 0 ? ` · 기한 초과 ${nfmt(overdueCount)}건` : ''}`}</span>
+      <span className="sr-only" role="status">{!loaded ? '캘린더 일정을 불러오는 중' : `${cur.y}년 ${cur.m + 1}월 캘린더, 일정 ${nfmt(visibleCount)}건 표시${visibleCount !== evs.length ? ` (전체 ${nfmt(evs.length)}건 중)` : ''}${overdueCount > 0 ? `, 기한 초과 ${nfmt(overdueCount)}건` : ''}`}</span>
       <div className="row" style={{ marginBottom: 14 }}>
         <div><h2 className="h1">캘린더 <CalendarDays style={{ width: 20, verticalAlign: -3, color: 'var(--brand)' }} />
-          {overdueCount > 0 && <span title={`오늘(${todayStr}) 이전에 마감·기한이 지난 미완료 업무·테스트·이슈 ${nfmt(overdueCount)}건 — 달력에서 빨강 ⚠ 로 표시됩니다`} style={{ marginLeft: 8, verticalAlign: 3, display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', borderRadius: 20, fontSize: 12, fontWeight: 700, background: '#fdecec', color: '#c0392b', border: '1px solid #f0c4c4' }}>⚠ 기한 초과 {nfmt(overdueCount)}건</span>}</h2>
-          <p className="h-sub">회의·업무 마감·테스트/이슈 기한을 한눈에 봅니다.</p></div>
+          {overdueCount > 0 && <span title={`오늘(${todayStr}) 이전에 마감, 기한이 지난 미완료 업무, 테스트, 이슈 ${nfmt(overdueCount)}건 — 달력에서 빨강 ⚠ 로 표시됩니다`} style={{ marginLeft: 8, verticalAlign: 3, display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px', borderRadius: 20, fontSize: 12, fontWeight: 700, background: '#fdecec', color: '#c0392b', border: '1px solid #f0c4c4' }}>⚠ 기한 초과 {nfmt(overdueCount)}건</span>}</h2>
+          <p className="h-sub">회의, 업무 마감, 테스트/이슈 기한을 한눈에 봅니다.</p></div>
         <div className="sp" />
         <div className="row" style={{ gap: 8 }}>
           <button className="iconbtn" aria-label="이전 달" onClick={() => move(-1)}><ChevronLeft style={{ width: 18 }} /></button>
@@ -99,7 +99,7 @@ export default function Page() {
         {owners.length > 0 && (
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
             {me && owners.includes(me) && (
-              <button type="button" onClick={() => setOwner(mineOn ? '' : me)} aria-pressed={mineOn} title={mineOn ? '전체 담당자 보기' : `${me}님에게 배정된 업무·테스트·이슈만 표시(회의 제외)`}
+              <button type="button" onClick={() => setOwner(mineOn ? '' : me)} aria-pressed={mineOn} title={mineOn ? '전체 담당자 보기' : `${me}님에게 배정된 업무, 테스트, 이슈만 표시(회의 제외)`}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 20, cursor: 'pointer', fontSize: 12, fontWeight: 700, border: '1px solid var(--border)', background: mineOn ? 'var(--brand-50)' : 'var(--surface-2)', color: mineOn ? 'var(--brand)' : 'var(--text-2)' }}>
                 내 일정만
               </button>
@@ -129,10 +129,10 @@ export default function Page() {
                   {list.slice(0, 3).map((e, j) => {
                     const od = isDeadlineKind(e.kind) && k < todayStr;
                     return (
-                      <div key={j} onClick={() => router.push(e.href)} role="button" tabIndex={0} onKeyDown={onKeyAct(() => router.push(e.href))} aria-label={`${e.kind} ${e.label}${od ? ' — 기한 초과' : ''} — 해당 화면으로 이동`} title={`${e.kind} · ${e.label}${od ? ' · ⚠ 기한 초과' : ''}`} style={{ cursor: 'pointer', fontSize: 10.5, padding: '1px 5px', borderRadius: 4, background: od ? '#fdecec' : `${e.color}1a`, color: od ? '#c0392b' : e.color, fontWeight: od ? 700 : 600, boxShadow: od ? 'inset 2px 0 0 #d64545' : 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{od ? '⚠ ' : ''}{e.label}</div>
+                      <div key={j} onClick={() => router.push(e.href)} role="button" tabIndex={0} onKeyDown={onKeyAct(() => router.push(e.href))} aria-label={`${e.kind} ${e.label}${od ? ' — 기한 초과' : ''} — 해당 화면으로 이동`} title={`${e.kind}, ${e.label}${od ? ', ⚠ 기한 초과' : ''}`} style={{ cursor: 'pointer', fontSize: 10.5, padding: '1px 5px', borderRadius: 4, background: od ? '#fdecec' : `${e.color}1a`, color: od ? '#c0392b' : e.color, fontWeight: od ? 700 : 600, boxShadow: od ? 'inset 2px 0 0 #d64545' : 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{od ? '⚠ ' : ''}{e.label}</div>
                     );
                   })}
-                  {list.length > 3 && <div className="muted" title={list.slice(3).map((e) => `${e.kind} · ${e.label}`).join('\n')} style={{ fontSize: 10, cursor: 'default' }}>+{nfmt(list.length - 3)}</div>}
+                  {list.length > 3 && <div className="muted" title={list.slice(3).map((e) => `${e.kind}, ${e.label}`).join('\n')} style={{ fontSize: 10, cursor: 'default' }}>+{nfmt(list.length - 3)}</div>}
                 </div>
               </div>
             );

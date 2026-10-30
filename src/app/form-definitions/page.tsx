@@ -52,7 +52,7 @@ export default function Page() {
             ? <span title="'사용' 상태인데 양식 항목이 정의되어 있지 않습니다 — 항목을 입력해야 표준 양식으로 쓸 수 있어요" style={{color:'#c0414f',fontWeight:700,fontSize:11.5}}>⚠ 항목 미정의</span>
             : <span className="muted" style={{fontSize:11.5}} title="양식 항목(줄바꿈으로 구분)을 입력하면 여기에 표시됩니다">미정의</span>;
         }
-        const preview = items.slice(0, 3).join(' · ');
+        const preview = items.slice(0, 3).join(', ');
         const tip = `항목 ${nfmt(items.length)}개\n${items.map((s, i) => `${i + 1}. ${s}`).join('\n')}`;
         return <span title={tip} style={{display:'inline-flex',alignItems:'center',gap:6,maxWidth:280}}>
           <b style={{fontSize:11.5,color:'var(--brand)',background:'rgba(36,87,197,.08)',borderRadius:99,padding:'1px 7px',whiteSpace:'nowrap'}}>{nfmt(items.length)}개</b>
@@ -65,7 +65,7 @@ export default function Page() {
         const s = k ? docs[k] : undefined;
         if (!k) return <span className="muted" style={{fontSize:11.5}} title="대상 산출물 유형을 지정하면 해당 유형의 산출물 건수를 집계합니다">—</span>;
         if (!s || !s.total) return <span className="muted" style={{fontSize:11.5}} title={`'${k}' 유형의 산출물이 아직 없습니다 — 양식이 사용되지 않고 있어요`}>미사용</span>;
-        return <span title={`'${k}' 산출물 총 ${nfmt(s.total)}건 · 승인 ${nfmt(s.approved)}건 · 결재요청 ${nfmt(s.review)}건 · 작성중 ${nfmt(s.draft)}건${s.rejected ? ` · 반려 ${nfmt(s.rejected)}건` : ''}`} style={{fontSize:12}}>
+        return <span title={`'${k}' 산출물 총 ${nfmt(s.total)}건, 승인 ${nfmt(s.approved)}건, 결재요청 ${nfmt(s.review)}건, 작성중 ${nfmt(s.draft)}건${s.rejected ? `, 반려 ${nfmt(s.rejected)}건` : ''}`} style={{fontSize:12}}>
           <b>{nfmt(s.approved)}</b><span className="muted">/{nfmt(s.total)}건 승인</span>
           {s.rejected > 0 && <span title={`반려 ${nfmt(s.rejected)}건`} style={{marginLeft:6,color:'#c0414f',fontWeight:700,fontSize:11.5}}>⚠{nfmt(s.rejected)}</span>}
         </span>;
@@ -76,7 +76,7 @@ export default function Page() {
       {key:'name',label:'양식명',required:true,placeholder:'예: 단위테스트 결과서 양식'},
       {key:'targetType',label:'대상 산출물 유형',type:'combo',half:true,options:['요구사항정의서','설계서','테스트결과서','회의록','점검표','매뉴얼','기타']},
       {key:'status',label:'상태',type:'select',half:true,options:[{value:'draft',label:'작성중'},{value:'active',label:'사용'},{value:'archived',label:'보관'}]},
-      {key:'fields',label:'양식 항목(줄바꿈으로 구분 — 타입·필수·선택지는 상세의 「양식 빌더」에서)',type:'textarea',placeholder:'항목1\n항목2\n항목3',hint:'저장 후 상세 패널의 양식 빌더로 항목 타입(텍스트·숫자·날짜·선택·여러 줄·체크)과 필수 여부를 지정할 수 있습니다. 빌더가 저장하면 JSON 정의로 바뀝니다.'},
-      {key:'note',label:'설명·작성지침',type:'textarea'},
+      {key:'fields',label:'양식 항목(줄바꿈으로 구분 — 타입, 필수, 선택지는 상세의 「양식 빌더」에서)',type:'textarea',placeholder:'항목1\n항목2\n항목3',hint:'저장 후 상세 패널의 양식 빌더로 항목 타입(텍스트, 숫자, 날짜, 선택, 여러 줄, 체크)과 필수 여부를 지정할 수 있습니다. 빌더가 저장하면 JSON 정의로 바뀝니다.'},
+      {key:'note',label:'설명, 작성지침',type:'textarea'},
     ]} />;
 }

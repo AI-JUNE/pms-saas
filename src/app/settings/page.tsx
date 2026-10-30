@@ -46,7 +46,7 @@ export default function Page() {
   return (
     <Shell title="설정">
       <h2 className="h1">설정</h2><p className="h-sub">조직 정보와 데모 데이터를 관리합니다.</p>
-      <span className="sr-only" role="status">{`설정 · 조직 ${d.org?.name || '—'} · 플랜 ${PLAN_LABEL[d.org?.plan] || d.org?.plan || '무료'} · 내 역할 ${ROLE_LABEL[d.role] || d.role}${d.isOrgAdmin ? ' (조직 관리자)' : ''}`}</span>
+      <span className="sr-only" role="status">{`설정, 조직 ${d.org?.name || '—'}, 플랜 ${PLAN_LABEL[d.org?.plan] || d.org?.plan || '무료'}, 내 역할 ${ROLE_LABEL[d.role] || d.role}${d.isOrgAdmin ? ' (조직 관리자)' : ''}`}</span>
       <div style={{ height: 18 }} />
       <div className="card card-pad" style={{ maxWidth: 560 }}>
         <div className="sect" style={{ marginBottom: 14 }}>조직</div>
@@ -89,8 +89,8 @@ export default function Page() {
       {d.isOrgAdmin && (
         <div className="card card-pad" style={{ maxWidth: 560, marginTop: 14 }}>
           <div className="sect" style={{ marginBottom: 8 }}><Database style={{ width: 15, verticalAlign: -3, marginRight: 6, color: 'var(--brand)' }} />데모 데이터 모드</div>
-          <p className="muted" style={{ margin: '0 0 14px', lineHeight: 1.6 }}>현재 조직에 샘플 프로젝트·요구사항·이슈·리스크·업무·스프린트·인력·인프라·방화벽·조달·게시판 데이터를 한 번에 채웁니다. 모든 메뉴와 대시보드·리포트에서 즉시 확인할 수 있고, 이미 있는 항목은 보존됩니다.</p>
-          <button className="btn btn-pri" onClick={fillDemo} disabled={busy || done}>{busy ? '생성 중…' : done ? <><Check style={{ width: 15 }} />완료 · 새로고침하세요</> : '데모 데이터 채우기'}</button>
+          <p className="muted" style={{ margin: '0 0 14px', lineHeight: 1.6 }}>현재 조직에 샘플 프로젝트, 요구사항, 이슈, 리스크, 업무, 스프린트, 인력, 인프라, 방화벽, 조달, 게시판 데이터를 한 번에 채웁니다. 모든 메뉴와 대시보드, 리포트에서 즉시 확인할 수 있고, 이미 있는 항목은 보존됩니다.</p>
+          <button className="btn btn-pri" onClick={fillDemo} disabled={busy || done}>{busy ? '생성 중…' : done ? <><Check style={{ width: 15 }} />완료, 새로고침하세요</> : '데모 데이터 채우기'}</button>
           {done && <p className="muted" role="status" style={{ marginTop: 10 }}>브라우저를 새로고침하면 각 메뉴에 데이터가 표시됩니다.</p>}
           {demoErr && <p role="alert" style={{ marginTop: 10, fontSize: 12.5, fontWeight: 650, color: 'var(--red)' }}>{demoErr}</p>}
         </div>

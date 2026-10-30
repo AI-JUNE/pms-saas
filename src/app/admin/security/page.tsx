@@ -20,7 +20,7 @@ function EventPill({ v }: { v: string }) {
 }
 function fmtDetail(d: string | null) {
   if (!d) return '—';
-  try { const o = JSON.parse(d); return Object.entries(o).map(([k, v]) => `${k}=${v}`).join(' · '); } catch { return d; }
+  try { const o = JSON.parse(d); return Object.entries(o).map(([k, v]) => `${k}=${v}`).join(', '); } catch { return d; }
 }
 export default function Page() {
   const router = useRouter();
@@ -48,7 +48,7 @@ export default function Page() {
   return (
     <Shell title="보안 이벤트">
       <h2 className="h1">보안 이벤트</h2>
-      <p className="h-sub">로그인·가입·결제 스캐폴딩 등 인증 관련 이벤트입니다. (슈퍼관리자 전용 · 이메일은 마스킹 저장)</p>
+      <p className="h-sub">로그인, 가입, 결제 스캐폴딩 등 인증 관련 이벤트입니다. (슈퍼관리자 전용, 이메일은 마스킹 저장)</p>
       <div style={{ height: 16 }} />
       {err && (
         <div className="card" role="alert" style={{ padding: '10px 14px', marginBottom: 16, borderLeft: '3px solid #c0392b', color: '#c0392b', fontSize: 13, fontWeight: 600 }}>{err}</div>
@@ -58,9 +58,9 @@ export default function Page() {
         <select className="sel" value={event} onChange={(e) => setEvent(e.target.value)}>
           {EVENTS.map((e) => <option key={e} value={e}>{e ? (EVENT_LABEL[e] || e) : '전체'}</option>)}
         </select>
-        {rows.length > 0 && <span className="muted" style={{ fontSize: 12.5, cursor: 'help' }} title={`현재까지 불러온 이벤트 ${nfmt(rows.length)}건${nextCursor ? ' — 더 보기로 이전 이벤트를 추가로 불러올 수 있습니다' : ' (전부 불러옴)'}${fails > 0 ? `\n이 중 로그인 실패 ${nfmt(fails)}건` : ''}`}>표시 {nfmt(rows.length)}건{fails > 0 ? ` · 로그인 실패 ${nfmt(fails)}건` : ''}</span>}
+        {rows.length > 0 && <span className="muted" style={{ fontSize: 12.5, cursor: 'help' }} title={`현재까지 불러온 이벤트 ${nfmt(rows.length)}건${nextCursor ? ' — 더 보기로 이전 이벤트를 추가로 불러올 수 있습니다' : ' (전부 불러옴)'}${fails > 0 ? `\n이 중 로그인 실패 ${nfmt(fails)}건` : ''}`}>표시 {nfmt(rows.length)}건{fails > 0 ? `, 로그인 실패 ${nfmt(fails)}건` : ''}</span>}
       </div>
-      <span className="sr-only" role="status">{(!loaded || loading) ? '보안 이벤트를 불러오는 중' : rows.length === 0 ? '보안 이벤트가 없습니다' : `이벤트 ${nfmt(rows.length)}건 표시${event ? ` (${EVENT_LABEL[event] || event} 필터)` : ''}${fails > 0 ? ` · 로그인 실패 ${nfmt(fails)}건` : ''}${nextCursor ? ' · 더 보기로 이전 이벤트를 추가로 불러올 수 있습니다' : ''}`}</span>
+      <span className="sr-only" role="status">{(!loaded || loading) ? '보안 이벤트를 불러오는 중' : rows.length === 0 ? '보안 이벤트가 없습니다' : `이벤트 ${nfmt(rows.length)}건 표시${event ? ` (${EVENT_LABEL[event] || event} 필터)` : ''}${fails > 0 ? `, 로그인 실패 ${nfmt(fails)}건` : ''}${nextCursor ? ', 더 보기로 이전 이벤트를 추가로 불러올 수 있습니다' : ''}`}</span>
       <div className="card tbl-wrap" aria-busy={!loaded || loading}><table className="tbl">
         <thead><tr><th scope="col">시각</th><th scope="col">이벤트</th><th scope="col">사용자</th><th scope="col">대상</th><th scope="col">상세</th></tr></thead>
         <tbody>

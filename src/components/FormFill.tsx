@@ -60,7 +60,7 @@ export function FormFill({ definitionId, documentId, compact }: { definitionId: 
         <div className="sp" />
         {compact && <button type="button" className="btn btn-sm" aria-expanded={open} onClick={() => setOpen((v) => !v)}>{open ? '접기' : '입력하기'}</button>}
       </div>
-      <span className="sr-only" role="status">{!loaded ? '양식을 불러오는 중' : `양식 항목 ${nfmt(defs.length)}개 · 입력 ${nfmt(rows.length)}건`}</span>
+      <span className="sr-only" role="status">{!loaded ? '양식을 불러오는 중' : `양식 항목 ${nfmt(defs.length)}개, 입력 ${nfmt(rows.length)}건`}</span>
       {problems.length > 0 && <div className="muted" role="alert" style={{ fontSize: 12, color: '#d98a16', marginBottom: 8 }}>양식 정의 중 읽지 못한 항목이 있습니다: {problems.join(' / ')}</div>}
       {unavailable && <div className="muted" style={{ fontSize: 12, marginBottom: 8 }}>양식 입력 테이블이 아직 준비되지 않았습니다. 관리자가 「스키마 업데이트」를 실행하면 사용할 수 있습니다.</div>}
       {loaded && defs.length === 0 && <div className="muted" style={{ fontSize: 12.5, padding: '6px 0' }}>이 양식에는 정의된 항목이 없습니다. 「양식 빌더」에서 항목을 추가하세요.</div>}

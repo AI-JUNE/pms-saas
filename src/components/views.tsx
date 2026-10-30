@@ -73,7 +73,7 @@ export function Kanban({ rows, openDetail, columns, titleKey = 'title' }:
 const heatColor = (s: number) => s >= 15 ? '#e0394b' : s >= 10 ? '#f2772e' : s >= 5 ? '#e0a800' : '#15a34a';
 export function RiskMatrix({ rows, openDetail }: { rows: any[]; openDetail: (r: any) => void }) {
   // 전체 빈 상태 — 0건 매트릭스 격자만 보이는 화면 방지(간트와 동일 톤)
-  if (rows.length === 0) return <div className="card card-pad muted">등록된 리스크가 없습니다. “새로 만들기”로 발생가능성·영향도를 입력하면 매트릭스에 배치됩니다.</div>;
+  if (rows.length === 0) return <div className="card card-pad muted">등록된 리스크가 없습니다. “새로 만들기”로 발생가능성, 영향도를 입력하면 매트릭스에 배치됩니다.</div>;
   // 매트릭스에 실제로 배치되는 건수(발생가능성·영향도 1~5) vs 미표시(값 누락/범위 밖)
   const inCell = (v: any) => { const n = Number(v); return n >= 1 && n <= 5; };
   const plotted = rows.filter((r) => inCell(r.impact) && inCell(r.probability)).length;
@@ -85,7 +85,7 @@ export function RiskMatrix({ rows, openDetail }: { rows: any[]; openDetail: (r: 
     <div className="card card-pad" style={{ display: 'inline-block' }}>
       <div className="row" style={{ marginBottom: 12, gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
         <div className="sect" style={{ margin: 0 }}>리스크 매트릭스 (발생가능성 × 영향도)</div>
-        <span className="muted" style={{ fontSize: 11.5, fontWeight: 600 }} title="전체 리스크 건수 · 발생가능성/영향도 값이 없거나 1~5 범위 밖이라 매트릭스에 표시되지 않은 건수">총 {nfmt(rows.length)}건{unplotted > 0 && <span style={{ color: '#a86a12' }}> · 미표시 {nfmt(unplotted)}건</span>}</span>
+        <span className="muted" style={{ fontSize: 11.5, fontWeight: 600 }} title="전체 리스크 건수, 발생가능성/영향도 값이 없거나 1~5 범위 밖이라 매트릭스에 표시되지 않은 건수">총 {nfmt(rows.length)}건{unplotted > 0 && <span style={{ color: '#a86a12' }}>, 미표시 {nfmt(unplotted)}건</span>}</span>
       </div>
       <table className="heat">
         <tbody>
@@ -320,13 +320,13 @@ export function Gantt({ rows, openDetail, save, create }: { rows: any[]; openDet
   return (
     <div className="card" style={{ overflow: 'hidden' }}>
       <div className="row" style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', gap: 8, flexWrap: 'wrap' }}>
-        <div className="sect" style={{ margin: 0 }}>간트차트 · 일정 계획</div>
+        <div className="sect" style={{ margin: 0 }}>간트차트, 일정 계획</div>
         <div style={{ display: 'flex', gap: 4, marginLeft: 8 }}><Zb z="day" l="일" /><Zb z="week" l="주" /><Zb z="month" l="월" /></div>
         {groupOrder.length > 1 && <button className={`btn btn-sm ${grouped ? 'btn-pri' : ''}`} onClick={() => setGrouped((g) => !g)} style={{ padding: '3px 10px' }} title="단계(phase)별로 작업을 묶어 스윔레인으로 표시하고 접기/펼치기">단계 묶기</button>}
-        {critical.size > 1 && (<span title="선행관계 기반 임계경로(여유 0일) 작업 수" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 700, color: '#c0414f', background: '#fdedef', border: '1px solid #f3c7cd', borderRadius: 20, padding: '2px 10px' }}><span style={{ width: 8, height: 8, borderRadius: 8, background: '#c0414f' }} />주경로 {nfmt(critical.size)}개{critOverdue > 0 ? ` · 지연 ${nfmt(critOverdue)}` : ''}</span>)}
+        {critical.size > 1 && (<span title="선행관계 기반 임계경로(여유 0일) 작업 수" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 700, color: '#c0414f', background: '#fdedef', border: '1px solid #f3c7cd', borderRadius: 20, padding: '2px 10px' }}><span style={{ width: 8, height: 8, borderRadius: 8, background: '#c0414f' }} />주경로 {nfmt(critical.size)}개{critOverdue > 0 ? `, 지연 ${nfmt(critOverdue)}` : ''}</span>)}
         {overdueCount > 0 && (<span title={`기한(마감)이 지난 미완료 작업 ${nfmt(overdueCount)}건 (완료 제외)`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 700, color: '#a86a12', background: '#fbeed6', border: '1px solid #f2e0b8', borderRadius: 20, padding: '2px 10px' }}><span style={{ width: 8, height: 8, borderRadius: 8, background: '#a86a12' }} />지연 {nfmt(overdueCount)}</span>)}
         <div className="sp" />
-        <span className="muted" style={{ fontSize: 11 }}>막대=이동 · 양끝=기간 · 아래손잡이=진척 · <span style={{ color: 'var(--brand)', fontWeight: 700 }}>우측●=선행연결</span> · 하단행=새 작업 · 자동저장 · <span style={{ color: '#c0414f', fontWeight: 700 }}>▭ 주경로</span> · <span style={{ color: 'var(--text-3)', fontWeight: 700 }}>▬ 기준선(계획)</span></span>
+        <span className="muted" style={{ fontSize: 11 }}>막대=이동, 양끝=기간, 아래손잡이=진척, <span style={{ color: 'var(--brand)', fontWeight: 700 }}>우측●=선행연결</span>, 하단행=새 작업, 자동저장, <span style={{ color: '#c0414f', fontWeight: 700 }}>▭ 주경로</span>, <span style={{ color: 'var(--text-3)', fontWeight: 700 }}>▬ 기준선(계획)</span></span>
       </div>
       <div style={{ overflowX: 'auto' }}>
         <div style={{ minWidth: LBL + W, userSelect: (drag || nsel) ? 'none' : 'auto' }}>
@@ -381,14 +381,14 @@ export function Gantt({ rows, openDetail, save, create }: { rows: any[]; openDet
                 <div key={r.id} style={{ display: 'flex', height: rowH, borderBottom: '1px solid var(--border)' }} className="gt-row">
                   <div onClick={() => openDetail(r)} role="button" tabIndex={0} onKeyDown={onKeyAct(() => openDetail(r))} aria-label={`${r.name || r.title || r.code || ''} 상세 열기`} style={{ width: LBL, flexShrink: 0, borderRight: '1px solid var(--border)', padding: '0 14px', display: 'flex', flexDirection: 'column', justifyContent: 'center', cursor: 'pointer' }}>
                     <div style={{ fontSize: 12.5, fontWeight: 650, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name || r.title}{r.predecessor && <span className="muted" style={{ fontWeight: 500, fontSize: 10.5 }}> ← {r.predecessor}</span>}</div>
-                    <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>{r.assignee || '—'} · {r.code}</div>
+                    <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>{r.assignee || '—'}, {r.code}</div>
                   </div>
                   <div style={{ position: 'relative', width: W }}>
-                    {hasBase && <div title={`기준선(계획) ${fmt(bs as number)} ~ ${fmt(be as number)} · ${slipDays > 0 ? `${slipDays}일 지연` : slipDays < 0 ? `${-slipDays}일 단축` : '계획대로'}`} style={{ position: 'absolute', left: bLeft, width: bWidth, top: rowH / 2 + 9, height: 4, borderRadius: 3, background: slipDays > 0 ? '#c0414f' : 'var(--text-4)', opacity: slipDays > 0 ? 0.5 : 0.38 }} />}
+                    {hasBase && <div title={`기준선(계획) ${fmt(bs as number)} ~ ${fmt(be as number)}, ${slipDays > 0 ? `${slipDays}일 지연` : slipDays < 0 ? `${-slipDays}일 단축` : '계획대로'}`} style={{ position: 'absolute', left: bLeft, width: bWidth, top: rowH / 2 + 9, height: 4, borderRadius: 3, background: slipDays > 0 ? '#c0414f' : 'var(--text-4)', opacity: slipDays > 0 ? 0.5 : 0.38 }} />}
                     {isMs ? (
-                      <div onMouseDown={(e) => startDrag(e, r, 'move')} onMouseEnter={() => { if (linkRef.current) linkTargetRef.current = r; }} onMouseLeave={() => { if (linkTargetRef.current === r) linkTargetRef.current = null; }} title={`마일스톤 · ${fmt(x.s)}`} style={{ position: 'absolute', left: left - 9, top: rowH / 2 - 9, width: 18, height: 18, background: color(r.status), transform: 'rotate(45deg)', borderRadius: 3, cursor: save ? 'grab' : 'pointer', boxShadow: 'var(--sh-sm)' }} />
+                      <div onMouseDown={(e) => startDrag(e, r, 'move')} onMouseEnter={() => { if (linkRef.current) linkTargetRef.current = r; }} onMouseLeave={() => { if (linkTargetRef.current === r) linkTargetRef.current = null; }} title={`마일스톤, ${fmt(x.s)}`} style={{ position: 'absolute', left: left - 9, top: rowH / 2 - 9, width: 18, height: 18, background: color(r.status), transform: 'rotate(45deg)', borderRadius: 3, cursor: save ? 'grab' : 'pointer', boxShadow: 'var(--sh-sm)' }} />
                     ) : (
-                      <div onMouseDown={(e) => startDrag(e, r, 'move')} onMouseEnter={() => { if (linkRef.current) linkTargetRef.current = r; }} onMouseLeave={() => { if (linkTargetRef.current === r) linkTargetRef.current = null; }} title={`${fmt(x.s)} ~ ${fmt(x.e)} · ${prog}%${isCrit ? ' · 주경로' : ''}${x.planned ? '' : ' · 드래그하여 계획'}`}
+                      <div onMouseDown={(e) => startDrag(e, r, 'move')} onMouseEnter={() => { if (linkRef.current) linkTargetRef.current = r; }} onMouseLeave={() => { if (linkTargetRef.current === r) linkTargetRef.current = null; }} title={`${fmt(x.s)} ~ ${fmt(x.e)}, ${prog}%${isCrit ? ', 주경로' : ''}${x.planned ? '' : ', 드래그하여 계획'}`}
                         style={{ position: 'absolute', left, width, top: 9, height: 22, borderRadius: 7, background: x.planned ? 'var(--surface-3)' : 'transparent', border: `1.5px ${x.planned ? 'solid' : 'dashed'} ${overdue ? '#c0414f' : color(r.status) + (x.planned ? '55' : '99')}`, overflow: 'visible', boxShadow: isCrit ? '0 0 0 2px #c0414f66, var(--sh-sm)' : (isDragging ? 'var(--sh-md)' : 'var(--sh-sm)'), cursor: save ? 'grab' : 'pointer', opacity: x.planned ? 1 : .75, transition: isDragging ? 'none' : 'box-shadow .15s' }}>
                         <div style={{ width: `${prog}%`, height: '100%', background: color(r.status), opacity: .9, borderRadius: 6 }} />
                         <span style={{ position: 'absolute', left: 8, top: 0, height: '100%', display: 'flex', alignItems: 'center', fontSize: 10.5, fontWeight: 700, color: prog > 50 ? '#fff' : 'var(--text-2)', pointerEvents: 'none' }}>{x.planned ? `${prog}%` : '계획'}</span>

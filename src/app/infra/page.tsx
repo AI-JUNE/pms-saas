@@ -30,18 +30,18 @@ export default function Page() {
       .catch(() => {});
   }, []);
 
-  return <ResourceView title="인프라 자산" subtitle="서버·네트워크·스토리지 등 자산(CMDB)을 관리합니다." endpoint="/api/infra" projectScoped entity="infra" statusKey="category"
-    emptyText="등록된 인프라 자산이 없습니다. 서버·네트워크·스토리지 등 자산을 등록해 CMDB를 구성하세요."
+  return <ResourceView title="인프라 자산" subtitle="서버, 네트워크, 스토리지 등 자산(CMDB)을 관리합니다." endpoint="/api/infra" projectScoped entity="infra" statusKey="category"
+    emptyText="등록된 인프라 자산이 없습니다. 서버, 네트워크, 스토리지 등 자산을 등록해 CMDB를 구성하세요."
     columns={[
       {key:'code',label:'코드'},
       {key:'name',label:'자산명',strong:true},
       {key:'category',label:'분류',badge:true},
       {key:'model',label:'모델',render:(v)=> v || <span className="muted">—</span>},
       // 위치: 사이트/랙을 한 셀에 합쳐 물리 배치를 한눈에
-      {key:'location',label:'위치·랙',render:(v,row)=>{
+      {key:'location',label:'위치, 랙',render:(v,row)=>{
         const loc = String(v ?? '').trim(), rack = String(row?.rack ?? '').trim();
-        if (!loc && !rack) return <span className="muted" style={{fontSize:11.5}} title="사이트·랙 위치를 입력하면 표시됩니다">미지정</span>;
-        return <span title={`위치 ${loc || '미지정'}${rack ? ` · 랙 ${rack}` : ' · 랙 미지정'}`} style={{cursor:'help'}}>
+        if (!loc && !rack) return <span className="muted" style={{fontSize:11.5}} title="사이트, 랙 위치를 입력하면 표시됩니다">미지정</span>;
+        return <span title={`위치 ${loc || '미지정'}${rack ? `, 랙 ${rack}` : ', 랙 미지정'}`} style={{cursor:'help'}}>
           {loc || <span className="muted">—</span>}
           {rack && <span style={{marginLeft:6,fontSize:11.5,color:'var(--brand)',background:'rgba(36,87,197,.08)',borderRadius:99,padding:'1px 7px',whiteSpace:'nowrap'}}>{rack}</span>}
         </span>;
@@ -57,7 +57,7 @@ export default function Page() {
         return <span style={{display:'inline-flex',alignItems:'center',gap:6}}>
           <span style={{fontVariantNumeric:'tabular-nums',color:dup?'#c0414f':undefined,fontWeight:dup?700:undefined,opacity:retired?0.55:1}}>{ip}</span>
           {dup && <span title={`같은 IP를 쓰는 자산이 있습니다 — ${peers.join(', ')} (IP 충돌 가능)`} style={{color:'#c0414f',fontWeight:700,fontSize:11.5,cursor:'help'}}>⚠ 중복</span>}
-          {!dup && bad && <span title="IPv4 형식이 아닙니다 — 오타·대역(CIDR) 혼입 여부를 확인하세요" style={{color:'#d98a16',fontWeight:700,fontSize:11.5,cursor:'help'}}>형식 확인</span>}
+          {!dup && bad && <span title="IPv4 형식이 아닙니다 — 오타, 대역(CIDR) 혼입 여부를 확인하세요" style={{color:'#d98a16',fontWeight:700,fontSize:11.5,cursor:'help'}}>형식 확인</span>}
         </span>;
       }},
       {key:'hostname',label:'호스트명',render:(v,row)=>{
@@ -71,11 +71,11 @@ export default function Page() {
       // 사양: OS·CPU·메모리를 한 셀로 압축(전체는 툴팁)
       {key:'os',label:'사양',render:(v,row)=>{
         const os = String(v ?? '').trim(), cpu = String(row?.cpu ?? '').trim(), mem = String(row?.memory ?? '').trim();
-        if (!os && !cpu && !mem) return <span className="muted" style={{fontSize:11.5}} title="OS·CPU·메모리를 입력하면 표시됩니다">미기재</span>;
+        if (!os && !cpu && !mem) return <span className="muted" style={{fontSize:11.5}} title="OS, CPU, 메모리를 입력하면 표시됩니다">미기재</span>;
         const parts = [os && `OS ${os}`, cpu && `CPU ${cpu}`, mem && `MEM ${mem}`].filter(Boolean) as string[];
         return <span title={parts.join('\n')} style={{display:'inline-block',maxWidth:200,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',cursor:'help',fontSize:12}}>
           {os || <span className="muted">—</span>}
-          {(cpu || mem) && <span className="muted" style={{fontSize:11.5}}>{` · ${[cpu, mem].filter(Boolean).join(' / ')}`}</span>}
+          {(cpu || mem) && <span className="muted" style={{fontSize:11.5}}>{`, ${[cpu, mem].filter(Boolean).join(' / ')}`}</span>}
         </span>;
       }},
       {key:'owner',label:'담당',render:(v,row)=> v || (norm(row?.status) === 'retired'
@@ -89,7 +89,7 @@ export default function Page() {
       {key:'model',label:'모델',half:true},
       {key:'location',label:'위치(사이트)',half:true,placeholder:'예: 본사 IDC 2층'},
       {key:'rack',label:'랙 위치',half:true,placeholder:'예: R-12 / U20'},
-      {key:'ipAddress',label:'IP 주소',half:true,hint:'IPv4 형식(예: 10.0.1.21) · 중복 등록 시 목록에서 경고합니다'},
+      {key:'ipAddress',label:'IP 주소',half:true,hint:'IPv4 형식(예: 10.0.1.21), 중복 등록 시 목록에서 경고합니다'},
       {key:'hostname',label:'호스트명',half:true},
       {key:'os',label:'OS',half:true,placeholder:'예: RHEL 8.6'},
       {key:'cpu',label:'CPU',half:true,placeholder:'예: 16 vCore'},

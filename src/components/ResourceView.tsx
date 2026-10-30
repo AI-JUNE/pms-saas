@@ -416,7 +416,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
         <div className="sp" />
         <button className="btn btn-sm" onClick={exportCsv} title="CSV 내보내기"><Download style={{ width: 14 }} />CSV</button>
         <button className="btn btn-sm" onClick={exportXlsx} title="Excel 내보내기"><Sheet style={{ width: 14 }} />Excel</button>
-        {fields.length > 0 && <button className="btn btn-sm" onClick={() => setImportOpen(true)} title="엑셀·CSV·붙여넣기로 여러 건 한 번에 등록"><Upload style={{ width: 14 }} />가져오기</button>}
+        {fields.length > 0 && <button className="btn btn-sm" onClick={() => setImportOpen(true)} title="엑셀, CSV, 붙여넣기로 여러 건 한 번에 등록"><Upload style={{ width: 14 }} />가져오기</button>}
         <button className="btn btn-sm" onClick={toggleDensity} title="행 밀도 전환" aria-label="행 밀도 전환">{density === 'compact' ? '편안하게' : '컴팩트'}</button>
         <button className="btn btn-sm" onClick={toggleFullTag} title="풀셀 컬러 태그" aria-label="풀셀 컬러 태그" style={fullTag ? { background: 'var(--brand-50)', borderColor: 'var(--brand-100)', color: 'var(--brand-700)' } : undefined}>컬러셀</button>
         <div style={{ position: 'relative' }}>
@@ -432,8 +432,8 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
         <span className="muted" title={(q || filter) ? `전체 ${rows.length.toLocaleString('ko-KR')}건 중 ${view.length.toLocaleString('ko-KR')}건 표시` : undefined}><SlidersHorizontal style={{ width: 13, verticalAlign: -2 }} /> {(q || filter) && view.length !== rows.length ? `${view.length.toLocaleString('ko-KR')}/${rows.length.toLocaleString('ko-KR')}건` : `${view.length.toLocaleString('ko-KR')}건`}</span>
         {/* 스크린리더 라이브 안내 — 로딩·검색/필터 결과 건수 변화를 보조기술에 알림(시각적 숨김) */}
         <span className="sr-only" role="status">{loading ? `${title} 목록을 불러오는 중` : `${title} ${nfmt(view.length)}건 표시${(q || filter) && view.length !== rows.length ? ` (전체 ${nfmt(rows.length)}건 중)` : ''}`}</span>
-        {(q || filter) && <button className="btn btn-sm btn-ghost" onClick={() => { setQ(''); setFilter(''); }} title="검색·상태 필터 초기화" aria-label="검색·상태 필터 초기화"><X style={{ width: 13 }} />초기화</button>}
-        {(q || filter || groupBy || (sortK && sortK !== 'id')) && <button className="btn btn-sm btn-ghost" onClick={copyViewLink} title="현재 검색·필터·정렬·그룹이 담긴 링크를 복사합니다(공유 시 같은 뷰로 열림)" aria-label="뷰 링크 복사">{linkCopied ? '복사됨' : '뷰 링크'}</button>}
+        {(q || filter) && <button className="btn btn-sm btn-ghost" onClick={() => { setQ(''); setFilter(''); }} title="검색, 상태 필터 초기화" aria-label="검색, 상태 필터 초기화"><X style={{ width: 13 }} />초기화</button>}
+        {(q || filter || groupBy || (sortK && sortK !== 'id')) && <button className="btn btn-sm btn-ghost" onClick={copyViewLink} title="현재 검색, 필터, 정렬, 그룹이 담긴 링크를 복사합니다(공유 시 같은 뷰로 열림)" aria-label="뷰 링크 복사">{linkCopied ? '복사됨' : '뷰 링크'}</button>}
       </div>
 
       {projectScoped && !pid && !loading && (
@@ -465,7 +465,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
           <thead><tr>
             <th scope="col" style={{ width: 34, textAlign: 'center' }}><input type="checkbox" aria-label="전체 선택" checked={view.length > 0 && view.every((r) => sel.has(r.id))} onChange={(e) => setSel(e.target.checked ? new Set(view.map((r) => r.id)) : new Set())} /></th>
             {/* 정렬 헤더 키보드 접근성 — tabIndex(전역 focus-visible 링 적용)·Enter/Space 정렬·aria-sort로 현재 정렬 상태를 스크린리더에 노출 */}
-            {visibleColumns.map((c) => <th key={c.key} scope="col" tabIndex={0} style={colW[c.key] ? { width: colW[c.key], minWidth: colW[c.key], maxWidth: colW[c.key] } : undefined} aria-sort={sortK === c.key ? (sortDir === 1 ? 'ascending' : 'descending') : 'none'} title={`${c.label} 기준 정렬 — 클릭 또는 Enter로 오름차순/내림차순 전환`} onClick={() => sort(c.key)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); sort(c.key); } }}>{c.label}{sortK === c.key && <span className="arr" aria-hidden>{sortDir === 1 ? '▲' : '▼'}</span>}<span className="col-rz" role="separator" aria-orientation="vertical" aria-label={`${c.label} 열 너비 조절`} title="끌어서 열 너비 조절 · 더블클릭은 원래대로" onPointerDown={(e) => startResize(e, c.key)} onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => { e.stopPropagation(); resetWidth(c.key); }} /></th>)}
+            {visibleColumns.map((c) => <th key={c.key} scope="col" tabIndex={0} style={colW[c.key] ? { width: colW[c.key], minWidth: colW[c.key], maxWidth: colW[c.key] } : undefined} aria-sort={sortK === c.key ? (sortDir === 1 ? 'ascending' : 'descending') : 'none'} title={`${c.label} 기준 정렬 — 클릭 또는 Enter로 오름차순/내림차순 전환`} onClick={() => sort(c.key)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); sort(c.key); } }}>{c.label}{sortK === c.key && <span className="arr" aria-hidden>{sortDir === 1 ? '▲' : '▼'}</span>}<span className="col-rz" role="separator" aria-orientation="vertical" aria-label={`${c.label} 열 너비 조절`} title="끌어서 열 너비 조절, 더블클릭은 원래대로" onPointerDown={(e) => startResize(e, c.key)} onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => { e.stopPropagation(); resetWidth(c.key); }} /></th>)}
             <th scope="col" className="no-sort" style={{ width: 90 }} aria-label="행 작업"></th>
           </tr></thead>
           <tbody>
@@ -474,7 +474,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
             {!loading && grouped && grouped.map(([g, list]) => (
               <Fragment key={'g' + g}>
                 {/* 그룹 헤더 키보드 접근성 — tabIndex(전역 focus-visible 링 적용)·Enter/Space 접기/펼치기·aria-expanded로 상태를 스크린리더에 노출 (정렬 헤더 배치130과 동일 패턴) */}
-                <tr onClick={() => toggleGroup(g)} tabIndex={0} aria-expanded={!collapsed.has(g)} title={`${LABEL[g] || g} 그룹 ${collapsed.has(g) ? '펼치기' : '접기'} — 클릭 또는 Enter`} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleGroup(g); } }} style={{ cursor: 'pointer' }}><td colSpan={visibleColumns.length + 2} style={{ background: 'var(--surface-3)', fontWeight: 750, fontSize: 12.5, boxShadow: `inset 4px 0 0 ${STATUS_COLOR[g] || 'var(--brand)'}` }}><span aria-hidden style={{ display: 'inline-block', width: 14, transform: collapsed.has(g) ? 'none' : 'rotate(90deg)', color: 'var(--muted)' }}>▸</span>{LABEL[g] || g} <span className="muted">· {nfmt(list.length)}</span>{(() => {
+                <tr onClick={() => toggleGroup(g)} tabIndex={0} aria-expanded={!collapsed.has(g)} title={`${LABEL[g] || g} 그룹 ${collapsed.has(g) ? '펼치기' : '접기'} — 클릭 또는 Enter`} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleGroup(g); } }} style={{ cursor: 'pointer' }}><td colSpan={visibleColumns.length + 2} style={{ background: 'var(--surface-3)', fontWeight: 750, fontSize: 12.5, boxShadow: `inset 4px 0 0 ${STATUS_COLOR[g] || 'var(--brand)'}` }}><span aria-hidden style={{ display: 'inline-block', width: 14, transform: collapsed.has(g) ? 'none' : 'rotate(90deg)', color: 'var(--muted)' }}>▸</span>{LABEL[g] || g} <span className="muted">,  {nfmt(list.length)}</span>{(() => {
                   const DONE = ['done', 'closed', 'resolved', 'completed', 'approved', 'pass'];
                   if (!list.some((r: any) => r[statusKey])) return null;
                   const dc = list.filter((r: any) => DONE.includes(String(r[statusKey]))).length;
@@ -606,7 +606,7 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
       {importOpen && <ImportWizard title={title} endpoint={endpoint} fields={fields} projectId={pid} projectScoped={projectScoped} onClose={() => setImportOpen(false)} onDone={() => load(pid)} />}
       {undoNote && (
         <div className="undo-toast" role="status" aria-live="polite">
-          <span><b>삭제했습니다</b> · {undoNote.label}</span>
+          <span><b>삭제했습니다</b>, {undoNote.label}</span>
           <button type="button" className="btn" onClick={undoDelete}>되돌리기</button>
           <i style={{ animationDuration: `${UNDO_MS}ms` }} aria-hidden />
         </div>

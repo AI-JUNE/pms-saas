@@ -63,8 +63,8 @@ export function Attachments({ entity, entityId }: { entity: 'issues' | 'document
             <li key={a.id} className="row" style={{ gap: 8, padding: '7px 0', borderBottom: '1px solid var(--border)', alignItems: 'center' }}>
               <Paperclip style={{ width: 14, color: 'var(--text-3)' }} aria-hidden="true" />
               <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600, fontSize: 13 }} title={a.filename}>{a.filename}</span>
-              <span className="muted" style={{ fontSize: 11.5, whiteSpace: 'nowrap' }} title={`${a.mime || '형식 미상'} · 올린 사람 ${a.uploaderName || '—'}`}>{formatBytes(a.size)}</span>
-              <span className={`pill ${a.status === 'stored' ? 'p-green' : 'p-gray'}`} title={a.status === 'stored' ? '파일 본문이 저장소에 보관되어 있습니다' : '파일명·크기만 기록된 상태입니다(본문 미보관)'}>{a.status === 'stored' ? '보관' : '메타만'}</span>
+              <span className="muted" style={{ fontSize: 11.5, whiteSpace: 'nowrap' }} title={`${a.mime || '형식 미상'}, 올린 사람 ${a.uploaderName || '—'}`}>{formatBytes(a.size)}</span>
+              <span className={`pill ${a.status === 'stored' ? 'p-green' : 'p-gray'}`} title={a.status === 'stored' ? '파일 본문이 저장소에 보관되어 있습니다' : '파일명, 크기만 기록된 상태입니다(본문 미보관)'}>{a.status === 'stored' ? '보관' : '메타만'}</span>
               {a.expiresAt && <span className="muted" style={{ fontSize: 11, whiteSpace: 'nowrap', color: expired ? '#c0414f' : undefined }} title={`보존 만료일 ${new Date(a.expiresAt).toLocaleDateString('ko-KR')}`}>{expired ? '만료' : `~${new Date(a.expiresAt).toLocaleDateString('ko-KR')}`}</span>}
               <button className="iconbtn" aria-label={`첨부 ${a.filename} 삭제`} title="첨부 기록 삭제" onClick={() => remove(a.id)}><Trash2 style={{ width: 14 }} aria-hidden="true" /></button>
             </li>

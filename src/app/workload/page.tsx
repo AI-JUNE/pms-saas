@@ -38,7 +38,7 @@ export default function Page() {
           <div className="kpi-label">집계 인원</div><div className="kpi-value">{rows ? nfmt(summary.total) : '–'}</div><div className="kpi-sub">배정 이력이 있는 담당자</div></div>
         <div className="kpi k3" title="부하(진행 업무+미결 이슈)가 최다 담당자의 70% 이상인 인원"><div className="kpi-ic" style={{ background: 'rgba(192,65,79,.12)' }}><Flame style={{ width: 18, color: '#c0414f' }} /></div>
           <div className="kpi-label">과부하</div><div className="kpi-value">{rows ? nfmt(summary.over) : '–'}</div><div className="kpi-sub">최다 대비 70%↑ 부하</div></div>
-        <div className="kpi k1" title="진행중 업무·미결 이슈가 없는 담당자"><div className="kpi-ic" style={{ background: 'rgba(47,143,91,.12)' }}><Coffee style={{ width: 18, color: '#2f8f5b' }} /></div>
+        <div className="kpi k1" title="진행중 업무, 미결 이슈가 없는 담당자"><div className="kpi-ic" style={{ background: 'rgba(47,143,91,.12)' }}><Coffee style={{ width: 18, color: '#2f8f5b' }} /></div>
           <div className="kpi-label">여유</div><div className="kpi-value">{rows ? nfmt(summary.idle) : '–'}</div><div className="kpi-sub">미결 부하 0건</div></div>
         <div className="kpi k2" title="1인당 평균 부하(진행 업무+미결 이슈)"><div className="kpi-ic" style={{ background: 'rgba(217,138,22,.12)' }}><Gauge style={{ width: 18, color: '#d98a16' }} /></div>
           <div className="kpi-label">평균 부하</div><div className="kpi-value">{rows ? summary.avg : '–'}</div><div className="kpi-sub">1인당 미결 건수</div></div>
@@ -61,7 +61,7 @@ export default function Page() {
           <thead><tr><th scope="col">담당자</th><th scope="col" style={{ width: 90 }}>진행 업무</th><th scope="col" style={{ width: 90 }}>미결 이슈</th><th scope="col" style={{ width: 110 }}>완료</th><th scope="col">부하</th></tr></thead>
           <tbody>
             {!rows && Array.from({ length: 4 }).map((_, i) => <tr key={`sk${i}`} aria-hidden="true"><td colSpan={5}><div className="skel" style={{ height: 18, margin: '4px 0' }} /></td></tr>)}
-            {rows && all.length === 0 && <tr><td colSpan={5}><div className="empty" style={{ padding: 24 }}>인력·배정 데이터가 없습니다.</div></td></tr>}
+            {rows && all.length === 0 && <tr><td colSpan={5}><div className="empty" style={{ padding: 24 }}>인력, 배정 데이터가 없습니다.</div></td></tr>}
             {rows && all.length > 0 && shown.length === 0 && <tr><td colSpan={5}><div className="empty" style={{ padding: 24 }}>'{q.trim()}'에 해당하는 담당자가 없습니다.</div></td></tr>}
             {rows && shown.map((r) => {
               const load = r.taskOpen + r.issueOpen;
@@ -81,7 +81,7 @@ export default function Page() {
                     {taskTotal > 0 && <span style={{ fontSize: 11, color: 'var(--text-3)' }}>({donePct}%)</span>}</span></td>
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}
-                    title={`진행 업무 ${nfmt(r.taskOpen)} · 미결 이슈 ${nfmt(r.issueOpen)} · 완료 ${nfmt(r.taskDone)} — 부하 ${nfmt(load)}건`}>
+                    title={`진행 업무 ${nfmt(r.taskOpen)}, 미결 이슈 ${nfmt(r.issueOpen)}, 완료 ${nfmt(r.taskDone)} — 부하 ${nfmt(load)}건`}>
                     <div className="pbar" style={{ flex: 1, maxWidth: 220 }}><i style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${col}cc, ${col})` }} /></div>
                     <span style={{ fontWeight: 800, fontSize: 12.5, minWidth: 20 }}>{nfmt(load)}</span>
                     {tag && <span style={{ fontSize: 10.5, fontWeight: 700, color: tagCol }}>{tag}</span>}

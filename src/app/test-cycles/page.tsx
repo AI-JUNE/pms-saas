@@ -50,16 +50,16 @@ export default function Page() {
   // 테스트의 '차수'(cycle)는 자유 문자열(콤보)이라 차수명(name) 우선, 없으면 코드(code)로 매칭
   const statOf = (row: any): Stat | undefined => stats[String(row?.name || '').trim()] || stats[String(row?.code || '').trim()];
 
-  return <ResourceView title="테스트 차수" subtitle="회차(1차·2차·회귀 등)별로 테스트를 묶어 계획·진행 상태를 관리합니다." endpoint="/api/test-cycles" entity="testCycles" projectScoped
-    emptyText="등록된 테스트 차수가 없습니다. 1차·2차·회귀 등 회차를 만들고 테스트의 '차수' 필드로 묶어주세요."
+  return <ResourceView title="테스트 차수" subtitle="회차(1차, 2차, 회귀 등)별로 테스트를 묶어 계획, 진행 상태를 관리합니다." endpoint="/api/test-cycles" entity="testCycles" projectScoped
+    emptyText="등록된 테스트 차수가 없습니다. 1차, 2차, 회귀 등 회차를 만들고 테스트의 '차수' 필드로 묶어주세요."
     columns={[
       {key:'code',label:'코드'},
       {key:'name',label:'차수명',strong:true},
-      {key:'cycGoal',label:'목표·범위',render:(_v,row)=>{
+      {key:'cycGoal',label:'목표, 범위',render:(_v,row)=>{
         const ls = lines(row?.goal);
         const status = String(row?.status || 'planned');
         if (!ls.length) {
-          if (status !== 'planned') return <span title="진행·완료된 차수인데 목표·범위가 비어 있습니다 — 무엇을 어디까지 검증했는지 증빙이 없습니다" style={{color:'#c0414f',fontWeight:700,fontSize:11.5,cursor:'help'}}>⚠ 범위 미작성</span>;
+          if (status !== 'planned') return <span title="진행 중이거나 완료된 차수인데 목표, 범위가 비어 있습니다 — 무엇을 어디까지 검증했는지 증빙이 없습니다" style={{color:'#c0414f',fontWeight:700,fontSize:11.5,cursor:'help'}}>⚠ 범위 미작성</span>;
           return <span className="muted" style={{fontSize:11.5}}>미작성</span>;
         }
         const tip = ls.slice(0,8).map((l,i)=>`${i+1}. ${l}`).join('\n') + (ls.length>8?`\n… 외 ${ls.length-8}줄`:'');
@@ -72,7 +72,7 @@ export default function Page() {
         const s0 = String(row?.startDate || '').trim();
         const e0 = String(row?.endDate || '').trim();
         const status = String(row?.status || 'planned');
-        if (!s0 && !e0) return <span title="기간이 없으면 지연 판정·일정 집계에서 제외됩니다" style={{color:status==='planned'?undefined:'#d98a16',fontSize:11.5,cursor:'help'}} className={status==='planned'?'muted':undefined}>기간 미설정</span>;
+        if (!s0 && !e0) return <span title="기간이 없으면 지연 판정, 일정 집계에서 제외됩니다" style={{color:status==='planned'?undefined:'#d98a16',fontSize:11.5,cursor:'help'}} className={status==='planned'?'muted':undefined}>기간 미설정</span>;
         const st = s0 ? new Date(s0).getTime() : NaN;
         const en = e0 ? new Date(e0).getTime() : NaN;
         const now = Date.now();
@@ -89,7 +89,7 @@ export default function Page() {
           e0 ? `종료 ${e0}` : '종료일 미설정',
           pct != null ? `일정 경과 ${pct}%` : null,
           done ? '완료된 차수' : over ? `종료일 ${od >= 1 ? `${od}일 ` : ''}경과 — 차수를 완료 처리하거나 기간을 연장하세요` : dd != null ? (dd <= 0 ? '오늘 종료' : `D-${dd}`) : null,
-        ].filter(Boolean).join(' · ');
+        ].filter(Boolean).join(', ');
         return <div className="row" title={tip} style={{gap:8,cursor:'help',whiteSpace:'nowrap',opacity:done?0.7:1}}>
           <span style={{fontSize:11.5,fontVariantNumeric:'tabular-nums'}}>{md(s0) || '—'}<span className="muted">~</span>{md(e0) || '—'}</span>
           {pct != null && <div className="bar" style={{width:40,minWidth:40}}><i style={{width:`${pct}%`,background:col}}/></div>}
@@ -101,12 +101,12 @@ export default function Page() {
         const s = statOf(row);
         const status = String(row?.status || 'planned');
         if (!s || !s.total) {
-          if (status !== 'planned') return <span title="진행·완료된 차수인데 이 차수에 묶인 테스트 케이스가 없습니다 — 테스트 화면의 '차수' 필드를 이 차수명으로 지정하세요" style={{color:'#c0414f',fontWeight:700,fontSize:11.5,cursor:'help'}}>⚠ 케이스 없음</span>;
+          if (status !== 'planned') return <span title="진행 중이거나 완료된 차수인데 이 차수에 묶인 테스트 케이스가 없습니다 — 테스트 화면의 '차수' 필드를 이 차수명으로 지정하세요" style={{color:'#c0414f',fontWeight:700,fontSize:11.5,cursor:'help'}}>⚠ 케이스 없음</span>;
           return <span className="muted" title="아직 이 차수에 묶인 테스트가 없습니다">—</span>;
         }
         const ran = s.pass + s.fail + s.blocked;
         const leftOver = status === 'done' && s.na > 0;
-        return <span title={`총 ${nfmt(s.total)}건 · 실행 ${nfmt(ran)}건 · 미실행 ${nfmt(s.na)}건${leftOver ? ' — 완료된 차수인데 미실행 케이스가 남아 있습니다' : ''}`} style={{fontSize:12,cursor:'help',whiteSpace:'nowrap'}}>
+        return <span title={`총 ${nfmt(s.total)}건, 실행 ${nfmt(ran)}건, 미실행 ${nfmt(s.na)}건${leftOver ? ' — 완료된 차수인데 미실행 케이스가 남아 있습니다' : ''}`} style={{fontSize:12,cursor:'help',whiteSpace:'nowrap'}}>
           <b>{nfmt(ran)}</b><span className="muted">/{nfmt(s.total)}</span>
           {leftOver && <span style={{marginLeft:6,color:'#c0414f',fontWeight:700,fontSize:11.5}}>⚠ 미실행 {nfmt(s.na)}</span>}
         </span>;
@@ -120,7 +120,7 @@ export default function Page() {
         }
         const pct = Math.min(100, s.rate);
         const col = pct >= 80 ? '#2f8f5b' : pct >= 50 ? '#d98a16' : '#c0414f';
-        return <div className="row" style={{gap:8,cursor:'help',whiteSpace:'nowrap'}} title={`통과 ${nfmt(s.pass)} · 실패 ${nfmt(s.fail)} · 블록 ${nfmt(s.blocked)} · 미실행 ${nfmt(s.na)} — 통과율은 실행된 ${nfmt(s.pass + s.fail + s.blocked)}건 기준`}>
+        return <div className="row" style={{gap:8,cursor:'help',whiteSpace:'nowrap'}} title={`통과 ${nfmt(s.pass)}, 실패 ${nfmt(s.fail)}, 블록 ${nfmt(s.blocked)}, 미실행 ${nfmt(s.na)} — 통과율은 실행된 ${nfmt(s.pass + s.fail + s.blocked)}건 기준`}>
           <div className="bar"><i style={{width:`${pct}%`,background:col}}/></div>
           <span style={{fontSize:11.5,color:col,fontWeight:700,fontVariantNumeric:'tabular-nums'}}>{pct}%</span>
           {s.fail > 0 && <span title={`실패 ${nfmt(s.fail)}건 — 결함 조치 후 재실행이 필요합니다`} style={{color:'#c0414f',fontWeight:700,fontSize:11}}>⚠{nfmt(s.fail)}</span>}
@@ -131,7 +131,7 @@ export default function Page() {
     ]}
     fields={[
       {key:'name',label:'차수명',required:true,placeholder:'예: 1차 통합테스트',hint:'테스트 화면의 \'차수\' 필드에 같은 이름을 넣으면 이 차수로 묶입니다'},
-      {key:'goal',label:'목표·범위',type:'textarea',hint:'한 줄에 항목 하나씩 · 검증 대상 기능·제외 범위·합격 기준 등'},
+      {key:'goal',label:'목표, 범위',type:'textarea',hint:'한 줄에 항목 하나씩, 검증 대상 기능, 제외 범위, 합격 기준 등'},
       {key:'status',label:'상태',type:'select',half:true,options:[{value:'planned',label:'계획'},{value:'active',label:'진행'},{value:'done',label:'완료'}]},
       {key:'startDate',label:'시작일',type:'date',half:true},
       {key:'endDate',label:'종료일',type:'date',half:true,hint:'종료일이 지났는데 진행 상태면 목록에 초과일수가 표시됩니다'},

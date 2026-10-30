@@ -18,8 +18,8 @@ export function DocumentVersions({ documentId }: { documentId: number }) {
           <div className="cmt" key={v.id}>
             <div className="av" aria-hidden="true">{String(v.version || 'v').replace(/^v/i, '').slice(0, 3) || 'v'}</div>
             <div className="bd">
-              <div className="nm">{v.version || '—'} <span className="muted" style={{ fontWeight: 500 }}>· {STATUS_LABEL[v.status] || v.status || ''}</span></div>
-              <div className="tx" style={{ fontSize: 12.5 }}>{v.note || ''}{v.author ? ` · ${v.author}` : ''}</div>
+              <div className="nm">{v.version || '—'} <span className="muted" style={{ fontWeight: 500 }}>,  {STATUS_LABEL[v.status] || v.status || ''}</span></div>
+              <div className="tx" style={{ fontSize: 12.5 }}>{v.note || ''}{v.author ? `, ${v.author}` : ''}</div>
               <div className="mt">{v.createdAt ? new Date(v.createdAt).toLocaleString('ko-KR') : ''}</div>
             </div>
           </div>

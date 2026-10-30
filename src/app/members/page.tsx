@@ -68,7 +68,7 @@ export default function Page() {
   const statOf = (row: any): Stat | undefined => stats[String(row?.name || '').trim()];
 
   return <ResourceView title="인력" subtitle="조직 인력 명부입니다." endpoint="/api/members" entity="members" statusKey="role"
-    emptyText="등록된 인력이 없습니다. 이름·역할·소속을 등록해 담당자 배정과 부하 집계의 기준을 만드세요."
+    emptyText="등록된 인력이 없습니다. 이름, 역할, 소속을 등록해 담당자 배정과 부하 집계의 기준을 만드세요."
     columns={[
       {key:'code',label:'코드'},
       {key:'name',label:'이름',strong:true},
@@ -78,7 +78,7 @@ export default function Page() {
       {key:'memTasks',label:'업무',render:(_v,row)=>{
         const s = statOf(row);
         if (!s || !s.total) return <span className="muted" style={{fontSize:11.5}}>—</span>;
-        return <span title={`총 ${nfmt(s.total)}건 · 완료 ${nfmt(s.done)}건 · 진행 ${nfmt(s.doing)}건 · 대기 ${nfmt(s.todo)}건`} style={{fontSize:12,cursor:'help'}}>
+        return <span title={`총 ${nfmt(s.total)}건, 완료 ${nfmt(s.done)}건, 진행 ${nfmt(s.doing)}건, 대기 ${nfmt(s.todo)}건`} style={{fontSize:12,cursor:'help'}}>
           <b>{nfmt(s.done)}</b><span className="muted">/{nfmt(s.total)}</span>
           {s.overdue > 0 && <span title={`기한 초과 ${nfmt(s.overdue)}건`} style={{marginLeft:6,color:'#c0414f',fontWeight:700,fontSize:11.5}}>⚠{nfmt(s.overdue)}</span>}
         </span>;
@@ -89,7 +89,7 @@ export default function Page() {
         // 절대 기준이 없으므로 조직 내 최다 미완료 담당자를 100%로 놓은 상대 부하로 표시
         const pct = maxOpen ? Math.max(6, Math.round((s.open / maxOpen) * 100)) : 0;
         const col = s.overdue > 0 ? '#c0414f' : s.open >= 5 ? '#d98a16' : '#2f8f5b';
-        return <div className="row" style={{gap:8}} title={`미완료 업무 ${nfmt(s.open)}건 (진행 ${nfmt(s.doing)} · 대기 ${nfmt(s.todo)})${s.overdue ? ` · 기한 초과 ${nfmt(s.overdue)}건` : ''} — 조직 최다 담당자 대비 ${pct}%`}>
+        return <div className="row" style={{gap:8}} title={`미완료 업무 ${nfmt(s.open)}건 (진행 ${nfmt(s.doing)}, 대기 ${nfmt(s.todo)})${s.overdue ? `, 기한 초과 ${nfmt(s.overdue)}건` : ''} — 조직 최다 담당자 대비 ${pct}%`}>
           <div className="bar"><i style={{width:`${pct}%`,background:col}}/></div>
           <span style={{fontSize:11.5,color:col,fontWeight:700}}>{nfmt(s.open)}건</span>
         </div>;
@@ -97,7 +97,7 @@ export default function Page() {
       {key:'memIssues',label:'미해결 이슈',render:(_v,row)=>{
         const s = statOf(row);
         if (!s || !s.issues) return <span className="muted" style={{fontSize:11.5}}>—</span>;
-        return <span title={`담당 미해결 이슈 ${nfmt(s.issues)}건 (해결·종료 제외)`} style={{fontSize:11.5,fontWeight:700,color:s.issues >= 3 ? '#c0414f' : '#d98a16',cursor:'help'}}>{nfmt(s.issues)}건</span>;
+        return <span title={`담당 미해결 이슈 ${nfmt(s.issues)}건 (해결, 종료 제외)`} style={{fontSize:11.5,fontWeight:700,color:s.issues >= 3 ? '#c0414f' : '#d98a16',cursor:'help'}}>{nfmt(s.issues)}건</span>;
       }},
       // 이메일: 형식 오류·중복 등록 경고 — 알림·결재 통지의 수신처 신뢰도(잘못된 주소면 통지 유실)
       {key:'email',label:'이메일',render:(v,row)=>{
@@ -108,8 +108,8 @@ export default function Page() {
         const dup = !bad && peers.length > 0;
         return <span style={{display:'inline-flex',alignItems:'center',gap:6,maxWidth:220}}>
           <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:bad||dup?'#c0414f':undefined,fontWeight:bad||dup?700:undefined}} title={e}>{e}</span>
-          {bad && <span title="이메일 형식이 올바르지 않습니다 — 오타·공백 여부를 확인하세요" style={{color:'#d98a16',fontWeight:700,fontSize:11.5,cursor:'help',flex:'0 0 auto'}}>형식 확인</span>}
-          {dup && <span title={`같은 이메일을 쓰는 인력이 있습니다 — ${peers.join(', ')} (계정 중복·오배정 가능)`} style={{color:'#c0414f',fontWeight:700,fontSize:11.5,cursor:'help',flex:'0 0 auto'}}>⚠ 중복</span>}
+          {bad && <span title="이메일 형식이 올바르지 않습니다 — 오타, 공백 여부를 확인하세요" style={{color:'#d98a16',fontWeight:700,fontSize:11.5,cursor:'help',flex:'0 0 auto'}}>형식 확인</span>}
+          {dup && <span title={`같은 이메일을 쓰는 인력이 있습니다 — ${peers.join(', ')} (계정 중복, 오배정 가능)`} style={{color:'#c0414f',fontWeight:700,fontSize:11.5,cursor:'help',flex:'0 0 auto'}}>⚠ 중복</span>}
         </span>;
       }},
       // 연락처: 자리수 이상(9~11자리 벗어남) 색출 — 입력 오류
@@ -124,5 +124,5 @@ export default function Page() {
         </span>;
       }},
     ]}
-    fields={[{key:'name',label:'이름',required:true,half:true},{key:'role',label:'역할',type:'select',options:['PM','PMO','개발PL','개발자','인프라','DBA','QA'],half:true},{key:'company',label:'소속',half:true},{key:'position',label:'직책',type:'combo',half:true,options:['사원','대리','과장','차장','부장','수석','책임','선임','전임','대표']},{key:'email',label:'이메일',half:true,hint:'통지·결재 알림 수신처 · 형식 오류·중복 시 목록에서 경고합니다'},{key:'phone',label:'연락처',half:true,placeholder:'예: 010-1234-5678'}]} />;
+    fields={[{key:'name',label:'이름',required:true,half:true},{key:'role',label:'역할',type:'select',options:['PM','PMO','개발PL','개발자','인프라','DBA','QA'],half:true},{key:'company',label:'소속',half:true},{key:'position',label:'직책',type:'combo',half:true,options:['사원','대리','과장','차장','부장','수석','책임','선임','전임','대표']},{key:'email',label:'이메일',half:true,hint:'통지, 결재 알림 수신처, 형식 오류, 중복 시 목록에서 경고합니다'},{key:'phone',label:'연락처',half:true,placeholder:'예: 010-1234-5678'}]} />;
 }

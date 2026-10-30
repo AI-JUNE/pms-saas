@@ -36,7 +36,7 @@ export function DocumentForm({ documentId, projectId, docType }: { documentId: n
       <div className="row" style={{ alignItems: 'center', gap: 8 }}>
         <label htmlFor={`docform-sel-${documentId}`} className="sect" style={{ margin: 0 }}>적용 양식</label>
         <select id={`docform-sel-${documentId}`} className="sel" value={sel ?? ''} onChange={(e) => setSel(Number(e.target.value) || null)} aria-label="적용할 산출물 양식">
-          {ordered.map((d) => <option key={d.id} value={d.id}>{d.name}{d.targetType ? ` (${d.targetType})` : ''}{d.status === 'active' ? '' : ' · 미사용'}</option>)}
+          {ordered.map((d) => <option key={d.id} value={d.id}>{d.name}{d.targetType ? ` (${d.targetType})` : ''}{d.status === 'active' ? '' : ', 미사용'}</option>)}
         </select>
       </div>
       {sel && <FormFill key={sel} definitionId={sel} documentId={documentId} compact />}

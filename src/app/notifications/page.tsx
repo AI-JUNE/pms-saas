@@ -112,7 +112,7 @@ export default function Page() {
           <h2 className="h1">알림</h2>
           <p className="h-sub">
             내게 온 알림입니다. (최근 50건)
-            {unread > 0 && <> · <b style={{ color: 'var(--brand)' }}>{nfmt(unread)}건 읽지 않음</b></>}
+            {unread > 0 && <>, <b style={{ color: 'var(--brand)' }}>{nfmt(unread)}건 읽지 않음</b></>}
           </p>
         </div>
         <div className="sp" />
@@ -154,7 +154,7 @@ export default function Page() {
         <div className="sp" />
         {/* 스크린리더 라이브 안내 — 로딩·검색/필터 결과 변화 낭독 (ResourceView 배치147 패턴) */}
         <span className="sr-only" role="status">{!loaded ? '알림 목록을 불러오는 중' : `알림 ${nfmt(view.length)}건 표시${filtered ? ` (전체 ${nfmt(rows.length)}건 중)` : ''}`}</span>
-        <span className="muted" title={filtered ? `전체 ${nfmt(rows.length)}건 중 조건에 맞는 ${nfmt(view.length)}건을 표시합니다.` : `마감 초과 ${nfmt(counts.overdue)} · 마감 임박 ${nfmt(counts.due)} · 결재 대기 ${nfmt(counts.approval)} · 일반 ${nfmt(counts.etc)}`}>
+        <span className="muted" title={filtered ? `전체 ${nfmt(rows.length)}건 중 조건에 맞는 ${nfmt(view.length)}건을 표시합니다.` : `마감 초과 ${nfmt(counts.overdue)}, 마감 임박 ${nfmt(counts.due)}, 결재 대기 ${nfmt(counts.approval)}, 일반 ${nfmt(counts.etc)}`}>
           {filtered ? <><b style={{ color: 'var(--brand)' }}>{nfmt(view.length)}</b>/{nfmt(rows.length)}건</> : <>{nfmt(rows.length)}건</>}
         </span>
       </div>
@@ -196,7 +196,7 @@ export default function Page() {
                       <span aria-hidden="true" style={{ display: 'inline-block', width: 14, color: 'var(--text-3)' }}>{isCollapsed ? '▸' : '▾'}</span>
                       <span className={`pill ${gInfo.cls}`} title={gInfo.tip} style={{ marginRight: 8 }}>{gInfo.label}</span>
                       <span className="muted">{nfmt(items.length)}건</span>
-                      {gUnread > 0 && <span style={{ color: 'var(--brand)', marginLeft: 8, fontSize: 12 }}>· 안 읽음 {nfmt(gUnread)}</span>}
+                      {gUnread > 0 && <span style={{ color: 'var(--brand)', marginLeft: 8, fontSize: 12 }}>,  안 읽음 {nfmt(gUnread)}</span>}
                     </td>
                   </tr>
                   {!isCollapsed && items.map((n) => renderRow(n))}
@@ -209,7 +209,7 @@ export default function Page() {
                   <Bell />
                   <div>{rows.length === 0
                     ? '알림이 없습니다. 마감이 임박하거나 결재가 대기하면 자동으로 알려드립니다.'
-                    : '조건에 맞는 알림이 없습니다. 검색어·유형 필터를 조정해 보세요.'}</div>
+                    : '조건에 맞는 알림이 없습니다. 검색어, 유형 필터를 조정해 보세요.'}</div>
                 </div>
               </td></tr>
             )}

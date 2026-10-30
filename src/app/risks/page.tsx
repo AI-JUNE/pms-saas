@@ -19,8 +19,8 @@ function scaleCell(v: any, kind: string) {
 }
 
 export default function Page() {
-  return <ResourceView title="리스크" subtitle="리스크를 식별·평가합니다. 등급은 발생가능성×영향도로 자동 산정됩니다." endpoint="/api/risks" entity="risks" projectScoped
-    emptyText="식별된 리스크가 없습니다. “새로 만들기”로 리스크를 등록하고 발생가능성·영향도·대응방안을 기록하세요."
+  return <ResourceView title="리스크" subtitle="리스크를 식별하고 평가합니다. 등급은 발생가능성×영향도로 자동 산정됩니다." endpoint="/api/risks" entity="risks" projectScoped
+    emptyText="식별된 리스크가 없습니다. “새로 만들기”로 리스크를 등록하고 발생가능성, 영향도, 대응방안을 기록하세요."
     altViews={[{ key: 'matrix', label: '매트릭스', render: (rows, openDetail) => <RiskMatrix rows={rows} openDetail={openDetail} /> }]}
     columns={[
       { key: 'code', label: '코드' },
@@ -30,9 +30,9 @@ export default function Page() {
       // 노출도 = 발생가능성 × 영향도 (1~25) — 등급의 산출 근거를 목록에서 바로 확인
       { key: 'exposure', label: '노출도', render: (_v: any, row: any) => {
         const p = num(row.probability), i = num(row.impact);
-        if (!p || !i) return <span className="muted" title="발생가능성·영향도가 입력되지 않아 노출도를 산출할 수 없습니다" style={{ cursor: 'help' }}>미평가</span>;
+        if (!p || !i) return <span className="muted" title="발생가능성, 영향도가 입력되지 않아 노출도를 산출할 수 없습니다" style={{ cursor: 'help' }}>미평가</span>;
         const s = p * i; const g = gradeOf(s); const closed = String(row.status) === 'closed';
-        const tip = `발생가능성 ${p}(${SCALE[p]}) × 영향도 ${i}(${SCALE[i]}) = ${s}점 / 25점\n등급 ${g.label} — 15점↑ 높음 · 8점↑ 보통${closed ? '\n※ 종료된 리스크' : s >= 15 ? '\n최우선 대응 대상' : ''}`;
+        const tip = `발생가능성 ${p}(${SCALE[p]}) × 영향도 ${i}(${SCALE[i]}) = ${s}점 / 25점\n등급 ${g.label} — 15점↑ 높음, 8점↑ 보통${closed ? '\n※ 종료된 리스크' : s >= 15 ? '\n최우선 대응 대상' : ''}`;
         return <span title={tip} style={{ cursor: 'help', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
           <span style={{ color: closed ? undefined : g.color, fontWeight: 700, fontVariantNumeric: 'tabular-nums', opacity: closed ? 0.55 : 1 }}>{s}</span>
           <span aria-hidden style={{ width: 44, height: 5, borderRadius: 3, background: '#eceaea', overflow: 'hidden', display: 'inline-block' }}>
@@ -48,7 +48,7 @@ export default function Page() {
         const closed = String(row.status) === 'closed';
         const risky = s >= 15 || String(row.level) === 'high' || String(row.level) === 'critical';
         if (!m.length) {
-          if (risky && !closed) return <span title={`노출도 ${s || '?'}점(등급 높음) 리스크인데 대응방안(완화계획)이 비어 있습니다.\n상세를 열어 완화계획을 작성하세요 — 고위험 리스크의 대응방안 누락은 감리·검수 지적 대상입니다.`} style={{ color: '#c0414f', fontWeight: 700, cursor: 'help' }}>⚠ 대응방안 미작성</span>;
+          if (risky && !closed) return <span title={`노출도 ${s || '?'}점(등급 높음) 리스크인데 대응방안(완화계획)이 비어 있습니다.\n상세를 열어 완화계획을 작성하세요 — 고위험 리스크의 대응방안 누락은 감리, 검수 지적 대상입니다.`} style={{ color: '#c0414f', fontWeight: 700, cursor: 'help' }}>⚠ 대응방안 미작성</span>;
           return <span className="muted" title={closed ? '종료된 리스크입니다' : '대응방안(완화계획)이 아직 작성되지 않았습니다'} style={{ cursor: 'help' }}>미작성</span>;
         }
         const tip = [
@@ -84,12 +84,12 @@ export default function Page() {
     fields={[
       { key: 'title', label: '제목', required: true },
       { key: 'description', label: '설명', type: 'textarea' },
-      { key: 'probability', label: '발생가능성(1-5)', type: 'number', half: true, hint: '1 매우낮음 · 2 낮음 · 3 보통 · 4 높음 · 5 매우높음' },
-      { key: 'impact', label: '영향도(1-5)', type: 'number', half: true, hint: '1 매우낮음 · 2 낮음 · 3 보통 · 4 높음 · 5 매우높음' },
+      { key: 'probability', label: '발생가능성(1-5)', type: 'number', half: true, hint: '1 매우낮음, 2 낮음, 3 보통, 4 높음, 5 매우높음' },
+      { key: 'impact', label: '영향도(1-5)', type: 'number', half: true, hint: '1 매우낮음, 2 낮음, 3 보통, 4 높음, 5 매우높음' },
       { key: 'status', label: '상태', type: 'select', options: ['identified', 'mitigating', 'closed'], half: true },
       { key: 'owner', label: '담당자', type: 'combo', optionsFrom: 'members', half: true, placeholder: '인력 선택/입력' },
       { key: 'dueDate', label: '대응 기한', type: 'date', half: true },
-      { key: 'mitigation', label: '대응방안(완화계획)', type: 'textarea', hint: '한 줄에 조치 하나씩 — 발생 확률·영향을 낮추기 위한 사전 조치' },
+      { key: 'mitigation', label: '대응방안(완화계획)', type: 'textarea', hint: '한 줄에 조치 하나씩 — 발생 확률, 영향을 낮추기 위한 사전 조치' },
       { key: 'contingency', label: '비상계획(Contingency)', type: 'textarea', hint: '한 줄에 조치 하나씩 — 리스크가 실제로 발생했을 때의 대응 절차' },
     ]} />;
 }

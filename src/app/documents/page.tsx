@@ -36,7 +36,7 @@ export default function Page() {
       // 유형 미지정 산출물은 표준 양식(form_definitions) 매칭·유형별 집계에서 분류되지 않는다
       {key:'type',label:'유형',render:(v)=>{
         const s = String(v ?? '').trim();
-        if (!s) return <span title="산출물 유형이 지정되지 않아 표준 양식 매칭·유형별 집계에서 제외됩니다" style={{fontSize:11.5,color:'#d98a16',fontWeight:700,cursor:'help'}}>미지정</span>;
+        if (!s) return <span title="산출물 유형이 지정되지 않아 표준 양식 매칭, 유형별 집계에서 제외됩니다" style={{fontSize:11.5,color:'#d98a16',fontWeight:700,cursor:'help'}}>미지정</span>;
         return <span style={{fontSize:12}}>{s}</span>;
       }},
       {key:'version',label:'버전'},
@@ -79,5 +79,5 @@ export default function Page() {
         return <span className="muted">—</span>;
       }},
     ]}
-    fields={[{key:'title',label:'문서명',required:true},{key:'type',label:'유형',type:'combo',half:true,options:['요구사항정의서','기본설계서','상세설계서','테스트계획서','테스트결과서','회의록','사용자매뉴얼','운영매뉴얼','기타'],hint:'표준 양식 매칭에 쓰이니 가급적 지정하세요'},{key:'version',label:'버전',type:'combo',half:true,options:['v1.0','v1.1','v1.2','v2.0','v3.0'],placeholder:'예: v1.0'},{key:'status',label:'결재상태',type:'select',options:[{value:'draft',label:'작성중'},{value:'review',label:'결재요청'},{value:'approved',label:'승인'},{value:'rejected',label:'반려'}],half:true},{key:'author',label:'작성자',type:'combo',optionsFrom:'members',half:true,placeholder:'인력 선택/입력'},{key:'approver',label:'결재자',type:'combo',optionsFrom:'members',half:true,placeholder:'인력 선택/입력',hint:'승인·반려 시 결재 증빙으로 남습니다'}]} />;
+    fields={[{key:'title',label:'문서명',required:true},{key:'type',label:'유형',type:'combo',half:true,options:['요구사항정의서','기본설계서','상세설계서','테스트계획서','테스트결과서','회의록','사용자매뉴얼','운영매뉴얼','기타'],hint:'표준 양식 매칭에 쓰이니 가급적 지정하세요'},{key:'version',label:'버전',type:'combo',half:true,options:['v1.0','v1.1','v1.2','v2.0','v3.0'],placeholder:'예: v1.0'},{key:'status',label:'결재상태',type:'select',options:[{value:'draft',label:'작성중'},{value:'review',label:'결재요청'},{value:'approved',label:'승인'},{value:'rejected',label:'반려'}],half:true},{key:'author',label:'작성자',type:'combo',optionsFrom:'members',half:true,placeholder:'인력 선택/입력'},{key:'approver',label:'결재자',type:'combo',optionsFrom:'members',half:true,placeholder:'인력 선택/입력',hint:'승인, 반려 시 결재 증빙으로 남습니다'}]} />;
 }

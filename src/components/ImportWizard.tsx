@@ -86,9 +86,9 @@ export function ImportWizard({ title, endpoint, fields, projectId, projectScoped
         <div className="modal-b">
           {!table && (
             <div className="imp-step">
-              <p className="muted" style={{ marginTop: 0 }}>엑셀(.xlsx)·CSV·이 화면에서 내보낸 엑셀 파일을 고르거나, 엑셀에서 복사한 표를 붙여 넣으세요. 첫 줄(또는 머리글 줄)의 열 이름으로 항목을 자동으로 짝짓습니다.</p>
+              <p className="muted" style={{ marginTop: 0 }}>엑셀(.xlsx), CSV, 이 화면에서 내보낸 엑셀 파일을 고르거나, 엑셀에서 복사한 표를 붙여 넣으세요. 첫 줄(또는 머리글 줄)의 열 이름으로 항목을 자동으로 짝짓습니다.</p>
               <label className="imp-drop">
-                <Upload style={{ width: 22 }} /><span><b>파일 고르기</b> · .xlsx .csv .tsv .xls(내보낸 파일) · 10MB, 1,000행까지</span>
+                <Upload style={{ width: 22 }} /><span><b>파일 고르기</b>, .xlsx .csv .tsv .xls(내보낸 파일), 10MB, 1,000행까지</span>
                 <input type="file" accept=".xlsx,.csv,.tsv,.txt,.xls" onChange={(e) => onFile(e.target.files?.[0])} />
               </label>
               <div className="field" style={{ marginTop: 12 }}>
@@ -101,9 +101,9 @@ export function ImportWizard({ title, endpoint, fields, projectId, projectScoped
           {table && !done && result && (
             <div className="imp-step">
               <div className="row" style={{ gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-                <span className="muted">{src} · {table.length}줄</span>
+                <span className="muted">{src}, {table.length}줄</span>
                 <label style={{ fontSize: 13 }}>머리글 줄 <select className="in" style={{ width: 'auto', display: 'inline-block' }} value={hdr} onChange={(e) => pickHeader(Number(e.target.value))}>
-                  {table.slice(0, 10).map((r, i) => <option key={i} value={i}>{i + 1}줄 · {r.filter(Boolean).slice(0, 3).join(', ').slice(0, 30)}</option>)}
+                  {table.slice(0, 10).map((r, i) => <option key={i} value={i}>{i + 1}줄, {r.filter(Boolean).slice(0, 3).join(', ').slice(0, 30)}</option>)}
                 </select></label>
                 <div className="sp" />
                 <button className="btn btn-ghost" onClick={() => { setTable(null); setPaste(''); }}>다른 파일</button>
@@ -125,11 +125,11 @@ export function ImportWizard({ title, endpoint, fields, projectId, projectScoped
               </div>
               <div className="imp-sum">
                 <b>{result.bodies.length.toLocaleString('ko-KR')}건 등록 가능</b>
-                {result.problems.length > 0 && <span className="imp-bad"> · 확인 필요 {result.problems.length.toLocaleString('ko-KR')}건(이 행들은 빼고 등록)</span>}
-                {result.skippedEmpty > 0 && <span className="muted"> · 빈 줄 {result.skippedEmpty}개 건너뜀</span>}
+                {result.problems.length > 0 && <span className="imp-bad">, 확인 필요 {result.problems.length.toLocaleString('ko-KR')}건(이 행들은 빼고 등록)</span>}
+                {result.skippedEmpty > 0 && <span className="muted">, 빈 줄 {result.skippedEmpty}개 건너뜀</span>}
               </div>
               {result.problems.length > 0 && (
-                <ul className="imp-list">{result.problems.slice(0, 50).map((p, i) => <li key={i}>{p.row ? `${p.row}행 · ` : ''}{p.field && <b>{p.field}</b>} {p.msg}</li>)}
+                <ul className="imp-list">{result.problems.slice(0, 50).map((p, i) => <li key={i}>{p.row ? `${p.row}행, ` : ''}{p.field && <b>{p.field}</b>} {p.msg}</li>)}
                   {result.problems.length > 50 && <li className="muted">외 {result.problems.length - 50}건</li>}</ul>
               )}
               {busy && <div className="imp-prog" role="progressbar" aria-valuemin={0} aria-valuemax={result.bodies.length} aria-valuenow={prog}><i style={{ width: `${(prog / Math.max(1, result.bodies.length)) * 100}%` }} /><span>{prog} / {result.bodies.length}</span></div>}
@@ -138,7 +138,7 @@ export function ImportWizard({ title, endpoint, fields, projectId, projectScoped
           {done && (
             <div className="imp-step">
               <p style={{ fontSize: 15, marginTop: 0 }}><b>{done.ok.toLocaleString('ko-KR')}건 등록했습니다.</b>{done.fail.length > 0 && <span className="imp-bad"> {done.fail.length}건은 등록하지 못했습니다.</span>}</p>
-              {done.fail.length > 0 && <ul className="imp-list">{done.fail.slice(0, 50).map((f, i) => <li key={i}>{f.row}행 · {f.msg}</li>)}</ul>}
+              {done.fail.length > 0 && <ul className="imp-list">{done.fail.slice(0, 50).map((f, i) => <li key={i}>{f.row}행, {f.msg}</li>)}</ul>}
             </div>
           )}
           {err && <div className="imp-bad" role="alert" style={{ marginTop: 10 }}>{err}</div>}

@@ -27,8 +27,8 @@ export default function Page() {
       .catch(() => {});
   }, []);
 
-  return <ResourceView title="조달" subtitle="장비·SW 조달 품목과 발주 상태를 관리합니다." endpoint="/api/procurement" projectScoped entity="procurement" statusKey="category"
-    emptyText="등록된 조달 품목이 없습니다. 장비·SW·라이선스 등 구매 품목을 등록해 발주·입고를 추적하세요."
+  return <ResourceView title="조달" subtitle="장비, SW 조달 품목과 발주 상태를 관리합니다." endpoint="/api/procurement" projectScoped entity="procurement" statusKey="category"
+    emptyText="등록된 조달 품목이 없습니다. 장비, SW, 라이선스 등 구매 품목을 등록해 발주, 입고를 추적하세요."
     columns={[
       {key:'code',label:'코드'},
       {key:'item',label:'품목',strong:true},
@@ -60,7 +60,7 @@ export default function Page() {
             ? <span title="발주 이후 단계인데 업체가 비어 있습니다" style={{color:'#d98a16',fontWeight:700,fontSize:11.5}}>미지정</span>
             : <span className="muted">—</span>)},
       // 발주·입고: 발주번호·입고일과 상태의 정합성 검사 — 상태만 넣고 근거(발주번호·입고일)는 비운 행을 색출
-      {key:'poNumber',label:'발주·입고',render:(v,row)=>{
+      {key:'poNumber',label:'발주, 입고',render:(v,row)=>{
         const st = String(row?.status ?? '');
         const po = String(v ?? '').trim();
         const rc = String(row?.receiptDate ?? '').trim();
@@ -68,10 +68,10 @@ export default function Page() {
         if (po) chips.push(<b key="po" title={`발주번호 ${po}`} style={{fontSize:11.5,color:'var(--brand)',background:'rgba(36,87,197,.08)',borderRadius:99,padding:'1px 7px',whiteSpace:'nowrap'}}>{po}</b>);
         if (rc) chips.push(<span key="rc" title={`입고일 ${rc}`} style={{fontSize:11.5,color:'#2f8f5b',fontWeight:700,whiteSpace:'nowrap'}}>입고 {rc}</span>);
         const warns: any[] = [];
-        if (!po && ORDERED_UP.includes(st)) warns.push(<span key="w1" title="발주 이후 단계인데 발주번호(PO)가 기재되지 않았습니다 — 감리·정산 시 증빙 누락" style={{color:'#c0414f',fontWeight:700,fontSize:11.5,cursor:'help'}}>⚠ 발주번호 없음</span>);
-        if (!rc && RECEIVED_UP.includes(st)) warns.push(<span key="w2" title="입고·완료 상태인데 입고일이 비어 있습니다 — 검수 일자를 기록하세요" style={{color:'#c0414f',fontWeight:700,fontSize:11.5,cursor:'help'}}>⚠ 입고일 없음</span>);
+        if (!po && ORDERED_UP.includes(st)) warns.push(<span key="w1" title="발주 이후 단계인데 발주번호(PO)가 기재되지 않았습니다 — 감리, 정산 시 증빙 누락" style={{color:'#c0414f',fontWeight:700,fontSize:11.5,cursor:'help'}}>⚠ 발주번호 없음</span>);
+        if (!rc && RECEIVED_UP.includes(st)) warns.push(<span key="w2" title="입고 또는 완료 상태인데 입고일이 비어 있습니다 — 검수 일자를 기록하세요" style={{color:'#c0414f',fontWeight:700,fontSize:11.5,cursor:'help'}}>⚠ 입고일 없음</span>);
         if (rc && !RECEIVED_UP.includes(st)) warns.push(<span key="w3" title="입고일이 기록됐는데 상태가 아직 입고로 바뀌지 않았습니다 — 상태를 갱신하세요" style={{color:'#d98a16',fontWeight:700,fontSize:11.5,cursor:'help'}}>상태 미갱신</span>);
-        if (!chips.length && !warns.length) return <span className="muted" style={{fontSize:11.5}} title="발주번호·입고일을 입력하면 여기에 표시됩니다">—</span>;
+        if (!chips.length && !warns.length) return <span className="muted" style={{fontSize:11.5}} title="발주번호, 입고일을 입력하면 여기에 표시됩니다">—</span>;
         return <span style={{display:'inline-flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>{chips}{warns}</span>;
       }},
       {key:'deliveryDate',label:'납기',render:(v,row)=>{
@@ -91,8 +91,8 @@ export default function Page() {
     fields={[
       {key:'item',label:'품목명',required:true,placeholder:'예: WAS 서버(2대) / DBMS 라이선스'},
       {key:'category',label:'분류',type:'select',options:['HW','SW','네트워크','라이선스','용역'],half:true},
-      {key:'vendor',label:'업체',half:true,placeholder:'공급·납품 업체명'},
-      {key:'poNumber',label:'발주번호(PO)',half:true,hint:'발주 이후에는 반드시 기재 · 정산·감리 증빙'},
+      {key:'vendor',label:'업체',half:true,placeholder:'공급, 납품 업체명'},
+      {key:'poNumber',label:'발주번호(PO)',half:true,hint:'발주 이후에는 반드시 기재, 정산, 감리 증빙'},
       {key:'qty',label:'수량',type:'number',numeric:true,half:true},
       {key:'unitPrice',label:'단가(원)',type:'number',comma:true,numeric:true,half:true,hint:'수량×단가로 금액이 자동 산출됩니다'},
       {key:'deliveryDate',label:'납기일',type:'date',half:true},

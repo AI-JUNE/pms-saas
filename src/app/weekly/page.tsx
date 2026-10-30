@@ -83,14 +83,14 @@ export default function Page() {
   return (
     <Shell title="주간보고">
       <div className="row" style={{ marginBottom: 14 }}>
-        <div><h2 className="h1">주간 업무보고</h2><p className="h-sub">{proj ? `${proj.code} · ${proj.name}` : ''} · {ymd(mon)} ~ {ymd(sun)}</p></div>
+        <div><h2 className="h1">주간 업무보고</h2><p className="h-sub">{proj ? `${proj.code}, ${proj.name}` : ''}, {ymd(mon)} ~ {ymd(sun)}</p></div>
         <div className="sp" /><button className="btn no-print" onClick={() => window.print()}><Printer style={{ width: 15 }} />인쇄 / PDF</button>
       </div>
 
       {/* 스크린리더 라이브 안내 — 배치147~149·165·166 패턴(ResourceView 미사용 요약 화면)과 동일 */}
       <span className="sr-only" role="status">
         {!loaded ? '주간보고를 불러오는 중'
-          : `${ymd(mon)}부터 ${ymd(sun)}까지 주간보고 · 전체 진척 ${pct}% · 이번 주 완료 ${nfmt(doneWeek.length)}건 · 진행중 ${nfmt(doing.length)}건 · 지연 ${nfmt(overdue.length)}건 · 미결 이슈 ${nfmt(openIssues.length)}건 · ${LABEL.high} 리스크 ${nfmt(highRisks.length)}건`}
+          : `${ymd(mon)}부터 ${ymd(sun)}까지 주간보고, 전체 진척 ${pct}%, 이번 주 완료 ${nfmt(doneWeek.length)}건, 진행중 ${nfmt(doing.length)}건, 지연 ${nfmt(overdue.length)}건, 미결 이슈 ${nfmt(openIssues.length)}건, ${LABEL.high} 리스크 ${nfmt(highRisks.length)}건`}
       </span>
 
       {!loaded && (
@@ -115,14 +115,14 @@ export default function Page() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16 }}>
         <div>
           <Block icon={CheckCircle2} title="이번 주 완료" color="#2f8f5b" items={doneWeek}
-            note={`${md(mon)} ~ ${md(sun)} · 누적 ${nfmt(doneAll.length)}건`}
-            empty="이번 주 마감·완료된 업무가 없습니다. (누적 완료는 상단 KPI 참조)"
+            note={`${md(mon)} ~ ${md(sun)}, 누적 ${nfmt(doneAll.length)}건`}
+            empty="이번 주 마감, 완료된 업무가 없습니다. (누적 완료는 상단 KPI 참조)"
             render={(r: any) => (<><span className="mono" style={{ fontSize: 11.5, color: 'var(--text-3)', minWidth: 66 }}>{r.code}</span><span style={{ flex: 1, fontSize: 13 }}>{r.name}</span><span className="muted" style={{ fontSize: 11 }}>{r.endDate || ''}</span><span className="muted" style={{ fontSize: 11.5 }}>{r.assignee || ''}</span></>)} />
           <Block icon={Clock} title="진행중" color="#2457C5" items={doing} empty="진행중인 업무가 없습니다."
             render={(r: any) => (<><span className="mono" style={{ fontSize: 11.5, color: 'var(--text-3)', minWidth: 66 }}>{r.code}</span><span style={{ flex: 1, fontSize: 13 }}>{r.name}</span><span style={{ fontSize: 11.5, fontWeight: 700 }}>{r.progress || 0}%</span><span className="muted" style={{ fontSize: 11 }}>{r.endDate || ''}</span></>)} />
           <Block icon={CalendarRange} title="다음 주 예정" color="#0e9bb8" items={nextWeek}
             note={`${md(nMon)} ~ ${md(nSun)}`}
-            empty="다음 주에 시작·마감되는 업무가 없습니다."
+            empty="다음 주에 시작, 마감되는 업무가 없습니다."
             render={(r: any) => (<><span className="mono" style={{ fontSize: 11.5, color: 'var(--text-3)', minWidth: 66 }}>{r.code}</span><span style={{ flex: 1, fontSize: 13 }}>{r.name}</span><span className="muted" style={{ fontSize: 11 }}>{r.startDate || ''}{r.endDate ? ` ~ ${r.endDate}` : ''}</span><span className="muted" style={{ fontSize: 11.5 }}>{r.assignee || ''}</span></>)} />
         </div>
         <div>

@@ -195,8 +195,8 @@ export default function Page() {
   };
   return (
     <Shell title="리포트">
-      <span className="sr-only" role="status">{`리포트 불러오기 완료 · 프로젝트 ${nfmt(projects.length)}건, 업무 ${nfmt(tasks.length)}건, 이슈 ${nfmt(issues.length)}건, 테스트 ${nfmt(tests.length)}건 기준 · 평균 진척 ${avgProg}%`}</span>
-      <div className="row"><div><h2 className="h1">리포트 <BarChart3 style={{ width: 22, verticalAlign: -3, color: 'var(--brand)' }} /></h2><p className="h-sub">프로젝트 진척·품질·팀 지표를 종합 분석합니다.</p></div><div className="sp" /><button className="btn no-print" onClick={exportExcel} style={{ marginRight: 8 }}><Download style={{ width: 15 }} />엑셀 내보내기</button><button className="btn no-print" onClick={() => window.print()}><Printer style={{ width: 15 }} />인쇄 / PDF</button></div>
+      <span className="sr-only" role="status">{`리포트 불러오기 완료, 프로젝트 ${nfmt(projects.length)}건, 업무 ${nfmt(tasks.length)}건, 이슈 ${nfmt(issues.length)}건, 테스트 ${nfmt(tests.length)}건 기준, 평균 진척 ${avgProg}%`}</span>
+      <div className="row"><div><h2 className="h1">리포트 <BarChart3 style={{ width: 22, verticalAlign: -3, color: 'var(--brand)' }} /></h2><p className="h-sub">프로젝트 진척, 품질, 팀 지표를 종합 분석합니다.</p></div><div className="sp" /><button className="btn no-print" onClick={exportExcel} style={{ marginRight: 8 }}><Download style={{ width: 15 }} />엑셀 내보내기</button><button className="btn no-print" onClick={() => window.print()}><Printer style={{ width: 15 }} />인쇄 / PDF</button></div>
       <div style={{ height: 16 }} />
       <div className="kpis">
         <Stat icon={Gauge} label="평균 진척" value={avgProg + '%'} c="#2f8f5b" bg="#e9faf0" />
@@ -205,9 +205,9 @@ export default function Page() {
         <Stat icon={Users} label="참여 인원" value={nfmt(assignees.length)} c="#2457C5" bg="#EAF0FC" />
       </div>
       <div style={{ height: 16 }} />
-      <div className="card card-pad dash-card"><div className="sect" style={{ marginBottom: 8 }}>주간 진척 추이 <span style={{ fontSize: 11, color: 'var(--text-4)', fontWeight: 600 }}>(최근 10주 · 기한 도래 대비 완료 누적)</span></div><WeeklyTrend tasks={tasks} /></div>
+      <div className="card card-pad dash-card"><div className="sect" style={{ marginBottom: 8 }}>주간 진척 추이 <span style={{ fontSize: 11, color: 'var(--text-4)', fontWeight: 600 }}>(최근 10주, 기한 도래 대비 완료 누적)</span></div><WeeklyTrend tasks={tasks} /></div>
       <div style={{ height: 16 }} />
-      <div className="card card-pad dash-card"><div className="sect" style={{ marginBottom: 12 }}>기성고 · 진척 스냅샷 <span style={{ fontSize: 11, color: 'var(--text-4)', fontWeight: 600 }}>(기준 시점별 계획/실적/기성률)</span></div>
+      <div className="card card-pad dash-card"><div className="sect" style={{ marginBottom: 12 }}>기성고, 진척 스냅샷 <span style={{ fontSize: 11, color: 'var(--text-4)', fontWeight: 600 }}>(기준 시점별 계획/실적/기성률)</span></div>
         {snapshots.length === 0 ? <p className="muted" style={{ fontSize: 13 }}>스냅샷이 없습니다. 기성고 스냅샷 화면에서 기준 시점을 기록하면 여기에 추이가 표시됩니다.</p> : (
           <div className="tbl-wrap"><table className="tbl"><thead><tr><th>기준</th><th>기준일</th><th>계획</th><th>실적</th><th style={{ minWidth: 150 }}>기성률</th></tr></thead>
             <tbody>{snapshots.slice(0, 12).map((s: any) => (
@@ -218,16 +218,16 @@ export default function Page() {
       {finance.length > 0 && <>
         <div style={{ height: 16 }} />
         <div className="card dash-card" style={{ overflow: 'hidden' }}>
-          <div className="card-pad" style={{ paddingBottom: 0 }}><div className="sect">프로젝트별 예산 · 기성 · 조달 집계 <span style={{ fontSize: 11, color: 'var(--text-4)', fontWeight: 600 }}>(계약금액 · 최신 스냅샷 기성률 · 조달 집행)</span></div></div>
+          <div className="card-pad" style={{ paddingBottom: 0 }}><div className="sect">프로젝트별 예산, 기성, 조달 집계 <span style={{ fontSize: 11, color: 'var(--text-4)', fontWeight: 600 }}>(계약금액, 최신 스냅샷 기성률, 조달 집행)</span></div></div>
           <div className="tbl-wrap" style={{ marginTop: 8 }}><table className="tbl"><thead><tr><th>프로젝트</th><th style={{ textAlign: 'right' }}>계약금액</th><th style={{ minWidth: 150 }}>기성률</th><th style={{ textAlign: 'right' }}>기성금액</th><th style={{ textAlign: 'right' }}>조달총액</th><th style={{ minWidth: 120 }}>예산대비 조달</th></tr></thead>
             <tbody>{finance.map((f: any) => {
               const over = f.procRatio != null && f.procRatio > 100;
               return <tr key={f.p.id}>
                 <td style={{ fontWeight: 650 }}>{f.p.name}</td>
                 <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{f.budget > 0 ? won(f.budget) : <span className="muted">—</span>}</td>
-                <td>{f.billPct == null ? <span className="muted" style={{ fontSize: 11.5 }} title="이 프로젝트에 기록된 기성고 스냅샷이 없습니다">스냅샷 없음</span> : <div className="row" style={{ gap: 8, alignItems: 'center' }} title={`최신 스냅샷 기준일 ${f.snap?.snapshotDate || '—'} · 기성률 ${f.billPct}%`}><div className="pbar" style={{ flex: 1 }}><i style={{ width: `${f.billPct}%`, background: 'linear-gradient(90deg,#4F7FE3,#2457C5)' }} /></div><span style={{ fontWeight: 800, fontSize: 12, minWidth: 34, textAlign: 'right' }}>{f.billPct}%</span></div>}</td>
+                <td>{f.billPct == null ? <span className="muted" style={{ fontSize: 11.5 }} title="이 프로젝트에 기록된 기성고 스냅샷이 없습니다">스냅샷 없음</span> : <div className="row" style={{ gap: 8, alignItems: 'center' }} title={`최신 스냅샷 기준일 ${f.snap?.snapshotDate || '—'}, 기성률 ${f.billPct}%`}><div className="pbar" style={{ flex: 1 }}><i style={{ width: `${f.billPct}%`, background: 'linear-gradient(90deg,#4F7FE3,#2457C5)' }} /></div><span style={{ fontWeight: 800, fontSize: 12, minWidth: 34, textAlign: 'right' }}>{f.billPct}%</span></div>}</td>
                 <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{f.billPct != null && f.budget > 0 ? won(f.billAmt) : <span className="muted">—</span>}</td>
-                <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{f.procTotal > 0 ? <span title={`조달 ${nfmt(f.procCnt)}건 · 입고액 ${won(f.procReceived)}`} style={{ cursor: 'help' }}>{won(f.procTotal)}</span> : <span className="muted">—</span>}</td>
+                <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{f.procTotal > 0 ? <span title={`조달 ${nfmt(f.procCnt)}건, 입고액 ${won(f.procReceived)}`} style={{ cursor: 'help' }}>{won(f.procTotal)}</span> : <span className="muted">—</span>}</td>
                 <td>{f.procRatio == null ? <span className="muted" style={{ fontSize: 11.5 }}>—</span> : <div className="row" style={{ gap: 8, alignItems: 'center' }} title={`계약금액 대비 조달총액 ${f.procRatio}%` + (over ? ' — 예산 초과' : '')}><div className="pbar" style={{ flex: 1 }}><i style={{ width: `${Math.min(100, f.procRatio)}%`, background: over ? '#c0414f' : '#5a7fb0' }} /></div><span style={{ fontWeight: 800, fontSize: 12, minWidth: 40, textAlign: 'right', color: over ? '#c0414f' : 'var(--text-2)' }}>{f.procRatio}%</span></div>}</td>
               </tr>;
             })}
@@ -268,7 +268,7 @@ export default function Page() {
           <div className="row" style={{ alignItems: 'baseline', gap: 10, marginBottom: 14 }}>
             <span style={{ fontSize: 34, fontWeight: 800, color: tPassRate == null ? 'var(--text-4)' : tPassRate >= 80 ? '#2f8f5b' : tPassRate >= 50 ? '#d98a16' : '#c0414f' }}>{tPassRate == null ? '—' : tPassRate + '%'}</span>
             <span style={{ fontSize: 12.5, color: 'var(--text-3)', fontWeight: 600 }}>통과율</span>
-            <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-3)' }} title={`전체 테스트 ${nfmt(tests.length)}건 중 ${nfmt(tExecuted)}건 실행(통과·실패·블록)`}>실행 {nfmt(tExecuted)}/{nfmt(tests.length)}</span>
+            <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-3)' }} title={`전체 테스트 ${nfmt(tests.length)}건 중 ${nfmt(tExecuted)}건 실행(통과, 실패, 블록)`}>실행 {nfmt(tExecuted)}/{nfmt(tests.length)}</span>
           </div>
           <Bars data={[{ label: '통과', value: tPass, color: '#2f8f5b' },{ label: '실패', value: tFail, color: '#c0414f' },{ label: '블록', value: tBlocked, color: '#d98a16' },{ label: '미실행', value: tNa, color: '#8a94a6' }]} />
         </div>
@@ -297,9 +297,9 @@ export default function Page() {
               <td style={{ fontWeight: 650 }}>{p.name}</td>
               <td>{p.client || '—'}</td>
               <td><Pill v={p.status} /></td>
-              <td>{total ? <span title={`총 ${nfmt(total)}건 · 완료 ${nfmt(doneCnt)}건 · 미완료 ${nfmt(left)}건`} style={{ fontSize: 12, cursor: 'help' }}><b>{nfmt(doneCnt)}</b><span className="muted">/{nfmt(total)}</span>{closed && left > 0 && <span title={`프로젝트가 종료 상태인데 미완료 업무가 ${nfmt(left)}건 남아 있습니다 — 완료 처리하거나 이관하세요`} style={{ marginLeft: 6, color: '#c0414f', fontWeight: 700, fontSize: 11 }}>⚠ 잔여 {nfmt(left)}</span>}</span> : <span className="muted" style={{ fontSize: 11.5 }} title="이 프로젝트에 등록된 업무(WBS)가 없습니다">—</span>}</td>
+              <td>{total ? <span title={`총 ${nfmt(total)}건, 완료 ${nfmt(doneCnt)}건, 미완료 ${nfmt(left)}건`} style={{ fontSize: 12, cursor: 'help' }}><b>{nfmt(doneCnt)}</b><span className="muted">/{nfmt(total)}</span>{closed && left > 0 && <span title={`프로젝트가 종료 상태인데 미완료 업무가 ${nfmt(left)}건 남아 있습니다 — 완료 처리하거나 이관하세요`} style={{ marginLeft: 6, color: '#c0414f', fontWeight: 700, fontSize: 11 }}>⚠ 잔여 {nfmt(left)}</span>}</span> : <span className="muted" style={{ fontSize: 11.5 }} title="이 프로젝트에 등록된 업무(WBS)가 없습니다">—</span>}</td>
               <td>{prog == null ? <span className="muted" style={{ fontSize: 11.5 }}>업무 없음</span> : <div className="row" style={{ gap: 8, alignItems: 'center' }} title={`업무 ${nfmt(total)}건 평균 진척 ${prog}%` + (el && active ? `\n일정 경과 ${el.pct}% (계획 진척 근사)\n${sv !== null && sv < 0 ? `일정 대비 ${Math.abs(sv)}%p 지연` : sv !== null && sv > 0 ? `일정 대비 ${sv}%p 선행` : '일정대로 진행'}` : '')}><div className="pbar" style={{ flex: 1 }}><i style={{ width: `${prog}%`, background: pcol }} /></div><span style={{ fontWeight: 800, fontSize: 12, minWidth: 34, textAlign: 'right', color: pcol }}>{prog}%</span>{behind && <span style={{ fontSize: 10.5, padding: '1px 6px', borderRadius: 999, background: '#fdecee', color: '#c0414f', border: '1px solid #f3d2d7', whiteSpace: 'nowrap', fontWeight: 700 }}>지연 {Math.abs(sv)}%p</span>}</div>}</td>
-              <td>{!el || !s0 || !e0 ? <span className="muted">{p.startDate || '—'} ~ {p.endDate || '—'}</span> : <div className="row" style={{ gap: 8, alignItems: 'center' }} title={`${md(s0)} ~ ${md(e0)} · 총 ${el.days}일\n일정 경과 ${el.pct}%` + (done ? '\n종료된 프로젝트 — 잔여 기간 경보 없음' : el.over > 0 ? `\n종료일이 ${el.over}일 지났는데 상태가 '진행'입니다 — 종료 처리 또는 기간 연장이 필요합니다` : `\n잔여 ${el.left}일`)}><span style={{ fontSize: 11.5, color: 'var(--text-3)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{md(s0)}~{md(e0)}</span><div className="pbar" style={{ flex: 1, minWidth: 44 }}><i style={{ width: `${el.pct}%`, background: scol }} /></div><span style={{ fontSize: 11, color: scol, fontWeight: 700, whiteSpace: 'nowrap' }}>{dtxt}{!done && el.over > 0 ? ' ⚠' : ''}</span></div>}</td>
+              <td>{!el || !s0 || !e0 ? <span className="muted">{p.startDate || '—'} ~ {p.endDate || '—'}</span> : <div className="row" style={{ gap: 8, alignItems: 'center' }} title={`${md(s0)} ~ ${md(e0)}, 총 ${el.days}일\n일정 경과 ${el.pct}%` + (done ? '\n종료된 프로젝트 — 잔여 기간 경보 없음' : el.over > 0 ? `\n종료일이 ${el.over}일 지났는데 상태가 '진행'입니다 — 종료 처리 또는 기간 연장이 필요합니다` : `\n잔여 ${el.left}일`)}><span style={{ fontSize: 11.5, color: 'var(--text-3)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{md(s0)}~{md(e0)}</span><div className="pbar" style={{ flex: 1, minWidth: 44 }}><i style={{ width: `${el.pct}%`, background: scol }} /></div><span style={{ fontSize: 11, color: scol, fontWeight: 700, whiteSpace: 'nowrap' }}>{dtxt}{!done && el.over > 0 ? ' ⚠' : ''}</span></div>}</td>
             </tr>;
           })}
             {projects.length === 0 && <tr><td colSpan={7}><div className="empty">프로젝트 없음</div></td></tr>}</tbody></table></div>

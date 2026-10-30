@@ -7,8 +7,8 @@ function lines(v: any): string[] {
 }
 
 export default function Page() {
-  return <ResourceView title="게시판" subtitle="공지·자료·Q&A를 공유합니다." endpoint="/api/boards" entity="boards" statusKey="category"
-    emptyText="등록된 게시글이 없습니다. “새로 만들기”로 공지·자료·Q&A를 공유하세요."
+  return <ResourceView title="게시판" subtitle="공지, 자료, Q&A를 공유합니다." endpoint="/api/boards" entity="boards" statusKey="category"
+    emptyText="등록된 게시글이 없습니다. “새로 만들기”로 공지, 자료, Q&A를 공유하세요."
     columns={[
       { key: 'code', label: '번호' },
       { key: 'category', label: '분류', badge: true },
@@ -47,6 +47,6 @@ export default function Page() {
       { key: 'title', label: '제목', required: true, placeholder: '예: 2분기 정기점검 일정 안내' },
       { key: 'category', label: '분류', type: 'select', options: ['공지', '자료', 'Q&A', '일반'], half: true },
       { key: 'author', label: '작성자', type: 'combo', optionsFrom: 'members', half: true },
-      { key: 'content', label: '내용', type: 'textarea', hint: '한 줄에 항목 하나씩 작성하면 목록에서 미리보기·툴팁으로 확인할 수 있습니다.' },
+      { key: 'content', label: '내용', type: 'textarea', hint: '한 줄에 항목 하나씩 작성하면 목록에서 미리보기, 툴팁으로 확인할 수 있습니다.' },
     ]} />;
 }

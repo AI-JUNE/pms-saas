@@ -16,7 +16,7 @@ const dueCell = (v: any, row: any) => {
   if (!v) {
     if (done) return <span className="muted">—</span>;
     return (
-      <span title="미해결 이슈에 기한이 없습니다 — 마감 알림·지연 집계에서 제외됩니다" style={{ color: '#d98a16', fontSize: 11.5, cursor: 'help' }}>
+      <span title="미해결 이슈에 기한이 없습니다 — 마감 알림, 지연 집계에서 제외됩니다" style={{ color: '#d98a16', fontSize: 11.5, cursor: 'help' }}>
         기한 없음
       </span>
     );
@@ -44,7 +44,7 @@ const descCell = (_v: any, row: any) => {
   if (!ls.length) {
     if (isBug && status !== 'open')
       return (
-        <span title="결함인데 설명(재현 절차·현상)이 비어 있습니다 — 재현·검증이 불가능합니다" style={{ color: '#c0414f', fontWeight: 700, fontSize: 11.5, cursor: 'help' }}>
+        <span title="결함인데 설명(재현 절차, 현상)이 비어 있습니다 — 재현, 검증이 불가능합니다" style={{ color: '#c0414f', fontWeight: 700, fontSize: 11.5, cursor: 'help' }}>
           ⚠ 설명 없음
         </span>
       );
@@ -73,11 +73,11 @@ const hoursCell = (_v: any, row: any) => {
   if (!p && !a) {
     if (DONE.includes(status))
       return (
-        <span title="해결·종료된 이슈인데 실제 공수가 없습니다 — 공수 집계·원가(AC)에서 누락됩니다" style={{ color: '#d98a16', fontSize: 11.5, cursor: 'help' }}>
+        <span title="해결 또는 종료된 이슈인데 실제 공수가 없습니다 — 공수 집계, 원가(AC)에서 누락됩니다" style={{ color: '#d98a16', fontSize: 11.5, cursor: 'help' }}>
           공수 미기록
         </span>
       );
-    return <span className="muted" title="예상·실제 공수 미입력" style={{ fontSize: 11.5 }}>—</span>;
+    return <span className="muted" title="예상, 실제 공수 미입력" style={{ fontSize: 11.5 }}>—</span>;
   }
   const burn = p > 0 ? Math.round((a / p) * 100) : null;
   const over = p > 0 && a > p;
@@ -89,7 +89,7 @@ const hoursCell = (_v: any, row: any) => {
     p > 0 ? (over ? `${num(a - p)}h 초과` : `잔여 ${num(p - a)}h`) : null,
   ]
     .filter(Boolean)
-    .join(' · ');
+    .join(', ');
   return (
     <div className="row" title={tip} style={{ gap: 8, cursor: 'help', whiteSpace: 'nowrap' }}>
       <span style={{ fontVariantNumeric: 'tabular-nums', fontSize: 11.5, color: over ? '#c0414f' : undefined, fontWeight: over ? 700 : undefined }}>
@@ -123,7 +123,7 @@ const linkCell = (_v: any, row: any) => {
       );
     return <span className="muted" style={{ fontSize: 11.5 }}>—</span>;
   }
-  const relTip = rel.length ? `관계 이슈 ${rel.join(' · ')}` : '';
+  const relTip = rel.length ? `관계 이슈 ${rel.join(', ')}` : '';
   return (
     <div className="row" style={{ gap: 4, whiteSpace: 'nowrap' }}>
       {req && (
@@ -174,7 +174,7 @@ export default function Page() {
       endpoint="/api/issues"
       projectScoped
       entity="issues"
-      emptyText="등록된 이슈와 결함이 없습니다. 상단에서 결함·기능개선·변경요청을 등록하세요."
+      emptyText="등록된 이슈와 결함이 없습니다. 상단에서 결함, 기능개선, 변경요청을 등록하세요."
       altViews={[
         {
           key: 'board',
@@ -226,7 +226,7 @@ export default function Page() {
       ]}
       fields={[
         { key: 'title', label: '제목', required: true },
-        { key: 'description', label: '설명', type: 'textarea', hint: '결함이면 재현 절차·현상·기대결과를 한 줄에 하나씩 적어주세요' },
+        { key: 'description', label: '설명', type: 'textarea', hint: '결함이면 재현 절차, 현상, 기대결과를 한 줄에 하나씩 적어주세요' },
         {
           key: 'type',
           label: '유형(트래커)',
@@ -250,7 +250,7 @@ export default function Page() {
         { key: 'epic', label: '에픽', half: true },
         { key: 'labels', label: '라벨(쉼표구분)', half: true },
         { key: 'reqCode', label: '연계 요구사항', type: 'combo', options: [], placeholder: '예: REQ-0001', hint: '요구사항 코드를 입력하면 추적(RTM)에 연결됩니다' },
-        { key: 'related', label: '관계 이슈(쉼표 코드)', type: 'combo', options: [], placeholder: '예: ISS-0002', hint: '연관·중복·차단 이슈 코드를 입력합니다' },
+        { key: 'related', label: '관계 이슈(쉼표 코드)', type: 'combo', options: [], placeholder: '예: ISS-0002', hint: '연관, 중복, 차단 이슈 코드를 입력합니다' },
       ]}
     />
   );

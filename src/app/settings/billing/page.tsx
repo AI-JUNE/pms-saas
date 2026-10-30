@@ -96,7 +96,7 @@ export default function Page() {
     <Shell title="구독 관리">
       <h2 className="h1">구독 관리</h2>
       <p className="h-sub">조직의 요금제와 결제 상태를 관리합니다.</p>
-      <span className="sr-only" role="status">{`구독 관리 · 조직 ${d.org?.name || '—'} · 현재 플랜 ${PLAN_LABEL[curPlan] || curPlan} · 결제 모드 ${d.billing?.live ? '라이브' : '테스트(스캐폴딩)'}${ent ? ` · 좌석 ${nfmt(ent.seats.used)}${ent.seats.limit === null ? '석(무제한)' : `/${nfmt(ent.seats.limit)}석`}` : ''}`}</span>
+      <span className="sr-only" role="status">{`구독 관리, 조직 ${d.org?.name || '—'}, 현재 플랜 ${PLAN_LABEL[curPlan] || curPlan}, 결제 모드 ${d.billing?.live ? '라이브' : '테스트(스캐폴딩)'}${ent ? `, 좌석 ${nfmt(ent.seats.used)}${ent.seats.limit === null ? '석(무제한)' : `/${nfmt(ent.seats.limit)}석`}` : ''}`}</span>
       <div style={{ height: 18 }} />
 
       <div className="card card-pad" style={{ maxWidth: 860 }}>
@@ -113,12 +113,12 @@ export default function Page() {
         <p className="muted" style={{ margin: '12px 0 0', fontSize: 12.5, lineHeight: 1.6 }}>
           <ShieldCheck size={13} style={{ verticalAlign: -2, marginRight: 4 }} />
           현재 실결제는 비활성 상태입니다. 요금제 선택 시 결제 파라미터 발급 흐름만 검증되며 실제 과금은 발생하지 않습니다.
-          실PG 결제창 연동·플랜 실변경은 [승인 필요] 이후 활성화됩니다.
+          실PG 결제창 연동, 플랜 실변경은 [승인 필요] 이후 활성화됩니다.
         </p>
         {d.isOrgAdmin && (
           <p className="muted" style={{ margin: '6px 0 0', fontSize: 12 }}>
             <CreditCard size={13} style={{ verticalAlign: -2, marginRight: 4 }} />
-            결제 채널 설정: {configuredCount}/4 구성됨 (storeId·channelKey·apiSecret·webhookSecret — 환경변수)
+            결제 채널 설정: {configuredCount}/4 구성됨 (storeId, channelKey, apiSecret, webhookSecret — 환경변수)
           </p>
         )}
       </div>
@@ -136,7 +136,7 @@ export default function Page() {
             </p>
             <div className="row" style={{ gap: 18, fontSize: 13, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
               <span className="muted">좌석</span>
-              <strong title={`사용 중 ${nfmt(d.entitlements.seats.used)}석${d.entitlements.seats.limit === null ? ' · 한도 없음' : ` · 한도 ${nfmt(d.entitlements.seats.limit)}석`}`}>
+              <strong title={`사용 중 ${nfmt(d.entitlements.seats.used)}석${d.entitlements.seats.limit === null ? ', 한도 없음' : `, 한도 ${nfmt(d.entitlements.seats.limit)}석`}`}>
                 {nfmt(d.entitlements.seats.used)}
                 {d.entitlements.seats.limit === null ? ' / 무제한' : ` / ${nfmt(d.entitlements.seats.limit)}`}
               </strong>
@@ -165,10 +165,10 @@ export default function Page() {
         <>
           <div style={{ height: 14 }} />
           <div className="card card-pad" style={{ maxWidth: 860 }}>
-            <div className="sect" style={{ marginBottom: 6 }}>결제수단·정기청구 관리</div>
+            <div className="sect" style={{ marginBottom: 6 }}>결제수단, 정기청구 관리</div>
             <p className="muted" style={{ fontSize: 12.5, lineHeight: 1.6, margin: '0 0 12px' }}>
-              결제수단(빌링키) 등록·해제, 구독 해지, 환불 견적을 확인합니다.
-              테스트 모드에서는 <strong>실제 카드 등록·과금·해지·환불이 발생하지 않으며</strong>, 무엇이 일어날지만 계산해 보여줍니다. [승인 필요]
+              결제수단(빌링키) 등록, 해제, 구독 해지, 환불 견적을 확인합니다.
+              테스트 모드에서는 <strong>실제 카드 등록, 과금, 해지, 환불이 발생하지 않으며</strong>, 무엇이 일어날지만 계산해 보여줍니다. [승인 필요]
             </p>
             <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
               <button className="btn" disabled={!!busy} onClick={() => manage('issue_billing_key', { planId: curPlan })}>
@@ -205,7 +205,7 @@ export default function Page() {
                 {res.issueId && <div><span className="muted">발급 요청 번호</span> <code>{res.issueId}</code></div>}
                 {res.cancellation && (
                   <div>
-                    <span className="muted">해지 방식</span> <strong>{res.cancellation.mode === 'immediate' ? '즉시' : '주기 종료 시'}</strong>{' · '}
+                    <span className="muted">해지 방식</span> <strong>{res.cancellation.mode === 'immediate' ? '즉시' : '주기 종료 시'}</strong>{', '}
                     <span className="muted">서비스 종료 예정일</span> <strong>{res.cancellation.effectiveAt}</strong>
                     <div className="muted">{res.cancellation.note}</div>
                   </div>
@@ -214,9 +214,9 @@ export default function Page() {
                   <div className="muted">환불 견적을 계산할 수 없습니다({res.quote.error}).</div>
                 ) : (
                   <div>
-                    <span className="muted">결제액</span> <strong>{won(res.quote.amount)}</strong>{' · '}
+                    <span className="muted">결제액</span> <strong>{won(res.quote.amount)}</strong>{', '}
                     <span className="muted">사용</span> {nfmt(res.quote.usedDays)}일{' / '}
-                    <span className="muted">잔여</span> {nfmt(res.quote.remainDays)}일{' (총 '}{nfmt(res.quote.periodDays)}일){' · '}
+                    <span className="muted">잔여</span> {nfmt(res.quote.remainDays)}일{' (총 '}{nfmt(res.quote.periodDays)}일){', '}
                     <span className="muted">환불 예정액</span> <strong>{won(res.quote.refund)}</strong>
                   </div>
                 ))}
@@ -265,7 +265,7 @@ export default function Page() {
 
       <p className="muted" style={{ marginTop: 14, fontSize: 12, lineHeight: 1.6, maxWidth: 860 }}>
         결제는 포트원(PortOne) 연동 스캐폴딩으로 준비되어 있으며 현재 테스트 모드로만 동작합니다.
-        플랜 변경 반영(웹훅)·환불·영수증은 실PG 연동 승인 후 제공됩니다.
+        플랜 변경 반영(웹훅), 환불, 영수증은 실PG 연동 승인 후 제공됩니다.
       </p>
     </Shell>
   );

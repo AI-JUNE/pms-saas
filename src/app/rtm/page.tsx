@@ -51,10 +51,10 @@ export default function Page() {
   };
   const CHIPS: { key: 'all' | 'covered' | 'progress' | 'problem' | 'unlinked'; label: string; n: number; color: string; tip: string }[] = [
     { key: 'all', label: '전체', n: rows.length, color: 'var(--text-2)', tip: '모든 요구사항 표시' },
-    { key: 'covered', label: '충족', n: dist.covered, color: '#2f8f5b', tip: '연계 업무·테스트가 모두 완료/통과되고 미해결 이슈가 없는 요구사항' },
-    { key: 'progress', label: '진행중', n: dist.progress, color: '#2457C5', tip: '연계는 있으나 아직 완료·통과되지 않은 요구사항' },
-    { key: 'problem', label: '이슈·실패', n: dist.problem, color: '#c0414f', tip: '미해결 이슈가 있거나 연계 테스트가 실패한 요구사항 — 즉시 대응 대상' },
-    { key: 'unlinked', label: '미연계', n: dist.unlinked, color: '#94a3b8', tip: '연계된 업무·이슈·테스트가 하나도 없는 요구사항 — 추적 사각지대' },
+    { key: 'covered', label: '충족', n: dist.covered, color: '#2f8f5b', tip: '연계 업무, 테스트가 모두 완료/통과되고 미해결 이슈가 없는 요구사항' },
+    { key: 'progress', label: '진행중', n: dist.progress, color: '#2457C5', tip: '연계는 있으나 아직 완료되거나 통과되지 않은 요구사항' },
+    { key: 'problem', label: '이슈, 실패', n: dist.problem, color: '#c0414f', tip: '미해결 이슈가 있거나 연계 테스트가 실패한 요구사항 — 즉시 대응 대상' },
+    { key: 'unlinked', label: '미연계', n: dist.unlinked, color: '#94a3b8', tip: '연계된 업무, 이슈, 테스트가 하나도 없는 요구사항 — 추적 사각지대' },
   ];
   const visibleRows = filter === 'all' ? rows : rows.filter((r) => r.bucket === filter);
 
@@ -64,7 +64,7 @@ export default function Page() {
     <Shell title="요구사항 추적(RTM)">
       <div className="row" style={{ marginBottom: 14 }}>
         <div><h2 className="h1">요구사항 추적 매트릭스 <Network style={{ width: 20, verticalAlign: -3, color: 'var(--brand)' }} /></h2>
-          <p className="h-sub">요구사항이 업무·이슈로 얼마나 이행되는지 추적합니다. 업무/이슈의 “연계 요구사항”에 요구사항 코드를 입력하면 연결됩니다.</p></div>
+          <p className="h-sub">요구사항이 업무, 이슈로 얼마나 이행되는지 추적합니다. 업무/이슈의 “연계 요구사항”에 요구사항 코드를 입력하면 연결됩니다.</p></div>
         <div className="sp" />
         <div style={{ textAlign: 'right' }}><div className="muted" style={{ fontSize: 12 }}>충족률</div><div style={{ fontSize: 24, fontWeight: 800, color: 'var(--brand)' }}>{covPct}%</div></div>
       </div>
@@ -84,7 +84,7 @@ export default function Page() {
               </button>
             );
           })}
-          {filter !== 'all' && <span className="muted" style={{ fontSize: 12 }}>· {nfmt(visibleRows.length)}건 표시 (전체 {nfmt(rows.length)}건)</span>}
+          {filter !== 'all' && <span className="muted" style={{ fontSize: 12 }}>,  {nfmt(visibleRows.length)}건 표시 (전체 {nfmt(rows.length)}건)</span>}
         </div>
       )}
       {/* 스크린리더 라이브 안내 — 배치147·148 패턴(목록·알림·감사로그)과 동일 */}
@@ -100,9 +100,9 @@ export default function Page() {
               <tr key={rq.id}>
                 <td><div style={{ display: 'flex', flexDirection: 'column' }}><span style={{ fontWeight: 650 }}>{rq.title}</span><span className="mono" style={{ fontSize: 11, color: 'var(--text-3)' }}>{rq.code}</span></div></td>
                 <td><Pill v={rq.priority} /></td>
-                <td>{lt.length === 0 ? <span className="muted">—</span> : <span style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>{lt.map((t) => <a key={t.id} href={`/tasks?q=${encodeURIComponent(t.code)}`} title={`${t.name} · ${LABEL[String(t.status)] || t.status || '—'}\n(클릭하면 업무 목록에서 검색)`} className="mono" style={{ fontSize: 10.5, background: t.status === 'done' ? '#e6f4ec' : 'var(--surface-3)', color: t.status === 'done' ? '#2f8f5b' : 'var(--text-2)', padding: '1px 6px', borderRadius: 5, textDecoration: 'none' }}>{t.code}</a>)}</span>}</td>
-                <td>{li.length === 0 ? <span className="muted">—</span> : <span style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>{li.map((i) => <a key={i.id} href={`/issues?q=${encodeURIComponent(i.code)}`} title={`${i.title} · ${LABEL[String(i.status)] || i.status || '—'}\n(클릭하면 이슈 목록에서 검색)`} className="mono" style={{ fontSize: 10.5, background: '#fdf3e7', color: '#b5730f', padding: '1px 6px', borderRadius: 5, textDecoration: 'none' }}>{i.code}</a>)}</span>}</td>
-                <td>{ltest.length === 0 ? <span className="muted">—</span> : <span style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>{ltest.map((t: any) => { const c = t.result === 'pass' ? { bg: '#e6f4ec', fg: '#2f8f5b' } : t.result === 'fail' ? { bg: '#fdedef', fg: '#c0414f' } : { bg: 'var(--surface-3)', fg: 'var(--text-2)' }; return <a key={t.id} href={`/tests?q=${encodeURIComponent(t.code)}`} title={`${t.title} · ${LABEL[String(t.result)] || t.result || '미실행'}\n(클릭하면 테스트 목록에서 검색)`} className="mono" style={{ fontSize: 10.5, background: c.bg, color: c.fg, padding: '1px 6px', borderRadius: 5, textDecoration: 'none' }}>{t.code}</a>; })}</span>}</td>
+                <td>{lt.length === 0 ? <span className="muted">—</span> : <span style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>{lt.map((t) => <a key={t.id} href={`/tasks?q=${encodeURIComponent(t.code)}`} title={`${t.name}, ${LABEL[String(t.status)] || t.status || '—'}\n(클릭하면 업무 목록에서 검색)`} className="mono" style={{ fontSize: 10.5, background: t.status === 'done' ? '#e6f4ec' : 'var(--surface-3)', color: t.status === 'done' ? '#2f8f5b' : 'var(--text-2)', padding: '1px 6px', borderRadius: 5, textDecoration: 'none' }}>{t.code}</a>)}</span>}</td>
+                <td>{li.length === 0 ? <span className="muted">—</span> : <span style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>{li.map((i) => <a key={i.id} href={`/issues?q=${encodeURIComponent(i.code)}`} title={`${i.title}, ${LABEL[String(i.status)] || i.status || '—'}\n(클릭하면 이슈 목록에서 검색)`} className="mono" style={{ fontSize: 10.5, background: '#fdf3e7', color: '#b5730f', padding: '1px 6px', borderRadius: 5, textDecoration: 'none' }}>{i.code}</a>)}</span>}</td>
+                <td>{ltest.length === 0 ? <span className="muted">—</span> : <span style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>{ltest.map((t: any) => { const c = t.result === 'pass' ? { bg: '#e6f4ec', fg: '#2f8f5b' } : t.result === 'fail' ? { bg: '#fdedef', fg: '#c0414f' } : { bg: 'var(--surface-3)', fg: 'var(--text-2)' }; return <a key={t.id} href={`/tests?q=${encodeURIComponent(t.code)}`} title={`${t.title}, ${LABEL[String(t.result)] || t.result || '미실행'}\n(클릭하면 테스트 목록에서 검색)`} className="mono" style={{ fontSize: 10.5, background: c.bg, color: c.fg, padding: '1px 6px', borderRadius: 5, textDecoration: 'none' }}>{t.code}</a>; })}</span>}</td>
                 <td><span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontWeight: 700, fontSize: 12, color: col }}><Icon style={{ width: 14 }} />{cov}</span></td>
               </tr>
             ))}

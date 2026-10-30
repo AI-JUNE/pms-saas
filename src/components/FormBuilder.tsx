@@ -49,10 +49,10 @@ export function FormBuilder({ definitionId, fieldsRaw, onSaved }: { definitionId
           <Wrench style={{ width: 14, verticalAlign: '-2px', marginRight: 4 }} aria-hidden="true" />양식 빌더 {defs.length > 0 && `(${nfmt(defs.length)})`}
         </div>
         <div className="sp" />
-        {format === 'lines' && <span className="muted" style={{ fontSize: 11.5, marginRight: 8 }} title="줄바꿈 텍스트로 저장된 옛 정의입니다. 저장하면 타입·필수 정보를 담은 JSON 으로 바뀝니다">텍스트 정의(변환 예정)</span>}
+        {format === 'lines' && <span className="muted" style={{ fontSize: 11.5, marginRight: 8 }} title="줄바꿈 텍스트로 저장된 옛 정의입니다. 저장하면 타입, 필수 정보를 담은 JSON 으로 바뀝니다">텍스트 정의(변환 예정)</span>}
         <button type="button" className="btn btn-pri btn-sm" disabled={!dirty || busy} onClick={save} title={dirty ? '변경된 항목 구성을 저장합니다' : '변경 사항이 없습니다'}>{busy ? '저장 중…' : '구성 저장'}</button>
       </div>
-      <span className="sr-only" role="status">{`양식 항목 ${nfmt(defs.length)}개${dirty ? ' · 저장되지 않은 변경 있음' : ''}`}</span>
+      <span className="sr-only" role="status">{`양식 항목 ${nfmt(defs.length)}개${dirty ? ', 저장되지 않은 변경 있음' : ''}`}</span>
       {problems.length > 0 && <div className="muted" role="alert" style={{ fontSize: 12, color: '#d98a16', marginBottom: 8 }}>읽지 못한 항목: {problems.join(' / ')}</div>}
       {err && <div className="err" role="alert" style={{ marginBottom: 8 }}>{err}</div>}
 

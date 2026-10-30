@@ -8,8 +8,8 @@ import { Pill } from '@/lib/ui';
 const lines = (s: any) => String(s ?? '').split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
 
 export default function Page() {
-  return <ResourceView title="인터페이스" subtitle="시스템 간 인터페이스를 설계·관리합니다." endpoint="/api/interfaces" projectScoped entity="interfaces"
-    emptyText="등록된 인터페이스가 없습니다. “새로 만들기”로 송·수신 시스템과 연동 규격(프로토콜·포맷·주기)을 등록하세요."
+  return <ResourceView title="인터페이스" subtitle="시스템 간 인터페이스를 설계하고 관리합니다." endpoint="/api/interfaces" projectScoped entity="interfaces"
+    emptyText="등록된 인터페이스가 없습니다. “새로 만들기”로 송수신 시스템과 연동 규격(프로토콜, 포맷, 주기)을 등록하세요."
     columns={[
       { key: 'code', label: '코드' },
       { key: 'name', label: '인터페이스', strong: true },
@@ -25,7 +25,7 @@ export default function Page() {
           if (!ls.length) {
             const gated = r.status === 'approved' || r.status === 'review';
             return gated
-              ? <span style={{ color: '#c0414f', fontWeight: 700, fontSize: 12 }} title={`연동 규격이 비어 있습니다 — 현재 상태: ${r.status === 'approved' ? '승인' : '결재요청'}. 규격 없이 결재·승인된 인터페이스는 감리·검수에서 바로 지적됩니다.`}>⚠ 규격 미작성</span>
+              ? <span style={{ color: '#c0414f', fontWeight: 700, fontSize: 12 }} title={`연동 규격이 비어 있습니다 — 현재 상태: ${r.status === 'approved' ? '승인' : '결재요청'}. 규격 없이 결재 승인된 인터페이스는 감리, 검수에서 바로 지적됩니다.`}>⚠ 규격 미작성</span>
               : <span className="muted" style={{ fontSize: 12 }} title="연동 규격이 아직 작성되지 않았습니다 (작성중 단계).">미작성</span>;
           }
           const head = ls[0].length > 22 ? `${ls[0].slice(0, 22)}…` : ls[0];
@@ -47,7 +47,7 @@ export default function Page() {
                 : t === '완료' ? '연동테스트 완료' : `연동테스트: ${t}`}>
             <Pill v={t} />
             {risky && <span style={{ color: '#c0414f', fontWeight: 700, fontSize: 11.5 }}>⚠ 미검증 승인</span>}
-            {partial && <span style={{ color: '#d98a16', fontWeight: 700, fontSize: 11.5 }}>승인·검증중</span>}
+            {partial && <span style={{ color: '#d98a16', fontWeight: 700, fontSize: 11.5 }}>승인 또는 검증 중</span>}
           </span>;
         }
       },
@@ -62,7 +62,7 @@ export default function Page() {
       { key: 'cycle', label: '주기', type: 'select', options: ['실시간', '배치(일)', '배치(시간)', '수시'], half: true },
       { key: 'owner', label: '담당자', type: 'combo', optionsFrom: 'members', half: true },
       { key: 'testStatus', label: '연동테스트', type: 'select', options: ['미실시', '진행', '완료'], half: true },
-      { key: 'spec', label: '연동 규격', type: 'textarea', hint: '한 줄에 항목 하나씩 — 전문 포맷·필드·오류코드·재전송 정책 등' },
+      { key: 'spec', label: '연동 규격', type: 'textarea', hint: '한 줄에 항목 하나씩 — 전문 포맷, 필드, 오류코드, 재전송 정책 등' },
       { key: 'status', label: '상태', type: 'select', options: ['draft', 'review', 'approved'], half: true },
     ]} />;
 }

@@ -53,16 +53,16 @@ export default function Page() {
         if (String(v || '').trim()) return <span style={{ fontSize: 12 }}>{v}</span>;
         const st = String(row.status || 'todo');
         if (st === 'todo') return <span className="muted" style={{ fontSize: 11.5 }}>—</span>;
-        return <span title="단계 미지정 — 간트 스윔레인·단계별 진척 집계에서 제외됩니다" style={{ color: '#d98a16', fontSize: 11.5, cursor: 'help' }}>미지정</span>;
+        return <span title="단계 미지정 — 간트 스윔레인, 단계별 진척 집계에서 제외됩니다" style={{ color: '#d98a16', fontSize: 11.5, cursor: 'help' }}>미지정</span>;
       } },
       { key: 'predecessor', label: '선행', render: (v, row) => {
         const code = String(v || '').trim();
         if (!code) return <span className="muted" style={{ fontSize: 11.5 }}>—</span>;
         const st = String(row.status || 'todo');
-        if (String(row.code || '').trim() === code) return <span title="자기 자신을 선행 작업으로 지정했습니다 — 선후행 순환이라 간트 의존선·임계경로 계산에서 무시됩니다" style={{ color: '#c0414f', fontWeight: 700, fontSize: 11.5, cursor: 'help' }}>⚠ 자기참조</span>;
+        if (String(row.code || '').trim() === code) return <span title="자기 자신을 선행 작업으로 지정했습니다 — 선후행 순환이라 간트 의존선, 임계경로 계산에서 무시됩니다" style={{ color: '#c0414f', fontWeight: 700, fontSize: 11.5, cursor: 'help' }}>⚠ 자기참조</span>;
         const indexed = Object.keys(byCode).length > 0;
         const pre = byCode[code];
-        if (indexed && !pre) return <span title={`이 프로젝트에 코드 ${code} 인 업무가 없습니다 — 오타이거나 삭제된 작업이라 간트 의존선·임계경로에서 무시됩니다`} style={{ cursor: 'help', whiteSpace: 'nowrap' }}>
+        if (indexed && !pre) return <span title={`이 프로젝트에 코드 ${code} 인 업무가 없습니다 — 오타이거나 삭제된 작업이라 간트 의존선, 임계경로에서 무시됩니다`} style={{ cursor: 'help', whiteSpace: 'nowrap' }}>
           <span style={{ fontFamily: 'ui-monospace,monospace', fontSize: 11.5 }}>{code}</span>
           <span style={{ marginLeft: 6, color: '#d98a16', fontWeight: 700, fontSize: 11 }}>⚠ 없는 코드</span>
         </span>;
@@ -70,7 +70,7 @@ export default function Page() {
         const violate = !!pre && !preDone && (st === 'doing' || st === 'done');
         const col = violate ? (st === 'done' ? '#c0414f' : '#d98a16') : undefined;
         const tip = pre
-          ? `선행: ${pre.code} ${pre.name} (${STLABEL[pre.status] || pre.status} · 진척 ${pre.progress}%)`
+          ? `선행: ${pre.code} ${pre.name} (${STLABEL[pre.status] || pre.status}, 진척 ${pre.progress}%)`
             + (violate ? (st === 'done' ? ' — 선행이 완료되지 않았는데 이 작업은 완료 처리됐습니다(순서 위반)' : ' — 선행이 끝나기 전에 착수했습니다') : '')
           : `선행 작업 ${code}`;
         return <span title={tip} style={{ cursor: 'help', whiteSpace: 'nowrap' }}>
@@ -82,7 +82,7 @@ export default function Page() {
       { key: 'assignee', label: '담당', render: (v, row) => {
         if (String(v || '').trim()) return <span style={{ fontSize: 12 }}>{v}</span>;
         const st = String(row.status || 'todo');
-        if (st === 'doing') return <span title="진행중인데 담당자가 없습니다 — 부하(리소스) 집계·마감 알림 대상에서 제외됩니다" style={{ color: '#c0414f', fontWeight: 700, fontSize: 11.5, cursor: 'help' }}>⚠ 미지정</span>;
+        if (st === 'doing') return <span title="진행중인데 담당자가 없습니다 — 부하(리소스) 집계, 마감 알림 대상에서 제외됩니다" style={{ color: '#c0414f', fontWeight: 700, fontSize: 11.5, cursor: 'help' }}>⚠ 미지정</span>;
         if (st === 'done') return <span className="muted" style={{ fontSize: 11.5 }}>미지정</span>;
         return <span title="담당자 미지정 — 배정 전 작업입니다(부하 집계 제외)" style={{ color: '#d98a16', fontSize: 11.5, cursor: 'help' }}>미지정</span>;
       } },
@@ -92,8 +92,8 @@ export default function Page() {
         const st = String(row.status || 'todo');
         // 상태 ↔ 진척률 모순 검사 (EVM의 EV·완료 집계가 상태와 어긋나는 원인)
         let warn: string | null = null; let wc = '#d98a16'; let wt = `진척 ${pg}%`;
-        if (st === 'done' && pg < 100) { warn = '진척 미갱신'; wc = '#c0414f'; wt = `완료 상태인데 진척률이 ${pg}%입니다 — EVM(EV)·진척 평균이 실제보다 낮게 계산됩니다`; }
-        else if (pg >= 100 && st !== 'done') { warn = '완료 처리 필요'; wt = '진척률 100%인데 상태가 완료가 아닙니다 — 완료 건수·주간보고 집계에서 빠집니다'; }
+        if (st === 'done' && pg < 100) { warn = '진척 미갱신'; wc = '#c0414f'; wt = `완료 상태인데 진척률이 ${pg}%입니다 — EVM(EV), 진척 평균이 실제보다 낮게 계산됩니다`; }
+        else if (pg >= 100 && st !== 'done') { warn = '완료 처리 필요'; wt = '진척률 100%인데 상태가 완료가 아닙니다 — 완료 건수, 주간보고 집계에서 빠집니다'; }
         else if (st === 'doing' && pg === 0) { warn = '미착수'; wt = '진행중으로 표시했지만 진척률이 0%입니다 — 실제 착수 여부를 확인하세요'; }
         const col = st === 'done' ? '#2f8f5b' : pg >= 50 ? '#2457C5' : '#94a3b8';
         return <div className="row" style={{ gap: 8, whiteSpace: 'nowrap', cursor: 'help' }} title={wt}>
@@ -110,8 +110,8 @@ export default function Page() {
         const p = Number(row.plannedHours) || 0; const a = Number(row.actualHours) || 0;
         const st = String(row.status || 'todo');
         if (!p && !a) return st === 'done'
-          ? <span title="완료됐는데 실제 공수가 없습니다 — 원가(AC)·CPI 집계에서 제외됩니다" style={{ color: '#d98a16', fontSize: 11.5, cursor: 'help' }}>공수 미기록</span>
-          : <span className="muted" title="계획·실제 공수 미입력">—</span>;
+          ? <span title="완료됐는데 실제 공수가 없습니다 — 원가(AC), CPI 집계에서 제외됩니다" style={{ color: '#d98a16', fontSize: 11.5, cursor: 'help' }}>공수 미기록</span>
+          : <span className="muted" title="계획, 실제 공수 미입력">—</span>;
         const pg = Number(row.progress) || 0;
         const burn = p > 0 ? Math.round((a / p) * 100) : null;
         const over = p > 0 && a > p;
@@ -120,7 +120,7 @@ export default function Page() {
         const num = (n: number) => String(Math.round(n * 10) / 10);
         const tip = [p ? `계획 ${num(p)}h` : '계획 공수 미입력', `실제 ${num(a)}h`, burn != null ? `소진율 ${burn}%` : null,
           p > 0 ? (over ? `${num(a - p)}h 초과` : `잔여 ${num(p - a)}h`) : null,
-          gap != null && Math.abs(gap) >= 20 ? (gap > 0 ? `진척 ${pg}%보다 공수 소진이 ${Math.round(gap)}%p 앞섬 — 효율 저하 주의` : `진척 ${pg}%이 공수 소진보다 ${Math.round(-gap)}%p 앞섬 — 효율 양호`) : null].filter(Boolean).join(' · ');
+          gap != null && Math.abs(gap) >= 20 ? (gap > 0 ? `진척 ${pg}%보다 공수 소진이 ${Math.round(gap)}%p 앞섬 — 효율 저하 주의` : `진척 ${pg}%이 공수 소진보다 ${Math.round(-gap)}%p 앞섬 — 효율 양호`) : null].filter(Boolean).join(', ');
         return <div className="row" title={tip} style={{ gap: 8, cursor: 'help', whiteSpace: 'nowrap' }}>
           <span style={{ fontVariantNumeric: 'tabular-nums', fontSize: 11.5, color: over ? '#c0414f' : undefined, fontWeight: over ? 700 : undefined }}>{num(a)}<span className="muted">{` / ${p ? num(p) + 'h' : '—'}`}</span></span>
           {burn != null && <div className="bar" style={{ width: 44, minWidth: 44 }}><i style={{ width: `${Math.min(100, burn)}%`, background: col }} /></div>}
@@ -133,7 +133,7 @@ export default function Page() {
         const end = midnight(v);
         if (end == null) return done
           ? <span className="muted" style={{ fontSize: 11.5 }}>—</span>
-          : <span title="미완료인데 마감일이 없습니다 — 지연 집계·마감 알림·간트 막대에서 제외됩니다" style={{ color: '#d98a16', fontSize: 11.5, cursor: 'help' }}>기한 없음</span>;
+          : <span title="미완료인데 마감일이 없습니다 — 지연 집계, 마감 알림, 간트 막대에서 제외됩니다" style={{ color: '#d98a16', fontSize: 11.5, cursor: 'help' }}>기한 없음</span>;
         const today = midnight(new Date()) as number;
         const diff = Math.round((end - today) / DAY);
         if (done) return <span className="muted" title={`마감 ${v} — 완료된 업무입니다`} style={{ fontSize: 11.5, cursor: 'help' }}>{v}</span>;
@@ -148,17 +148,17 @@ export default function Page() {
     ]}
     fields={[
       { key: 'name', label: '작업명', required: true },
-      { key: 'phase', label: '단계', type: 'combo', half: true, options: ['착수', '요구사항 분석', '분석/설계', '설계', '구현/개발', '단위 테스트', '통합 테스트', '시스템 테스트', '이행/전개', '안정화', '검수', '운영/유지보수', '완료'], placeholder: '단계 선택/입력', hint: '단계를 지정해야 간트 스윔레인·단계별 진척 집계에 잡힙니다' },
-      { key: 'assignee', label: '담당자', type: 'combo', optionsFrom: 'members', half: true, placeholder: '인력 선택/입력', hint: '담당자를 지정해야 부하(리소스) 뷰·마감 알림 대상이 됩니다' },
+      { key: 'phase', label: '단계', type: 'combo', half: true, options: ['착수', '요구사항 분석', '분석/설계', '설계', '구현/개발', '단위 테스트', '통합 테스트', '시스템 테스트', '이행/전개', '안정화', '검수', '운영/유지보수', '완료'], placeholder: '단계 선택/입력', hint: '단계를 지정해야 간트 스윔레인, 단계별 진척 집계에 잡힙니다' },
+      { key: 'assignee', label: '담당자', type: 'combo', optionsFrom: 'members', half: true, placeholder: '인력 선택/입력', hint: '담당자를 지정해야 부하(리소스) 뷰, 마감 알림 대상이 됩니다' },
       { key: 'status', label: '상태', type: 'select', half: true, options: [{ value: 'todo', label: '할 일' }, { value: 'doing', label: '진행중' }, { value: 'done', label: '완료' }] },
-      { key: 'progress', label: '진척률', type: 'select', numeric: true, half: true, hint: '완료 상태는 100%로 맞춰야 진척 평균·EVM(EV)이 정확합니다', options: [{ value: '0', label: '0%' }, { value: '10', label: '10%' }, { value: '20', label: '20%' }, { value: '30', label: '30%' }, { value: '40', label: '40%' }, { value: '50', label: '50%' }, { value: '60', label: '60%' }, { value: '70', label: '70%' }, { value: '80', label: '80%' }, { value: '90', label: '90%' }, { value: '100', label: '100%' }] },
+      { key: 'progress', label: '진척률', type: 'select', numeric: true, half: true, hint: '완료 상태는 100%로 맞춰야 진척 평균, EVM(EV)이 정확합니다', options: [{ value: '0', label: '0%' }, { value: '10', label: '10%' }, { value: '20', label: '20%' }, { value: '30', label: '30%' }, { value: '40', label: '40%' }, { value: '50', label: '50%' }, { value: '60', label: '60%' }, { value: '70', label: '70%' }, { value: '80', label: '80%' }, { value: '90', label: '90%' }, { value: '100', label: '100%' }] },
       { key: 'startDate', label: '시작일', type: 'date', half: true },
-      { key: 'endDate', label: '마감일', type: 'date', half: true, hint: '마감일이 없으면 지연 집계·마감 알림에서 제외됩니다' },
+      { key: 'endDate', label: '마감일', type: 'date', half: true, hint: '마감일이 없으면 지연 집계, 마감 알림에서 제외됩니다' },
       { key: 'reqCode', label: '연계 요구사항', type: 'combo', options: [], placeholder: '예: REQ-0001', hint: '요구사항 코드를 입력하면 추적(RTM)에 연결됩니다' },
-      { key: 'predecessor', label: '선행 작업', type: 'combo', options: [], placeholder: '예: WBS-0001', hint: '이 작업 전에 완료돼야 할 작업 코드 — 같은 프로젝트의 업무 코드와 정확히 일치해야 간트 의존선·임계경로에 반영됩니다' },
-      { key: 'parentId', label: '상위 작업(WBS)', type: 'select', optionsFrom: 'tasks', numeric: true, half: true, placeholder: '없음(최상위)', hint: '상위 작업을 지정하면 1·1.1 번호와 들여쓰기로 계층 표시됩니다' },
+      { key: 'predecessor', label: '선행 작업', type: 'combo', options: [], placeholder: '예: WBS-0001', hint: '이 작업 전에 완료돼야 할 작업 코드 — 같은 프로젝트의 업무 코드와 정확히 일치해야 간트 의존선, 임계경로에 반영됩니다' },
+      { key: 'parentId', label: '상위 작업(WBS)', type: 'select', optionsFrom: 'tasks', numeric: true, half: true, placeholder: '없음(최상위)', hint: '상위 작업을 지정하면 1, 1.1 번호와 들여쓰기로 계층 표시됩니다' },
       { key: 'plannedHours', label: '계획 공수(h)', type: 'number', numeric: true, half: true, placeholder: '예: 16' },
-      { key: 'actualHours', label: '실제 공수(h)', type: 'number', numeric: true, half: true, placeholder: '예: 12', hint: '실적 시간을 입력하면 EVM의 AC·CPI가 계산됩니다' },
+      { key: 'actualHours', label: '실제 공수(h)', type: 'number', numeric: true, half: true, placeholder: '예: 12', hint: '실적 시간을 입력하면 EVM의 AC, CPI가 계산됩니다' },
       { key: 'baselineStart', label: '기준선 시작(계획)', type: 'date', half: true, hint: '최초 계획 일정. 간트에서 현재 일정과 이중 막대로 비교됩니다' },
       { key: 'baselineEnd', label: '기준선 마감(계획)', type: 'date', half: true, hint: '입력하면 간트 막대 아래 옅은 기준선 막대가 표시됩니다' },
     ]} />;

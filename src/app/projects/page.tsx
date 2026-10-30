@@ -62,19 +62,19 @@ export default function Page() {
       {key:'name',label:'이름',strong:true},
       {key:'client',label:'고객',render:(v,row)=>{
         const active = String(row?.status || '') === 'active';
-        if (!v) return <span title={active ? '고객사가 지정되지 않았습니다 — 계약·보고 문서의 수신처가 비게 됩니다' : undefined} style={{fontSize:11.5,color:active?'#d98a16':undefined}} className={active?undefined:'muted'}>미지정</span>;
+        if (!v) return <span title={active ? '고객사가 지정되지 않았습니다 — 계약, 보고 문서의 수신처가 비게 됩니다' : undefined} style={{fontSize:11.5,color:active?'#d98a16':undefined}} className={active?undefined:'muted'}>미지정</span>;
         return <span>{v}</span>;
       }},
       {key:'period',label:'기간',render:(_v,row)=>{
         const el = elapsed(row);
         const s = d0(row?.startDate); const e = d0(row?.endDate);
-        if (!s || !e) return <span className="muted" style={{fontSize:11.5}} title="시작일·종료일을 모두 입력하면 일정 경과율과 잔여 기간을 계산합니다">기간 미설정</span>;
+        if (!s || !e) return <span className="muted" style={{fontSize:11.5}} title="시작일, 종료일을 모두 입력하면 일정 경과율과 잔여 기간을 계산합니다">기간 미설정</span>;
         if (!el) return <span className="muted" style={{fontSize:11.5}}>{fmt(s)} ~ {fmt(e)}</span>;
         const done = String(row?.status || '') !== 'active';
         // 종료(완료·보관) 프로젝트는 잔여 기간 경보를 내지 않는다
         const col = done ? '#9a9a9a' : el.over > 0 ? '#c0414f' : el.left <= 14 ? '#d98a16' : '#2f8f5b';
         const dtxt = done ? `${el.days}일` : el.over > 0 ? `${el.over}일 초과` : el.left === 0 ? '오늘 마감' : `D-${el.left}`;
-        const tip = `${fmt(s)} ~ ${fmt(e)} · 총 ${el.days}일\n일정 경과 ${el.pct}%` + (done ? '\n종료된 프로젝트 — 잔여 기간 경보 없음' : el.over > 0 ? `\n종료일이 ${el.over}일 지났는데 상태가 '진행'입니다 — 종료 처리 또는 기간 연장이 필요합니다` : `\n잔여 ${el.left}일`);
+        const tip = `${fmt(s)} ~ ${fmt(e)}, 총 ${el.days}일\n일정 경과 ${el.pct}%` + (done ? '\n종료된 프로젝트 — 잔여 기간 경보 없음' : el.over > 0 ? `\n종료일이 ${el.over}일 지났는데 상태가 '진행'입니다 — 종료 처리 또는 기간 연장이 필요합니다` : `\n잔여 ${el.left}일`);
         return <div className="row" style={{gap:8,alignItems:'center'}} title={tip}>
           <span style={{fontSize:11.5,color:'var(--text-3)',whiteSpace:'nowrap',fontVariantNumeric:'tabular-nums'}}>{fmt(s)}~{fmt(e)}</span>
           <div className="bar" style={{minWidth:44}}><i style={{width:`${el.pct}%`,background:col}}/></div>
@@ -86,7 +86,7 @@ export default function Page() {
         const closed = ['completed','archived'].includes(String(row?.status || ''));
         if (!s || !s.total) return <span className="muted" style={{fontSize:11.5}} title="이 프로젝트에 등록된 업무(WBS)가 없습니다">—</span>;
         const left = s.total - s.done;
-        return <span title={`총 ${nfmt(s.total)}건 · 완료 ${nfmt(s.done)}건 · 진행 ${nfmt(s.doing)}건 · 대기 ${nfmt(s.todo)}건`} style={{fontSize:12,cursor:'help'}}>
+        return <span title={`총 ${nfmt(s.total)}건, 완료 ${nfmt(s.done)}건, 진행 ${nfmt(s.doing)}건, 대기 ${nfmt(s.todo)}건`} style={{fontSize:12,cursor:'help'}}>
           <b>{nfmt(s.done)}</b><span className="muted">/{nfmt(s.total)}</span>
           {s.overdue > 0 && !closed && <span title={`기한 초과 ${nfmt(s.overdue)}건`} style={{marginLeft:6,color:'#c0414f',fontWeight:700,fontSize:11.5}}>⚠{nfmt(s.overdue)}</span>}
           {closed && left > 0 && <span title={`프로젝트가 종료 상태인데 미완료 업무가 ${nfmt(left)}건 남아 있습니다 — 업무를 완료 처리하거나 이관하세요`} style={{marginLeft:6,color:'#c0414f',fontWeight:700,fontSize:11}}>⚠ 잔여 {nfmt(left)}</span>}
@@ -112,11 +112,11 @@ export default function Page() {
       {key:'budget',label:'계약금액',render:(v,row)=>{
         const n = Number(v);
         const active = String(row?.status || '') === 'active';
-        if (!v || !Number.isFinite(n) || n <= 0) return <span title={active ? '계약금액이 없어 기성·정산 집계에서 제외됩니다' : undefined} style={{fontSize:11.5,color:active?'#d98a16':undefined}} className={active?undefined:'muted'}>{active ? '⚠ 미입력' : '—'}</span>;
+        if (!v || !Number.isFinite(n) || n <= 0) return <span title={active ? '계약금액이 없어 기성, 정산 집계에서 제외됩니다' : undefined} style={{fontSize:11.5,color:active?'#d98a16':undefined}} className={active?undefined:'muted'}>{active ? '⚠ 미입력' : '—'}</span>;
         const eok = n >= 100000000 ? `${Math.round((n / 100000000) * 10) / 10}억원` : n >= 10000 ? `${Math.round(n / 10000).toLocaleString()}만원` : `${n.toLocaleString()}원`;
         return <span title={`${n.toLocaleString()}원`} style={{fontVariantNumeric:'tabular-nums',cursor:'help',whiteSpace:'nowrap'}}>{eok}</span>;
       }},
       {key:'status',label:'상태',badge:true},
     ]}
-    fields={[{key:'name',label:'프로젝트명',required:true},{key:'client',label:'고객',half:true,hint:'계약·보고 문서의 수신처로 쓰입니다'},{key:'orderer',label:'발주처',half:true},{key:'contractNo',label:'계약번호',half:true},{key:'budget',label:'계약금액(원)',type:'number',comma:true,half:true,numeric:true,placeholder:'예: 850000000',hint:'원 단위 입력 · 기성·정산 집계의 기준 금액'},{key:'status',label:'상태',type:'select',options:[{value:'active',label:'진행'},{value:'completed',label:'완료'},{value:'archived',label:'보관'}],half:true},{key:'startDate',label:'시작일',type:'date',half:true,hint:'시작·종료일 입력 시 계획 진척(경과율)이 계산됩니다'},{key:'endDate',label:'종료일',type:'date',half:true}]} />;
+    fields={[{key:'name',label:'프로젝트명',required:true},{key:'client',label:'고객',half:true,hint:'계약, 보고 문서의 수신처로 쓰입니다'},{key:'orderer',label:'발주처',half:true},{key:'contractNo',label:'계약번호',half:true},{key:'budget',label:'계약금액(원)',type:'number',comma:true,half:true,numeric:true,placeholder:'예: 850000000',hint:'원 단위 입력, 기성, 정산 집계의 기준 금액'},{key:'status',label:'상태',type:'select',options:[{value:'active',label:'진행'},{value:'completed',label:'완료'},{value:'archived',label:'보관'}],half:true},{key:'startDate',label:'시작일',type:'date',half:true,hint:'시작, 종료일 입력 시 계획 진척(경과율)이 계산됩니다'},{key:'endDate',label:'종료일',type:'date',half:true}]} />;
 }

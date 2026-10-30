@@ -42,9 +42,9 @@ export default function Page() {
     ]}
     fields={[
       {key:'title',label:'할 일',required:true,placeholder:'예: 주간보고 작성'},
-      {key:'note',label:'메모',type:'textarea',hint:'한 줄에 하나씩 적으면 목록에서 줄 수·미리보기로 확인할 수 있습니다.'},
+      {key:'note',label:'메모',type:'textarea',hint:'한 줄에 하나씩 적으면 목록에서 줄 수, 미리보기로 확인할 수 있습니다.'},
       {key:'priority',label:'우선순위',type:'select',half:true,options:[{value:'high',label:'높음'},{value:'medium',label:'보통'},{value:'low',label:'낮음'}]},
-      {key:'dueDate',label:'기한',type:'date',half:true,hint:'비워두면 기한 임박·초과 강조에서 제외됩니다.'},
+      {key:'dueDate',label:'기한',type:'date',half:true,hint:'비워두면 기한 임박, 초과 강조에서 제외됩니다.'},
       {key:'status',label:'상태',type:'select',options:[{value:'todo',label:'할 일'},{value:'doing',label:'진행중'},{value:'done',label:'완료'}]},
     ]} />;
 }

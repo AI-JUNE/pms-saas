@@ -49,7 +49,7 @@ export default function Page({ params }: { params: { id: string } }) {
   );
 
   return (
-    <Shell title={p ? `${p.code} · ${p.name}` : '프로젝트'}>
+    <Shell title={p ? `${p.code}, ${p.name}` : '프로젝트'}>
       <div className="row no-print" style={{ marginBottom: 14, alignItems: 'center' }}>
         <button className="btn btn-ghost btn-sm" onClick={() => router.push('/projects')}><ArrowLeft style={{ width: 15 }} />프로젝트 목록</button>
         <div className="sp" />
@@ -60,7 +60,7 @@ export default function Page({ params }: { params: { id: string } }) {
       <span className="sr-only" role="status">
         {err ? '프로젝트 요약을 불러오지 못했습니다'
           : !p ? '프로젝트 요약을 불러오는 중'
-            : `${p.name} · 진척 ${pct}% · 업무 ${nfmt(d.tasks.total)}건(완료 ${nfmt(d.tasks.done)}건) · 열린 이슈 ${nfmt(d.issues.open)}건 · ${LABEL.high} 리스크 ${nfmt(d.risks.high)}건`}
+            : `${p.name}, 진척 ${pct}%, 업무 ${nfmt(d.tasks.total)}건(완료 ${nfmt(d.tasks.done)}건), 열린 이슈 ${nfmt(d.issues.open)}건, ${LABEL.high} 리스크 ${nfmt(d.risks.high)}건`}
       </span>
       {!d && !err && <div className="card card-pad" style={{ display: 'grid', gap: 12 }} aria-busy>{Array.from({ length: 5 }).map((_, i) => <div key={i} className="skel" aria-hidden="true" style={{ height: i === 0 ? 26 : 18, width: i === 0 ? '34%' : '100%' }} />)}</div>}
       {p && (
@@ -71,10 +71,10 @@ export default function Page({ params }: { params: { id: string } }) {
               <Pill v={p.status} />
             </div>
             <h1 style={{ margin: '8px 0 4px', fontSize: 26, fontWeight: 800, letterSpacing: '-.02em' }}>{p.name}</h1>
-            <div style={{ fontSize: 13.5, opacity: .9 }}>{p.client || '고객 미지정'} · {p.startDate || '—'} ~ {p.endDate || '—'}
+            <div style={{ fontSize: 13.5, opacity: .9 }}>{p.client || '고객 미지정'}, {p.startDate || '—'} ~ {p.endDate || '—'}
               {sched && (() => {
                 const { dleft, active, elapsed } = sched;
-                const tip = `종료 ${p.endDate}${elapsed != null ? ` · 일정 경과 ${elapsed}%` : ''} · ${dleft < 0 ? `${-dleft}일 초과` : dleft === 0 ? '오늘 마감' : `잔여 ${dleft}일 (D-${dleft})`}`;
+                const tip = `종료 ${p.endDate}${elapsed != null ? `, 일정 경과 ${elapsed}%` : ''}, ${dleft < 0 ? `${-dleft}일 초과` : dleft === 0 ? '오늘 마감' : `잔여 ${dleft}일 (D-${dleft})`}`;
                 let text: string, bg: string, col: string;
                 if (dleft < 0 && active) { text = `⚠ ${-dleft}일 초과`; bg = 'rgba(255,255,255,.95)'; col = '#c0414f'; }
                 else if (!active) { text = dleft < 0 ? '종료' : dleft === 0 ? '오늘 마감' : `D-${dleft}`; bg = 'rgba(255,255,255,.16)'; col = '#fff'; }
@@ -93,7 +93,7 @@ export default function Page({ params }: { params: { id: string } }) {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 22 }}>
             <Metric icon={Layers3} label="단계" value={`${nfmt(d.phases.done)}/${nfmt(d.phases.total)}`} sub="완료 / 전체" href="/phases" />
-            <Metric icon={ListTodo} label="업무(WBS)" value={`${nfmt(d.tasks.done)}/${nfmt(d.tasks.total)}`} sub={`진행 ${nfmt(d.tasks.doing)} · 평균 ${d.tasks.avgProgress}%`} href="/tasks" />
+            <Metric icon={ListTodo} label="업무(WBS)" value={`${nfmt(d.tasks.done)}/${nfmt(d.tasks.total)}`} sub={`진행 ${nfmt(d.tasks.doing)}, 평균 ${d.tasks.avgProgress}%`} href="/tasks" />
             <Metric icon={Bug} label="이슈" value={nfmt(d.issues.open)} sub={`전체 ${nfmt(d.issues.total)}건`} href="/issues" />
             <Metric icon={ShieldAlert} label={`리스크(${LABEL.high})`} value={nfmt(d.risks.high)} sub={`전체 ${nfmt(d.risks.total)}건`} href="/risks" />
             <Metric icon={ClipboardList} label="요구사항" value={`${nfmt(d.requirements.approved)}/${nfmt(d.requirements.total)}`} sub="승인 / 전체" href="/requirements" />
@@ -113,7 +113,7 @@ export default function Page({ params }: { params: { id: string } }) {
                 <div>
                   <div className="muted" style={{ fontSize: 12 }}>조달총액{d.finance.procCount > 0 ? ` (${nfmt(d.finance.procCount)}건)` : ''}</div>
                   <div style={{ fontSize: 22, fontWeight: 800 }}>{d.finance.procTotal > 0 ? won(d.finance.procTotal) : '—'}</div>
-                  {d.finance.procRatio != null && <div style={{ fontSize: 11.5, color: d.finance.procRatio > 100 ? '#c0414f' : 'var(--text-4)' }}>예산 대비 {d.finance.procRatio}%{d.finance.procReceived > 0 ? ` · 입고 ${won(d.finance.procReceived)}` : ''}</div>}
+                  {d.finance.procRatio != null && <div style={{ fontSize: 11.5, color: d.finance.procRatio > 100 ? '#c0414f' : 'var(--text-4)' }}>예산 대비 {d.finance.procRatio}%{d.finance.procReceived > 0 ? `, 입고 ${won(d.finance.procReceived)}` : ''}</div>}
                 </div>
               </div>
               {d.finance.contract > 0 && d.finance.billingPct != null && (
@@ -137,7 +137,7 @@ export default function Page({ params }: { params: { id: string } }) {
           {d.evm && (
             <div style={{ background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 20px', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontWeight: 750, fontSize: 14, marginBottom: 6 }}><TrendingUp style={{ width: 16, color: 'var(--brand)' }} />획득가치 (EVM)</div>
-              <div className="muted" style={{ fontSize: 11.5, marginBottom: 12 }}>단위: {d.evm.unit} · BAC {d.evm.bac}{d.evm.unit === '작업' ? ' · AC·CPI는 업무에 공수(계획/실적) 입력 시 표시' : ''}</div>
+              <div className="muted" style={{ fontSize: 11.5, marginBottom: 12 }}>단위: {d.evm.unit}, BAC {d.evm.bac}{d.evm.unit === '작업' ? ', AC, CPI는 업무에 공수(계획/실적) 입력 시 표시' : ''}</div>
               <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', alignItems: 'flex-end' }}>
                 <div><div className="muted" style={{ fontSize: 12 }}>PV (계획가치)</div><div style={{ fontSize: 20, fontWeight: 800 }}>{d.evm.pv}</div></div>
                 <div><div className="muted" style={{ fontSize: 12 }}>EV (획득가치)</div><div style={{ fontSize: 20, fontWeight: 800 }}>{d.evm.ev}</div></div>
@@ -159,17 +159,17 @@ export default function Page({ params }: { params: { id: string } }) {
                 <div><div className="muted" style={{ fontSize: 12 }}>블록</div><div style={{ fontSize: 22, fontWeight: 800, color: '#d98a16' }}>{nfmt(d.tests.blocked)}</div></div>
               </div>
               {(() => { const t = d.tests; const tot = Math.max(1, t.pass + t.fail + t.blocked + t.na); const seg = (n: number, c: string) => n > 0 ? <div key={c} style={{ width: `${(n / tot) * 100}%`, background: c }} /> : null; return <div style={{ display: 'flex', height: 10, width: '100%', borderRadius: 6, overflow: 'hidden', background: 'var(--surface-3)' }}>{seg(t.pass, '#2f8f5b')}{seg(t.fail, '#c0414f')}{seg(t.blocked, '#d98a16')}{seg(t.na, '#cbd5e1')}</div>; })()}
-              <div className="muted" style={{ fontSize: 11.5, marginTop: 8 }}>검증 단계 — 개발 {nfmt(d.tests.byStatus.dev)} · PL {nfmt(d.tests.byStatus.pl)} · PM {nfmt(d.tests.byStatus.pm)} · 완료 {nfmt(d.tests.byStatus.done)} · 작성중 {nfmt(d.tests.byStatus.draft)}</div>
+              <div className="muted" style={{ fontSize: 11.5, marginTop: 8 }}>검증 단계 — 개발 {nfmt(d.tests.byStatus.dev)}, PL {nfmt(d.tests.byStatus.pl)}, PM {nfmt(d.tests.byStatus.pm)}, 완료 {nfmt(d.tests.byStatus.done)}, 작성중 {nfmt(d.tests.byStatus.draft)}</div>
             </div>
           )}
           {d.issues?.byPriority && (
             <div style={{ background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px', marginBottom: 16 }}>
-              <div style={{ fontWeight: 750, fontSize: 14, marginBottom: 14 }}>이슈 · 리스크 분포</div>
+              <div style={{ fontWeight: 750, fontSize: 14, marginBottom: 14 }}>이슈, 리스크 분포</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 24 }}>
                 {(() => {
                   const Bar = ({ items, title }: any) => { const mx = Math.max(1, ...items.map((i: any) => i.v)); return (
                     <div><div className="muted" style={{ fontSize: 12, marginBottom: 8 }}>{title}</div>
-                      {items.map((i: any) => (<div key={i.l} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 7 }} title={`${title} · ${i.l} ${nfmt(i.v)}건`}>
+                      {items.map((i: any) => (<div key={i.l} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 7 }} title={`${title}, ${i.l} ${nfmt(i.v)}건`}>
                         <span style={{ width: 62, fontSize: 12, color: 'var(--text-2)' }}>{i.l}</span>
                         <div className="pbar" style={{ flex: 1 }}><i style={{ width: `${(i.v / mx) * 100}%`, background: i.c }} /></div>
                         <span style={{ minWidth: 22, textAlign: 'right', fontWeight: 800, fontSize: 12.5 }}>{nfmt(i.v)}</span>

@@ -25,7 +25,7 @@ export default function Page() {
     <Shell title="제안분석">
       <div style={{ maxWidth: 720, display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div className="muted" style={{ fontSize: 13 }}>
-          RFP 원문을 읽어 요구사항·배점기준·리스크를 뽑고, 제안 초안과 예상 질의를 만듭니다.
+          RFP 원문을 읽어 요구사항, 배점기준, 리스크를 뽑고, 제안 초안과 예상 질의를 만듭니다.
         </div>
 
         <div
@@ -44,9 +44,9 @@ export default function Page() {
           </div>
 
           <div className="muted" style={{ fontSize: 13, lineHeight: 1.7 }}>
-            제안분석은 파일 업로드·분석 작업·LLM 호출을 서버에서 처리하는 앱이라,
+            제안분석은 파일 업로드, 분석 작업, LLM 호출을 서버에서 처리하는 앱이라,
             다른 세 앱처럼 화면만 옮겨 올 수 없습니다. 지금은 사내 서버에서 그대로 쓰시고,
-            포털 안으로 들이는 작업(API 이관 · 저장소 통합)은 다음 단계에서 진행합니다.
+            포털 안으로 들이는 작업(API 이관, 저장소 통합)은 다음 단계에서 진행합니다.
           </div>
 
           {ERM_URL ? (

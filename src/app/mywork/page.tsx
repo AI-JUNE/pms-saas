@@ -91,10 +91,10 @@ export default function Page() {
       <div className="row" style={{ marginBottom: 6 }}>
         <div>
           <h2 className="h1">내 작업</h2>
-          <p className="h-sub">{d?.name ? `${d.name}님에게 배정된 업무·이슈·리스크입니다.` : '나에게 배정된 항목을 모아봅니다.'}</p>
+          <p className="h-sub">{d?.name ? `${d.name}님에게 배정된 업무, 이슈, 리스크입니다.` : '나에게 배정된 항목을 모아봅니다.'}</p>
         </div>
         {lateAll > 0 && (
-          <span title="To-Do·업무·이슈·리스크 중 기한이 지난 미완료 항목 합계" style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, padding: '5px 11px', borderRadius: 999, background: '#fdecee', color: '#c0414f', border: '1px solid #f3d2d7', cursor: 'help', whiteSpace: 'nowrap' }}>
+          <span title="To-Do, 업무, 이슈, 리스크 중 기한이 지난 미완료 항목 합계" style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, padding: '5px 11px', borderRadius: 999, background: '#fdecee', color: '#c0414f', border: '1px solid #f3d2d7', cursor: 'help', whiteSpace: 'nowrap' }}>
             ⚠ 기한 초과 {lateAll}건
           </span>
         )}

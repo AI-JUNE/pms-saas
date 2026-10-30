@@ -99,12 +99,12 @@ export default function Page() {
   return (
     <Shell title="감사 로그">
       <h2 className="h1">감사 로그</h2>
-      <p className="h-sub">조직 내 변경·열람 이력입니다. 행위자·동작·영역·기간으로 검색하고, 행을 선택하면 상세를 볼 수 있습니다.</p>
+      <p className="h-sub">조직 내 변경과 열람 이력입니다. 행위자, 동작, 영역, 기간으로 검색하고, 행을 선택하면 상세를 볼 수 있습니다.</p>
 
       <form className="toolbar" onSubmit={apply} style={{ flexWrap: 'wrap', gap: 8 }} aria-label="감사 로그 검색 조건">
         <div className="search" style={{ minWidth: 200 }}>
           <Search style={{ width: 16, height: 16 }} />
-          <input placeholder="이벤트·대상 검색…" value={f.q} onChange={setK('q')} aria-label="감사 로그 검색어" />
+          <input placeholder="이벤트, 대상 검색…" value={f.q} onChange={setK('q')} aria-label="감사 로그 검색어" />
           {f.q && <button type="button" onClick={() => setF({ ...f, q: '' })} style={{ color: 'var(--text-3)' }} aria-label="검색어 지우기"><X style={{ width: 15 }} /></button>}
         </div>
         <select className="sel" value={f.actor} onChange={setK('actor')} aria-label="행위자 필터">
@@ -129,7 +129,7 @@ export default function Page() {
         {loaded && todayCount > 0 && <span className="muted" style={{ marginRight: 4 }} title={`오늘 발생한 이력 ${nfmt(todayCount)}건입니다.`}>오늘 <b style={{ color: 'var(--brand)' }}>{nfmt(todayCount)}</b>건</span>}
         <span className="muted" title={capture?.verdict === 'truncated' ? `표시한 ${nfmt(rows.length)}건 뒤에 더 오래된 기록이 남아 있습니다(1회 200건씩 이어 받습니다).` : `${filtered ? '검색 조건에 맞는 ' : ''}${nfmt(rows.length)}건을 모두 표시했습니다.`}>{nfmt(rows.length)}건{capture?.verdict === 'truncated' && <span style={{ color: '#2457C5' }}>+</span>}</span>
       </form>
-      {problems.length > 0 && <div className="muted" role="alert" style={{ fontSize: 12.5, color: '#2457C5', marginBottom: 8 }}>{problems.join(' · ')}</div>}
+      {problems.length > 0 && <div className="muted" role="alert" style={{ fontSize: 12.5, color: '#2457C5', marginBottom: 8 }}>{problems.join(', ')}</div>}
       {loaded && capture?.verdict === 'truncated' && (
         <div className="card" role="alert" style={{ padding: '10px 12px', marginBottom: 8, borderColor: '#2457C5', fontSize: 12.5, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <b style={{ color: '#2457C5' }}>결과가 잘렸습니다</b>
@@ -152,7 +152,7 @@ export default function Page() {
               const ac = actOf(a.event);
               const isSel = sel?.id === a.id;
               return (
-                <tr key={a.id} tabIndex={0} role="button" aria-label={`${ac.label} · ${entName(a.entity)} ${a.entityId ? '#' + a.entityId : ''} · ${a.userName || '시스템'} · 상세 보기`} aria-expanded={isSel} className={isSel ? 'sel' : undefined} style={{ cursor: 'pointer', background: isSel ? 'var(--brand-50)' : undefined }}
+                <tr key={a.id} tabIndex={0} role="button" aria-label={`${ac.label}, ${entName(a.entity)} ${a.entityId ? '#' + a.entityId : ''}, ${a.userName || '시스템'}, 상세 보기`} aria-expanded={isSel} className={isSel ? 'sel' : undefined} style={{ cursor: 'pointer', background: isSel ? 'var(--brand-50)' : undefined }}
                   onClick={(e) => openDetail(a, e.currentTarget)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetail(a, e.currentTarget); } }}>
                   <td><span className={`pill ${ac.cls}`}>{ac.label}</span></td>
                   <td style={{ fontWeight: 650 }}>{entName(a.entity)}</td>
@@ -164,7 +164,7 @@ export default function Page() {
             })}
             {loaded && rows.length === 0 && (
               <tr><td colSpan={5}><div className="empty"><Activity />
-                <div>{filtered ? '조건에 맞는 이력이 없습니다. 검색 조건을 조정해 보세요.' : '변경 이력이 없습니다. 데이터를 생성·수정하면 이곳에 기록됩니다.'}</div>
+                <div>{filtered ? '조건에 맞는 이력이 없습니다. 검색 조건을 조정해 보세요.' : '변경 이력이 없습니다. 데이터를 생성하거나 수정하면 이곳에 기록됩니다.'}</div>
               </div></td></tr>
             )}
           </tbody>
@@ -177,7 +177,7 @@ export default function Page() {
 
       {retention && (
         <p className="muted" style={{ fontSize: 12, marginTop: 10 }} title={retention.note}>
-          보존 기간 <b>{nfmt(retention.days)}일</b>{retention.decided ? '' : ' (운영 확정 전 기본값 — 확정 필요)'} · 기준일 이전({retention.cutoff}) 기록은 정리 후보이며 자동 삭제는 수행하지 않습니다.
+          보존 기간 <b>{nfmt(retention.days)}일</b>{retention.decided ? '' : ' (운영 확정 전 기본값 — 확정 필요)'}, 기준일 이전({retention.cutoff}) 기록은 정리 후보이며 자동 삭제는 수행하지 않습니다.
         </p>
       )}
 
@@ -186,7 +186,7 @@ export default function Page() {
         <aside ref={drawerRef} tabIndex={-1} className="over" role="dialog" aria-modal="true" aria-label="감사 로그 상세">
           <div className="over-h"><span className="mono" style={{ fontSize: 13 }}>#{sel.id}</span><div className="sp" /><button className="iconbtn" aria-label="닫기" onClick={closeDetail}><X /></button></div>
           <div className="over-b">
-            <h3 style={{ margin: '0 0 14px', fontSize: 18, fontWeight: 800 }}>{actOf(sel.event).label} · {entName(sel.entity)}{sel.entityId ? ` #${sel.entityId}` : ''}</h3>
+            <h3 style={{ margin: '0 0 14px', fontSize: 18, fontWeight: 800 }}>{actOf(sel.event).label}, {entName(sel.entity)}{sel.entityId ? ` #${sel.entityId}` : ''}</h3>
             <dl className="dl">
               <dt>이벤트</dt><dd className="mono">{sel.event}</dd>
               <dt>영역</dt><dd>{entName(sel.entity)}{sel.entity ? <span className="muted mono" style={{ marginLeft: 6, fontSize: 11.5 }}>({sel.entity})</span> : null}</dd>
@@ -199,8 +199,8 @@ export default function Page() {
               <dl className="dl">
                 {Object.entries(detail).map(([k, v]) => (<div key={k} style={{ display: 'contents' }}><dt>{DETAIL_LABEL[k] || k}</dt><dd className="mono" style={{ fontSize: 12, wordBreak: 'break-all' }}>{typeof v === 'string' ? v : JSON.stringify(v)}</dd></div>))}
               </dl>
-            ) : <div className="muted" style={{ fontSize: 12.5 }}>기록된 상세가 없습니다. (생성·수정·삭제 이벤트는 값 자체를 남기지 않고 대상만 기록합니다)</div>}
-            <p className="muted" style={{ fontSize: 11.5, marginTop: 14 }}>개인정보·비밀값은 기록 시점에 제거·마스킹됩니다(lib/auditAccess).</p>
+            ) : <div className="muted" style={{ fontSize: 12.5 }}>기록된 상세가 없습니다. (생성, 수정, 삭제 이벤트는 값 자체를 남기지 않고 대상만 기록합니다)</div>}
+            <p className="muted" style={{ fontSize: 11.5, marginTop: 14 }}>개인정보, 비밀값은 기록 시점에 제거, 마스킹됩니다(lib/auditAccess).</p>
           </div>
         </aside>
       </>)}

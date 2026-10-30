@@ -23,6 +23,25 @@ test('메뉴, 대시보드, 요금제 화면에 가운데 점이 없다', () => 
   for (const f of FILES) assert.equal((code(...f).match(/·/g) || []).length, 0, f.join('/'));
 });
 
+test('모든 화면 파일에 가운데 점이 없다(입력 글머리표를 떼는 정규식 문자 묶음은 동작 코드라 제외)', () => {
+  // 법령 표현을 따르는 약관과 개인정보처리방침, 결제 시험 버튼은 대상이 아니다.
+  const SKIP = ['src/app/terms/', 'src/app/privacy/', 'src/app/pricing/CheckoutButton.tsx'];
+  const bad: string[] = [];
+  const walk = (d: string) => {
+    for (const e of fs.readdirSync(path.join(ROOT, d), { withFileTypes: true })) {
+      const rel = `${d}/${e.name}`;
+      if (SKIP.some((s) => rel.startsWith(s))) continue;
+      if (e.isDirectory()) { if (e.name !== 'api') walk(rel); continue; }
+      if (!e.name.endsWith('.tsx')) continue;
+      const s = code(...rel.split('/')).replace(/\[[^\]\n]*·[^\]\n]*\]/g, '');
+      const n = (s.match(/·/g) || []).length;
+      if (n) bad.push(`${rel} ${n}`);
+    }
+  };
+  walk('src/app'); walk('src/components');
+  assert.deepEqual(bad, []);
+});
+
 test('요금제 카드와 조치 필요 이름표에 가운데 점이 없다', () => {
   for (const p of PLANS) for (const s of [p.unit ?? '', p.note, p.desc, ...p.features]) assert.doesNotMatch(s, /·/, `${p.id}: ${s}`);
   for (const m of Object.values(ACTION_META)) assert.doesNotMatch(m.label + m.hint, /·/, m.label);

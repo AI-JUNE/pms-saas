@@ -105,7 +105,7 @@ export default function Dashboard() {
     <Shell title="대시보드">
       {/* 스크린리더 라이브 안내 — mounted 는 대시보드 데이터 도착 직후(rAF) 켜지므로 로딩 완료 시점과 같다 */}
       <span className="sr-only" role="status">{!mounted ? '대시보드 현황을 불러오는 중' : `대시보드 현황: 프로젝트 ${nfmt(projects.length)}건, 열린 이슈 ${nfmt(openIssues.length)}건, 리스크 ${nfmt(risks.length)}건, 업무 ${nfmt(tasks.length)}건`}</span>
-      <div className="hero"><h2>안녕하세요, {me.user?.name} 님</h2><p>{new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })} 기준 조직 전체 현황입니다.</p></div>
+      <div className="hero"><h2>안녕하세요, {me.user?.name}{/님$/.test(String(me.user?.name ?? '')) ? '' : ' 님'}</h2><p>{new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })} 기준 조직 전체 현황입니다.</p></div>
       {onb && !onb.completed && (
         <div className="card card-pad dash-card" style={{ marginTop: 14 }}>
           <div className="row" style={{ gap: 10, alignItems: 'center' }}>
