@@ -24,5 +24,7 @@ test('목록 화면은 저장된 선택이 없으면 위쪽 막대와 같이 첫
 test('위쪽 화면 제목은 한 줄 + 줄임표(좁은 창에서 세로로 꺾이지 않게)', () => {
   const css = read('src', 'app', 'globals.css');
   const base = css.split('\n').find((l) => l.startsWith('.tb-title{font-size:16px')) || '';
-  for (const p of ['min-width:0', 'overflow:hidden', 'text-overflow:ellipsis', 'white-space:nowrap']) assert.ok(base.includes(p), p);
+  for (const p of ['min-width:0', 'flex-shrink:0', 'max-width:26vw', 'overflow:hidden', 'text-overflow:ellipsis', 'white-space:nowrap']) assert.ok(base.includes(p), p);
+  // 10-30 운영 실측: 1000px 폭에서 제목이 "방…" 한 글자로 줄었다 → 제목은 줄지 않고 검색창이 먼저 준다
+  assert.match(css, /^\.topbar \.search\{min-width:120px;flex:0 1 230px\}/m, '검색창이 먼저 줄어든다');
 });
