@@ -173,7 +173,18 @@ export function ResourceView({ title, subtitle, endpoint, projectScoped, columns
     if (r.status === 401) { router.push('/login'); return; }
     const d = await r.json(); const gone = undoQ.current ? undoQ.current.pendingIds() : new Set<number>(); setRows(Array.isArray(d) ? d.filter((x: any) => !gone.has(x.id)) : []); setLoading(false);
   }
-  useEffect(() => { const p = projectScoped ? (Number(localStorage.getItem('pms.project')) || null) : null; setPid(p); load(p); /* eslint-disable-next-line */ }, []);
+  useEffect(() => {
+    const saved = projectScoped ? (Number(localStorage.getItem('pms.project')) || null) : null;
+    if (!projectScoped || saved) { setPid(saved); load(saved); return; }
+    // 저장된 선택이 없으면 위쪽 막대(Shell, useProjects)와 같이 첫 프로젝트를 쓴다 — 처음 들어온 둘러보기 손님에게
+    // 막대엔 프로젝트가 보이는데 목록엔 "프로젝트가 없습니다"가 뜨고 전체 프로젝트 행이 섞여 나오던 문제(10-30)
+    fetch('/api/projects').then((r) => r.ok ? r.json() : []).then((d) => {
+      const first = Array.isArray(d) && d[0]?.id ? Number(d[0].id) : null;
+      if (first) { try { localStorage.setItem('pms.project', String(first)); } catch {} }
+      setPid(first); load(first);
+    }).catch(() => { setPid(null); load(null); });
+    /* eslint-disable-next-line */
+  }, []);
   useEffect(() => {
     const onEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') { setOpen(false); setDetail(null); } };
     window.addEventListener('keydown', onEsc);

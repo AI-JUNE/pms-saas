@@ -50,7 +50,7 @@ input,select,textarea{font-family:inherit}
 .nav-item.active .nav-badge{background:var(--brand-100);color:var(--brand-600)}
 
 /* topbar pieces */
-.tb-title{font-size:16px;font-weight:750;letter-spacing:-.02em}
+.tb-title{font-size:16px;font-weight:750;letter-spacing:-.02em;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap} /* 좁은 창에서 한 글자씩 세로로 꺾이지 않게 */
 .tb-spacer{flex:1}
 .search{display:flex;align-items:center;gap:8px;background:var(--surface-3);border:1px solid transparent;border-radius:10px;padding:7px 12px;min-width:230px;color:var(--text-3);transition:.13s}
 .search:focus-within{background:#fff;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-50)}
