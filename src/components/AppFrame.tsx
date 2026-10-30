@@ -52,6 +52,9 @@ export function AppFrame({ appKey, title, subtitle, intranetNote }: AppFrameProp
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
           <div>
             <div className="muted" style={{ fontSize: 13 }}>{subtitle}</div>
+            <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
+              이 앱이 만드는 분석과 초안, 점수는 생성형 AI 결과물입니다(AI기본법 제31조). 제출 전에 사실과 수치를 사람이 확인해 주세요.
+            </div>
             {intranetNote && (
               <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
                 ※ {intranetNote}
