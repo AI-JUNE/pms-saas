@@ -709,7 +709,10 @@ export function auditRunbookExternal(md: unknown): string[] {
   const i7 = sec3.search(/^7\.\s/m);
   const step7 = i7 < 0 ? '' : sec3.slice(i7).split(/^8\.\s/m)[0];
   if (!step7) problems.push('§3 7단계를 찾지 못했다');
-  else if (!/6-2/.test(step7)) {
+  // ※ 「6-2」 가 들어 있는지만 보면 안 된다(2026-10-30) — §3-22 가 7단계에 「해제 **뒤에** 꼬리
+  //    구간만 한 번 더 대조한다」를 더했으므로 **선행 조건 문구가 사라져도** 번호는 남는다.
+  //    그래서 걸어야 하는 것은 **그 문구 자체**다(해제 뒤 대조는 늦다 — 그것이 이 가드의 주제다).
+  else if (!/6-2단계 대조를 마친 뒤에만/.test(step7)) {
     problems.push('7단계(해제)가 6-2단계 완료를 선행 조건으로 걸지 않는다 — 해제 뒤 대조는 늦다');
   }
   return problems;

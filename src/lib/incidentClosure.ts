@@ -41,6 +41,7 @@
  */
 import { assessDisposal } from './evidenceDisposal.ts';
 import { assessPreservation } from './evidencePreservation.ts';
+import { assessFreezeRelease } from './freezeRelease.ts';
 import { parseInstant } from './incidentEvidence.ts';
 import { FREEZE_LIMITS, WRITE_FREEZE_ENV, writeFreezeEnabled } from './writeFreeze.ts';
 
@@ -479,6 +480,13 @@ export function closureCheck(args?: {
   // 지시하므로 아직 있는 동안에만 기한을 산출할 수 있다. 여기도 어휘·`ok` 는 그대로다:
   // 폐기는 보관소에서 일어나는 일이라 코드가 확인할 수 없다(`DISPOSAL_LIMITS`).
   const disposal = assessDisposal({ env, preservation: evidence });
+  // 이 체크가 승격한 것은 구간의 **끝(차단 실효 시각)**이고, 같은 이유가 **7단계 해제 시각**에는
+  // 적용되지 않았다(§3-22). 그 시각은 §6 표 `소요시간`(= §1-2 가 읽는 **유일한 RTO 실측**)과
+  // §3-9 대조 구간의 끝이 쓰는 입력인데 표지도, 표의 칸도 없다 — 여기서 말하는 이유는 ① 하한의
+  // 기준점이 바로 위 `at` 이고 ② 쓸모 있는 시점이 같다(차단 중 = 아직 적을 수 있는 동안)는
+  // 것이다. **새 표지·새 체크를 만들지 않았으므로** 어휘·`ok` 는 그대로다 — 달라지는 것은
+  // 다음에 할 일이다. 해제 시각은 인자라 런타임 응답에서는 늘 「적을 수 있는 상태인가」까지다.
+  const release = assessFreezeRelease({ env });
 
   return {
     ok: state === 'normal' || state === 'recorded',
@@ -506,10 +514,27 @@ export function closureCheck(args?: {
       disposalOverdueDays: disposal.overdueDays,
       /** 절차가 만들어 내는 사본 수(전건 되돌릴 수 없다) */
       disposalCopies: disposal.copies,
+      /** 7단계 해제 시각을 **적을 수 있는 상태인가**(§3-22). 해제를 했는지는 아니다 */
+      releaseVerdict: release.verdict,
+      /** 지금이 그 시각을 적을 수 있는 유일한 시점인가(= 아직 차단 중) */
+      releaseCaptureDue: release.captureDue,
+      /** §6 표 `소요시간` 칸에 적을 **자격** — `floor` 를 적으면 §1-2 가 거짓 `met` 을 낸다 */
+      releaseRtoQualified: release.rtoQualified,
+      /** 표지만으로 좁힌 해제 시각의 괄호 판정. **시각은 담지 않는다**(§2-3) */
+      releaseBracket: release.bracket.verdict,
+      /** 그 괄호의 폭(분). 좁히지 못하면 null — 수치를 지어내지 않는다 */
+      releaseBracketMinutes: release.bracket.widthMinutes,
+      /** 6-2단계 대조 ~ 해제 꼬리 구간이 확정되지 않았는가(§3-9) */
+      releaseTailOpen: release.tailOpen,
       runbook: CLOSURE_RUNBOOK_REF,
       // 보존·처분 쪽에 할 일이 있으면 **같은 칸에서** 함께 말한다 — `state` 만 읽는 담당자에게
       // 닿지 않으면 판정이 응답에만 남는다(§3-14 가 같은 이유로 둔 배선이다).
-      note: [STATE_NOTE[state], evidence.actionable ? evidence.action : '', disposal.actionable ? disposal.action : '']
+      note: [
+        STATE_NOTE[state],
+        evidence.actionable ? evidence.action : '',
+        disposal.actionable ? disposal.action : '',
+        release.actionable ? release.action : '',
+      ]
         .filter(Boolean)
         .join(' / '),
     },
