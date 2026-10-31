@@ -146,9 +146,10 @@ export const LEDGER_FIELDS: readonly LedgerField[] = [
     column: '비고',
     envKey: null,
     home: 'table_only',
-    judgedBy: 'lib/restorePointRecord.ts parseRemarkWindow (§6-7 — 구간·고지 시각만. 자유 메모는 읽지 않는다)',
+    judgedBy:
+      'lib/restorePointRecord.ts parseRemarkWindow (§6-7 — 구간·고지 시각만. 자유 메모는 읽지 않는다) · lib/remarkSlots.ts assessRemarkSlots (§3-23 — 그 칸에 들어가는 열두 가지의 정본 목록과 「적었는가」)',
     lost:
-      '§3-10 `recordRemark()` 가 만들어 주는 구간·고지 시각 메모가 사라진다 — 유실 구간의 **끝**과 고지 수행 근거가 남는 유일한 영구 자리다(두 값의 env 는 복구 뒤 지우는 임시 키다. 2026-10-22 에 §6-7 이 읽는 판정이 됐다)',
+      '§3-10 `recordRemark()` 가 만들어 주는 구간·고지 시각 메모가 사라진다 — 유실 구간의 **끝**과 고지 수행 근거가 남는 유일한 영구 자리다(두 값의 env 는 복구 뒤 지우는 임시 키다. 2026-10-22 에 §6-7 이 읽는 판정이 됐다). 더해서 §3 소절들이 「비고에 적는다」로 승격시킨 **열 가지가 더** 이 칸에만 산다 — 해제 시각·중단 결정 시각·사본 폐기 기한·세 결정(원본 브랜치·검증 배포 포인터·기준 지문)·기동 쓰기·약속 초과·미도달 가능·유실분 미추출. 2026-10-31 까지 그중 **되읽는 쪽이 있는 것은 구간·고지 둘**뿐이었다(§3-23)',
   },
   {
     key: 'scope',
