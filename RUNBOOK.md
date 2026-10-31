@@ -217,6 +217,13 @@ RPO 실측은 3-7 구간이라 **시간**이고 실제로 잃은 행 수는 아�
 7. **점검을 마친 날짜를 `RECOVERY_LAST_CHECK` 에 적는다**(`YYYY-MM-DD`).
    이 날짜가 위 1·4번이 다루는 **날짜 없는 설정값들의 유일한 확인 시점**이다(아래 2-1).
    적지 않으면 반년 거른 배포와 지난주 점검한 배포가 `GET /api/health` 에서 똑같이 보인다.
+   - ⚠️ **이 한 줄은 주장이다 — 적기 전에 그 주장이 뒷받침되는지 본다**(아래 **2-4**).
+     `checks.periodicCheck.detail.claim.verdict` 가 **`corroborated`** 여야 위 3·4번이 이 점검에서
+     실제로 돌았다는 뜻이다. `contradicted` 는 스냅샷의 기준일이 **한 주기 이상** 앞서 있다는
+     뜻이고(= 그 단계를 수행하지 않았다), 그래도 `trusted: true` 와 **빈 `untrusted`** 가 나온다 —
+     그 둘은 전부 이 날짜 한 줄에서 파생되기 때문이다. 날짜만 갱신하면 2-1 이 막으려던 상태
+     (옛 플랜 기준 보존 창으로 §3-6 이 `ok` 를 내는 것)가 **경고 없이** 되돌아온다.
+     6번 표 기록까지 함께 보려면 2-4 의 1줄 명령으로 `reconcileCheckRow` 판정을 본다.
 
 ### 2-1. 점검이 밀렸는지 드러내기 — 날짜 없는 설정값의 신선도
 
@@ -389,6 +396,88 @@ RPO 실측은 3-7 구간이라 **시간**이고 실제로 잃은 행 수는 아�
 문자열**에서 읽는 경우, `publicSignalHeaders()` 를 거치지 않아 체크 이름이 헤더로 나가는 경우,
 사건 상태를 말하는 체크가 **공개 허용 목록**(`db`·`billing`)으로 올라오는 경우 모두 실패시킨다.
 응답은 그대로 200 이라 사람 눈으로는 알아챌 수 없는 회귀다.
+
+### 2-4. **점검 일자의 근거** — 「점검했다」는 주장과 그 점검이 남긴 값의 대조
+
+위 2-1 은 「날짜 없는 설정값의 확인 시점은 그 값을 확인하라고 지시한 절차가 마지막으로 돌아간
+날이다」로 구멍을 닫았다. 그 장치의 **유일한 입력**은 `RECOVERY_LAST_CHECK` 한 줄이고, 그 한 줄이
+하는 일은 작지 않다 — 주기 안이면 `trusted: true` 가 되어 보존 창 길이(§2 1번)와 연결 대상
+지문(§2 4번)이 `confirmed` 로 올라가고, `detail.untrusted` 가 빈 배열이 된다. 리허설 체크리스트도
+그 두 칸을 그대로 인용한다. 그런데 그 한 줄은 **사람이 적은 주장**이고, `PERIODIC_LIMITS` 가 그
+사실을 두 줄로 적어 두었다 — 「점검했다고 **적었다**는 뜻이다(값이 바뀌지 않아도 날짜만 갱신될 수
+있다)」. **적어 두기만 했고 닫는 장치가 없었다.**
+
+닫을 수 있는데 쓰지 않은 것이 있다. §2 가 공급하는 값 **둘은 자기 날짜를 품는다** — 3번 행 수
+기준 스냅샷의 `asOf` 와 4번 설정 키 이름 스냅샷의 `asOf`. 그 둘이 반년 전인데 점검 일자가 어제라면
+그 점검에서 3·4번은 **수행되지 않았다**. 기계적으로 말할 수 있는 사실인데, 두 값의 신선도는 각자
+다른 축(§3-2 기한·§4-12 목록)으로만 판정되고 **점검 일자와 견준 적이 없었다.**
+
+| 대조 축 | §2 단계 | 자기 날짜 | 대조되면 확인되는 것 |
+| --- | --- | --- | --- |
+| `RECOVERY_DATA_BASELINE` | 3번 | **있다**(`asOf`) | 그 점검에서 복구 검증을 실제로 호출했다 |
+| `RECOVERY_ENV_BASELINE` | 4번 | **있다**(`asOf`) | 그 점검에서 헬스 응답을 실제로 읽었다 |
+| `RECOVERY_PITR_RETENTION_HOURS` | 1번 | 없다 | **대조 불가**(`undatable`) — 정작 신선도가 점검 일자에 걸린 값이다 |
+| `RECOVERY_EXPECTED_DB` | 4번 | 없다 | **대조 불가**(`undatable`) — 같다 |
+| §6 표 `점검` 행 | 6번 | 행의 `일자` | 사람이 그 날짜로 행을 남겼다(**런타임은 표를 읽지 못한다**) |
+
+| 거짓이 되는 판정 | 무슨 말을 하게 되는가 | 왜 거짓인가 |
+| --- | --- | --- |
+| `date_is_performance` — 점검 일자가 주기 안이다 | §2 를 돌았다 | 그 한 줄은 주장이고, 그것만으로 `trusted: true` 가 된다 — §2 를 열지 않고 날짜만 고쳐 적어도 같은 응답이 나온다 |
+| `empty_untrusted_is_fresh` — `detail.untrusted` 가 비었다 | 설정값이 최근 확인된 것이다 | 그 목록은 **점검 일자 하나에서** 파생된다(`assessSettingFreshness`) — 값 쪽을 본 적이 없다 |
+| `stale_snapshot_is_separate` — 스냅샷이 낡으면 §3-2 가 말해 준다 | 이쪽은 볼 필요가 없다 | §3-2 는 **기한 설정값이 있을 때만** 판정하고(미설정은 `unjudged` 보류), 그 판정은 「값이 낡았다」까지다 — 「점검했다는 날짜가 그 단계를 포함하지 않았다」는 다른 사실이다 |
+| `overdue_is_skipped` — `overdue` 가 떴다 | 아무것도 하지 않았다 | 7번(날짜 적기)만 거른 점검도 `overdue` 로 보인다 — 사실과 다른 경보는 다음부터 읽히지 않는다 |
+| `table_row_is_checked` — §6 표에 점검 행이 쌓여 있다 | 기록이 대조된다 | §6-4 는 **리허설 키만** 표와 대조한다(점검 쪽을 env 로 올리지 않는 규율은 옳다) — `RECOVERY_LAST_CHECK` 와 표의 `점검` 행을 견주는 쪽이 없었다 |
+
+**판정 산출** (읽기뿐 — DB·네트워크 접근 0, 신규 env 0)
+
+```bash
+node --experimental-strip-types -e "import('./src/lib/checkClaim.ts').then(async m=>{const{parseLedgerTable}=await import('./src/lib/rehearsalLedger.ts');const rows=parseLedgerTable(require('fs').readFileSync('RUNBOOK.md','utf8')).rows;const a=m.assessCheckClaim({lastCheck:process.env.RECOVERY_LAST_CHECK,intervalDays:Number(process.env.RECOVERY_CHECK_INTERVAL_DAYS)||null,env:process.env});console.log(m.claimText(a,m.reconcileCheckRow({rows,lastCheck:process.env.RECOVERY_LAST_CHECK})))})"
+```
+
+| `verdict` | 뜻 | 무엇을 해야 하나 |
+| --- | --- | --- |
+| `corroborated` | 대조된 단계가 그 날짜에 돌았다 | 없음 — 다만 **날짜 없는 두 값은 대조 대상이 아니다**(그 둘의 확인은 여전히 주장뿐이다) |
+| **`partly`** | 점검 일자보다 **앞선** 기준일이 있다 | 그 단계를 지금 수행해 값을 갱신하거나, 실제 점검한 날짜로 바로잡는다 |
+| **`contradicted`** | **한 주기 이상** 앞선 기준일이 있다 | 그 점검은 그 단계를 수행하지 않았다 — `trusted`·빈 `untrusted` 를 「최근 확인」의 근거로 쓰지 않는다. 단계를 수행한 뒤 날짜를 적는다 |
+| **`date_behind`** | 값이 모두 점검 일자보다 **새것**이다 | 단계는 돌았고 7번이 밀렸다 — 실제 점검한 날짜를 적는다(사실과 다른 `overdue` 는 읽히지 않게 된다) |
+| `uncorroborated` | 뒷받침할 축이 하나도 없다 | 두 스냅샷을 갱신해 두면 다음 점검부터 「날짜만 갱신」이 기계적으로 드러난다 |
+| `no_claim` | 점검 일자가 없거나 축으로 쓸 수 없다 | `checks.periodicCheck` 가 `absent`/`invalid_date`/`future` 로 이미 말한다 — 날짜를 바로잡으면 대조가 시작된다 |
+
+**표 쪽(6번) 대조** — `reconcileCheckRow()` 는 §6 표의 마지막 `점검` 행(§6-8 `purposeOfRow`)과
+`RECOVERY_LAST_CHECK` 를 견준다: `aligned` · `row_newer`(표에는 적고 7번을 거렀다) ·
+`env_newer`(env 만 갱신하고 6번을 거렀다) · `no_check_row`(표에 점검 행이 없다 — 점검 이력이
+**지워지는 쪽에만** 있다) · `unreadable_row`(`유형` 칸이 겹치는 말이다) · `no_table`(표를 넘기지
+않았다 — **「행이 없다」가 아니라 보지 않았다**).
+
+- 평상시 확인: `GET /api/health` → `checks.periodicCheck.detail.claim`(`verdict`·`claimDate`·
+  `corroborating`·`contradicting`·`unverifiable`·`trustQualified`). **새 체크를 만들지 않았다** —
+  이 판정은 §2-1 체크 **상세로만** 나간다(중복 보고 금지). 표 쪽 판정은 위 명령에서만 나온다.
+
+> **게이트가 아니다.** 이 판정으로 `ok`·상태 코드·`trusted`·`switchReady` 를 바꾸지 않는다 —
+> 점검을 거른 배포에 거짓 차단을 만들면 그때부터 아무도 이 판정을 보지 않는다. 달라지는 것은
+> **다음에 할 일**(`action`)이고, `trustQualified: false` 는 「`trusted` 가 뒷받침되지 않는다」를
+> 말한다(뒤집지 않는다).
+
+> **임의 허용 오차를 만들지 않았다.** 「며칠까지는 같은 점검으로 본다」를 코드가 정하지 않는다 —
+> 하루라도 앞선 값은 `lagging` 이고, **한 주기 이상**(`RECOVERY_CHECK_INTERVAL_DAYS`) 앞선 것만
+> `skipped` 로 올린다. 주기가 미설정이면 `skipped` 판정을 하지 않는다(= `partly` 까지만).
+
+> 보장하지 못하는 것(`CLAIM_LIMITS` — 판정과 함께 실려 나간다): `aligned` 는 **「그 날짜에
+> 갱신됐다」**까지다(옮겨 적은 수치가 콘솔과 맞는지는 보지 않는다 — 2-1 과 같은 한계) ·
+> **날짜 없는 두 값은 영구히 대조되지 않는다** · 점검 일자와 두 스냅샷의 날짜를 **함께** 고쳐
+> 적으면 `aligned` 가 된다 · §2 2·5번은 읽기만 하는 단계라 남기는 값이 없어 수행 여부를 말할 축이
+> 처음부터 없다 · 표 쪽은 런타임이 읽지 못한다 · **이 배포 스코프의 env 만** 본다(§3 4단계가 읽는
+> 벌의 점검 이력은 여기 없다 — §3-13).
+
+- 신규 조회·쓰기·DDL·런타임 체크·사건 표지·환경변수 **0**. 날짜 판독은 `parseRehearsalDate`,
+  행 수 스냅샷은 §3-2 `parseCountBaseline`, 키 목록 스냅샷은 §4-12 `parseEnvBaseline`, 행의
+  목적은 §6-8 `purposeOfRow` 를 **그대로 쓴다** — 같은 문구를 두 곳에서 읽으면 갈라진 쪽이 아무
+  응답도 바꾸지 않으므로 영구히 남는다.
+- `tests/checkClaim.test.ts` 가 실제 `src/lib/periodicCheck.ts`·§2 단계 정본·날짜 없는 설정값
+  정본·절차 단위 정본·이 모듈과 이 문서 원문을 매번 점검한다 — 판정이 응답에서 빠지거나(판정만
+  하고 버리는 꼴 포함), §2 에 값을 공급하는 단계가 늘었는데 대조 축에 적히지 않거나, 날짜 없는
+  설정값 정본과 `dated` 선언이 어긋나거나, 새 체크·새 env 가 생기거나, §2 본문이 이 절로 유도하지
+  않으면 CI 가 실패한다. 전부 **응답은 200** 이라 사람 눈으로는 알아챌 수 없는 회귀다.
 
 ## 3. DB 복구 절차 (Neon PITR)
 
@@ -3276,6 +3365,10 @@ node --input-type=module -e "import fs from 'node:fs';import {parseCoverageRecor
       먼저 본다 — 목표 시간 안에 끝내도 복구가 불가능하거나, 지켜도 증명되지 않는 약속이다
 - [ ] 그 값이 **최근 확인된 값**인지 — `checks.periodicCheck.detail.verdict` 가 `ok` 이고
       `detail.untrusted` 가 비어 있다(`overdue`·`absent` 면 §3-6 판정이 옛 플랜 기준이다. 2-1)
+- [ ] 그 `ok` 가 **주장만이 아닌지** — `detail.claim.verdict` 가 `corroborated` 다(§2-4).
+      `contradicted` 는 §2 3·4번 스냅샷의 기준일이 **한 주기 이상** 앞선다는 뜻이고(= 그 점검은
+      그 단계를 수행하지 않았다), 그때도 위 두 칸은 `ok`·빈 배열이다 — 둘 다 점검 일자 한 줄에서
+      파생되기 때문이다. `uncorroborated` 는 뒷받침할 축이 없다는 뜻으로 **통과가 아니라 보류**다
 - [ ] 복구 시점을 §3-6 명령으로 산출했다 — `verdict` 가 `ok` 이고 ε 의 근거(원인 작업 직전 기록)를 적었다
 - [ ] 산출한 `deadline` 을 적어 두고 그 안에 브랜치를 만들었다(보존 창 하한은 시간과 함께 전진한다)
 - [ ] **차단을 걸기 전에** 두 번째 하한을 함께 판정했다(§3-21) — §3-21 명령의 `floor.verdict` 가

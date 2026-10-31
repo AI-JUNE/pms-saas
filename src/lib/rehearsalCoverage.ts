@@ -126,6 +126,14 @@ export const PROCEDURE_UNITS: readonly ProcedureUnit[] = [
     skipped: '복구일에 `HEALTH_DETAIL_TOKEN` 이 없어 사건 상태가 무인증으로 나간다(그때는 넣을 겨를이 없다)',
   },
   {
+    key: '2-4',
+    title: '점검 일자의 근거 — 「점검했다」는 주장과 그 점검이 남긴 값의 대조',
+    since: '2026-10-31',
+    cited: true,
+    skipped:
+      '§2 를 열지 않고 점검 일자만 고쳐 적은 배포를 「최근 확인」으로 읽는다 — `trusted`·빈 `untrusted` 는 전부 그 한 줄에서 파생되므로 §2-1 이 막으려던 상태(옛 플랜 기준 보존 창)가 경고 없이 되돌아온다',
+  },
+  {
     key: '3-1',
     title: '빈 DB 로 복구할 때 — migrate 만으로는 복원되지 않는다',
     since: '2026-10-03',

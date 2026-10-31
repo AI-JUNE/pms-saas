@@ -40,6 +40,7 @@
  *   담당자를 담지 않는다(공개 `/api/health` 에 나가는 값이다).
  */
 
+import { assessCheckClaim, publicClaim } from './checkClaim.ts';
 import { addDays, parseRehearsalDate } from './recovery.ts';
 
 /** 마지막 §2 월 점검 일자(YYYY-MM-DD) 설정 키 */
@@ -253,7 +254,8 @@ export function actionCheckOk(dueDate: string): string {
 
 export const CAVEAT_CHECK_IS_A_CLAIM =
   '점검 일자는 **「점검했다고 적었다」**는 뜻이다 — 각 단계를 실제로 수행했는지, 수치를 콘솔과 ' +
-  '대조했는지는 이 판정이 확인하지 않는다(값이 바뀌지 않아도 날짜만 갱신될 수 있다)';
+  '대조했는지는 이 판정이 확인하지 않는다(값이 바뀌지 않아도 날짜만 갱신될 수 있다). ' +
+  '그 주장을 **자기 날짜를 품은 값과 대조**한 결과는 `detail.claim` 에 있다(§2-4)';
 
 export const CAVEAT_RETENTION_IS_HUMAN_VALUE =
   '보존 창 길이는 **정본이 Neon 콘솔**이고 설정값은 사람이 옮겨 적은 사본이다 — 점검 일자가 ' +
@@ -432,12 +434,23 @@ export function periodicCheckHealth(args?: {
   now?: Date;
 }): { ok: boolean; required: false; detail: Record<string, unknown> } {
   const env = args?.env ?? process.env;
+  const intervalDays = checkIntervalDays(env);
   const check = assessMonthlyCheck({
     lastCheck: lastCheckFromEnv(env),
     now: args?.now,
-    intervalDays: checkIntervalDays(env),
+    intervalDays,
   });
   const settings = assessSettingFreshness({ check, env });
+  // 그 점검 일자가 **주장이 아닌 근거를 갖는지**(§2-4). 위 `trusted`·`untrusted` 는 전부 날짜
+  // 한 줄에서 파생되므로, §2 를 열지 않고 날짜만 고쳐 적어도 같은 응답이 나온다 — 그래서 §2 가
+  // 공급하는 값 중 **자기 날짜를 품은 둘**(3번 행 수 스냅샷·4번 키 목록 스냅샷)의 기준일과
+  // 견준다. 게이트가 아니다 — `ok`·`trusted` 를 바꾸지 않고 **다음에 할 일**만 달라진다.
+  const claim = assessCheckClaim({
+    lastCheck: lastCheckFromEnv(env),
+    intervalDays,
+    env,
+    now: args?.now,
+  });
   return {
     ok: check.verdict === 'ok' || check.verdict === 'unjudged',
     required: false,
@@ -451,6 +464,7 @@ export function periodicCheckHealth(args?: {
       unconfirmedWindow: check.unconfirmedWindow,
       settings,
       untrusted: untrustedSettings(settings),
+      claim: publicClaim(claim),
       configKeys: { lastCheck: LAST_CHECK_ENV, interval: CHECK_INTERVAL_ENV },
       action: check.action,
       limits: PERIODIC_LIMITS,
