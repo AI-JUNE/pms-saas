@@ -53,21 +53,28 @@ import { CHECK_OBSERVATIONS } from '../src/lib/rehearsalObservation.ts';
 import { rehearsalAttainment } from '../src/lib/recoveryObjectives.ts';
 import { ENV_VARS } from '../src/lib/envRegistry.ts';
 import { TRANSIENT_KEYS } from '../src/lib/envPresence.ts';
+import { addDays } from '../src/lib/recovery.ts';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
 const read = (...p: string[]) => fs.readFileSync(path.join(ROOT, ...p), 'utf8');
 const RUNBOOK = read('RUNBOOK.md');
-const NOW = new Date('2026-11-05T12:00:00Z');
 
 /** 지금 정본의 전 단위 */
 const ALL_UNITS = PROCEDURE_UNITS.map((u) => u.key);
 const REV = procedureRevision().rev;
 
+// 픽스처 일자를 **정본에서 끌어온다** — `remediation` 은 「리허설 뒤에 들어온 단위」를 함께
+// 세므로(이 모듈의 쓸모다) 날짜를 고정해 두면 소절이 하나 늘 때마다 이 파일이 낡는다.
+const LATEST_SINCE = [...PROCEDURE_UNITS].map((u) => u.since).sort().at(-1) ?? '2026-11-01';
+/** 전 단위가 생긴 **뒤**에 수행한 리허설 일자 */
+const DONE_AT = addDays(LATEST_SINCE, 1);
+const NOW = new Date(`${addDays(LATEST_SINCE, 4)}T12:00:00Z`);
+
 /** 리허설을 마친 env 한 벌 — 범위는 전 단위, 결과·미통과는 인자로 */
 const envOf = (result: string, unpassed?: string, scope?: string): Record<string, string | undefined> => ({
-  RECOVERY_LAST_REHEARSAL: '2026-11-01',
+  RECOVERY_LAST_REHEARSAL: DONE_AT,
   RECOVERY_LAST_REHEARSAL_RESULT: result,
-  RECOVERY_LAST_REHEARSAL_SCOPE: scope ?? `asOf=2026-11-01;rev=${REV};units=${ALL_UNITS.join(',')}`,
+  RECOVERY_LAST_REHEARSAL_SCOPE: scope ?? `asOf=${DONE_AT};rev=${REV};units=${ALL_UNITS.join(',')}`,
   ...(unpassed === undefined ? {} : { [OUTCOME_ENV]: unpassed }),
 });
 

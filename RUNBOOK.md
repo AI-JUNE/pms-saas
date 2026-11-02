@@ -748,6 +748,15 @@ node --experimental-strip-types -e "import('./src/lib/checkClaim.ts').then(async
         3-23 은 **양쪽을 다 적게 한다**(「뗐다」도 기록이다). 4번으로 넘어가기 전에 3-23 의 명령으로
         `verdict` 가 `complete` 인지 보고, 빠진 칸은 `remarkDraft()` 문구로 **지금** 적는다 —
         값 칸의 기준점은 바로 다음 4번이 **지우라고 지시하는** 표지다.
+      - ⚠️ **이 3번을 거른 것은 어느 응답도 말하지 않는다**(아래 **6-10**). 4번이 인용하는
+        게이트(`checks.lossNotice.detail.canClearMarkers`)는 **2번만** 본다 — 런타임이 이
+        문서를 읽지 않으므로 표에 **한 줄도 없어도** `true` · `blockers: []` 가 나오고,
+        위 3-23 판정도 **행이 주어졌을 때만** 돌아간다(행이 없으면 `not_applicable` =
+        「읽을 행이 없다」). 표 쪽 판정(6-4)은 기록이 없으면 `no_record`(= 「미실시」)라
+        **사건을 거친 배포와 한 번도 복구하지 않은 배포가 같은 말을 한다.** 그래서 행을 적은
+        뒤 아래 6-10 의 저장소 명령으로 `verdict` 가 `recorded` 이고 `emptyCells` 가 비어
+        있는지 보고, 같은 명령의 `clearGate` 로 **2번·3번을 함께** 판정해 `clearable` 이
+        `true` 인 것을 확인한 다음 4번으로 간다.
    4. `RECOVERY_WRITE_FREEZE_AT` 를 **지운다.** 남겨 두면 다음 사건에서 **옛 시각이 구간의 끝**으로
       쓰인다. 평상시에 남아 있으면 `checks.incidentClosure.detail.state` 가 `stale_record` 로 드러난다.
       같은 자리에서 `RECOVERY_RESTORE_POINT`·`RECOVERY_EVIDENCE_PRESERVED_AT`·`RECOVERY_LOSS_NOTICE_AT`·
@@ -801,6 +810,9 @@ node --experimental-strip-types -e "import('./src/lib/checkClaim.ts').then(async
         **`true`** 이고 `blockers` 가 비어 있을 때만 지운다. 지운 뒤에는 구간의 두 끝이 모두 사라져
         구간을 되찾을 수도, 「고지했는가」를 물을 수도 없다 — **고지 없이 끝낸 복구와 제대로 끝낸
         복구가 평상시 응답에서 글자 하나 다르지 않다**(아래 3-10).
+        · ⚠️ 그 값은 **2번까지만** 말한다 — 같은 `detail` 의 `unseen` 이 그 사실을 적어 둔다.
+        3번(§6 표 사건 행)은 저장소 문서라 런타임이 읽지 못하므로, **아래 6-10 의 저장소
+        명령으로 `clearGate` 를 함께 돌려** `clearable` 이 `true` 인 것을 보고 지운다.
 
 > 되돌린 시점 이후의 데이터는 유실된다. 손실 구간을 반드시 이해관계자에게 고지한다.
 > 2단계 차단을 **언제** 걸었는지가 그 구간의 끝이다(차단 이후의 쓰기는 애초에 없다) — 그래서
@@ -3339,6 +3351,86 @@ node --input-type=module -e "import fs from 'node:fs';import {parseCoverageRecor
 읽는다(판정은 `lib/rehearsalChecklist.ts`, 칸의 글자 보존은 `lib/rehearsalObservation.ts`
 `ChecklistItem.mark`). CI 가 매번 **전 칸이 비어 있는지**와 머리말 규율 문구를 검사한다.
 
+### 6-10. 그 행이 **있는가** — 8단계 3번의 수행 여부
+
+3절 8단계는 네 가지를 **순서대로** 하라고 지시하고 그 3번이 「6절 표에 사건·조치·소요시간
+기록」이다. 4번의 마지막 ⚠️ 는 「**지우기 전에 2·3번이 끝났는지 본다** —
+`checks.lossNotice.detail.canClearMarkers` 가 `true` 이고 `blockers` 가 비어 있을 때만
+지운다」고 적어 두었다. 그런데 **그 게이트가 보는 것은 2번뿐이다** — `blockers` 는 고지
+기록(`RECOVERY_LOSS_NOTICE_AT`)·판독 실패·구간 미확정 네 가지이고 3번은 들어 있지 않다.
+런타임이 이 문서를 읽지 않기 때문이고 그 설계는 옳다(6-9·2-4 가 같은 이유로 표 쪽을
+`no_table` 로 남겨 두었다). 그래서 **표에 한 줄도 적지 않아도 4번은 선행 조건을 지킨
+모습으로 끝난다.**
+
+넷으로 거짓이 된다.
+
+| 판정 키 | 어느 판정이 | 무엇이라고 말하는가 |
+| --- | --- | --- |
+| `nothing_to_write` | 3-23 `assessRemarkSlots` | `not_applicable` — 「없음 — 2절 월 점검 행이거나 **읽을 행이 없다**」. 첫 줄이 `if (!row)` 다 — 가장 무거운 누락이 가장 가벼운 판정으로 나온다 |
+| `gate_opens_without_row` | 3-10 `canClearMarkers` | `true` · `blockers: []`. 고지만 적어 두면 표에 한 줄도 없이 표지 여섯이 지워진다 |
+| `incident_looks_like_never` | 6-4 `reconcileLedger` | `no_record` — 「미실시」. 사건은 리허설 환경변수를 바꾸지 않고(6-6) `(미실시)` placeholder 행은 기록으로 세지 않으므로, **실제 복구를 거친 배포가 「한 번도 하지 않았다」와 같은 모습**이다 |
+| `promise_measured_by_practice` | 1-2 `rehearsalAttainment` | `basis: lower_bound` — 실측 자격(`measurement`)은 사건 행에만 있다(6-8). 그 행이 없으면 **실제 복구의 수치가 영구히 표에 없고** 연습값이 약속 대조에 쓰인다 |
+| `silence_after_clear` | 3-14 `assessTimeline` | `absent` — 평상시. 사건이 있었다고 말해 주는 유일한 런타임 근거가 표지 여섯이고 4번이 그것을 지우라고 지시한다(옳은 지시다) — 지운 뒤에는 **기록하지 않은 사건과 일어나지 않은 사건이 글자 하나 다르지 않다** |
+
+**런타임 체크는 만들지 않았다** — 판정의 한쪽이 저장소 문서라 `/api/health` 에 실으면 그
+응답 자신이 거짓 보증이 된다(6-9 와 같은 자리다). 대신 `checks.lossNotice.detail.unseen` 이
+**보지 못하는 선행 조건**을 그 자리에서 함께 말하고, 판정은 아래 저장소 명령과 CI 가 한다.
+
+```bash
+node --input-type=module -e "import fs from 'node:fs';import {parseLedgerTable} from './src/lib/rehearsalLedger.ts';import {assessIncidentRecord,clearGate,incidentRecordText} from './src/lib/incidentRecord.ts';const t=parseLedgerTable(fs.readFileSync('RUNBOOK.md','utf8'));const a=assessIncidentRecord({rows:t.rows,tableFound:t.found,markers:process.env});console.log(incidentRecordText(a));const g=clearGate({record:a,runtimeClearable:process.env.CLEARABLE==='true'});console.log('삭제 가능:',g.clearable);console.log('보류:',g.blockers.join(' / ')||'-');console.log('런타임이 못 보는 것:',g.unseenByRuntime.join(' / '))"
+```
+
+> `CLEARABLE` 에는 `/api/health` 의 `checks.lossNotice.detail.canClearMarkers` 를 **본 그대로**
+> 넣는다(`CLEARABLE=true`). 넣지 않으면 `clearGate` 는 **통과시키지 않는다** — 2번을 보지 않은
+> 판정을 「지워도 된다」로 돌려주면 이 절이 메우려던 구멍을 반대 방향으로 다시 낸다.
+
+| `verdict` | 뜻 | 할 일 |
+| --- | --- | --- |
+| `no_incident` | 사건 표지가 하나도 없다(평상시) | 없음 — 이 판정은 표를 묻지 않는다. 지난 사건의 행은 6절 표의 영구 기록이고 이 판정의 대상이 아니다 |
+| `unreadable_anchor` | `RECOVERY_WRITE_FREEZE_AT` 를 읽을 수 없다 | 타임존을 붙인 ISO 시각으로 다시 적는다. **판정 보류이고 통과가 아니다** |
+| `unanchored` | 표지는 있는데 앵커가 없다 | 차단 중이면 **지금** 적는다(3절 2단계) — 기준점이 없으면 어느 행이 이번 사건의 것인지 말할 수 없다 |
+| `no_table` | 6절 표를 찾지 못했다 | **「행이 없다」가 아니라 판정 불가다** — 열 이름·제목이 바뀌었는지 본다(6-4·6-7 도 함께 멈춘다) |
+| `ambiguous` | 앵커 이후의 사건 행이 둘 이상이다 | 두 사건을 한 행으로 적지 않았는지, 일자가 미래로 적히지 않았는지 본다 |
+| **`recorded`** | 이번 사건의 행이 있다 | `emptyCells` 가 비어 있는지 보고, 3-23(비고 열두 칸)·6-7(구간·고지 시각) 판정까지 확인한 뒤 4번으로 간다 |
+| `boundary_only` | 사건 행이 앵커 **날짜 전날**에 있다 | 날짜뿐인 칸으로는 귀속을 말할 수 없다 — 비고에 **타임존 붙인 시각**을 적어 확정한다 |
+| `predating_only` | 사건 행이 전부 앵커보다 앞이다 | 지난 사건의 기록을 이번 것으로 세지 않는다 — 8단계 3번을 **지금** 수행한다 |
+| **`unrecorded`** | 사건 행이 **하나도 없다** | 3-7 `incidentRecordDraft()` 로 초안 한 줄을 만들어 적는다. 표지를 지운 뒤에는 수치를 산출할 수 없다 |
+
+사건 행의 칸(정본은 6-4 `LEDGER_FIELDS` 이고 여기서는 **필수 여부**만 더한다):
+
+| 칸 | 사건 행 필수 | 비면 무엇이 거짓이 되는가 |
+| --- | --- | --- |
+| `일자` | O | 파서가 그 줄을 기록으로 세지 않는다 — 적어도 행이 없는 것과 같다 |
+| `유형` | O | `사건` 이 아니면 6-6 이 기한을 리셋하고 1-2 가 그 소요시간을 연습값으로 읽는다 |
+| `복구 대상 시점` | O | 유실 구간의 **시작**이 남는 유일한 영구 자리다(6-7) — 표지는 4번이 지운다 |
+| `소요시간` | X | 1-2 가 읽는 유일한 RTO 실측이지만, 두 끝 중 하나가 없으면 3-22 가 `[확인 필요]` 로 남기라고 지시한다(하한을 적으면 `met` 이 나와 **지키지 못한 약속이 지켜진 것으로 굳는다**) |
+| `검증 결과` | O | 끝까지 갔는지가 비면 6-5 자격 게이트가 수치를 넘기지 않는다 |
+| `담당` | O | 사후 조사에서 되물을 상대가 사라진다 |
+| `비고` | O | 열두 칸이 들어가는 자리다(3-23) — 구간·고지·해제·중단 결정 시각과 세 결정이 여기 말고 남을 자리가 없다 |
+| `범위` | X | 사건은 범위 귀속의 대상이 아니다(6-8 `countsAsCoverage: false`) — 비어 있는 것이 정상이다 |
+| `미통과 단위` | X | 사건에는 통과·미통과가 없다(6-8 `resolvesUnpassed: false`) — 비어 있는 것이 정상이다 |
+
+※ **임의 허용 오차 금지** — `일자` 칸은 날짜뿐이고 앵커는 타임존 붙은 시각이라 하루 경계의
+귀속은 **말할 수 없다**. 앵커 날짜 전날의 행은 `boundary` 로만 적고 통과로도 미기록으로도
+세지 않는다(±1일을 봐주면 지난 사건의 행이 이번 사건의 기록이 된다). 미래 일자 판정은 6절
+`auditRehearsalRows` 가 이미 하므로 여기서 다시 하지 않는다.
+
+※ **거짓 차단을 만들지 않는다** — 이 판정은 7단계 해제도 4번의 실행도 막지 않고, 표지가 없는
+평상시에는 표를 묻지 않는다(`no_incident`). 보류 판정(`no_table`·`unanchored`·
+`unreadable_anchor`)은 **통과가 아니다.**
+
+※ 이 판정이 보장하지 **못하는** 것(`RECORD_LIMITS` 로 함께 나온다): 행이 있다는 것은
+「적었다」는 뜻이고 적힌 수치·조치 내용이 사실인지는 보지 않는다 · 표지를 지운 뒤에는
+기록하지 않은 사건과 일어나지 않은 사건이 구별되지 않는다(그래서 쓸모가 **4번 전**에 있다) ·
+저장소 문서만 본다(다른 배포에서 적은 행은 알 수 없다) · 사건이 **여럿**이면 가를 수 없다
+(앵커는 한 벌이다 — 3-14 와 같은 사각지대) · 비고 열두 칸의 정합은 3-23, 구간·고지 시각은
+6-7 이 판정한다(두 번 세지 않는다) · **게이트가 아니다.**
+
+※ **신규 환경변수 0 · 신규 조회·쓰기·DDL 0 · 신규 런타임 체크 0 · 신규 사건 표지 0** — 이미
+적게 되어 있던 행을 읽는다(`lib/incidentRecord.ts`). CI 가 매번 **실제 `lib/lossNotice.ts`·
+`lib/remarkSlots.ts`·`lib/ledgerPurpose.ts`·헬스 라우트·이 문서 원문**을 점검한다 — 런타임
+게이트가 한계를 숨기거나, 행 부재 분기가 바뀌거나, 이 절·8단계의 유도가 사라지면 CI 실패다.
+
 ### 리허설 체크리스트
 
 > **이 목록은 판본이다 — 저장소 파일의 칸에는 체크하지 않는다.** 수행할 때는 이 목록을
@@ -3566,6 +3658,12 @@ node --input-type=module -e "import fs from 'node:fs';import {parseCoverageRecor
 - [ ] 지운 **뒤에** 같은 명령을 한 번 더 돌려 `lost` 가 비어 있다 — 표지를 다 지운 뒤 비어 있는
       값 칸은 **영구 유실**이고 `captureOpen` 이 `false` 로 바뀌면 되찾을 수 없다. 리허설에서는
       이것이 **유일하게 연습해 볼 수 있는 부분**이다(사건에서는 한 번뿐이다)
+- [ ] 표지를 지우기 **전에** 그 행이 **있는지** 6-10 명령으로 판정했다 — `verdict` 가
+      `recorded` 이고 `emptyCells` 가 비어 있고, `clearGate` 의 `clearable` 이 `true` 다.
+      런타임 게이트(`canClearMarkers`)는 **2번만** 보므로(`detail.unseen` 이 그 사실을 적어
+      둔다) 표에 한 줄도 없어도 `true` 가 나온다. 리허설이라면 행을 적기 **전에**
+      `unrecorded` 가 뜨는 것을 한 번 보는 것까지가 점검 대상이다 — 그 판정이 「지금이
+      적을 수 있는 마지막 시점」이라는 뜻이고, 지운 뒤에는 `no_incident`(평상시)로 돌아간다
 - [ ] `RECOVERY_RESTORE_POINT` 를 지웠다 — `checks.lossNotice.detail.state` 가 `normal`
 - [ ] `RECOVERY_WRITE_FREEZE_AT` 를 지웠다 — `checks.incidentClosure.detail.state` 가 `normal`
 - [ ] `RECOVERY_EVIDENCE_PRESERVED_AT` 를 지웠다 — `checks.incidentClosure.detail.evidenceState` 가

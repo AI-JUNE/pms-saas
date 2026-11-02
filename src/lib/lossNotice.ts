@@ -231,6 +231,22 @@ export const CAVEAT_WINDOW_IS_TIME_ONLY_HERE =
   '고지한 구간은 **시간 범위**다 — 누구의 어떤 데이터가 그 안에 있었는지는 §3-5 보존본과 대조해야 알 수 있다. ' +
   '「영향 없음」을 구간만으로 말하지 않는다';
 
+/**
+ * 8단계 4번은 「**2·3번**이 끝났는지 본다」고 지시하면서 아래 판정을 인용하는데, `blockers`
+ * 는 **2번만** 본다 — 런타임이 `RUNBOOK.md` 를 읽지 않아 §6 표에 사건 행이 적혔는지 알 수 없다.
+ * 그래서 표에 한 줄도 없어도 `canClearMarkers: true` 가 나온다. 그 자리는 §6-10 이 저장소
+ * 명령·CI 로 메운다 — **여기서는 보지 못한다는 사실을 숨기지 않는다**(`unseen`).
+ */
+export const CAVEAT_ROW_RECORD_UNSEEN =
+  '이 게이트는 8단계 **2번**만 본다 — 3번(§6 표 사건 행 기록)은 저장소 문서라 런타임이 읽지 못한다. ' +
+  '`unseen` 에 그 항목을 적어 두고, 지우기 전에 §6-10 의 저장소 명령으로 함께 판정한다';
+
+/** 이 게이트가 **보지 못하는** 선행 조건. 8단계 4번은 이것까지 끝났다고 전제한다(§6-10) */
+export const CLEAR_GATE_UNSEEN: readonly string[] = [
+  '8단계 3번 — §6 표에 **사건 행**을 적었는가(§6-10 `assessIncidentRecord`)',
+  '8단계 3번 — 그 행의 필수 칸·비고 열두 칸을 적었는가(§6-10 · §3-23)',
+];
+
 /** 고지 기록이 보장하지 **못하는** 것. 응답·RUNBOOK 에 그대로 실어 보낸다 */
 export const NOTICE_LIMITS: readonly string[] = [
   CAVEAT_RECORD_IS_A_CLAIM,
@@ -243,6 +259,7 @@ export const NOTICE_LIMITS: readonly string[] = [
     '되돌아간다. 그 근거 상태는 `audienceVerdict`(§3-16)가 같은 자리에서 말한다',
   '「유실」이라 고지한 행이 **아직 읽을 수 있는 곳에 있을 수 있다** — 전환은 연결 문자열만 바꾸므로 원본 ' +
     '브랜치가 그대로 남고 그 구간의 행은 거기에만 있다. 그 국면은 `sourceVerdict`(§3-18)가 같은 자리에서 말한다',
+  CAVEAT_ROW_RECORD_UNSEEN,
 ];
 
 export interface NoticeInput {
@@ -271,6 +288,11 @@ export interface NoticeAssessment {
   canClearMarkers: boolean;
   /** 삭제를 막는 이유. 비어 있을 때만 지운다 */
   blockers: string[];
+  /**
+   * 이 게이트가 **보지 못하는** 선행 조건(8단계 3번). `blockers` 가 비었다는 것이
+   * 「2·3번이 끝났다」는 뜻이 아니다 — 그 판정은 §6-10 의 저장소 명령이 한다.
+   */
+  unseen: readonly string[];
   action: string;
   caveats: string[];
 }
@@ -340,6 +362,8 @@ export function assessNotice(input?: NoticeInput): NoticeAssessment {
     freezeAtRecorded,
     canClearMarkers: blockers.length === 0,
     blockers,
+    // 평상시(지울 표지가 없다)에는 3번을 물을 사건도 없다 — 거짓 경보를 만들지 않는다.
+    unseen: state === 'normal' ? [] : CLEAR_GATE_UNSEEN,
     action: ACTION[state],
     caveats,
   };
@@ -485,6 +509,8 @@ export function lossNoticeCheck(args?: { env?: Record<string, string | undefined
       noticedAt: a.noticedAt,
       canClearMarkers: a.canClearMarkers,
       blockers: a.blockers,
+      /** 이 게이트가 보지 못하는 선행 조건(8단계 3번) — 판정은 §6-10 이 한다 */
+      unseen: a.unseen,
       switchKey: WRITE_FREEZE_ENV,
       restorePointKey: RESTORE_POINT_ENV,
       recordKey: NOTICE_AT_ENV,
