@@ -913,9 +913,10 @@ function warnIfTruncated(p, d, maxTok){
 
 async function callLLM(system, user, maxTok=1100){
   const p=S.provider, cfg=S.api[p];
+  // 키 확인을 먼저 — 키가 없어 실제로 나가지 않는 호출은 확인창·감사 기록에 남기지 않는다(#33 K3)
+  if(!cfg.key) throw new Error(PROVIDER_META[p].name+' API 키가 설정되지 않았습니다. (API 연동 메뉴)');
   if(!(await confirmExternalSend({provider:p,endpointHost:hostOf(p),dataKinds:['제안서 품질분석 자료'],fieldCount:1,maskApplied:true,fileBase64Included:false}))) throw new Error('사용자가 외부 LLM 전송을 취소했습니다');
   try{ logExternalSend({app:'EQM',provider:p,endpointHost:hostOf(p),dataKinds:['품질분석'],charCount:(user||'').length,fieldCount:1,maskApplied:true,fileBase64Included:false}); }catch(e){}
-  if(!cfg.key) throw new Error(PROVIDER_META[p].name+' API 키가 설정되지 않았습니다. (API 연동 메뉴)');
   const base=(cfg.base||'').trim().replace(/\/+$/,'');
   if(p==='claude'){
     const res=await fetchT((base||'https://api.anthropic.com')+'/v1/messages',{method:'POST',signal:S.abortCtl?.signal,
@@ -1037,10 +1038,12 @@ function pReval(c, base){
 function pExtract(c){
   const sc=inspectScope();
   const sys='평가 가능한 요구사항만 정밀 추출하는 전문가. 한국어, JSON만.';
-  const src = sc.hasR ? '[RFP 발췌]\n'+c.rfp.text+'\n\nRFP에서 필수/선택 요구사항을 10~14개 추출.'
+  // 정밀 모드 첫 호출도 materials() 와 같이 가린 뒤 보낸다(#33 K1)
+  const maskExcerpt=t=>maskSensitive(t||'',{oneWay:true}).masked;
+  const src = sc.hasR ? '[RFP 발췌]\n'+maskExcerpt(c.rfp.text)+'\n\nRFP에서 필수/선택 요구사항을 10~14개 추출.'
     : (sc.target==='summary'
-        ? '[발표본 발췌]\n'+c.summary.text+'\n\n발표본이 갖춰야 할 핵심 메시지·평가 항목을 8~12개 도출.'
-        : '[제안서 발췌]\n'+c.proposal.text+'\n\n일반 평가기준과 제안서에서 핵심 요구사항을 8~12개 추론.');
+        ? '[발표본 발췌]\n'+maskExcerpt(c.summary.text)+'\n\n발표본이 갖춰야 할 핵심 메시지·평가 항목을 8~12개 도출.'
+        : '[제안서 발췌]\n'+maskExcerpt(c.proposal.text)+'\n\n일반 평가기준과 제안서에서 핵심 요구사항을 8~12개 추론.');
   const usr=src+' {"requirements":[{"id":"R1","text":"...","mandatory":true,"category":"req|compliance|risk|evidence"}]} 형식만.';
   return {sys,usr};
 }
@@ -1120,10 +1123,10 @@ async function runPipeline(){
     setStep(2,'active');
     const pa=pAnalysis(c);
     if(extracted&&extracted.requirements) pa.usr+='\n[추출된 요구사항 참고]\n'+JSON.stringify(extracted.requirements);
-    let ra=await callLLM(pa.sys,pa.usr,3200); logCall('통합 품질분석',ra.usage); stepTok(2,fmt(ra.usage.in+ra.usage.out)+' tok');
+    let ra=await callLLM(pa.sys,pa.usr,5000);  /* 10-23 실측: 요구사항 10개 표본도 3200 에서 잘려 JSON 해석 실패 → 5000(재시도 6500) */ logCall('통합 품질분석',ra.usage); stepTok(2,fmt(ra.usage.in+ra.usage.out)+' tok');
     base=parseJSON(ra.text);
     if(!base && !S.cancelled){
-      const ra2=await callLLM(pa.sys+' 반드시 유효한 JSON 객체 하나만, 코드블록·설명 없이 출력.', pa.usr, 3400);
+      const ra2=await callLLM(pa.sys+' 반드시 유효한 JSON 객체 하나만, 코드블록·설명 없이 출력.', pa.usr, 6500);
       logCall('통합 품질분석(재시도)',ra2.usage); stepTok(2,fmt((ra.usage.in+ra.usage.out)+(ra2.usage.in+ra2.usage.out))+' tok');
       base=parseJSON(ra2.text);
     }

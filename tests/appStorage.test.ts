@@ -13,6 +13,12 @@ function keysUsed(html: string): string[] {
   const consts: Record<string, string> = {};
   // `const A='x', B='y'` 처럼 한 줄에 여러 개 선언한 경우도 읽는다
   for (const m of html.matchAll(/(?:(?:const|let|var)\s+|,\s*)([A-Z_][A-Z0-9_]*)\s*=\s*['"]([^'"]+)['"]/g)) consts[m[1]] = m[2];
+  // 다른 상수로 만든 키(3005 `KEY=…?KEY_BASE+'::'+고객사:KEY_BASE`, 10-30)는 그 상수 값으로 시작한다 → 앞부분 값으로 본다
+  for (const m of html.matchAll(/(?:const|let|var)\s+([A-Z_][A-Z0-9_]*)\s*=\s*([^;\n]+)/g)) {
+    if (consts[m[1]]) continue;
+    const ref = [...m[2].matchAll(/\b([A-Z_][A-Z0-9_]*)\b/g)].map((r) => r[1]).find((r) => consts[r]);
+    if (ref) consts[m[1]] = consts[ref];
+  }
   const out = new Set<string>();
   for (const m of html.matchAll(/localStorage\.setItem\(\s*(['"][^'"]+['"]|[A-Z_][A-Z0-9_]*)/g)) {
     const a = m[1];
